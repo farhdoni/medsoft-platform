@@ -1,0 +1,12 @@
+{
+  "name": "medsoft-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter @medsoft/api dev",
+    "dev:admin": "pnpm --filter @medsoft/admin dev",
+    "build": "pnpm --filter @medsoft/api build && pnpm --filter @medsoft/admin build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
