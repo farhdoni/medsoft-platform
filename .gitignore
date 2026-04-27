@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+.turbo/
+*.log
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+/apps/admin/.next/
+/apps/api/dist/
+/packages/db/migrations/meta/
+drizzle/
