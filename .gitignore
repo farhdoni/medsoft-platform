@@ -13,3 +13,4 @@ Thumbs.db
 /apps/api/dist/
 /packages/db/migrations/meta/
 drizzle/
+.github/workflows/
