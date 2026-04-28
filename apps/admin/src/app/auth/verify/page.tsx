@@ -11,7 +11,7 @@ export default function VerifyPage() {
   const [status, setStatus] = useState<'verifying' | 'error'>('verifying');
 
   useEffect(() => {
-    const token = params.get('token');
+    const token = params?.get('token');
     if (!token) { setStatus('error'); return; }
 
     api.post<{ step: string; tempToken: string }>('/v1/auth/verify-magic-link', { token })
