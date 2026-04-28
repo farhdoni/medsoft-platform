@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
 
+// All pages require authentication and are user-specific — never statically pre-rendered
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'MedSoft Admin',
   description: 'Панель управления MedSoft',
