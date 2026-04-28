@@ -18,6 +18,8 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Workspace root files needed so pnpm resolves binaries from root node_modules
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
 # hoisted linker puts everything in root node_modules — no per-package node_modules dirs exist
 COPY --from=deps /app/node_modules ./node_modules
 COPY packages/shared ./packages/shared
