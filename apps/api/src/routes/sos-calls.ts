@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '@medsoft/db';
-import { sosCalls } from '@medsoft/db/schema';
+import { sosCalls } from '@medsoft/db';
 import { eq, isNull, and } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import { updateSosCallSchema, sosCallFiltersSchema } from '@medsoft/shared';

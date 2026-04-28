@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '@medsoft/db';
-import { patients, doctors, clinics, appointments, transactions, sosCalls } from '@medsoft/db/schema';
+import { patients, doctors, clinics, appointments, transactions, sosCalls } from '@medsoft/db';
 import { isNull, eq, gte, and, sum, count } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { db } from '@medsoft/db';
-import { adminUsers, adminSessions } from '@medsoft/db/schema';
+import { adminUsers, adminSessions } from '@medsoft/db';
 import { eq, and, gt, isNull } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcrypt';

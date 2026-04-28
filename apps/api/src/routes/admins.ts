@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '@medsoft/db';
-import { adminUsers } from '@medsoft/db/schema';
+import { adminUsers } from '@medsoft/db';
 import { eq, ilike, and, or } from 'drizzle-orm';
 import { requireAuth, requireSuperadmin } from '../middleware/auth.js';
 import { createAdminSchema, updateAdminSchema, adminFiltersSchema } from '@medsoft/shared';

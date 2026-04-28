@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '@medsoft/db';
-import { doctors } from '@medsoft/db/schema';
+import { doctors } from '@medsoft/db';
 import { eq, isNull, ilike, and, or } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import { createDoctorSchema, updateDoctorSchema, doctorFiltersSchema } from '@medsoft/shared';

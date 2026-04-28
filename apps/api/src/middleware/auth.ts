@@ -2,7 +2,7 @@ import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
 import { verifyToken } from '../lib/jwt.js';
 import { db } from '@medsoft/db';
-import { adminUsers, adminSessions } from '@medsoft/db/schema';
+import { adminUsers, adminSessions } from '@medsoft/db';
 import { eq, and, gt, isNull } from 'drizzle-orm';
 
 type AdminPayload = {
