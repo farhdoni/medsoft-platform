@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS "doctors" (
 	"photo_url" text,
 	"education" text[],
 	"certifications" text[],
-	"languages" text[] DEFAULT uz,ru NOT NULL,
+	"languages" text[] DEFAULT '{uz,ru}' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
