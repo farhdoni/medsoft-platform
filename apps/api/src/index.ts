@@ -6,6 +6,11 @@ import { env } from './env.js';
 import { initJwt } from './lib/jwt.js';
 import { redis } from './lib/redis.js';
 import { logger } from './lib/logger.js';
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { auth } from './routes/auth.js';
 import { patientsRouter } from './routes/patients.js';
 import { doctorsRouter } from './routes/doctors.js';
@@ -42,8 +47,38 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal server error' }, 500);
 });
 
+async function runMigrationsAndSeed() {
+  const client = postgres(env.DATABASE_URL, { max: 1, idle_timeout: 10 });
+  const migDb = drizzle(client);
+  try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    // In Docker: /app/apps/api/src/index.ts -> /app/packages/db/migrations
+    const migrationsFolder = path.resolve(__dirname, '../../../packages/db/migrations');
+    logger.info('Running DB migrations from: ' + migrationsFolder);
+    await migrate(migDb, { migrationsFolder });
+    logger.info('Migrations complete.');
+
+    // Seed superadmin (idempotent)
+    const { db: appDb, adminUsers } = await import('@medsoft/db');
+    const { eq } = await import('drizzle-orm');
+    const email = env.SEED_SUPERADMIN_EMAIL ?? 'farhodni@gmail.com';
+    await appDb.insert(adminUsers).values({
+      email,
+      fullName: 'Super Admin',
+      role: 'superadmin',
+      isActive: true,
+    }).onConflictDoNothing();
+    logger.info({ email }, 'Superadmin ensured.');
+  } catch (err) {
+    logger.error({ err }, 'Migration/seed error — continuing anyway');
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
 async function main() {
   await initJwt();
+  await runMigrationsAndSeed();
 
   // Connect to Redis - non-fatal: server still starts if Redis is temporarily unavailable
   redis.connect().catch((err) => {
