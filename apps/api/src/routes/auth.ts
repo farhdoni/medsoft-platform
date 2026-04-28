@@ -5,7 +5,7 @@ import { db } from '@medsoft/db';
 import { adminUsers, adminSessions } from '@medsoft/db';
 import { eq, and, gt, isNull } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { redis } from '../lib/redis.js';
 import { sendMagicLink } from '../lib/email.js';
 import { signAccessToken, signRefreshToken, signTempToken, verifyToken } from '../lib/jwt.js';
