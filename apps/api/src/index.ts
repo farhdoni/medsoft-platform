@@ -7,8 +7,6 @@ import { initJwt } from './lib/jwt.js';
 import { redis } from './lib/redis.js';
 import { logger } from './lib/logger.js';
 import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { auth } from './routes/auth.js';
@@ -49,18 +47,34 @@ app.onError((err, c) => {
 
 async function runMigrationsAndSeed() {
   const client = postgres(env.DATABASE_URL, { max: 1, idle_timeout: 10 });
-  const migDb = drizzle(client);
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    // In Docker: /app/apps/api/src/index.ts -> /app/packages/db/migrations
+    // Docker layout: /app/apps/api/src/index.ts → /app/packages/db/migrations
     const migrationsFolder = path.resolve(__dirname, '../../../packages/db/migrations');
-    logger.info('Running DB migrations from: ' + migrationsFolder);
-    await migrate(migDb, { migrationsFolder });
-    logger.info('Migrations complete.');
+    logger.info({ migrationsFolder }, 'Running DB migrations');
+
+    // Read SQL files from migrations folder and execute each one
+    const fs = await import('fs');
+    const migrationsExist = fs.existsSync(migrationsFolder);
+    if (!migrationsExist) {
+      logger.warn('Migrations folder not found, skipping.');
+    } else {
+      const sqlFiles = fs.readdirSync(migrationsFolder)
+        .filter((f: string) => f.endsWith('.sql'))
+        .sort();
+      for (const file of sqlFiles) {
+        const sql = fs.readFileSync(path.join(migrationsFolder, file), 'utf-8');
+        // Split on drizzle statement-breakpoint marker and execute each statement
+        const statements = sql.split('--> statement-breakpoint').map((s: string) => s.trim()).filter(Boolean);
+        for (const stmt of statements) {
+          await client.unsafe(stmt);
+        }
+      }
+      logger.info({ count: sqlFiles.length }, 'Migrations applied.');
+    }
 
     // Seed superadmin (idempotent)
     const { db: appDb, adminUsers } = await import('@medsoft/db');
-    const { eq } = await import('drizzle-orm');
     const email = env.SEED_SUPERADMIN_EMAIL ?? 'farhodni@gmail.com';
     await appDb.insert(adminUsers).values({
       email,
