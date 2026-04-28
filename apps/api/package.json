@@ -2,7 +2,6 @@
   "name": "@medsoft/api",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "echo 'No compile step — tsx runs TS directly'",
