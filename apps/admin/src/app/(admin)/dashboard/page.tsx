@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Users, Stethoscope, Building2, Calendar, AlertTriangle, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 

@@ -14,6 +14,8 @@
     "@hono/zod-validator": "^0.2.2",
     "@medsoft/db": "workspace:*",
     "@medsoft/shared": "workspace:*",
+    "drizzle-orm": "^0.30.10",
+    "postgres": "^3.4.4",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.0.0",
     "@types/speakeasy": "^2.0.10",
