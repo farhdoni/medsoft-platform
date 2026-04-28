@@ -18,10 +18,8 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-# node_modules/@medsoft/shared is a real directory with full source
+# hoisted linker puts everything in root node_modules — no per-package node_modules dirs exist
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
 COPY packages/shared ./packages/shared
 COPY apps/admin ./apps/admin
 WORKDIR /app/apps/admin

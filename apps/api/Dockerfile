@@ -19,12 +19,8 @@ FROM node:22-alpine AS runner
 RUN corepack enable pnpm
 WORKDIR /app
 ENV NODE_ENV=production
-# node_modules/@medsoft/* are real directories here (Docker resolved symlinks)
-# containing the full source because packages were present in deps stage.
+# hoisted linker puts everything in root node_modules — no per-package node_modules dirs exist
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 # Copy latest source (same commit, ensures freshness)
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
