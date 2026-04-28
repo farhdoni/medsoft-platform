@@ -44,7 +44,11 @@ app.onError((err, c) => {
 
 async function main() {
   await initJwt();
-  await redis.connect();
+
+  // Connect to Redis - non-fatal: server still starts if Redis is temporarily unavailable
+  redis.connect().catch((err) => {
+    logger.warn({ err }, 'Redis initial connect failed — will retry automatically');
+  });
 
   serve({ fetch: app.fetch, port: env.PORT }, (info) => {
     logger.info(`Server running on port ${info.port}`);
