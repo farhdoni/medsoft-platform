@@ -25,6 +25,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api
-WORKDIR /app/apps/api
+WORKDIR /app
 EXPOSE 3001
-CMD ["node_modules/.bin/tsx", "src/index.ts"]
+CMD ["/app/node_modules/.bin/tsx", "apps/api/src/index.ts"]
