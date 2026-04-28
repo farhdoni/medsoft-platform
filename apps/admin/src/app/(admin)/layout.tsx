@@ -1,10 +1,5 @@
-import dynamic from 'next/dynamic';
 import { Sidebar } from '@/components/layout/sidebar';
-
-const CommandPalette = dynamic(
-  () => import('@/components/command-palette').then((m) => m.CommandPalette),
-  { ssr: false }
-);
+import { CommandPalette } from '@/components/command-palette';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
