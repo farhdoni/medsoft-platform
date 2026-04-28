@@ -5,8 +5,10 @@ FROM base AS deps
 WORKDIR /app
 # Force development mode so devDependencies (typescript, etc.) are installed
 ENV NODE_ENV=development
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
-COPY packages/shared/package.json ./packages/shared/
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
+# Copy workspace package sources BEFORE pnpm install so that symlinks
+# resolve to full source (Docker COPY follows symlinks when copying node_modules).
+COPY packages/shared ./packages/shared
 COPY apps/admin/package.json ./apps/admin/
 RUN pnpm install --no-frozen-lockfile
 
@@ -16,16 +18,12 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# node_modules/@medsoft/shared is a real directory with full source
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
-# Copy source code
 COPY packages/shared ./packages/shared
 COPY apps/admin ./apps/admin
-# Docker COPY follows symlinks, so node_modules/@medsoft/shared only got the
-# package.json snapshot from deps (no src/). Re-create symlink to real source.
-RUN rm -rf /app/node_modules/@medsoft/shared \
-    && ln -s /app/packages/shared /app/node_modules/@medsoft/shared
 WORKDIR /app/apps/admin
 RUN pnpm build
 
