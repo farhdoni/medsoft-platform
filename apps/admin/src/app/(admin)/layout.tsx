@@ -1,7 +1,18 @@
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { CommandPalette } from '@/components/command-palette';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+// Server-side auth guard: redirects to /auth/login if no access_token cookie present.
+// Runs on every request because root layout uses `dynamic = 'force-dynamic'`.
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('access_token');
+
+  if (!token) {
+    redirect('/auth/login');
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
