@@ -30,7 +30,7 @@ const QUESTIONS = [
   },
 ];
 
-export default function SystemTestPage({ params }: { params: { systemId: string } }) {
+export default function SystemTestPage({ params }: { params: Promise<{ systemId: string }> }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<number[]>(new Array(QUESTIONS.length).fill(3));
   const [done, setDone] = useState(false);

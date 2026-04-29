@@ -18,6 +18,17 @@ import { transactionsRouter } from './routes/transactions.js';
 import { sosCallsRouter } from './routes/sos-calls.js';
 import { adminsRouter } from './routes/admins.js';
 import { dashboardRouter } from './routes/dashboard.js';
+// Aivita routes
+import { aivitaAuthRouter } from './routes/aivita/auth.js';
+import { aivitaUsersRouter } from './routes/aivita/users.js';
+import { aivitaHealthProfileRouter } from './routes/aivita/health-profile.js';
+import { aivitaHealthScoreRouter } from './routes/aivita/health-score.js';
+import { aivitaHabitsRouter } from './routes/aivita/habits.js';
+import { aivitaNutritionRouter } from './routes/aivita/nutrition.js';
+import { aivitaChatRouter } from './routes/aivita/chat.js';
+import { aivitaFamilyRouter } from './routes/aivita/family.js';
+import { aivitaNotificationsRouter } from './routes/aivita/notifications.js';
+import { aivitaReportsRouter } from './routes/aivita/reports.js';
 
 const app = new Hono();
 
@@ -39,6 +50,17 @@ app.route('/v1/transactions', transactionsRouter);
 app.route('/v1/sos-calls', sosCallsRouter);
 app.route('/v1/admins', adminsRouter);
 app.route('/v1/dashboard', dashboardRouter);
+// Aivita
+app.route('/v1/aivita/auth', aivitaAuthRouter);
+app.route('/v1/aivita/users', aivitaUsersRouter);
+app.route('/v1/aivita/health-profile', aivitaHealthProfileRouter);
+app.route('/v1/aivita/health-score', aivitaHealthScoreRouter);
+app.route('/v1/aivita/habits', aivitaHabitsRouter);
+app.route('/v1/aivita/nutrition', aivitaNutritionRouter);
+app.route('/v1/aivita/chat', aivitaChatRouter);
+app.route('/v1/aivita/family', aivitaFamilyRouter);
+app.route('/v1/aivita/notifications', aivitaNotificationsRouter);
+app.route('/v1/aivita/reports', aivitaReportsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
