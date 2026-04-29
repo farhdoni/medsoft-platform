@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base-1: 253 251 252;
+    --bg-base-2: 245 243 247;
+    --bg-base-3: 240 247 251;
+    --text-primary: 10 25 41;
+    --text-secondary: 74 99 120;
+    --text-tertiary: 90 127 163;
+    --text-muted: 138 166 191;
+    --blue-50: 240 247 251;
+    --blue-200: 180 220 240;
+    --blue-500: 122 181 212;
+    --blue-700: 44 95 124;
+    --mint-100: 218 240 232;
+    --mint-300: 200 235 225;
+    --mint-500: 45 186 154;
+    --mint-700: 26 139 115;
+    --pink-50: 253 244 248;
+    --pink-100: 253 228 236;
+    --pink-200: 255 218 232;
+    --pink-300: 255 205 220;
+    --pink-400: 255 200 216;
+    --pink-500: 212 132 154;
+    --pink-600: 192 112 134;
+    --pink-700: 176 104 128;
+    --red-100: 255 200 180;
+    --red-500: 214 85 56;
+    --red-700: 184 71 45;
+    --violet-100: 220 225 245;
+    --violet-300: 184 164 240;
+    --violet-700: 111 79 156;
+    --border-soft: 120 160 200 / 0.15;
+    --border-medium: 120 160 200 / 0.25;
+    --shadow-soft: 0 12px 30px rgb(15 80 120 / 0.06);
+    --shadow-medium: 0 20px 50px rgb(15 80 120 / 0.1);
+    --shadow-strong: 0 30px 80px rgb(15 80 120 / 0.15);
+    --shadow-pink: 0 12px 30px rgb(212 132 154 / 0.2);
+    --shadow-pink-strong: 0 20px 50px rgb(212 132 154 / 0.3);
+    --shadow-mint: 0 12px 30px rgb(45 186 154 / 0.2);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: rgb(var(--bg-base-1));
+    color: rgb(var(--text-primary));
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .bg-radial-blue { background: radial-gradient(circle, rgba(180,220,240,0.4) 0%, transparent 70%); }
+  .bg-radial-pink { background: radial-gradient(circle, rgba(255,205,220,0.5) 0%, transparent 70%); }
+  .bg-radial-pink-light { background: radial-gradient(circle, rgba(255,218,232,0.4) 0%, transparent 70%); }
+  .bg-radial-mint { background: radial-gradient(circle, rgba(200,235,225,0.45) 0%, transparent 70%); }
+  .bg-grid-pattern {
+    background-image: linear-gradient(rgba(120,160,200,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(120,160,200,0.04) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse 100% 80% at 50% 50%, black 50%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 100% 80% at 50% 50%, black 50%, transparent 100%);
+  }
+}
