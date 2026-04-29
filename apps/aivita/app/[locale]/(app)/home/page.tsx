@@ -1,12 +1,60 @@
 import Link from 'next/link';
-import { Shield, FileText, MessageCircle, ClipboardList, Heart, Droplets, Footprints, TrendingUp } from 'lucide-react';
+import { cookies } from 'next/headers';
+import {
+  Shield, FileText, MessageCircle, ClipboardList,
+  Heart, Droplets, Footprints, TrendingUp,
+} from 'lucide-react';
 import { AppHeader } from '@/components/app/app-header';
 import { HealthScoreCircle } from '@/components/shared/health-score-circle';
+import { api } from '@/lib/api-client';
 
-export default function HomePage() {
+async function getHomeData(sessionCookie: string) {
+  const [scoreRes, notifRes] = await Promise.allSettled([
+    api.healthScore.latest(sessionCookie),
+    api.notifications.list(sessionCookie),
+  ]);
+
+  const score =
+    scoreRes.status === 'fulfilled' && 'data' in scoreRes.value
+      ? (scoreRes.value.data as { totalScore?: number } | null)
+      : null;
+
+  const notifData =
+    notifRes.status === 'fulfilled' && 'data' in notifRes.value
+      ? (notifRes.value as { data: unknown[]; unreadCount: number })
+      : { data: [], unreadCount: 0 };
+
+  return {
+    healthScore: score?.totalScore ?? null,
+    hasNotifications: notifData.unreadCount > 0,
+  };
+}
+
+function parseSession(raw: string) {
+  try {
+    return JSON.parse(Buffer.from(raw, 'base64').toString('utf-8')) as {
+      name?: string;
+      userId?: string;
+    };
+  } catch {
+    return { name: 'Пользователь', userId: 'demo' };
+  }
+}
+
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const session = parseSession(sessionCookie);
+
+  const { healthScore, hasNotifications } = await getHomeData(sessionCookie);
+
+  const displayScore = healthScore ?? 72;
+  const userName = session.name ?? 'Пользователь';
+  const firstName = userName.split(' ')[0];
+
   return (
     <div className="min-h-screen">
-      <AppHeader name="Азиз" hasNotifications={true} />
+      <AppHeader name={firstName} hasNotifications={hasNotifications} />
 
       <div className="px-5 space-y-4 pb-6">
 
@@ -19,19 +67,30 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-5xl font-light text-navy tabular-nums">87</span>
+                <span className="text-5xl font-light text-navy tabular-nums">{displayScore}</span>
                 <span className="text-lg text-[rgb(var(--text-muted))]">/ 100</span>
               </div>
               <p className="text-xs text-[rgb(var(--text-secondary))] mb-2">
-                Тебе 32, а здоровью{' '}
-                <em className="font-serif italic text-emerald-600 not-italic">29 лет</em>
+                {healthScore
+                  ? 'Актуальные данные из профиля'
+                  : 'Пройди тест чтобы узнать свой счёт'}
               </p>
-              <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-medium border border-emerald-100">
-                <TrendingUp className="w-3 h-3" />
-                +3 за неделю
-              </span>
+              {healthScore && (
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-medium border border-emerald-100">
+                  <TrendingUp className="w-3 h-3" />
+                  Обновлён сегодня
+                </span>
+              )}
+              {!healthScore && (
+                <Link
+                  href="/test"
+                  className="inline-flex items-center gap-1 text-xs bg-pink-50 text-pink-600 px-2.5 py-1 rounded-full font-medium border border-pink-100 hover:bg-pink-100 transition-colors"
+                >
+                  Пройти тест →
+                </Link>
+              )}
             </div>
-            <HealthScoreCircle score={87} size={96} animate={false} strokeWidth={5} />
+            <HealthScoreCircle score={displayScore} size={96} animate={false} strokeWidth={5} />
           </div>
         </div>
 
@@ -46,12 +105,11 @@ export default function HomePage() {
                 AI · СЕГОДНЯ
               </p>
               <p className="text-sm text-navy leading-relaxed">
-                Сон{' '}
-                <em className="font-serif italic text-emerald-600 not-italic">отлично</em>
-                . Совет: добавь 500мл воды до обеда.
+                Привет, <em className="font-serif italic text-pink-500 not-italic">{firstName}!</em>{' '}
+                Задай любой вопрос о здоровье — я на связи.
               </p>
               <Link href="/chat" className="inline-flex items-center gap-1 mt-2 text-xs text-pink-500 font-medium hover:text-pink-600 transition-colors">
-                Обсудить с AI →
+                Открыть AI-чат →
               </Link>
             </div>
           </div>
