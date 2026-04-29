@@ -20,10 +20,21 @@ type Doctor = {
   phone: string;
   email: string;
   specialization: string;
+  licenseNumber: string;
   status: string;
   ratingAvg: string | null;
   createdAt: string;
 };
+
+type DoctorForm = {
+  fullName: string;
+  phone: string;
+  email: string;
+  specialization: string;
+  licenseNumber: string;
+};
+
+const emptyForm: DoctorForm = { fullName: '', phone: '', email: '', specialization: '', licenseNumber: '' };
 
 export default function DoctorsPage() {
   const qc = useQueryClient();
@@ -31,7 +42,7 @@ export default function DoctorsPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
-  const [form, setForm] = useState({ fullName: '', phone: '', email: '', specialization: '', licenseNumber: '' });
+  const [form, setForm] = useState<DoctorForm>(emptyForm);
 
   const { data, isLoading } = useQuery({
     queryKey: ['doctors', page, search],
@@ -39,9 +50,15 @@ export default function DoctorsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: typeof form) => api.post('/v1/doctors', body),
+    mutationFn: (body: DoctorForm) => api.post('/v1/doctors', body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Врач создан'); setDialogOpen(false); },
     onError: () => toast.error('Ошибка при создании'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Partial<DoctorForm> }) => api.patch(`/v1/doctors/${id}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Врач обновлён'); setDialogOpen(false); },
+    onError: () => toast.error('Ошибка при обновлении'),
   });
 
   const deleteMutation = useMutation({
@@ -49,6 +66,33 @@ export default function DoctorsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Удалено'); },
     onError: () => toast.error('Ошибка'),
   });
+
+  function openCreate() {
+    setEditing(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  }
+
+  function openEdit(doctor: Doctor) {
+    setEditing(doctor);
+    setForm({
+      fullName: doctor.fullName,
+      phone: doctor.phone,
+      email: doctor.email,
+      specialization: doctor.specialization,
+      licenseNumber: doctor.licenseNumber,
+    });
+    setDialogOpen(true);
+  }
+
+  function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, body: form });
+    } else {
+      createMutation.mutate(form);
+    }
+  }
 
   const columns: ColumnDef<Doctor>[] = [
     { accessorKey: 'fullName', header: 'ФИО' },
@@ -61,32 +105,77 @@ export default function DoctorsPage() {
       id: 'actions', header: '',
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button size="icon" variant="ghost" onClick={() => { setEditing(row.original); setDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-          <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { if (confirm('Удалить?')) deleteMutation.mutate(row.original.id); }}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => openEdit(row.original)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="text-destructive" onClick={() => {
+            if (confirm('Удалить врача?')) deleteMutation.mutate(row.original.id);
+          }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },
   ];
 
+  const fields: [string, keyof DoctorForm][] = [
+    ['ФИО', 'fullName'],
+    ['Телефон', 'phone'],
+    ['Email', 'email'],
+    ['Специализация', 'specialization'],
+    ['Номер лицензии', 'licenseNumber'],
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">Врачи</h1><p className="text-muted-foreground">Управление врачами</p></div>
-        <Button onClick={() => { setEditing(null); setForm({ fullName: '', phone: '', email: '', specialization: '', licenseNumber: '' }); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-2" />Добавить</Button>
+        <div>
+          <h1 className="text-2xl font-bold">Врачи</h1>
+          <p className="text-muted-foreground">Управление врачами</p>
+        </div>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Добавить</Button>
       </div>
-      <Input placeholder="Поиск..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="max-w-sm" />
-      <DataTable columns={columns} data={data?.data ?? []} total={data?.total ?? 0} page={page} pageSize={20} onPageChange={setPage} isLoading={isLoading} />
+
+      <Input
+        placeholder="Поиск..."
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+        className="max-w-sm"
+      />
+
+      <DataTable
+        columns={columns}
+        data={data?.data ?? []}
+        total={data?.total ?? 0}
+        page={page}
+        pageSize={20}
+        onPageChange={setPage}
+        isLoading={isLoading}
+      />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? 'Редактировать врача' : 'Новый врач'}</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(form); }} className="space-y-4">
-            {[['ФИО', 'fullName'], ['Телефон', 'phone'], ['Email', 'email'], ['Специализация', 'specialization'], ['Номер лицензии', 'licenseNumber']].map(([label, key]) => (
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Редактировать врача' : 'Новый врач'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4">
+            {fields.map(([label, key]) => (
               <div key={key} className="space-y-2">
                 <Label>{label} *</Label>
-                <Input value={(form as Record<string, string>)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} required />
+                <Input
+                  value={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                  required
+                />
               </div>
             ))}
-            <Button type="submit" className="w-full" disabled={createMutation.isPending}>Создать</Button>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {editing ? 'Сохранить' : 'Создать'}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
