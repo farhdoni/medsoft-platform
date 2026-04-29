@@ -40,9 +40,10 @@ function stripLocale(pathname: string): string {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip static assets
+  // Skip static assets and internal Next.js API routes
   if (
     pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/') ||
     pathname.startsWith('/icons') ||
     pathname.startsWith('/og') ||
     pathname.startsWith('/splash') ||
@@ -101,7 +102,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static files
-    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest|icons|og|splash).*)',
+    // Match all paths except static files and Next.js API routes
+    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest|icons|og|splash|api/).*)',
   ],
 };
