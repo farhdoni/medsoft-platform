@@ -22,8 +22,9 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  // If no API key, return mock response
-  if (!apiKey) {
+  // If no API key or obviously a placeholder, return mock response
+  const isRealKey = apiKey && apiKey.startsWith('sk-ant-api') && apiKey.length > 30;
+  if (!isRealKey) {
     const { messages } = await req.json();
     const lastMsg = messages?.[messages.length - 1]?.content ?? '';
     const mockResponse = getMockResponse(lastMsg);
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     userContext?: { name?: string; score?: number };
   };
 
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey: apiKey! });
 
   // Build system prompt with user context if available
   let systemPrompt = SYSTEM_PROMPT;
@@ -50,12 +51,23 @@ export async function POST(req: Request) {
     }
   }
 
-  const stream = await client.messages.stream({
+  let stream;
+  try {
+    stream = await client.messages.stream({
     model: 'claude-haiku-4-5',
     max_tokens: 1024,
     system: systemPrompt,
-    messages: messages.slice(-10), // last 10 messages for context
-  });
+      messages: messages.slice(-10),
+    });
+  } catch {
+    // Fall back to mock if Anthropic API fails (wrong key, rate limit, etc.)
+    const lastMsg = messages?.[messages.length - 1]?.content ?? '';
+    const mockResponse = getMockResponse(lastMsg);
+    return new Response(
+      JSON.stringify({ content: mockResponse, mock: true }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   const encoder = new TextEncoder();
 
