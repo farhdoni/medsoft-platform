@@ -188,12 +188,16 @@ auth.post('/verify-totp',
       .where(eq(adminUsers.id, admin.id));
 
     const isProd = env.NODE_ENV === 'production';
+    // domain: '.aivita.uz' shares the cookie across all subdomains
+    // (admin.aivita.uz reads the cookie set by api.aivita.uz)
+    const cookieDomain = isProd ? '.aivita.uz' : undefined;
     setCookie(c, 'access_token', accessToken, {
       httpOnly: true,
       secure: isProd,
       sameSite: 'Lax',
       maxAge: 15 * 60,
       path: '/',
+      domain: cookieDomain,
     });
     setCookie(c, 'refresh_token', refreshToken, {
       httpOnly: true,
@@ -201,6 +205,7 @@ auth.post('/verify-totp',
       sameSite: 'Lax',
       maxAge: 7 * 24 * 60 * 60,
       path: '/v1/auth/refresh',
+      domain: cookieDomain,
     });
 
     return c.json({
@@ -252,12 +257,14 @@ auth.post('/refresh', async (c) => {
   });
 
   const isProd = env.NODE_ENV === 'production';
+  const cookieDomain = isProd ? '.aivita.uz' : undefined;
   setCookie(c, 'access_token', accessToken, {
     httpOnly: true,
     secure: isProd,
     sameSite: 'Lax',
     maxAge: 15 * 60,
     path: '/',
+    domain: cookieDomain,
   });
 
   return c.json({ ok: true });
@@ -269,8 +276,10 @@ auth.post('/logout', requireAuth, async (c) => {
     .set({ revokedAt: new Date() })
     .where(eq(adminSessions.id, sessionId));
 
-  deleteCookie(c, 'access_token', { path: '/' });
-  deleteCookie(c, 'refresh_token', { path: '/v1/auth/refresh' });
+  const isProd = env.NODE_ENV === 'production';
+  const cookieDomain = isProd ? '.aivita.uz' : undefined;
+  deleteCookie(c, 'access_token', { path: '/', domain: cookieDomain });
+  deleteCookie(c, 'refresh_token', { path: '/v1/auth/refresh', domain: cookieDomain });
 
   return c.json({ ok: true });
 });
