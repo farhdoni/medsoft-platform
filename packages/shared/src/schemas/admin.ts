@@ -21,28 +21,18 @@ export const adminFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-export const sendMagicLinkSchema = z.object({
+export const loginSchema = z.object({
   email: z.string().email(),
+  password: z.string().min(1),
 });
 
-export const verifyMagicLinkSchema = z.object({
-  token: z.string().min(1),
-});
-
-export const verifyTotpSchema = z.object({
-  code: z.string().length(6).regex(/^\d+$/),
-  tempToken: z.string().min(1),
-});
-
-export const activateTotpSchema = z.object({
-  code: z.string().length(6).regex(/^\d+$/),
-  tempToken: z.string().min(1),
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(12, 'Password must be at least 12 characters'),
 });
 
 export type CreateAdminInput = z.infer<typeof createAdminSchema>;
 export type UpdateAdminInput = z.infer<typeof updateAdminSchema>;
 export type AdminFilters = z.infer<typeof adminFiltersSchema>;
-export type SendMagicLinkInput = z.infer<typeof sendMagicLinkSchema>;
-export type VerifyMagicLinkInput = z.infer<typeof verifyMagicLinkSchema>;
-export type VerifyTotpInput = z.infer<typeof verifyTotpSchema>;
-export type ActivateTotpInput = z.infer<typeof activateTotpSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

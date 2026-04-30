@@ -12,7 +12,10 @@ const envSchema = z.object({
   JWT_PUBLIC_KEY: z.string().optional(),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
-  MAGIC_LINK_EXPIRES_SECONDS: z.coerce.number().default(900),
+  // Seed env vars — set once to bootstrap the first superadmin password
+  SEED_SUPERADMIN_EMAIL: z.string().email().optional(),
+  SEED_SUPERADMIN_PASSWORD: z.string().optional(),
+  // Email / SMTP (kept for future notifications, not used for auth)
   EMAIL_PROVIDER: z.enum(['mock', 'smtp']).default('mock'),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),

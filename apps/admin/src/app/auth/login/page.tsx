@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,20 +10,22 @@ import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
-      await api.post('/v1/auth/magic-link', { email });
-      setSent(true);
-      toast.success('Ссылка отправлена. Проверьте почту (или логи сервера в режиме mock).');
-    } catch {
-      toast.error('Ошибка при отправке ссылки');
-    } finally {
+      await api.post('/v1/auth/login', { email, password });
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Ошибка при входе';
+      setError(message);
       setLoading(false);
     }
   }
@@ -34,43 +35,50 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white text-xl font-bold">M</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white text-xl font-bold">
+              M
+            </div>
           </div>
           <CardTitle className="text-2xl text-center">MedSoft Admin</CardTitle>
-          <CardDescription className="text-center">Введите email для входа</CardDescription>
+          <CardDescription className="text-center">
+            Войдите в панель администратора
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {sent ? (
-            <div className="text-center space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Ссылка для входа отправлена на <strong>{email}</strong>.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                В режиме разработки ссылка выводится в логи сервера.
-              </p>
-              <Button variant="outline" className="w-full" onClick={() => setSent(false)}>
-                Отправить снова
-              </Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                autoComplete="email"
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoFocus
-                />
+            <div className="space-y-2">
+              <Label htmlFor="password">Пароль</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            {error && (
+              <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Отправка...' : 'Получить ссылку для входа'}
-              </Button>
-            </form>
-          )}
+            )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Вход...' : 'Войти'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

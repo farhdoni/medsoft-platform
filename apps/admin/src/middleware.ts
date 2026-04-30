@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Routes accessible without authentication
-const PUBLIC_PATHS = ['/auth/login', '/auth/verify', '/auth/setup-2fa', '/auth/verify-2fa'];
+const PUBLIC_PATHS = ['/auth/login'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  // JWT access token — httpOnly cookie set by API on successful TOTP verify
+  // JWT access token — httpOnly cookie set by API on successful login
   const token = request.cookies.get('access_token')?.value;
 
   if (isPublic) {
@@ -31,12 +30,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except:
-     * - _next/static  (Next.js static assets)
-     * - _next/image   (Next.js image optimization)
-     * - favicon.ico, sitemap.xml, robots.txt
-     */
     '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 };

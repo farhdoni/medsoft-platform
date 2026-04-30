@@ -95,16 +95,32 @@ async function runMigrationsAndSeed() {
       logger.info({ count: sqlFiles.length }, 'Migrations applied.');
     }
 
-    // Seed superadmin (idempotent)
+    // Seed superadmin (idempotent — only creates if email doesn't exist yet)
+    // Password must be set separately via SEED_SUPERADMIN_PASSWORD env var
+    // or via the Coolify Terminal after first deploy.
     const { db: appDb, adminUsers } = await import('@medsoft/db');
+    const { default: bcryptSeed } = await import('bcryptjs');
     const email = env.SEED_SUPERADMIN_EMAIL ?? 'farhodni@gmail.com';
+    const rawPassword = env.SEED_SUPERADMIN_PASSWORD;
+    const passwordHash = rawPassword
+      ? await bcryptSeed.hash(rawPassword, 12)
+      : null;
+
     await appDb.insert(adminUsers).values({
       email,
-      fullName: 'Super Admin',
+      fullName: 'Farhod (Founder)',
       role: 'superadmin',
       isActive: true,
-    }).onConflictDoNothing();
-    logger.info({ email }, 'Superadmin ensured.');
+      ...(passwordHash ? { passwordHash } : {}),
+    }).onConflictDoUpdate({
+      target: adminUsers.email,
+      set: {
+        role: 'superadmin',
+        isActive: true,
+        ...(passwordHash ? { passwordHash } : {}),
+      },
+    });
+    logger.info({ email, hasPassword: !!passwordHash }, 'Superadmin ensured.');
   } catch (err) {
     logger.error({ err }, 'Migration/seed error — continuing anyway');
   } finally {

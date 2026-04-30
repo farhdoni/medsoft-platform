@@ -9,6 +9,12 @@ export const adminUsers = pgTable('admin_users', {
   role: adminRoleEnum('role').notNull().default('admin'),
   isActive: boolean('is_active').notNull().default(true),
 
+  // Password-based auth (replaces magic-link + TOTP)
+  passwordHash: text('password_hash'),
+  failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
+
+  // Legacy TOTP fields — kept for safe rollback, no longer used in auth flow
   totpSecret: text('totp_secret'),
   totpActivatedAt: timestamp('totp_activated_at', { withTimezone: true }),
   backupCodesHash: text('backup_codes_hash').array(),
