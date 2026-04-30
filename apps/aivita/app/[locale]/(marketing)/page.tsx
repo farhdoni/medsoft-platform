@@ -1,40 +1,46 @@
-import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { PublicNav } from '@/components/marketing/public-nav';
 import { HeroSection } from '@/components/marketing/hero';
 import { ProblemSection } from '@/components/marketing/problem';
 import { FeaturesSection } from '@/components/marketing/features';
 import { HowItWorksSection } from '@/components/marketing/how-it-works';
 import { PersonasSection } from '@/components/marketing/personas';
-import { StatsSection } from '@/components/marketing/stats';
 import { BigCtaSection } from '@/components/marketing/big-cta';
 import { FaqSection } from '@/components/marketing/faq';
 import { PublicFooter } from '@/components/marketing/public-footer';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
   const { locale } = await params;
+
   return {
-    title: 'aivita — твой Health Score, возраст здоровья и AI-помощник',
-    description: 'Превентивная медицинская платформа для Узбекистана. Health Score за 3 минуты, AI-помощник 24/7, цифровой паспорт здоровья. Бесплатно.',
-    keywords: 'health, здоровье, узбекистан, приложение, AI, медицинская платформа',
+    title: 'aivita — Ваш пожизненный куратор здоровья',
+    description:
+      'AIVITA — AI-ассистент на страже здоровья вашей семьи. Health Score, цифровой паспорт здоровья, AI-помощник, сканер документов. Бесплатно.',
+    keywords:
+      'aivita, здоровье, AI помощник, Health Score, паспорт здоровья, Узбекистан, Ташкент, медицина',
     openGraph: {
-      title: 'aivita — твой Health Score',
-      description: 'Превентивная медицинская платформа для Узбекистана. Бесплатно.',
+      title: 'aivita — Ваш пожизненный куратор здоровья',
+      description: 'AI-ассистент на страже здоровья вашей семьи',
       url: 'https://aivita.uz',
-      siteName: 'aivita',
+      siteName: 'aivita.uz',
+      images: ['/og-image.png'],
       locale: locale === 'ru' ? 'ru_RU' : locale === 'uz' ? 'uz_UZ' : 'en_US',
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'aivita — твой Health Score',
-      description: 'Превентивная медицинская платформа для Узбекистана.',
+      title: 'aivita',
+      description: 'Ваш пожизненный куратор здоровья',
+      images: ['/og-image.png'],
     },
   };
 }
 
 export default async function MarketingPage() {
-  const t = await getTranslations();
-
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -43,7 +49,11 @@ export default async function MarketingPage() {
         name: 'aivita',
         url: 'https://aivita.uz',
         logo: 'https://aivita.uz/icons/icon-512.png',
-        address: { '@type': 'PostalAddress', addressCountry: 'UZ', addressLocality: 'Tashkent' },
+        address: {
+          '@type': 'PostalAddress',
+          addressCountry: 'UZ',
+          addressLocality: 'Tashkent',
+        },
       },
       {
         '@type': 'WebApplication',
@@ -69,7 +79,6 @@ export default async function MarketingPage() {
         <FeaturesSection />
         <HowItWorksSection />
         <PersonasSection />
-        <StatsSection />
         <BigCtaSection />
         <FaqSection />
       </main>

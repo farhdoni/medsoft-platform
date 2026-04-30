@@ -1,9 +1,10 @@
-import { OrbBackground } from '@/components/shared/orb-background';
+import '@/styles/marketing.css';
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-base relative">
-      <OrbBackground />
+    <div className="lp">
+      {/* Subtle grid background */}
+      <div className="lp-grid" aria-hidden="true" />
       <div className="relative z-10">
         {children}
       </div>

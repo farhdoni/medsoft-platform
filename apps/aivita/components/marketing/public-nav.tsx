@@ -2,12 +2,11 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
-import { Logo } from '@/components/shared/logo';
 import { useState } from 'react';
 
 export function PublicNav() {
   const t = useTranslations('nav');
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/ru';
   const locale = pathname.split('/')[1] || 'ru';
   const [langOpen, setLangOpen] = useState(false);
 
@@ -19,57 +18,57 @@ export function PublicNav() {
   const currentLang = langs.find(l => l.code === locale) || langs[0];
 
   return (
-    <nav className="sticky top-0 z-50 px-6 md:px-14 py-4 bg-white/70 backdrop-blur-3xl border-b border-[rgba(120,160,200,0.1)]">
-      <div className="max-w-[1320px] mx-auto flex justify-between items-center">
-        <Logo />
-        <div className="hidden md:flex gap-1 items-center">
-          {(['features', 'how', 'personas', 'faq'] as const).map((key) => (
-            <a
-              key={key}
-              href={`#${key}`}
-              className="px-3 py-2 text-sm font-medium text-[rgb(var(--text-secondary))] hover:text-navy rounded-xl hover:bg-white/60 transition-all"
-            >
-              {t(key)}
-            </a>
-          ))}
-          <Link
-            href={`/${locale}/sign-in`}
-            className="ml-3 px-[18px] py-[10px] bg-gradient-pink-blue-mint text-white text-sm font-bold rounded-full shadow-pink hover:shadow-pink-strong hover:-translate-y-0.5 transition-all"
-          >
-            {t('openApp')}
-          </Link>
-          <div className="relative ml-2">
-            <button
-              onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[rgb(var(--text-tertiary))] hover:text-navy rounded-full border border-[rgba(120,160,200,0.2)] hover:bg-white/60 transition-all"
-            >
-              🌐 {currentLang.label}
-            </button>
-            {langOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-white/95 backdrop-blur-xl rounded-xl border border-[rgba(120,160,200,0.15)] shadow-medium py-1 min-w-[100px]">
-                {langs.map((l) => (
-                  <a
-                    key={l.code}
-                    href={pathname.replace(/^\/[a-z]{2}/, `/${l.code}`)}
-                    className={`block px-3 py-2 text-sm hover:bg-pink-50 rounded-lg mx-1 transition-colors ${l.code === locale ? 'text-pink-600 font-semibold' : 'text-navy'}`}
-                    onClick={() => setLangOpen(false)}
-                  >
-                    {l.label}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
+    <nav className="lp-nav">
+      {/* Logo */}
+      <a href={`/${locale}`} className="lp-logo">
+        aivita<span className="lp-logo-dot" />uz
+      </a>
+
+      {/* Desktop links */}
+      <div className="lp-nav-links">
+        {(['features', 'how', 'personas', 'faq'] as const).map((key) => (
+          <a key={key} href={`#${key}`}>{t(key)}</a>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div className="lp-nav-actions">
+        {/* Language switcher */}
+        <div style={{ position: 'relative' }}>
+          <button className="lp-lang-btn" onClick={() => setLangOpen(!langOpen)}>
+            🌐 {currentLang.label}
+          </button>
+          {langOpen && (
+            <div className="lp-lang-dropdown">
+              {langs.map((l) => (
+                <a
+                  key={l.code}
+                  href={(pathname ?? '/').replace(/^\/[a-z]{2}/, `/${l.code}`)}
+                  className={l.code === locale ? 'active' : ''}
+                  onClick={() => setLangOpen(false)}
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-        {/* Mobile */}
-        <div className="flex md:hidden items-center gap-2">
-          <Link
-            href={`/${locale}/sign-in`}
-            className="px-4 py-2.5 bg-gradient-pink-blue-mint text-white text-sm font-bold rounded-full shadow-pink"
-          >
-            {t('openApp')}
-          </Link>
-        </div>
+
+        {/* Profile / Login button */}
+        <Link href={`/${locale}/sign-in`} className="lp-profile-btn" title={t('login')}>
+          <span className="lp-profile-btn-inner">
+            <svg
+              className="lp-profile-icon"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="16" cy="11" r="5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              <path d="M5 27c1.5-5.5 6-8.5 11-8.5s9.5 3 11 8.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="lp-profile-pulse" />
+        </Link>
       </div>
     </nav>
   );
