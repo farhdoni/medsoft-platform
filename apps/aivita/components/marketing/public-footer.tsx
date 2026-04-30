@@ -19,7 +19,7 @@ export async function PublicFooter() {
               <Link href="/coming-soon" className="lp-store-btn">
                 <span className="lp-store-btn-icon">🍎</span>
                 <span className="lp-store-btn-text">
-                  <span className="lp-store-btn-small">СКОРО В</span>
+                  <span className="lp-store-btn-small">{t('storeComingTo')}</span>
                   <span className="lp-store-btn-big">App Store</span>
                 </span>
                 <span className="lp-store-btn-soon">SOON</span>
@@ -27,7 +27,7 @@ export async function PublicFooter() {
               <Link href="/coming-soon" className="lp-store-btn">
                 <span className="lp-store-btn-icon">▶</span>
                 <span className="lp-store-btn-text">
-                  <span className="lp-store-btn-small">СКОРО В</span>
+                  <span className="lp-store-btn-small">{t('storeComingTo')}</span>
                   <span className="lp-store-btn-big">Google Play</span>
                 </span>
                 <span className="lp-store-btn-soon">SOON</span>
