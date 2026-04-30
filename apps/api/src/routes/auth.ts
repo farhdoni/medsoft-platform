@@ -19,7 +19,7 @@ const auth = new Hono();
 
 // POST /v1/auth/login — email + password
 auth.post('/login',
-  rateLimit('admin-login', 10, 300),
+  rateLimit('admin-login', 50, 300),
   zValidator('json', loginSchema),
   async (c) => {
     const { email, password } = c.req.valid('json');
