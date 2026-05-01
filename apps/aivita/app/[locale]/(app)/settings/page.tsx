@@ -26,7 +26,8 @@ const SETTINGS_SECTIONS = [
   },
 ];
 
-export default function SettingsPage() {
+export default function SettingsPage({ params }: { params: { locale: string } }) {
+  const locale = params.locale ?? 'ru';
   return (
     <div className="min-h-screen">
       <AppHeader name="Настройки" />

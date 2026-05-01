@@ -3,19 +3,23 @@ import { useState } from 'react';
 import { LogOut, Trash2 } from 'lucide-react';
 import { signOut, deleteAccount } from './actions';
 
-export function DangerZone() {
+export function DangerZone({ locale }: { locale: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
     setDeleting(true);
-    await deleteAccount();
+    try {
+      await deleteAccount(locale);
+    } catch {
+      setDeleting(false);
+    }
   }
 
   return (
     <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-[rgba(120,160,200,0.15)] overflow-hidden shadow-soft">
       {/* Sign out */}
-      <form action={signOut}>
+      <form action={signOut.bind(null, locale)}>
         <button
           type="submit"
           className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50"

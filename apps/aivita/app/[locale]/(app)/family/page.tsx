@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { Plus, ChevronRight, User } from 'lucide-react';
 import { AppHeader } from '@/components/app/app-header';
 import { api } from '@/lib/api-client';
+import { calcAge } from '@/lib/date-utils';
 
 type FamilyMember = {
   id: string;
@@ -9,20 +10,6 @@ type FamilyMember = {
   memberRelation: string;
   memberBirthDate?: string | null;
 };
-
-function calcAge(birthDate: string): number | null {
-  try {
-    const birth = new Date(birthDate);
-    if (isNaN(birth.getTime())) return null;
-    const now = new Date();
-    let age = now.getFullYear() - birth.getFullYear();
-    const m = now.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
-    return age;
-  } catch {
-    return null;
-  }
-}
 
 const RELATION_EMOJI: Record<string, string> = {
   spouse: '💑',

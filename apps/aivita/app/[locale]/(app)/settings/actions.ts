@@ -1,29 +1,21 @@
 'use server';
 import { clearSession } from '@/lib/auth/session';
+import { apiRequest } from '@/lib/api-client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export async function signOut() {
+export async function signOut(locale: string = 'ru') {
   await clearSession();
-  redirect('/ru/sign-in');
+  redirect(`/${locale}/sign-in`);
 }
 
-export async function deleteAccount() {
+export async function deleteAccount(locale: string = 'ru') {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
 
   // Soft-delete on API (sets deletedAt)
-  await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/users`,
-    {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: `aivita_session=${sessionCookie}`,
-      },
-    }
-  ).catch(() => null);
+  await apiRequest('/users', { method: 'DELETE', sessionCookie }).catch(() => null);
 
   await clearSession();
-  redirect('/ru/sign-in');
+  redirect(`/${locale}/sign-in`);
 }

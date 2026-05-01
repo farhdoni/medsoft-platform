@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Flame } from 'lucide-react';
 import { AppHeader } from '@/components/app/app-header';
 import { api } from '@/lib/api-client';
+import { getTodayDate } from '@/lib/date-utils';
 
 type ApiHabit = {
   id: string;
@@ -33,10 +34,6 @@ function toGoalLabel(h: ApiHabit): string {
   if (h.goalType === 'binary') return '1 раз';
   if (h.goalValue) return String(h.goalValue);
   return '—';
-}
-
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
 }
 
 const FALLBACK_HABITS: Habit[] = [
@@ -86,19 +83,16 @@ export default function HabitsPage() {
   }, []);
 
   function toggleHabit(id: string) {
-    setHabits((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, done: !h.done } : h))
-    );
-
-    const today = getTodayDate();
-    const habit = habits.find((h) => h.id === id);
-    if (!habit) return;
-
-    if (!habit.done) {
-      // Mark as done — log to API
-      api.habits.log(id, { date: today, value: '1' }).catch(() => {});
-    }
-    // Unmark: no delete endpoint yet — UI is optimistic
+    // Read current done-state inside updater to avoid stale closure, then fire API side-effect
+    setHabits((prev) => {
+      const habit = prev.find((h) => h.id === id);
+      if (habit && !habit.done) {
+        // Mark as done — log to API (fire-and-forget)
+        api.habits.log(id, { date: getTodayDate(), value: '1' }).catch(() => {});
+      }
+      // Unmark: no delete-log endpoint yet — optimistic only
+      return prev.map((h) => (h.id === id ? { ...h, done: !h.done } : h));
+    });
   }
 
   const doneToday = habits.filter((h) => h.done).length;

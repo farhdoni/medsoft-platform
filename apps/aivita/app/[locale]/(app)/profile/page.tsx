@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { AlertTriangle, Pill, Clock, FileText } from 'lucide-react';
 import { AppHeader } from '@/components/app/app-header';
-import { getSession } from '@/lib/auth/session';
 import { api } from '@/lib/api-client';
+import { calcAge, getInitials } from '@/lib/date-utils';
 
 type HealthProfile = {
   birthDate?: string | null;
@@ -16,24 +16,6 @@ type HealthProfile = {
 type Allergy = { id: string; allergen: string; type: string };
 type ChronicCondition = { id: string; name: string; diagnosedYear?: number | null };
 type HistoryEntry = { id: string; name: string; type: string; startDate?: string | null };
-
-function calcAge(birthDate: string): number {
-  const birth = new Date(birthDate);
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  const m = now.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
-  return age;
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 async function getProfileData(cookie: string) {
   const [userRes, profileRes, allergiesRes, chronicRes, historyRes] = await Promise.allSettled([
@@ -75,11 +57,10 @@ async function getProfileData(cookie: string) {
 export default async function ProfilePage() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
-  const session = await getSession();
 
   const { user, profile, allergies, chronic, history } = await getProfileData(sessionCookie);
 
-  const name = user?.name ?? session?.name ?? 'Пользователь';
+  const name = user?.name ?? 'Пользователь';
   const firstName = name.split(' ')[0];
   const initials = getInitials(name);
 
