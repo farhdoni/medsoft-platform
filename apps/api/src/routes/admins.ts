@@ -7,6 +7,19 @@ import { requireAuth, requireSuperadmin } from '../middleware/auth.js';
 import { createAdminSchema, updateAdminSchema, adminFiltersSchema } from '@medsoft/shared';
 
 const router = new Hono();
+
+// /me is accessible to any authenticated admin (not just superadmin)
+router.get('/me', requireAuth, async (c) => {
+  const adminId = c.get('adminId');
+  const rows = await db
+    .select({ id: adminUsers.id, email: adminUsers.email, fullName: adminUsers.fullName, role: adminUsers.role, isActive: adminUsers.isActive })
+    .from(adminUsers)
+    .where(eq(adminUsers.id, adminId))
+    .limit(1);
+  if (!rows[0]) return c.json({ error: 'Not found' }, 404);
+  return c.json(rows[0]);
+});
+
 router.use('*', requireAuth, requireSuperadmin);
 
 router.get('/', zValidator('query', adminFiltersSchema), async (c) => {

@@ -17,9 +17,10 @@ interface DataTableProps<T> {
   pageSize: number;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
+  onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T>({ columns, data, total, page, pageSize, onPageChange, isLoading }: DataTableProps<T>) {
+export function DataTable<T>({ columns, data, total, page, pageSize, onPageChange, isLoading, onRowClick }: DataTableProps<T>) {
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   const totalPages = Math.ceil(total / pageSize);
 
@@ -44,7 +45,11 @@ export function DataTable<T>({ columns, data, total, page, pageSize, onPageChang
             ) : table.getRowModel().rows.length === 0 ? (
               <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">Нет данных</td></tr>
             ) : table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t hover:bg-muted/30 transition-colors">
+              <tr
+                key={row.id}
+                className={`border-t hover:bg-muted/30 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

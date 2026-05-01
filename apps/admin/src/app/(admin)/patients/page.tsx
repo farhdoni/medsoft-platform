@@ -1,168 +1,234 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
-import { toast } from 'sonner';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Search, Download, Filter } from 'lucide-react';
 import { DataTable } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
-type Patient = {
+type AivitaUser = {
   id: string;
-  fullName: string;
-  phone: string;
+  name: string | null;
+  nickname: string | null;
   email: string | null;
-  status: string;
-  bloodGroup: string | null;
-  isMinor: boolean;
+  provider: string;
+  onboardingCompleted: boolean;
+  emailVerified: string | null;
+  lastLoginAt: string | null;
   createdAt: string;
+  deletedAt: string | null;
+  healthScore: number | null;
 };
 
-const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destructive'> = {
-  active: 'success',
-  premium: 'default',
-  pending_verification: 'warning',
-  suspended: 'destructive',
-};
+type ListResponse = { data: AivitaUser[]; total: number; page: number; limit: number };
 
-export default function PatientsPage() {
-  const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Patient | null>(null);
-  const [form, setForm] = useState({ fullName: '', phone: '', email: '' });
+function ScoreBadge({ score }: { score: number | null }) {
+  if (score === null) return <span className="text-muted-foreground text-xs">—</span>;
+  const variant = score >= 75 ? 'success' : score >= 50 ? 'warning' : 'destructive';
+  return <Badge variant={variant}>{score}</Badge>;
+}
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['patients', page, search],
-    queryFn: () => api.get<{ data: Patient[]; total: number }>(`/v1/patients?page=${page}&limit=20${search ? `&search=${search}` : ''}`),
+function useDebounce(value: string, ms: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return debounced;
+}
+
+export default function AivitaPatientsPage() {
+  const router = useRouter();
+  const [page, setPage]             = useState(1);
+  const [search, setSearch]         = useState('');
+  const [filter, setFilter]         = useState('all');
+  const [dateRange, setDateRange]   = useState('all');
+  const [scoreRange, setScoreRange] = useState('all');
+  const [sort, setSort]             = useState('created_at');
+  const [order, setOrder]           = useState('desc');
+
+  const debouncedSearch = useDebounce(search, 300);
+
+  const queryParams = new URLSearchParams({
+    page: String(page), limit: '25',
+    ...(debouncedSearch && { search: debouncedSearch }),
+    filter, dateRange, scoreRange, sort, order,
+  }).toString();
+
+  const { data, isLoading } = useQuery<ListResponse>({
+    queryKey: ['aivita-users', queryParams],
+    queryFn: () => api.get(`/v1/aivita-admin/users?${queryParams}`),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (body: typeof form) => api.post('/v1/patients', body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['patients'] }); toast.success('Пациент создан'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при создании'),
-  });
+  // Reset page on filter change
+  const resetPage = useCallback(() => setPage(1), []);
+  useEffect(() => { resetPage(); }, [debouncedSearch, filter, dateRange, scoreRange, resetPage]);
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: Partial<typeof form> }) => api.patch(`/v1/patients/${id}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['patients'] }); toast.success('Обновлено'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при обновлении'),
-  });
+  function exportCsv() {
+    const users = data?.data ?? [];
+    if (!users.length) return;
+    const headers = ['ID', 'Имя', 'Никнейм', 'Email', 'Health Score', 'Регистрация', 'Последний вход'];
+    const rows = users.map((u) => [
+      u.id, u.name ?? '', u.nickname ?? '', u.email ?? '',
+      u.healthScore ?? '',
+      u.createdAt, u.lastLoginAt ?? '',
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `aivita-users-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  }
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/v1/patients/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['patients'] }); toast.success('Удалено'); },
-    onError: () => toast.error('Ошибка при удалении'),
-  });
-
-  const columns: ColumnDef<Patient>[] = [
-    { accessorKey: 'fullName', header: 'ФИО' },
-    { accessorKey: 'phone', header: 'Телефон' },
+  const columns: ColumnDef<AivitaUser>[] = [
     {
-      accessorKey: 'status',
-      header: 'Статус',
-      cell: ({ row }) => <Badge variant={statusColors[row.original.status] ?? 'outline'}>{row.original.status}</Badge>,
-    },
-    { accessorKey: 'bloodGroup', header: 'Группа крови', cell: ({ row }) => row.original.bloodGroup ?? '—' },
-    { accessorKey: 'createdAt', header: 'Создан', cell: ({ row }) => formatDate(row.original.createdAt) },
-    {
-      id: 'actions',
-      header: '',
+      accessorKey: 'name',
+      header: 'Имя',
       cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button size="icon" variant="ghost" onClick={() => {
-            setEditing(row.original);
-            setForm({ fullName: row.original.fullName, phone: row.original.phone, email: row.original.email ?? '' });
-            setDialogOpen(true);
-          }}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="ghost" className="text-destructive" onClick={() => {
-            if (confirm('Удалить пациента?')) deleteMutation.mutate(row.original.id);
-          }}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <div>
+          <p className="font-medium">{row.original.name ?? row.original.nickname ?? '—'}</p>
+          {row.original.nickname && row.original.name && (
+            <p className="text-xs text-muted-foreground">@{row.original.nickname}</p>
+          )}
         </div>
       ),
     },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <div>
+          <p className="text-sm">{row.original.email ?? '—'}</p>
+          {!row.original.emailVerified && row.original.email && (
+            <Badge variant="warning" className="text-[10px] mt-0.5">не подтверждён</Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'healthScore',
+      header: 'Health Score',
+      cell: ({ row }) => <ScoreBadge score={row.original.healthScore} />,
+    },
+    {
+      accessorKey: 'onboardingCompleted',
+      header: 'Онбординг',
+      cell: ({ row }) => row.original.onboardingCompleted
+        ? <Badge variant="success">✓</Badge>
+        : <Badge variant="secondary">—</Badge>,
+    },
+    {
+      accessorKey: 'provider',
+      header: 'Вход через',
+      cell: ({ row }) => <span className="text-xs capitalize text-muted-foreground">{row.original.provider}</span>,
+    },
+    {
+      accessorKey: 'lastLoginAt',
+      header: 'Последний вход',
+      cell: ({ row }) => <span className="text-xs">{formatDate(row.original.lastLoginAt)}</span>,
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Зарегистрирован',
+      cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
+    },
+    {
+      id: 'status',
+      header: 'Статус',
+      cell: ({ row }) => row.original.deletedAt
+        ? <Badge variant="destructive">Удалён</Badge>
+        : <Badge variant="success">Активен</Badge>,
+    },
   ];
-
-  function openCreate() {
-    setEditing(null);
-    setForm({ fullName: '', phone: '', email: '' });
-    setDialogOpen(true);
-  }
-
-  function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (editing) {
-      updateMutation.mutate({ id: editing.id, body: form });
-    } else {
-      createMutation.mutate(form);
-    }
-  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Пациенты</h1>
-          <p className="text-muted-foreground">Управление пациентами</p>
+          <h1 className="text-2xl font-bold">Пациенты aivita.uz</h1>
+          <p className="text-muted-foreground">Пользователи приложения</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Добавить</Button>
+        <Button variant="outline" onClick={exportCsv} disabled={!data?.data?.length}>
+          <Download className="h-4 w-4 mr-2" />
+          Экспорт CSV
+        </Button>
       </div>
 
-      <div className="flex gap-4">
-        <Input
-          placeholder="Поиск по имени, телефону..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="max-w-sm"
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по имени, email, никнейму..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 w-72"
+          />
+        </div>
+
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="active">Активные (7д)</SelectItem>
+            <SelectItem value="inactive">Неактивные</SelectItem>
+            <SelectItem value="deleted">Удалённые</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={dateRange} onValueChange={setDateRange}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всё время</SelectItem>
+            <SelectItem value="today">Сегодня</SelectItem>
+            <SelectItem value="week">За неделю</SelectItem>
+            <SelectItem value="month">За месяц</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={scoreRange} onValueChange={setScoreRange}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все Score</SelectItem>
+            <SelectItem value="high">Высокий (&gt;75)</SelectItem>
+            <SelectItem value="mid">Средний (50-75)</SelectItem>
+            <SelectItem value="low">Низкий (&lt;50)</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={`${sort}:${order}`} onValueChange={(v) => { const [s, o] = v.split(':'); setSort(s); setOrder(o); }}>
+          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="created_at:desc">Регистрация ↓</SelectItem>
+            <SelectItem value="created_at:asc">Регистрация ↑</SelectItem>
+            <SelectItem value="last_login_at:desc">Последний вход ↓</SelectItem>
+            <SelectItem value="name:asc">Имя А-Я</SelectItem>
+            <SelectItem value="name:desc">Имя Я-А</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table — clicking row goes to patient detail */}
+      <div className="[&_tr]:cursor-pointer">
+        <DataTable
+          columns={columns}
+          data={data?.data ?? []}
+          total={data?.total ?? 0}
+          page={page}
+          pageSize={25}
+          onPageChange={setPage}
+          isLoading={isLoading}
+          onRowClick={(row) => router.push(`/patients/${row.id}`)}
         />
       </div>
-
-      <DataTable
-        columns={columns}
-        data={data?.data ?? []}
-        total={data?.total ?? 0}
-        page={page}
-        pageSize={20}
-        onPageChange={setPage}
-        isLoading={isLoading}
-      />
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Редактировать пациента' : 'Новый пациент'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="space-y-2">
-              <Label>ФИО *</Label>
-              <Input value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} required />
-            </div>
-            <div className="space-y-2">
-              <Label>Телефон *</Label>
-              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} required />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
-            </div>
-            <Button type="submit" className="w-full" disabled={createMutation.isPending || updateMutation.isPending}>
-              {editing ? 'Сохранить' : 'Создать'}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
