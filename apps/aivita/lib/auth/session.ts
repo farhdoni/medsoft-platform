@@ -1,7 +1,14 @@
 'use server';
+import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
 const SESSION_COOKIE = 'aivita_session';
+
+function getSecret(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET env var is required');
+  return new TextEncoder().encode(secret);
+}
 
 export type AivitaSession = {
   userId: string;
@@ -13,24 +20,29 @@ export type AivitaSession = {
 
 export async function getSession(): Promise<AivitaSession | null> {
   const cookieStore = await cookies();
-  const raw = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!raw) return null;
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
   try {
-    const json = Buffer.from(raw, 'base64').toString('utf-8');
-    return JSON.parse(json) as AivitaSession;
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload as unknown as AivitaSession;
   } catch {
     return null;
   }
 }
 
 export async function setSession(session: AivitaSession): Promise<void> {
+  const token = await new SignJWT({ ...session })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getSecret());
+
   const cookieStore = await cookies();
-  const encoded = Buffer.from(JSON.stringify(session)).toString('base64');
-  cookieStore.set(SESSION_COOKIE, encoded, {
+  cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 30, // 30 days
     path: '/',
   });
 }

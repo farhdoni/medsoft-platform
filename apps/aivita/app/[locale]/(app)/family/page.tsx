@@ -1,30 +1,45 @@
-import { Plus, AlertCircle, ChevronRight, User } from 'lucide-react';
+import { cookies } from 'next/headers';
+import { Plus, ChevronRight, User } from 'lucide-react';
 import { AppHeader } from '@/components/app/app-header';
+import { api } from '@/lib/api-client';
 
-const FAMILY_MEMBERS = [
-  {
-    id: '1',
-    name: 'Мать',
-    relation: 'Мама',
-    age: 58,
-    emoji: '👩',
-    score: 74,
-    alert: '⚠️ Давление 145/90 — выше нормы',
-    hasAlert: true,
-  },
-  {
-    id: '2',
-    name: 'Сардор',
-    relation: 'Сын',
-    age: 8,
-    emoji: '👦',
-    score: 91,
-    alert: null,
-    hasAlert: false,
-  },
-];
+type FamilyMember = {
+  id: string;
+  memberName: string;
+  memberRelation: string;
+  memberBirthDate?: string | null;
+};
 
-export default function FamilyPage() {
+function calcAge(birthDate: string): number | null {
+  try {
+    const birth = new Date(birthDate);
+    if (isNaN(birth.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+    return age;
+  } catch {
+    return null;
+  }
+}
+
+const RELATION_EMOJI: Record<string, string> = {
+  spouse: '💑',
+  child: '👶',
+  parent: '👩',
+  sibling: '🧑',
+  other: '👤',
+};
+
+export default async function FamilyPage() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+
+  const res = await api.family.list(sessionCookie);
+  const members: FamilyMember[] =
+    'data' in res ? (res.data as FamilyMember[]) : [];
+
   return (
     <div className="min-h-screen">
       <AppHeader name="Семья" />
@@ -38,48 +53,55 @@ export default function FamilyPage() {
         </div>
 
         {/* Members */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-navy px-1">Члены семьи ({FAMILY_MEMBERS.length})</h2>
+        {members.length > 0 ? (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-navy px-1">
+              Члены семьи ({members.length})
+            </h2>
 
-          {FAMILY_MEMBERS.map((member) => (
-            <div
-              key={member.id}
-              className={`bg-white/80 backdrop-blur-xl rounded-2xl border p-4 shadow-soft ${
-                member.hasAlert ? 'border-orange-200 bg-orange-50/40' : 'border-[rgba(120,160,200,0.15)]'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {/* Avatar */}
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-pink-100 flex items-center justify-center text-2xl flex-shrink-0">
-                  {member.emoji}
-                </div>
+            {members.map((member) => {
+              const age = member.memberBirthDate ? calcAge(member.memberBirthDate) : null;
+              const emoji = RELATION_EMOJI[member.memberRelation] ?? '👤';
 
-                {/* Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-navy">{member.name}</span>
-                    <span className="text-xs text-[rgb(var(--text-muted))]">· {member.relation}</span>
-                  </div>
-                  <p className="text-xs text-[rgb(var(--text-muted))]">{member.age} лет</p>
-                  {member.hasAlert && member.alert && (
-                    <div className="flex items-start gap-1 mt-2">
-                      <AlertCircle className="w-3 h-3 text-orange-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-orange-700 leading-relaxed">{member.alert}</p>
+              return (
+                <div
+                  key={member.id}
+                  className="bg-white/80 backdrop-blur-xl rounded-2xl border border-[rgba(120,160,200,0.15)] p-4 shadow-soft"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-pink-100 flex items-center justify-center text-2xl flex-shrink-0">
+                      {emoji}
                     </div>
-                  )}
-                </div>
 
-                {/* Score + arrow */}
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`text-sm font-bold ${member.score >= 80 ? 'text-emerald-600' : 'text-orange-500'}`}>
-                    {member.score}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-[rgb(var(--text-muted))]" />
+                    {/* Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-navy">{member.memberName}</span>
+                        <span className="text-xs text-[rgb(var(--text-muted))]">
+                          · {member.memberRelation}
+                        </span>
+                      </div>
+                      {age !== null && (
+                        <p className="text-xs text-[rgb(var(--text-muted))]">{age} лет</p>
+                      )}
+                    </div>
+
+                    <ChevronRight className="w-4 h-4 text-[rgb(var(--text-muted))]" />
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-8 text-center shadow-soft">
+            <p className="text-3xl mb-3">👨‍👩‍👧‍👦</p>
+            <p className="text-sm font-semibold text-navy mb-1">Семья пока пуста</p>
+            <p className="text-xs text-[rgb(var(--text-muted))]">
+              Добавь близких, чтобы следить за их здоровьем
+            </p>
+          </div>
+        )}
 
         {/* Add member */}
         <button className="w-full flex items-center justify-center gap-2 h-12 bg-white/80 backdrop-blur border border-dashed border-[rgba(120,160,200,0.3)] text-[rgb(var(--text-secondary))] rounded-2xl text-sm hover:bg-white transition-all">

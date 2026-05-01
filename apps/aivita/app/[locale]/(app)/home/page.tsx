@@ -7,6 +7,7 @@ import {
 import { AppHeader } from '@/components/app/app-header';
 import { HealthScoreCircle } from '@/components/shared/health-score-circle';
 import { api } from '@/lib/api-client';
+import { getSession } from '@/lib/auth/session';
 
 async function getHomeData(sessionCookie: string) {
   const [scoreRes, notifRes] = await Promise.allSettled([
@@ -30,26 +31,15 @@ async function getHomeData(sessionCookie: string) {
   };
 }
 
-function parseSession(raw: string) {
-  try {
-    return JSON.parse(Buffer.from(raw, 'base64').toString('utf-8')) as {
-      name?: string;
-      userId?: string;
-    };
-  } catch {
-    return { name: 'Пользователь', userId: 'demo' };
-  }
-}
-
 export default async function HomePage() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
-  const session = parseSession(sessionCookie);
+  const session = await getSession();
 
   const { healthScore, hasNotifications } = await getHomeData(sessionCookie);
 
   const displayScore = healthScore ?? 72;
-  const userName = session.name ?? 'Пользователь';
+  const userName = session?.name ?? 'Пользователь';
   const firstName = userName.split(' ')[0];
 
   return (

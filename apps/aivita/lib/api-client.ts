@@ -70,12 +70,14 @@ export const api = {
       apiRequest('/health-score/vitals', { method: 'POST', body: data, sessionCookie: cookie }),
   },
   habits: {
-    list: (cookie: string) =>
+    list: (cookie?: string) =>
       apiRequest('/habits', { sessionCookie: cookie }),
-    create: (data: unknown, cookie: string) =>
+    create: (data: unknown, cookie?: string) =>
       apiRequest('/habits', { method: 'POST', body: data, sessionCookie: cookie }),
-    log: (habitId: string, data: unknown, cookie: string) =>
+    log: (habitId: string, data: unknown, cookie?: string) =>
       apiRequest(`/habits/${habitId}/logs`, { method: 'POST', body: data, sessionCookie: cookie }),
+    todayLogs: (date: string, cookie?: string) =>
+      apiRequest(`/habits/logs/range?from=${date}&to=${date}`, { sessionCookie: cookie }),
   },
   nutrition: {
     summary: (cookie: string, date?: string) =>
@@ -104,5 +106,21 @@ export const api = {
       apiRequest('/reports', { sessionCookie: cookie }),
     generate: (cookie: string) =>
       apiRequest('/reports/generate', { method: 'POST', sessionCookie: cookie }),
+  },
+  family: {
+    list: (cookie: string) =>
+      apiRequest('/family', { sessionCookie: cookie }),
+    create: (data: unknown, cookie: string) =>
+      apiRequest('/family', { method: 'POST', body: data, sessionCookie: cookie }),
+  },
+  healthProfile: {
+    get: (cookie: string) =>
+      apiRequest('/health-profile', { sessionCookie: cookie }),
+    allergies: (cookie: string) =>
+      apiRequest('/health-profile/allergies', { sessionCookie: cookie }),
+    chronic: (cookie: string) =>
+      apiRequest('/health-profile/chronic-conditions', { sessionCookie: cookie }),
+    history: (cookie: string) =>
+      apiRequest('/health-profile/medical-history', { sessionCookie: cookie }),
   },
 };

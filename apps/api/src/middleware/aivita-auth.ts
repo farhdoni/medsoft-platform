@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
+import { jwtVerify } from 'jose';
 
 export type AivitaSession = {
   userId: string;
@@ -16,15 +17,21 @@ declare module 'hono' {
   }
 }
 
+function getSecret(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET env var is required');
+  return new TextEncoder().encode(secret);
+}
+
 export const requireAivitaAuth = createMiddleware(async (c, next) => {
-  const sessionCookie = getCookie(c, 'aivita_session')
+  const token = getCookie(c, 'aivita_session')
     ?? c.req.header('X-Aivita-Session');
 
-  if (!sessionCookie) return c.json({ error: 'Unauthorized' }, 401);
+  if (!token) return c.json({ error: 'Unauthorized' }, 401);
 
   try {
-    const decoded = Buffer.from(sessionCookie, 'base64').toString('utf-8');
-    const session = JSON.parse(decoded) as AivitaSession;
+    const { payload } = await jwtVerify(token, getSecret());
+    const session = payload as unknown as AivitaSession;
     if (!session.userId) return c.json({ error: 'Invalid session' }, 401);
 
     c.set('aivitaUserId', session.userId);

@@ -33,53 +33,36 @@ export default function SignInPage() {
           </p>
         </div>
 
-        {/* OAuth buttons */}
+        {/* Auth buttons */}
         <div className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium space-y-3 mb-4">
-          {/* Google */}
+          {/* Main entry */}
           <form action={mockSignIn.bind(null, locale)}>
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-5 h-14 rounded-2xl border border-[rgba(120,160,200,0.2)] text-navy font-semibold text-sm hover:bg-white hover:shadow-soft transition-all"
+              className="w-full flex items-center justify-center gap-2 h-14 bg-gradient-pink-blue-mint text-white font-bold rounded-2xl shadow-pink hover:shadow-pink-strong hover:-translate-y-0.5 transition-all text-sm"
             >
-              <span className="text-xl">🔵</span>
-              <span>Войти через Google</span>
+              ✨ Начать бесплатно
             </button>
           </form>
 
-          {/* Apple */}
+          {/* Coming soon options */}
           <button
             disabled
-            className="w-full flex items-center gap-3 px-5 h-14 rounded-2xl border border-[rgba(120,160,200,0.1)] text-[rgb(var(--text-muted))] font-semibold text-sm cursor-not-allowed"
+            className="w-full flex items-center gap-3 px-5 h-12 rounded-2xl border border-[rgba(120,160,200,0.1)] text-[rgb(var(--text-muted))] font-semibold text-sm cursor-not-allowed"
           >
-            <span className="text-xl">🍎</span>
-            <span>Войти через Apple</span>
+            <span className="text-xl">🔵</span>
+            <span>Войти через Google</span>
             <span className="ml-auto text-[10px] uppercase tracking-wider">скоро</span>
           </button>
 
-          {/* Telegram */}
           <button
             disabled
-            className="w-full flex items-center gap-3 px-5 h-14 rounded-2xl border border-[rgba(120,160,200,0.1)] text-[rgb(var(--text-muted))] font-semibold text-sm cursor-not-allowed"
+            className="w-full flex items-center gap-3 px-5 h-12 rounded-2xl border border-[rgba(120,160,200,0.1)] text-[rgb(var(--text-muted))] font-semibold text-sm cursor-not-allowed"
           >
             <span className="text-xl">✈️</span>
             <span>Войти через Telegram</span>
             <span className="ml-auto text-[10px] uppercase tracking-wider">скоро</span>
           </button>
-
-          {/* Divider */}
-          <div className="pt-3 border-t border-[rgba(120,160,200,0.1)]">
-            <form action={mockSignIn.bind(null, locale)}>
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 h-12 bg-gradient-pink-blue-mint text-white font-bold rounded-2xl shadow-pink hover:shadow-pink-strong hover:-translate-y-0.5 transition-all text-sm"
-              >
-                🚀 Войти (демо-режим)
-              </button>
-            </form>
-            <p className="text-center text-[10px] text-[rgb(var(--text-muted))] mt-2">
-              Только для тестирования
-            </p>
-          </div>
         </div>
 
         {/* Terms */}
