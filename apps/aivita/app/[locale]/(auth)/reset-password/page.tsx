@@ -11,7 +11,7 @@ export default function ResetPasswordPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = (params?.locale as string) ?? 'ru';
-  const token = searchParams.get('token') ?? '';
+  const token = searchParams?.get('token') ?? '';
 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

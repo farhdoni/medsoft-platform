@@ -10,7 +10,7 @@ export default function VerifyEmailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = (params?.locale as string) ?? 'ru';
-  const userId = searchParams.get('userId') ?? '';
+  const userId = searchParams?.get('userId') ?? '';
 
   const [resendCooldown, setResendCooldown] = useState(0);
 
