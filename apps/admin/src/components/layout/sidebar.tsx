@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
+  Server, Globe,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -22,6 +23,8 @@ const baseNavItems = [
   { href: '/appointments', label: 'Приёмы', icon: Calendar },
   { href: '/transactions', label: 'Транзакции', icon: CreditCard },
   { href: '/sos-calls', label: 'SOS вызовы', icon: AlertTriangle },
+  { href: '/monitoring', label: 'Мониторинг', icon: Server },
+  { href: '/cms', label: 'CMS лендинга', icon: Globe },
 ];
 
 export function Sidebar() {

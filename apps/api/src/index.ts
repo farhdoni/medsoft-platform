@@ -30,6 +30,8 @@ import { aivitaChatRouter } from './routes/aivita/chat.js';
 import { aivitaFamilyRouter } from './routes/aivita/family.js';
 import { aivitaNotificationsRouter } from './routes/aivita/notifications.js';
 import { aivitaReportsRouter } from './routes/aivita/reports.js';
+import { adminMonitoringRouter } from './routes/admin-monitoring.js';
+import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 
 const app = new Hono();
 
@@ -51,6 +53,11 @@ app.route('/v1/transactions', transactionsRouter);
 app.route('/v1/sos-calls', sosCallsRouter);
 app.route('/v1/admins', adminsRouter);
 app.route('/v1/dashboard', dashboardRouter);
+// Monitoring (admin-only)
+app.route('/v1/admin/monitoring', adminMonitoringRouter);
+// Landing CMS — public read + admin write
+app.route('/v1/landing', landingPublicRouter);
+app.route('/v1/aivita-admin/cms', landingAdminRouter);
 // Aivita
 app.route('/v1/aivita/auth', aivitaAuthRouter);
 app.route('/v1/aivita-admin', aivitaAdminRouter);
