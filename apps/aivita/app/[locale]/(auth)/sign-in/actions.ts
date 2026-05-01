@@ -4,57 +4,50 @@ import { redirect } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
-async function syncUserWithApi(
-  name: string,
-  email: string,
-  locale: string
-): Promise<{ userId: string; onboardingCompleted: boolean } | null> {
+type SessionPayload = {
+  userId: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  onboardingCompleted: boolean;
+};
+
+export type LoginState = { error: string | null };
+
+export async function loginAction(
+  locale: string,
+  _prev: LoginState,
+  formData: FormData
+): Promise<LoginState> {
+  const identifier = (formData.get('identifier') as string).trim();
+  const password = formData.get('password') as string;
+
+  let res: Response;
   try {
-    const res = await fetch(`${API_BASE}/v1/aivita/auth/mock-sign-in`, {
+    res = await fetch(`${API_BASE}/v1/aivita/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, locale }),
+      body: JSON.stringify({ identifier, password }),
     });
-    if (!res.ok) return null;
-    const json = await res.json() as { data?: { userId: string; onboardingCompleted: boolean } };
-    return json.data ?? null;
   } catch {
-    return null;
+    return { error: 'network' };
   }
-}
 
-export async function mockSignIn(locale: string = 'ru') {
-  const name = 'Азиз';
-  const email = 'demo@aivita.uz';
+  const json = await res.json() as {
+    data?: { session: SessionPayload };
+    error?: string;
+    userId?: string;
+  };
 
-  // Sync with real DB
-  const apiUser = await syncUserWithApi(name, email, locale);
-
-  await setSession({
-    userId: apiUser?.userId ?? 'demo-user-id',
-    email,
-    name,
-    onboardingCompleted: apiUser?.onboardingCompleted ?? false,
-  });
-
-  if (apiUser?.onboardingCompleted) {
-    redirect(`/${locale}/home`);
-  } else {
-    redirect(`/${locale}/onboarding/welcome`);
+  if (!res.ok || !json.data?.session) {
+    if (json.error === 'email_not_verified' && json.userId) {
+      redirect(`/${locale}/verify-email?userId=${json.userId}`);
+    }
+    if (json.error === 'account_locked') return { error: 'account_locked' };
+    return { error: 'invalid_credentials' };
   }
-}
 
-export async function mockSignInDirect(locale: string = 'ru') {
-  const name = 'Азиз';
-  const email = 'demo@aivita.uz';
+  await setSession(json.data.session);
 
-  const apiUser = await syncUserWithApi(name, email, locale);
-
-  await setSession({
-    userId: apiUser?.userId ?? 'demo-user-id',
-    email,
-    name,
-    onboardingCompleted: true,
-  });
-  redirect(`/${locale}/home`);
+  redirect(json.data.session.onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding/welcome`);
 }

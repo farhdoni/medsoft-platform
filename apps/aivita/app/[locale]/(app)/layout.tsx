@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth/session';
 import { BottomNav } from '@/components/app/bottom-nav';
 import { SidebarNav } from '@/components/app/sidebar-nav';
 
@@ -10,8 +10,7 @@ export default async function AppLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('aivita_session')?.value;
+  const session = await getSession();
 
   if (!session) {
     const { locale } = await params;

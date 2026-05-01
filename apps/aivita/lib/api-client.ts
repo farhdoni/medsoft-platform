@@ -46,8 +46,18 @@ export async function apiRequest<T = unknown>(
 
 export const api = {
   auth: {
-    signIn: (data: { name: string; email: string; locale: string }) =>
-      apiRequest('/auth/mock-sign-in', { method: 'POST', body: data }),
+    register: (data: { email: string; nickname: string; password: string; name?: string; locale?: string }) =>
+      apiRequest('/auth/register', { method: 'POST', body: data }),
+    verifyEmail: (data: { userId: string; code: string }) =>
+      apiRequest('/auth/verify-email', { method: 'POST', body: data }),
+    resendCode: (userId: string) =>
+      apiRequest('/auth/resend-code', { method: 'POST', body: { userId } }),
+    login: (data: { identifier: string; password: string }) =>
+      apiRequest('/auth/login', { method: 'POST', body: data }),
+    forgotPassword: (email: string) =>
+      apiRequest('/auth/forgot-password', { method: 'POST', body: { email } }),
+    resetPassword: (data: { token: string; password: string }) =>
+      apiRequest('/auth/reset-password', { method: 'POST', body: data }),
     completeOnboarding: (cookie: string) =>
       apiRequest('/auth/complete-onboarding', { method: 'POST', sessionCookie: cookie }),
   },

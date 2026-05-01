@@ -22,10 +22,18 @@ export const aivitaUsers = pgTable(
     email: text('email').unique(),
     phone: text('phone').unique(),
     name: text('name'),
+    nickname: text('nickname').unique(),
     avatarUrl: text('avatar_url'),
 
-    provider: text('provider').notNull(), // 'mock' | 'google' | 'apple' | 'telegram'
+    provider: text('provider').notNull(), // 'email' | 'google' | 'apple' | 'telegram' | 'mock'
     providerUserId: text('provider_user_id'),
+    googleId: text('google_id').unique(),
+
+    passwordHash: text('password_hash'),
+
+    // Login security
+    failedLoginAttempts: integer('failed_login_attempts').default(0).notNull(),
+    lockedUntil: timestamp('locked_until'),
 
     locale: text('locale').default('ru').notNull(),
 
@@ -50,6 +58,44 @@ export const aivitaUsers = pgTable(
     emailIdx: index('aivita_users_email_idx').on(table.email),
     phoneIdx: index('aivita_users_phone_idx').on(table.phone),
     providerIdx: index('aivita_users_provider_idx').on(table.provider, table.providerUserId),
+  })
+);
+
+// ─── 1b. aivita_email_verifications ───────────────────────────────────────────
+
+export const aivitaEmailVerifications = pgTable(
+  'aivita_email_verifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    code: text('code').notNull(), // 6-digit OTP stored as plain text (short-lived)
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('email_verifications_user_idx').on(table.userId),
+  })
+);
+
+// ─── 1c. aivita_password_resets ───────────────────────────────────────────────
+
+export const aivitaPasswordResets = pgTable(
+  'aivita_password_resets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('password_resets_user_idx').on(table.userId),
   })
 );
 
@@ -563,6 +609,14 @@ export const doctorReports = pgTable(
 
 // ─── Relations ─────────────────────────────────────────────────────────────────
 
+export const aivitaEmailVerificationsRelations = relations(aivitaEmailVerifications, ({ one }) => ({
+  user: one(aivitaUsers, { fields: [aivitaEmailVerifications.userId], references: [aivitaUsers.id] }),
+}));
+
+export const aivitaPasswordResetsRelations = relations(aivitaPasswordResets, ({ one }) => ({
+  user: one(aivitaUsers, { fields: [aivitaPasswordResets.userId], references: [aivitaUsers.id] }),
+}));
+
 export const aivitaUsersRelations = relations(aivitaUsers, ({ one, many }) => ({
   healthProfile: one(healthProfiles, {
     fields: [aivitaUsers.id],
@@ -582,6 +636,8 @@ export const aivitaUsersRelations = relations(aivitaUsers, ({ one, many }) => ({
   chatSessions: many(chatSessions),
   notifications: many(notifications),
   doctorReports: many(doctorReports),
+  emailVerifications: many(aivitaEmailVerifications),
+  passwordResets: many(aivitaPasswordResets),
 }));
 
 export const healthProfilesRelations = relations(healthProfiles, ({ one }) => ({

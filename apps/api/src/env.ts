@@ -27,6 +27,8 @@ const envSchema = z.object({
   ADMIN_URL: z.string().default('http://localhost:3000'),
   CORS_ORIGINS: z.string().optional(),
   CORS_ORIGIN: z.string().optional(),
+  SESSION_SECRET: z.string().min(32),
+  AIVITA_URL: z.string().default('https://aivita.uz'),
 });
 
 function getRequired(parsed: z.infer<typeof envSchema>) {
@@ -34,6 +36,7 @@ function getRequired(parsed: z.infer<typeof envSchema>) {
   const publicKey = parsed.JWT_PUBLIC_KEY_BASE64 ?? parsed.JWT_PUBLIC_KEY;
   if (!privateKey) { console.error('Missing JWT private key (JWT_PRIVATE_KEY_BASE64 or JWT_PRIVATE_KEY)'); process.exit(1); }
   if (!publicKey) { console.error('Missing JWT public key (JWT_PUBLIC_KEY_BASE64 or JWT_PUBLIC_KEY)'); process.exit(1); }
+  if (!parsed.SESSION_SECRET) { console.error('Missing SESSION_SECRET (min 32 chars)'); process.exit(1); }
   return {
     ...parsed,
     PORT: parsed.API_PORT ?? parsed.PORT,
