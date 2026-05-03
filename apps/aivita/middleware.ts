@@ -63,15 +63,7 @@ export async function middleware(request: NextRequest) {
   const isAuthRedirectRoute = AUTH_ROUTES_REDIRECT.some(
     (r) => realPath === r || realPath.startsWith(r + '/')
   );
-  const isMarketingRoot = realPath === '/';
   const isOnboarding = realPath.startsWith('/onboarding');
-
-  // Root + authenticated → redirect to /home
-  if (isMarketingRoot && isAuthenticated) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/home';
-    return NextResponse.redirect(url);
-  }
 
   // App route + not authenticated → redirect to /sign-in
   if (isAppRoute && !isAuthenticated) {

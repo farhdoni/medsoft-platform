@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
-export async function BigCtaSection() {
+type Props = { isAuthenticated?: boolean };
+
+export async function BigCtaSection({ isAuthenticated = false }: Props) {
   const t = await getTranslations('cta');
 
   return (
@@ -12,7 +14,11 @@ export async function BigCtaSection() {
           {t('title1')} <span className="serif">{t('titleAccent')}</span> {t('title2')}
         </h2>
         <p>{t('subtitle')}</p>
-        <Link href="/sign-in" className="lp-btn-primary">{t('button')}</Link>
+        {isAuthenticated ? (
+          <Link href="/home" className="lp-btn-primary">Открыть приложение →</Link>
+        ) : (
+          <Link href="/sign-up" className="lp-btn-primary">{t('button')}</Link>
+        )}
         <div>
           <div className="lp-cta-pwa-tip">{t('pwaTip')}</div>
         </div>

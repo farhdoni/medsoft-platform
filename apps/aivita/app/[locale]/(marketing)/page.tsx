@@ -8,6 +8,7 @@ import { PersonasSection } from '@/components/marketing/personas';
 import { BigCtaSection } from '@/components/marketing/big-cta';
 import { FaqSection } from '@/components/marketing/faq';
 import { PublicFooter } from '@/components/marketing/public-footer';
+import { getSession } from '@/lib/auth/session';
 
 export async function generateMetadata({
   params,
@@ -41,6 +42,9 @@ export async function generateMetadata({
 }
 
 export default async function MarketingPage() {
+  const session = await getSession();
+  const isAuthenticated = !!session;
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -72,14 +76,14 @@ export default async function MarketingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PublicNav />
+      <PublicNav isAuthenticated={isAuthenticated} />
       <main>
-        <HeroSection />
+        <HeroSection isAuthenticated={isAuthenticated} />
         <ProblemSection />
         <FeaturesSection />
         <HowItWorksSection />
         <PersonasSection />
-        <BigCtaSection />
+        <BigCtaSection isAuthenticated={isAuthenticated} />
         <FaqSection />
       </main>
       <PublicFooter />

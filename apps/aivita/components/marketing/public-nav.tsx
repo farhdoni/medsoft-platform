@@ -4,7 +4,9 @@ import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-export function PublicNav() {
+type Props = { isAuthenticated?: boolean };
+
+export function PublicNav({ isAuthenticated = false }: Props) {
   const t = useTranslations('nav');
   const pathname = usePathname() ?? '/ru';
   const locale = pathname.split('/')[1] || 'ru';
@@ -55,20 +57,36 @@ export function PublicNav() {
         </div>
 
         {/* Profile / Login button */}
-        <Link href={`/${locale}/sign-in`} className="lp-profile-btn" title={t('login')}>
-          <span className="lp-profile-btn-inner">
-            <svg
-              className="lp-profile-icon"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle cx="16" cy="11" r="5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-              <path d="M5 27c1.5-5.5 6-8.5 11-8.5s9.5 3 11 8.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-            </svg>
-          </span>
-          <span className="lp-profile-pulse" />
-        </Link>
+        {isAuthenticated ? (
+          <Link href={`/${locale}/home`} className="lp-profile-btn lp-profile-btn--active" title="Личный кабинет">
+            <span className="lp-profile-btn-inner">
+              <svg
+                className="lp-profile-icon"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="16" cy="11" r="5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M5 27c1.5-5.5 6-8.5 11-8.5s9.5 3 11 8.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </span>
+          </Link>
+        ) : (
+          <Link href={`/${locale}/sign-in`} className="lp-profile-btn" title={t('login')}>
+            <span className="lp-profile-btn-inner">
+              <svg
+                className="lp-profile-icon"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="16" cy="11" r="5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M5 27c1.5-5.5 6-8.5 11-8.5s9.5 3 11 8.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="lp-profile-pulse" />
+          </Link>
+        )}
       </div>
     </nav>
   );

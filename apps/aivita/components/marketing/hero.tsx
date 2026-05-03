@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
-export async function HeroSection() {
+type Props = { isAuthenticated?: boolean };
+
+export async function HeroSection({ isAuthenticated = false }: Props) {
   const t = await getTranslations('hero');
 
   return (
@@ -24,7 +26,11 @@ export async function HeroSection() {
             <p className="lp-hero-tagline">{t('tagline')}</p>
 
             <div className="lp-cta-group">
-              <Link href="/sign-in" className="lp-btn-primary">{t('ctaPrimary')}</Link>
+              {isAuthenticated ? (
+                <Link href="/home" className="lp-btn-primary">Открыть приложение →</Link>
+              ) : (
+                <Link href="/sign-up" className="lp-btn-primary">{t('ctaPrimary')}</Link>
+              )}
               <a href="#features" className="lp-btn-secondary">{t('ctaSecondary')}</a>
             </div>
 
