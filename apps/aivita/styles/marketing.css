@@ -243,6 +243,36 @@
   50%      { box-shadow: 0 0 0 6px rgba(45,186,154,0); }
 }
 
+/* Cabinet button (authenticated state — pill with icon + text) */
+.lp-cabinet-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, var(--rose-deep) 0%, var(--rose) 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 14px rgba(176,104,128,0.3);
+  white-space: nowrap;
+}
+.lp-cabinet-btn svg {
+  width: 16px; height: 16px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.lp-cabinet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(176,104,128,0.45);
+  background: linear-gradient(135deg, var(--navy) 0%, var(--rose-deep) 100%);
+}
+
 /* ── HERO ── */
 .lp-hero {
   padding: 120px 20px 60px;
