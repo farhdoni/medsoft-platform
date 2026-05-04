@@ -5,6 +5,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        'app': '#f4f3ef',
+        'soft': {
+          pink: '#f0d4dc',
+          purple: '#e0d8f0',
+          mint: '#d4e8d8',
+          blue: '#d4dff0',
+          sage: '#d8e8c0',
+        },
+        'accent': {
+          pink: '#cc8a96',
+          rose: '#9c5e6c',
+          purple: '#9889c4',
+          'purple-deep': '#6e5fa0',
+          mint: '#80b094',
+          'mint-deep': '#548068',
+          blue: '#8aa1cc',
+          'blue-deep': '#5e75a8',
+          sage: '#9ab866',
+          'sage-deep': '#688844',
+        },
+        'clay-primary': '#2a2540',
+        'clay-secondary': '#6a6580',
+        'clay-muted': '#9a96a8',
+        'clay-border': '#e8e4dc',
         'navy': 'rgb(var(--text-primary) / <alpha-value>)',
         'text-secondary': 'rgb(var(--text-secondary) / <alpha-value>)',
         'text-tertiary': 'rgb(var(--text-tertiary) / <alpha-value>)',
@@ -43,7 +67,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-manrope)', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'var(--font-manrope)', 'system-ui', 'sans-serif'],
         serif: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
@@ -53,6 +77,11 @@ const config: Config = {
         'tight': '-0.03em',
       },
       backgroundImage: {
+        'gradient-hero': 'linear-gradient(135deg, #f0d4dc 0%, #e0d8f0 50%, #d4e8d8 100%)',
+        'gradient-pink-purple': 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)',
+        'gradient-purple-blue': 'linear-gradient(135deg, #9889c4 0%, #8aa1cc 100%)',
+        'gradient-pink-rose': 'linear-gradient(135deg, #cc8a96 0%, #9c5e6c 100%)',
+        'gradient-clay-mint': 'linear-gradient(135deg, #80b094 0%, #8aa1cc 100%)',
         'gradient-base': 'linear-gradient(180deg, rgb(var(--bg-base-1)) 0%, rgb(var(--bg-base-2)) 50%, rgb(var(--bg-base-3)) 100%)',
         'gradient-pink-blue-mint': 'linear-gradient(135deg, rgb(var(--blue-700)) 0%, rgb(var(--pink-500)) 60%, rgb(var(--mint-700)) 100%)',
         'gradient-pink-blue': 'linear-gradient(135deg, rgb(var(--pink-500)) 0%, rgb(var(--blue-700)) 100%)',
@@ -60,12 +89,19 @@ const config: Config = {
         'gradient-air-blue': 'linear-gradient(135deg, rgba(180,220,240,0.4), rgba(255,218,232,0.45), rgba(200,235,225,0.4))',
       },
       boxShadow: {
+        'card-hover': '0 4px 12px rgba(42, 37, 64, 0.06)',
+        'clay-dropdown': '0 16px 48px rgba(42, 37, 64, 0.18)',
+        'clay-modal': '0 24px 64px rgba(42, 37, 64, 0.24)',
+        'cta': '0 6px 16px rgba(156, 94, 108, 0.25)',
         'soft': 'var(--shadow-soft)',
         'medium': 'var(--shadow-medium)',
         'strong': 'var(--shadow-strong)',
         'pink': 'var(--shadow-pink)',
         'pink-strong': 'var(--shadow-pink-strong)',
         'mint': 'var(--shadow-mint)',
+      },
+      fontSize: {
+        '2xs': ['9px', { lineHeight: '1.2' }],
       },
       animation: {
         'drift-1': 'drift1 30s ease-in-out infinite',
