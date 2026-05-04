@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import { api } from '@/lib/api-client';
 import { calcAge, getInitials } from '@/lib/date-utils';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 type HealthProfile = {
   birthDate?: string | null;
@@ -73,7 +74,8 @@ export default async function ProfilePage() {
   const metaLine = metaParts.join(' · ') || 'Заполни профиль';
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="profile">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Мед. профиль"
         subtitle="Личные и медицинские данные"
@@ -217,5 +219,6 @@ export default async function ProfilePage() {
         </Link>
       </div>
     </div>
+    </PageShell>
   );
 }

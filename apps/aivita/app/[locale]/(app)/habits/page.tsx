@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import { api } from '@/lib/api-client';
 import { getTodayDate } from '@/lib/date-utils';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 type ApiHabit = {
   id: string;
@@ -92,7 +93,8 @@ export default function HabitsPage() {
   const pct = Math.round((doneToday / total) * 100);
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="habits">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Привычки"
         subtitle="Ежедневные привычки для здоровья"
@@ -222,5 +224,6 @@ export default function HabitsPage() {
         </button>
       </div>
     </div>
+    </PageShell>
   );
 }

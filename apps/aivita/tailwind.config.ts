@@ -5,6 +5,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Handoff tokens (cabinet) ──────────────────────────────────────
+        bg: {
+          app: '#f4f3ef',
+          card: '#ffffff',
+          'soft-pink': '#f0d4dc',
+          'soft-purple': '#e0d8f0',
+          'soft-mint': '#d4e8d8',
+          'soft-blue': '#d4dff0',
+          'soft-sage': '#d8e8c0',
+        },
+        text: {
+          primary: '#2a2540',
+          secondary: '#6a6580',
+          muted: '#9a96a8',
+        },
+        border: { soft: '#e8e4dc' },
+        // ── Legacy tokens (keep for landing / other pages) ────────────────
         'app': '#f4f3ef',
         'soft': {
           pink: '#f0d4dc',
@@ -71,12 +88,24 @@ const config: Config = {
         serif: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      borderRadius: {
+        card: '16px',
+        hero: '24px',
+        chip: '20px',
+      },
+      boxShadow: {
+        card: '0 4px 12px rgba(42, 37, 64, 0.06)',
+        dropdown: '0 16px 48px rgba(42, 37, 64, 0.18)',
+        modal: '0 24px 64px rgba(42, 37, 64, 0.24)',
+      },
       letterSpacing: {
         'tightest': '-0.05em',
         'tighter': '-0.04em',
         'tight': '-0.03em',
       },
       backgroundImage: {
+        'hero-gradient': 'linear-gradient(135deg, #b89dc4 0%, #a890b8 50%, #9c83ad 100%)',
+        'hero-soft': 'linear-gradient(135deg, #f0d4dc 0%, #e0d8f0 50%, #d4e8d8 100%)',
         'gradient-hero': 'linear-gradient(135deg, #f0d4dc 0%, #e0d8f0 50%, #d4e8d8 100%)',
         'gradient-pink-purple': 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)',
         'gradient-purple-blue': 'linear-gradient(135deg, #9889c4 0%, #8aa1cc 100%)',

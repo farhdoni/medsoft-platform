@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 const SYSTEMS = [
   {
@@ -67,7 +68,8 @@ export default function TestPage() {
   );
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="test">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Тест 5 систем"
         subtitle="Оцени состояние каждой системы организма"
@@ -209,5 +211,6 @@ export default function TestPage() {
 
       </div>
     </div>
+    </PageShell>
   );
 }

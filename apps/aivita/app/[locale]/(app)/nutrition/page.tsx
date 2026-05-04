@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus, Camera } from 'lucide-react';
 import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 type Meal = {
   id: string;
@@ -53,7 +54,8 @@ export default function NutritionPage() {
   const remaining = DAILY_GOAL.calories - totals.calories;
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="nutrition">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Питание"
         subtitle="Дневник питания и макронутриенты"
@@ -181,5 +183,6 @@ export default function NutritionPage() {
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }

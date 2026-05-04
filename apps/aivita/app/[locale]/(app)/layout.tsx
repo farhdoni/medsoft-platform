@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { TopHeader } from '@/components/cabinet/TopHeader';
-import { BottomNav } from '@/components/app/bottom-nav';
 
-export default async function AppLayout({
+export default async function CabinetLayout({
   children,
   params,
 }: {
@@ -18,14 +16,8 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#f4f3ef' }}>
-      <TopHeader session={session} locale={locale} />
-
-      <main className="flex-1" style={{ paddingBottom: '96px' }}>
-        {children}
-      </main>
-
-      <BottomNav locale={locale} />
+    <div className="min-h-screen bg-bg-app">
+      {children}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import { api } from '@/lib/api-client';
 import { calcAge } from '@/lib/date-utils';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 type FamilyMember = {
   id: string;
@@ -37,7 +38,8 @@ export default async function FamilyPage() {
     'data' in res ? (res.data as FamilyMember[]) : [];
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="family">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Семья"
         subtitle="Здоровье близких в одном месте"
@@ -150,5 +152,6 @@ export default async function FamilyPage() {
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }

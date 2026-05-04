@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { User, Target, Globe, Bell, Lock, ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/app/page-header';
 import { DangerZone } from './danger-zone';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 const SETTINGS_SECTIONS = [
   {
@@ -36,7 +37,8 @@ export default async function SettingsPage({
 }) {
   const { locale } = await params;
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="settings">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Настройки"
         subtitle="Управление аккаунтом и приложением"
@@ -104,5 +106,6 @@ export default async function SettingsPage({
         </p>
       </div>
     </div>
+    </PageShell>
   );
 }

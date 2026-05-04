@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 type NotificationItem = {
   id: string;
@@ -70,7 +71,8 @@ export default function NotificationsPage() {
   const unreadCount = NOTIFICATIONS.filter((n) => !n.read).length;
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="notifications">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Уведомления"
         subtitle={unreadCount > 0 ? `${unreadCount} непрочитанных` : 'Всё прочитано'}
@@ -150,5 +152,6 @@ export default function NotificationsPage() {
         )}
       </div>
     </div>
+    </PageShell>
   );
 }

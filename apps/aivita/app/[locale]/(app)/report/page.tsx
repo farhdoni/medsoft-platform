@@ -1,13 +1,15 @@
 import { Download, Share2, Link2, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/app/page-header';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 
 export default function ReportPage() {
   const reportNumber = '4291-АК';
   const createdDate = '29 апреля 2026';
 
   return (
-    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+    <PageShell active="report">
+    <div className="max-w-[760px] mx-auto">
       <PageHeader
         title="Отчёт врачу"
         subtitle="Медицинская сводка за 30 дней"
@@ -183,5 +185,6 @@ export default function ReportPage() {
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }
