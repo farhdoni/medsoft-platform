@@ -1,7 +1,7 @@
 'use client';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send } from 'lucide-react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 type Message = {
@@ -83,7 +83,6 @@ function inlineFormat(text: string): React.ReactNode[] {
 
 export default function ChatPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const locale = (['ru', 'uz', 'en'].includes(params?.locale as string) ? params?.locale : 'ru') as string;
 
   const initData = INITIAL[locale] ?? INITIAL.ru;
@@ -94,11 +93,16 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const didAutoSend = useRef(false);
 
-  // Handle ?q= from home page search
+  // Handle ?q= from home page search — read from window.location (no Suspense needed)
   useEffect(() => {
-    const q = searchParams?.get('q');
-    if (q) sendMessage(q);
+    if (didAutoSend.current) return;
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+      didAutoSend.current = true;
+      sendMessage(q);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
