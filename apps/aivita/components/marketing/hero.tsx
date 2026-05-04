@@ -34,6 +34,31 @@ export async function HeroSection({ isAuthenticated = false }: Props) {
               <a href="#features" className="lp-btn-secondary">{t('ctaSecondary')}</a>
             </div>
 
+            {/* Android APK download */}
+            <div style={{ marginTop: 12 }}>
+              <a
+                href="https://aivita.uz/downloads/aivita.apk"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 20px',
+                  borderRadius: 100,
+                  background: '#1a1a2e',
+                  color: '#ffffff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <span style={{ fontSize: 16 }}>🤖</span>
+                Скачать для Android (APK)
+              </a>
+              <p style={{ fontSize: 11, color: '#9090a8', marginTop: 6 }}>
+                Android 10+  ·  ~25 MB  ·  бесплатно
+              </p>
+            </div>
+
             <div className="lp-trust-items">
               <div className="lp-trust-item">{t('trust1')}</div>
               <div className="lp-trust-item">{t('trust2')}</div>
