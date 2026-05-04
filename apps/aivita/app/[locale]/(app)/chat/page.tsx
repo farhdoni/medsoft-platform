@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, Sparkles } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { Send } from 'lucide-react';
+import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 type Message = {
   id: string;
@@ -162,57 +162,82 @@ export default function ChatPage() {
   }, [messages, isLoading]);
 
   return (
-    <div className="flex flex-col h-screen">
-      <AppHeader name="AI-помощник" />
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 56px)' }}>
 
-      {/* Header badge */}
-      <div className="px-5 pb-2 pt-1">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-pink-50 to-blue-50 rounded-2xl px-3 py-1.5 border border-[rgba(236,72,153,0.1)] w-fit">
-          <Sparkles className="w-3 h-3 text-pink-500" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-pink-600">Claude AI · aivita</span>
+      {/* AI banner */}
+      <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-2">
+        <div
+          className="flex items-center gap-3 rounded-2xl p-3"
+          style={{ background: 'linear-gradient(135deg, #e0d8f0 0%, #d4e8d8 100%)' }}
+        >
+          <Icon3D name="doctor" size={36} />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>AI ассистент</p>
+              <span
+                className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: '#d4e8d8', color: '#548068' }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-[#548068] inline-block" />
+                онлайн
+              </span>
+            </div>
+            <p className="text-[11px]" style={{ color: '#6a6580' }}>Claude AI · aivita health</p>
+          </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-2 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-2 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id}>
             <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} items-end gap-2`}>
               {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-xl bg-gradient-pink-blue-mint flex items-center justify-center flex-shrink-0 mb-0.5 shadow-pink">
-                  <Bot className="w-4 h-4 text-white" />
+                <div
+                  className="w-8 h-8 rounded-2xl flex-shrink-0 mb-0.5 flex items-center justify-center"
+                  style={{ background: '#e0d8f0' }}
+                >
+                  <Icon3D name="sparkle" size={20} />
                 </div>
               )}
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                className="max-w-[80%] rounded-2xl px-4 py-3"
+                style={
                   msg.role === 'user'
-                    ? 'bg-gradient-pink-blue-mint text-white rounded-br-sm'
-                    : 'bg-white/90 backdrop-blur text-navy border border-[rgba(120,160,200,0.15)] rounded-bl-sm shadow-soft'
-                }`}
+                    ? { background: '#9c5e6c', color: '#ffffff', borderBottomRightRadius: 4 }
+                    : { background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }
+                }
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
                   {msg.content}
                   {msg.streaming && (
-                    <span className="inline-block w-0.5 h-4 bg-pink-500 ml-0.5 animate-pulse align-text-bottom" />
+                    <span
+                      className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
+                      style={{ background: '#cc8a96' }}
+                    />
                   )}
                 </p>
                 {!msg.streaming && (
-                  <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/60 text-right' : 'text-[rgb(var(--text-muted))]'}`}>
+                  <p
+                    className="text-[10px] mt-1"
+                    style={{ color: msg.role === 'user' ? 'rgba(255,255,255,0.6)' : '#9a96a8', textAlign: msg.role === 'user' ? 'right' : 'left' }}
+                  >
                     {msg.time}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Quick replies — only on last AI message */}
+            {/* Quick replies */}
             {msg.quickReplies && !msg.streaming && msg.id === messages[messages.length - 1].id && (
-              <div className="flex flex-wrap gap-2 mt-2 ml-9">
+              <div className="flex flex-wrap gap-2 mt-2 ml-10">
                 {msg.quickReplies.map((qr) => (
                   <button
                     key={qr}
                     onClick={() => sendMessage(qr)}
                     disabled={isLoading}
-                    className="text-xs bg-white/80 backdrop-blur border border-[rgba(120,160,200,0.2)] text-navy px-3 py-1.5 rounded-full hover:bg-white hover:shadow-soft transition-all disabled:opacity-50"
+                    className="text-[12px] px-3 py-1.5 rounded-full transition-opacity hover:opacity-80 disabled:opacity-40"
+                    style={{ background: '#f0d4dc', color: '#9c5e6c', fontWeight: 600 }}
                   >
                     {qr}
                   </button>
@@ -222,19 +247,25 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {/* Typing indicator when waiting for first token */}
+        {/* Typing indicator */}
         {isLoading && messages[messages.length - 1]?.content === '' && (
           <div className="flex items-end gap-2">
-            <div className="w-7 h-7 rounded-xl bg-gradient-pink-blue-mint flex items-center justify-center flex-shrink-0">
-              <Bot className="w-4 h-4 text-white" />
+            <div
+              className="w-8 h-8 rounded-2xl flex-shrink-0 flex items-center justify-center"
+              style={{ background: '#e0d8f0' }}
+            >
+              <Icon3D name="sparkle" size={20} />
             </div>
-            <div className="bg-white/90 backdrop-blur rounded-2xl rounded-bl-sm px-4 py-3 border border-[rgba(120,160,200,0.15)]">
+            <div
+              className="rounded-2xl px-4 py-3"
+              style={{ background: '#ffffff', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }}
+            >
               <div className="flex gap-1 items-center h-4">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }}
+                    className="w-1.5 h-1.5 rounded-full animate-bounce"
+                    style={{ background: '#cc8a96', animationDelay: `${i * 0.15}s` }}
                   />
                 ))}
               </div>
@@ -244,21 +275,30 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-5 py-3 pb-24 md:pb-4 bg-white/80 backdrop-blur-xl border-t border-[rgba(120,160,200,0.1)]">
-        <div className="flex gap-2 items-end">
+      {/* Input bar */}
+      <div
+        className="flex-shrink-0 px-4 md:px-6 py-3"
+        style={{ background: 'rgba(244,243,239,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid #e8e4dc' }}
+      >
+        <div className="flex gap-2 items-center">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
             placeholder="Напишите о самочувствии..."
-            className="flex-1 bg-white border border-[rgba(120,160,200,0.2)] rounded-2xl px-4 py-3 text-sm text-navy placeholder:text-gray-400 focus:outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200"
+            className="flex-1 rounded-2xl px-4 py-3 text-[14px] focus:outline-none"
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e8e4dc',
+              color: '#2a2540',
+            }}
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || isLoading}
-            className="w-11 h-11 rounded-xl bg-gradient-pink-blue-mint flex items-center justify-center shadow-pink disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-pink-strong transition-all flex-shrink-0"
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ background: '#9c5e6c' }}
           >
             <Send className="w-4 h-4 text-white" />
           </button>

@@ -1,5 +1,5 @@
-import { Bell, Heart, Zap, Star } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { PageHeader } from '@/components/app/page-header';
+import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 type NotificationItem = {
   id: string;
@@ -45,43 +45,45 @@ const NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-const TYPE_ICONS = {
-  ai_insight: { icon: Zap, bg: 'bg-gradient-pink-blue-mint', color: 'text-white' },
-  habit_reminder: { icon: Bell, bg: 'bg-orange-100', color: 'text-orange-500' },
-  streak: { icon: Star, bg: 'bg-amber-100', color: 'text-amber-500' },
-  test_due: { icon: Heart, bg: 'bg-blue-100', color: 'text-blue-500' },
+const TYPE_CONFIG: Record<
+  NotificationItem['type'],
+  { icon: React.ComponentProps<typeof Icon3D>['name']; bg: string; accent: string }
+> = {
+  ai_insight: { icon: 'sparkle', bg: '#e0d8f0', accent: '#6e5fa0' },
+  habit_reminder: { icon: 'book', bg: '#f0d4dc', accent: '#9c5e6c' },
+  streak: { icon: 'shield', bg: '#d4e8d8', accent: '#548068' },
+  test_due: { icon: 'heart', bg: '#d4dff0', accent: '#5e75a8' },
 };
 
 function groupByDate(notifications: NotificationItem[]) {
   const today: NotificationItem[] = [];
-  const yesterday: NotificationItem[] = [];
-
+  const earlier: NotificationItem[] = [];
   notifications.forEach((n) => {
-    if (n.time.includes('мин') || n.time.includes('час')) {
-      today.push(n);
-    } else {
-      yesterday.push(n);
-    }
+    if (n.time.includes('мин') || n.time.includes('час')) today.push(n);
+    else earlier.push(n);
   });
-
-  return { today, yesterday };
+  return { today, earlier };
 }
 
 export default function NotificationsPage() {
-  const { today, yesterday } = groupByDate(NOTIFICATIONS);
+  const { today, earlier } = groupByDate(NOTIFICATIONS);
   const unreadCount = NOTIFICATIONS.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen">
-      <AppHeader name="Уведомления" hasNotifications={false} />
+    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+      <PageHeader
+        title="Уведомления"
+        subtitle={unreadCount > 0 ? `${unreadCount} непрочитанных` : 'Всё прочитано'}
+        accentColor="#cc8a96"
+      />
 
-      <div className="px-5 space-y-4 pb-6">
+      <div className="space-y-5 pb-8">
         {unreadCount > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[rgb(var(--text-secondary))]">
-              {unreadCount} непрочитанных
-            </span>
-            <button className="text-xs text-pink-500 font-semibold">
+          <div className="flex justify-end">
+            <button
+              className="text-[12px] font-semibold transition-opacity hover:opacity-70"
+              style={{ color: '#9c5e6c' }}
+            >
               Прочитать все
             </button>
           </div>
@@ -89,41 +91,55 @@ export default function NotificationsPage() {
 
         {[
           { label: 'Сегодня', items: today },
-          { label: 'Вчера', items: yesterday },
+          { label: 'Вчера', items: earlier },
         ].map(({ label, items }) =>
           items.length === 0 ? null : (
             <div key={label}>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[rgb(var(--text-muted))] mb-2 px-1">
+              <p
+                className="text-[11px] font-bold uppercase tracking-wider mb-2.5"
+                style={{ color: '#9a96a8' }}
+              >
                 {label}
-              </h3>
+              </p>
               <div className="space-y-2">
                 {items.map((notif) => {
-                  const { icon: Icon, bg, color } = TYPE_ICONS[notif.type];
+                  const { icon, bg, accent } = TYPE_CONFIG[notif.type];
                   return (
                     <div
                       key={notif.id}
-                      className={`bg-white/80 backdrop-blur-xl rounded-2xl border p-4 shadow-soft transition-all ${
-                        !notif.read
-                          ? 'border-pink-100 bg-pink-50/40'
-                          : 'border-[rgba(120,160,200,0.15)]'
-                      }`}
+                      className="flex items-start gap-3 rounded-2xl p-4 transition-all"
+                      style={{
+                        background: notif.read ? '#ffffff' : bg + '40',
+                        border: `1px solid ${notif.read ? '#e8e4dc' : accent + '40'}`,
+                      }}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-9 h-9 rounded-2xl ${bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                          <Icon className={`w-4 h-4 ${color}`} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold text-navy">{notif.title}</p>
-                            {!notif.read && (
-                              <div className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0 mt-1.5" />
-                            )}
-                          </div>
-                          <p className="text-xs text-[rgb(var(--text-secondary))] mt-0.5 leading-relaxed">
-                            {notif.body}
+                      {/* Icon */}
+                      <div
+                        className="w-10 h-10 rounded-2xl flex-shrink-0 mt-0.5 flex items-center justify-center"
+                        style={{ background: bg }}
+                      >
+                        <Icon3D name={icon} size={24} />
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>
+                            {notif.title}
                           </p>
-                          <p className="text-[10px] text-[rgb(var(--text-muted))] mt-1.5">{notif.time}</p>
+                          {!notif.read && (
+                            <div
+                              className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                              style={{ background: accent }}
+                            />
+                          )}
                         </div>
+                        <p className="text-[12px] leading-relaxed mt-0.5" style={{ color: '#6a6580' }}>
+                          {notif.body}
+                        </p>
+                        <p className="text-[11px] mt-1.5" style={{ color: '#9a96a8' }}>
+                          {notif.time}
+                        </p>
                       </div>
                     </div>
                   );

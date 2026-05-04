@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { Plus, Camera } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { PageHeader } from '@/components/app/page-header';
+import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 type Meal = {
   id: string;
@@ -29,6 +30,12 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   snack: 'Перекус',
 };
 
+const MACRO_COLORS = {
+  protein: { bg: '#d4dff0', accent: '#5e75a8' },
+  fat: { bg: '#f0d4dc', accent: '#9c5e6c' },
+  carbs: { bg: '#e0d8f0', accent: '#6e5fa0' },
+};
+
 export default function NutritionPage() {
   const [meals] = useState<Meal[]>(MOCK_MEALS);
 
@@ -42,94 +49,133 @@ export default function NutritionPage() {
     { calories: 0, protein: 0, fat: 0, carbs: 0 }
   );
 
-  return (
-    <div className="min-h-screen">
-      <AppHeader name="Питание" />
+  const calPct = Math.min((totals.calories / DAILY_GOAL.calories) * 100, 100);
+  const remaining = DAILY_GOAL.calories - totals.calories;
 
-      <div className="px-5 space-y-4 pb-6">
-        {/* Calories card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[rgb(var(--text-secondary))]">
-                КАЛОРИИ СЕГОДНЯ
-              </p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-3xl font-light text-navy">{totals.calories}</span>
-                <span className="text-sm text-[rgb(var(--text-muted))]">/ {DAILY_GOAL.calories} ккал</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-[rgb(var(--text-muted))]">Осталось</p>
-              <p className="text-xl font-semibold text-emerald-600">{DAILY_GOAL.calories - totals.calories}</p>
-            </div>
+  return (
+    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+      <PageHeader
+        title="Питание"
+        subtitle="Дневник питания и макронутриенты"
+        accentColor="#80b094"
+      />
+
+      <div className="space-y-4 pb-8">
+
+        {/* Calories hero */}
+        <div
+          className="rounded-2xl p-5"
+          style={{ background: 'linear-gradient(135deg, #d4e8d8 0%, #e0d8f0 100%)', position: 'relative', overflow: 'hidden' }}
+        >
+          <div className="absolute -top-2 -right-2 pointer-events-none opacity-60">
+            <Icon3D name="food" size={80} />
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <p className="text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#548068' }}>
+            Калории сегодня
+          </p>
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-[40px] font-extrabold leading-none" style={{ color: '#2a2540' }}>
+              {totals.calories}
+            </span>
+            <span className="text-[14px]" style={{ color: '#6a6580' }}>
+              / {DAILY_GOAL.calories} ккал
+            </span>
+            <span className="text-[13px] font-semibold" style={{ color: '#548068' }}>
+              ↓ {remaining} осталось
+            </span>
+          </div>
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.4)' }}>
             <div
-              className="h-full bg-gradient-pink-blue-mint rounded-full"
-              style={{ width: `${Math.min((totals.calories / DAILY_GOAL.calories) * 100, 100)}%` }}
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${calPct}%`,
+                background: 'linear-gradient(90deg, #80b094, #9889c4)',
+              }}
             />
           </div>
         </div>
 
         {/* Macros */}
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Белки', value: totals.protein, goal: DAILY_GOAL.protein, unit: 'г', color: 'bg-blue-400' },
-            { label: 'Жиры', value: totals.fat, goal: DAILY_GOAL.fat, unit: 'г', color: 'bg-orange-400' },
-            { label: 'Углеводы', value: totals.carbs, goal: DAILY_GOAL.carbs, unit: 'г', color: 'bg-pink-400' },
-          ].map(({ label, value, goal, unit, color }) => (
-            <div key={label} className="bg-white/80 backdrop-blur-xl rounded-2xl border border-[rgba(120,160,200,0.15)] p-3">
-              <p className="text-xs text-[rgb(var(--text-muted))] mb-1">{label}</p>
-              <p className="font-semibold text-navy text-sm">{value}{unit}</p>
-              <p className="text-[10px] text-[rgb(var(--text-muted))]">/ {goal}{unit}</p>
-              <div className="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${color} rounded-full`}
-                  style={{ width: `${Math.min((value / goal) * 100, 100)}%` }}
-                />
+          {(
+            [
+              { key: 'protein', label: 'Белки', value: totals.protein, goal: DAILY_GOAL.protein },
+              { key: 'fat', label: 'Жиры', value: totals.fat, goal: DAILY_GOAL.fat },
+              { key: 'carbs', label: 'Углеводы', value: totals.carbs, goal: DAILY_GOAL.carbs },
+            ] as const
+          ).map(({ key, label, value, goal }) => {
+            const { bg, accent } = MACRO_COLORS[key];
+            const pct = Math.min((value / goal) * 100, 100);
+            return (
+              <div key={key} className="rounded-2xl p-3" style={{ background: bg }}>
+                <p className="text-[11px] font-semibold mb-1" style={{ color: accent }}>
+                  {label}
+                </p>
+                <p className="text-[18px] font-extrabold leading-none" style={{ color: '#2a2540' }}>
+                  {value}г
+                </p>
+                <p className="text-[10px] mt-0.5 mb-2" style={{ color: '#9a96a8' }}>/ {goal}г</p>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.5)' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct}%`, background: accent }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Meals list */}
-        <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-navy px-1">Приёмы пищи</h2>
-          {meals.map((meal) => (
-            <div
-              key={meal.id}
-              className="bg-white/80 backdrop-blur-xl rounded-2xl border border-[rgba(120,160,200,0.15)] p-4 shadow-soft"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{meal.emoji}</span>
-                <div className="flex-1">
+        {/* Meals */}
+        <div>
+          <p className="text-[12px] font-bold uppercase tracking-wider mb-3" style={{ color: '#9a96a8' }}>
+            Приёмы пищи
+          </p>
+          <div className="space-y-2">
+            {meals.map((meal) => (
+              <div
+                key={meal.id}
+                className="flex items-center gap-4 rounded-2xl p-4"
+                style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
+              >
+                <span className="text-2xl flex-shrink-0">{meal.emoji}</span>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm text-navy">{meal.name}</span>
-                    <span className="text-xs font-bold text-[rgb(var(--text-secondary))]">{meal.calories} ккал</span>
+                    <p className="text-[14px] font-semibold truncate" style={{ color: '#2a2540' }}>
+                      {meal.name}
+                    </p>
+                    <p className="text-[13px] font-bold flex-shrink-0 ml-2" style={{ color: '#9c5e6c' }}>
+                      {meal.calories} ккал
+                    </p>
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-[10px] text-[rgb(var(--text-muted))]">
+                    <p className="text-[11px]" style={{ color: '#9a96a8' }}>
                       {MEAL_TYPE_LABELS[meal.type]} · {meal.time}
-                    </span>
-                    <span className="text-[10px] text-[rgb(var(--text-muted))]">
-                      Б {meal.protein}г · Ж {meal.fat}г · У {meal.carbs}г
-                    </span>
+                    </p>
+                    <p className="text-[11px]" style={{ color: '#9a96a8' }}>
+                      Б{meal.protein} Ж{meal.fat} У{meal.carbs}г
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Add meal buttons */}
+        {/* Add buttons */}
         <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center justify-center gap-2 h-12 bg-white/80 backdrop-blur border border-dashed border-[rgba(120,160,200,0.3)] text-[rgb(var(--text-secondary))] rounded-2xl text-sm hover:bg-white transition-all">
+          <button
+            className="flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold transition-opacity hover:opacity-80"
+            style={{ background: '#ffffff', color: '#9c5e6c', border: '2px dashed #e8e4dc' }}
+          >
             <Plus className="w-4 h-4" />
             Добавить
           </button>
-          <button className="flex items-center justify-center gap-2 h-12 bg-gradient-to-r from-pink-50 to-blue-50 border border-[rgba(236,72,153,0.2)] text-navy rounded-2xl text-sm font-medium hover:shadow-soft transition-all">
-            <Camera className="w-4 h-4 text-pink-500" />
+          <button
+            className="flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold transition-opacity hover:opacity-80"
+            style={{ background: '#e0d8f0', color: '#6e5fa0' }}
+          >
+            <Camera className="w-4 h-4" />
             AI-камера
           </button>
         </div>

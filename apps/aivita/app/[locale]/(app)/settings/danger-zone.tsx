@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { LogOut, Trash2 } from 'lucide-react';
 import { signOut, deleteAccount } from './actions';
 
-export function DangerZone({ locale }: { locale: string }) {
+export function DangerZone({ locale = 'ru' }: { locale?: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -17,17 +17,26 @@ export function DangerZone({ locale }: { locale: string }) {
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-[rgba(120,160,200,0.15)] overflow-hidden shadow-soft">
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
+    >
       {/* Sign out */}
       <form action={signOut.bind(null, locale)}>
         <button
           type="submit"
-          className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50"
+          className="w-full flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[#f4f3ef]"
+          style={{ borderBottom: '1px solid #f4f3ef' }}
         >
-          <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-            <LogOut className="w-4 h-4 text-orange-500" />
+          <div
+            className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center"
+            style={{ background: '#f0d4dc' }}
+          >
+            <LogOut className="w-4 h-4" style={{ color: '#9c5e6c' }} />
           </div>
-          <span className="text-sm font-medium text-orange-600">Выйти из аккаунта</span>
+          <span className="text-[14px] font-semibold" style={{ color: '#9c5e6c' }}>
+            Выйти из аккаунта
+          </span>
         </button>
       </form>
 
@@ -35,31 +44,40 @@ export function DangerZone({ locale }: { locale: string }) {
       {!confirmDelete ? (
         <button
           onClick={() => setConfirmDelete(true)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[#f4f3ef]"
         >
-          <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+          <div
+            className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center"
+            style={{ background: '#fde8e8' }}
+          >
             <Trash2 className="w-4 h-4 text-red-500" />
           </div>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium text-red-600">Удалить аккаунт</p>
-            <p className="text-xs text-[rgb(var(--text-muted))]">Безвозвратно удалит все данные</p>
+            <p className="text-[14px] font-semibold text-red-600">Удалить аккаунт</p>
+            <p className="text-[11px] mt-0.5" style={{ color: '#9a96a8' }}>
+              Безвозвратно удалит все данные
+            </p>
           </div>
         </button>
       ) : (
-        <div className="px-4 py-4 bg-red-50 space-y-3">
-          <p className="text-sm font-semibold text-red-700">Удалить аккаунт навсегда?</p>
-          <p className="text-xs text-red-600">Все данные, привычки и история будут удалены. Это нельзя отменить.</p>
+        <div className="px-4 py-4 space-y-3" style={{ background: '#fde8e8' }}>
+          <p className="text-[14px] font-semibold text-red-700">Удалить аккаунт навсегда?</p>
+          <p className="text-[12px] text-red-600 leading-relaxed">
+            Все данные, привычки и история будут удалены. Это нельзя отменить.
+          </p>
           <div className="flex gap-2">
             <button
               onClick={() => setConfirmDelete(false)}
-              className="flex-1 h-9 rounded-xl border border-gray-200 text-sm text-[rgb(var(--text-secondary))] hover:bg-white transition-colors"
+              className="flex-1 h-9 rounded-full text-[13px] font-semibold transition-opacity hover:opacity-80"
+              style={{ border: '1px solid #e8e4dc', color: '#6a6580' }}
             >
               Отмена
             </button>
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="flex-1 h-9 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
+              className="flex-1 h-9 rounded-full text-[13px] font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-60"
+              style={{ background: '#cc0000' }}
             >
               {deleting ? 'Удаляю...' : 'Да, удалить'}
             </button>

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { AlertTriangle, Pill, Clock, FileText } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { PageHeader } from '@/components/app/page-header';
+import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import { api } from '@/lib/api-client';
 import { calcAge, getInitials } from '@/lib/date-utils';
 
@@ -61,123 +62,155 @@ export default async function ProfilePage() {
   const { user, profile, allergies, chronic, history } = await getProfileData(sessionCookie);
 
   const name = user?.name ?? 'Пользователь';
-  const firstName = name.split(' ')[0];
   const initials = getInitials(name);
-
   const age = profile?.birthDate ? calcAge(profile.birthDate) : null;
+
   const metaParts: string[] = [];
   if (age) metaParts.push(`${age} лет`);
-  if (profile?.bloodType) metaParts.push(`Группа ${profile.bloodType}`);
+  if (profile?.bloodType) metaParts.push(`Гр. ${profile.bloodType}`);
   if (profile?.heightCm) metaParts.push(`${profile.heightCm} см`);
   if (profile?.weightKg) metaParts.push(`${profile.weightKg} кг`);
   const metaLine = metaParts.join(' · ') || 'Заполни профиль';
 
   return (
-    <div className="min-h-screen">
-      <AppHeader name={firstName} />
+    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+      <PageHeader
+        title="Мед. профиль"
+        subtitle="Личные и медицинские данные"
+        accentColor="#cc8a96"
+      />
 
-      <div className="px-5 space-y-4 pb-6">
-        {/* Profile card */}
-        <div className="bg-gradient-to-br from-blue-50 to-pink-50 rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-pink-blue-mint flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-              {initials}
-            </div>
-            <div>
-              <p className="font-semibold text-navy text-lg">{name}</p>
-              <p className="text-sm text-[rgb(var(--text-secondary))]">{metaLine}</p>
-            </div>
+      <div className="space-y-4 pb-8">
+
+        {/* Avatar card */}
+        <div
+          className="rounded-2xl p-5 flex items-center gap-4"
+          style={{ background: 'linear-gradient(135deg, #f0d4dc 0%, #e0d8f0 100%)' }}
+        >
+          <div
+            className="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center text-[22px] font-bold"
+            style={{ background: 'rgba(255,255,255,0.6)', color: '#9c5e6c' }}
+          >
+            {initials}
+          </div>
+          <div className="flex-1">
+            <p className="text-[18px] font-bold" style={{ color: '#2a2540' }}>{name}</p>
+            <p className="text-[13px] mt-0.5" style={{ color: '#6a6580' }}>{metaLine}</p>
+          </div>
+          <div className="flex-shrink-0">
+            <Icon3D name="shield" size={44} />
           </div>
         </div>
 
-        {/* Allergies */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-pink-600" />
-            </div>
-            <h3 className="font-semibold text-navy flex-1">Аллергии</h3>
-            <span className="text-xs font-bold bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">
-              {allergies.length}
-            </span>
-          </div>
-          {allergies.length === 0 ? (
-            <p className="text-xs text-[rgb(var(--text-muted))]">Не указано</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {allergies.map((a) => (
-                <span
-                  key={a.id}
-                  className="px-3 py-1.5 bg-pink-50 text-pink-700 text-sm rounded-xl border border-pink-100 font-medium"
-                >
-                  {a.allergen}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Chronic */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-              <Pill className="w-4 h-4 text-blue-600" />
-            </div>
-            <h3 className="font-semibold text-navy flex-1">Хронические</h3>
-            <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-              {chronic.length}
-            </span>
-          </div>
-          {chronic.length === 0 ? (
-            <p className="text-xs text-[rgb(var(--text-muted))]">Не указано</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {chronic.map((c) => (
-                <span
-                  key={c.id}
-                  className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-xl border border-blue-100 font-medium"
-                >
-                  {c.name}
-                  {c.diagnosedYear ? ` (${c.diagnosedYear})` : ''}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Medical history */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-emerald-600" />
-            </div>
-            <h3 className="font-semibold text-navy flex-1">История</h3>
-            <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-              {history.length}
-            </span>
-          </div>
-          {history.length === 0 ? (
-            <p className="text-xs text-[rgb(var(--text-muted))]">Не указано</p>
-          ) : (
-            <div className="space-y-2">
-              {history.map((h) => (
-                <div key={h.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <span className="text-sm text-navy">{h.name}</span>
-                  {h.startDate && (
-                    <span className="text-xs text-[rgb(var(--text-muted))]">
-                      {new Date(h.startDate).getFullYear()}
+        {/* Health data sections */}
+        {[
+          {
+            title: 'Аллергии',
+            icon: AlertTriangle,
+            count: allergies.length,
+            bg: '#f0d4dc',
+            color: '#9c5e6c',
+            content:
+              allergies.length === 0 ? (
+                <p className="text-[12px]" style={{ color: '#9a96a8' }}>Не указано</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {allergies.map((a) => (
+                    <span
+                      key={a.id}
+                      className="px-3 py-1.5 rounded-full text-[12px] font-semibold"
+                      style={{ background: '#f0d4dc', color: '#9c5e6c' }}
+                    >
+                      {a.allergen}
                     </span>
-                  )}
+                  ))}
                 </div>
-              ))}
+              ),
+          },
+          {
+            title: 'Хронические',
+            icon: Pill,
+            count: chronic.length,
+            bg: '#d4dff0',
+            color: '#5e75a8',
+            content:
+              chronic.length === 0 ? (
+                <p className="text-[12px]" style={{ color: '#9a96a8' }}>Не указано</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {chronic.map((c) => (
+                    <span
+                      key={c.id}
+                      className="px-3 py-1.5 rounded-full text-[12px] font-semibold"
+                      style={{ background: '#d4dff0', color: '#5e75a8' }}
+                    >
+                      {c.name}
+                      {c.diagnosedYear ? ` (${c.diagnosedYear})` : ''}
+                    </span>
+                  ))}
+                </div>
+              ),
+          },
+          {
+            title: 'История болезней',
+            icon: Clock,
+            count: history.length,
+            bg: '#d4e8d8',
+            color: '#548068',
+            content:
+              history.length === 0 ? (
+                <p className="text-[12px]" style={{ color: '#9a96a8' }}>Не указано</p>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((h) => (
+                    <div
+                      key={h.id}
+                      className="flex items-center justify-between py-2"
+                      style={{ borderBottom: '1px solid #f4f3ef' }}
+                    >
+                      <p className="text-[13px]" style={{ color: '#2a2540' }}>{h.name}</p>
+                      {h.startDate && (
+                        <p className="text-[11px]" style={{ color: '#9a96a8' }}>
+                          {new Date(h.startDate).getFullYear()}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ),
+          },
+        ].map(({ title, icon: Ico, count, bg, color, content }) => (
+          <div
+            key={title}
+            className="rounded-2xl p-4"
+            style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center"
+                style={{ background: bg }}
+              >
+                <Ico className="w-4 h-4" style={{ color }} />
+              </div>
+              <p className="text-[14px] font-semibold flex-1" style={{ color: '#2a2540' }}>
+                {title}
+              </p>
+              <span
+                className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: bg, color }}
+              >
+                {count}
+              </span>
             </div>
-          )}
-        </div>
+            {content}
+          </div>
+        ))}
 
         {/* CTA */}
         <Link
           href="/report"
-          className="w-full flex items-center justify-center gap-2 h-14 bg-gradient-pink-blue-mint text-white font-bold rounded-2xl shadow-pink hover:shadow-pink-strong hover:-translate-y-0.5 transition-all text-sm"
+          className="flex items-center justify-center gap-2 h-14 rounded-2xl text-[14px] font-bold transition-opacity hover:opacity-80"
+          style={{ background: '#9c5e6c', color: '#ffffff' }}
         >
           <FileText className="w-4 h-4" />
           Создать отчёт для врача

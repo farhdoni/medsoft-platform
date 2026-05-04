@@ -1,89 +1,120 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { PageHeader } from '@/components/app/page-header';
+import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 const SYSTEMS = [
   {
     id: 'cardiovascular',
-    emoji: '❤️',
+    icon: 'heart' as const,
     name: 'Сердце и сосуды',
     score: 82,
     done: true,
-    color: 'text-red-500',
-    bgColor: 'bg-red-50',
+    bg: '#f0d4dc',
+    accentColor: '#9c5e6c',
   },
   {
     id: 'digestive',
-    emoji: '🍃',
+    icon: 'food' as const,
     name: 'ЖКТ и питание',
     score: 68,
     done: true,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
+    bg: '#d4e8d8',
+    accentColor: '#548068',
   },
   {
     id: 'sleep',
-    emoji: '🌙',
+    icon: 'kit' as const,
     name: 'Сон и восстановление',
     score: 59,
     done: true,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
+    bg: '#d4dff0',
+    accentColor: '#5e75a8',
   },
   {
     id: 'mental',
-    emoji: '🧠',
+    icon: 'sparkle' as const,
     name: 'Психо и стресс',
     score: null,
     done: false,
     current: true,
-    color: 'text-pink-600',
-    bgColor: 'bg-pink-50',
+    bg: '#e0d8f0',
+    accentColor: '#6e5fa0',
   },
   {
     id: 'musculoskeletal',
-    emoji: '💪',
+    icon: 'steps' as const,
     name: 'Опорно-двигательная',
     score: null,
     done: false,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
+    bg: '#f4f3ef',
+    accentColor: '#9a96a8',
   },
 ];
 
-function getScoreColor(score: number) {
-  if (score >= 75) return 'text-emerald-600';
-  if (score >= 55) return 'text-orange-500';
-  return 'text-red-500';
+function scoreLabel(score: number) {
+  if (score >= 75) return { text: 'отлично', color: '#548068' };
+  if (score >= 55) return { text: 'норма', color: '#9889c4' };
+  return { text: 'внимание', color: '#cc8a96' };
 }
 
 export default function TestPage() {
   const doneCount = SYSTEMS.filter((s) => s.done).length;
+  const progress = (doneCount / 5) * 100;
+  const avgScore = Math.round(
+    SYSTEMS.filter((s) => s.score !== null).reduce((a, s) => a + (s.score ?? 0), 0) /
+      Math.max(1, SYSTEMS.filter((s) => s.score !== null).length)
+  );
 
   return (
-    <div className="min-h-screen">
-      <AppHeader name="Тест 5 систем" />
+    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+      <PageHeader
+        title="Тест 5 систем"
+        subtitle="Оцени состояние каждой системы организма"
+        accentColor="#9889c4"
+      />
 
-      <div className="px-5 space-y-4 pb-6">
+      <div className="space-y-4 pb-8">
+
         {/* Progress card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[rgb(var(--text-secondary))]">
-              ПРОГРЕСС МЕСЯЦА
+        <div
+          className="rounded-2xl p-5"
+          style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>
+              Прогресс месяца
             </p>
-            <span className="text-xs font-bold bg-pink-100 text-pink-700 px-2.5 py-1 rounded-full">
+            <span
+              className="text-[11px] font-bold px-3 py-1 rounded-full"
+              style={{ background: '#e0d8f0', color: '#6e5fa0' }}
+            >
               {doneCount} из 5 готово
             </span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+
+          {/* Progress bar */}
+          <div
+            className="h-2 rounded-full overflow-hidden mb-4"
+            style={{ background: '#e8e4dc' }}
+          >
             <div
-              className="h-full bg-gradient-pink-blue-mint rounded-full transition-all"
-              style={{ width: `${(doneCount / 5) * 100}%` }}
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${progress}%`,
+                background: 'linear-gradient(90deg, #cc8a96 0%, #9889c4 60%, #80b094 100%)',
+              }}
             />
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-lg font-semibold text-navy">Текущий: <strong>71 / 100</strong></span>
-            <span className="text-xs text-emerald-600 font-medium">+4 vs март</span>
+
+          <div className="flex items-baseline gap-2">
+            <span className="text-[28px] font-extrabold leading-none" style={{ color: '#2a2540' }}>
+              {avgScore}
+            </span>
+            <span className="text-[14px]" style={{ color: '#9a96a8' }}>/100 — средний балл</span>
+            <span className="text-[12px] font-semibold" style={{ color: '#548068' }}>
+              ↑ +4 за месяц
+            </span>
           </div>
         </div>
 
@@ -92,65 +123,90 @@ export default function TestPage() {
           {SYSTEMS.map((sys) => (
             <div
               key={sys.id}
-              className={`relative bg-white/80 backdrop-blur-xl rounded-2xl border p-4 shadow-soft transition-all ${
-                sys.current
-                  ? 'border-pink-200 bg-pink-50/80'
-                  : 'border-[rgba(120,160,200,0.15)]'
-              }`}
+              className="relative rounded-2xl overflow-hidden"
+              style={{
+                background: sys.current ? sys.bg : '#ffffff',
+                border: `1px solid ${sys.current ? sys.accentColor + '40' : '#e8e4dc'}`,
+              }}
             >
-              <div className="flex items-center gap-3">
-                {/* Status icon */}
-                <div className={`w-10 h-10 rounded-2xl ${sys.bgColor} flex items-center justify-center text-xl flex-shrink-0`}>
-                  {sys.done ? (
-                    <div className="relative">
-                      <span>{sys.emoji}</span>
-                      <span className="absolute -bottom-0.5 -right-0.5 text-xs">✅</span>
-                    </div>
-                  ) : sys.current ? (
-                    <span>{sys.emoji}</span>
-                  ) : (
-                    <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
-                      <span className="text-base">{sys.emoji}</span>
-                    </div>
-                  )}
+              <div className="flex items-center gap-4 p-4">
+                {/* Icon */}
+                <div
+                  className="w-11 h-11 rounded-2xl flex-shrink-0 flex items-center justify-center"
+                  style={{ background: sys.bg }}
+                >
+                  <Icon3D name={sys.icon} size={28} />
                 </div>
 
-                <div className="flex-1">
-                  <p className="font-semibold text-navy text-sm">{sys.name}</p>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>
+                    {sys.name}
+                  </p>
                   {sys.done && sys.score !== null ? (
-                    <p className={`text-xs font-bold ${getScoreColor(sys.score)}`}>
-                      {sys.score} / 100
+                    <p
+                      className="text-[12px] font-bold mt-0.5"
+                      style={{ color: scoreLabel(sys.score).color }}
+                    >
+                      {sys.score} / 100 · {scoreLabel(sys.score).text}
                     </p>
                   ) : sys.current ? (
-                    <p className="text-xs text-pink-600 font-medium">Сейчас · 2 мин</p>
+                    <p className="text-[12px] font-medium mt-0.5" style={{ color: sys.accentColor }}>
+                      Пройти сейчас · ~2 мин
+                    </p>
                   ) : (
-                    <p className="text-xs text-[rgb(var(--text-muted))]">Ожидает</p>
+                    <p className="text-[12px] mt-0.5" style={{ color: '#9a96a8' }}>
+                      Ожидает очереди
+                    </p>
                   )}
                 </div>
 
-                {sys.current && (
+                {/* Action */}
+                {sys.current ? (
                   <Link
                     href={`/test/${sys.id}`}
-                    className="flex items-center gap-1 bg-gradient-pink-blue-mint text-white text-xs font-bold px-3 py-2 rounded-xl shadow-pink"
+                    className="flex items-center gap-1 px-4 py-2 rounded-full text-[12px] font-bold transition-opacity hover:opacity-80"
+                    style={{ background: sys.accentColor, color: '#ffffff' }}
                   >
                     Начать <ChevronRight className="w-3 h-3" />
                   </Link>
-                )}
-                {sys.done && (
-                  <ChevronRight className="w-4 h-4 text-[rgb(var(--text-muted))]" />
+                ) : sys.done ? (
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="text-[11px] font-bold px-2 py-1 rounded-full"
+                      style={{ background: '#d4e8d8', color: '#548068' }}
+                    >
+                      ✓
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-full border-2 border-dashed flex items-center justify-center"
+                    style={{ borderColor: '#e8e4dc' }}
+                  />
                 )}
               </div>
+
+              {/* Current indicator bar */}
+              {sys.current && (
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1 rounded-l-full"
+                  style={{ background: sys.accentColor }}
+                />
+              )}
             </div>
           ))}
         </div>
 
-        {/* See results */}
+        {/* View results */}
         <Link
           href="/test/results"
-          className="w-full flex items-center justify-center h-12 bg-white/80 backdrop-blur border border-[rgba(120,160,200,0.2)] text-navy font-semibold rounded-2xl text-sm hover:bg-white transition-all"
+          className="flex items-center justify-center h-12 rounded-2xl text-[14px] font-semibold transition-opacity hover:opacity-80"
+          style={{ background: '#ffffff', color: '#9c5e6c', border: '1px solid #e8e4dc' }}
         >
           Посмотреть результаты месяца →
         </Link>
+
       </div>
     </div>
   );

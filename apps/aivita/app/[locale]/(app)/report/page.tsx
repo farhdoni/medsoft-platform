@@ -1,112 +1,182 @@
-import { FileText, Download, Share2, Link2, Printer } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { Download, Share2, Link2, Printer } from 'lucide-react';
+import { PageHeader } from '@/components/app/page-header';
+import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 export default function ReportPage() {
   const reportNumber = '4291-АК';
   const createdDate = '29 апреля 2026';
 
   return (
-    <div className="min-h-screen">
-      <AppHeader name="Отчёт врачу" />
+    <div className="max-w-[760px] mx-auto px-4 md:px-6">
+      <PageHeader
+        title="Отчёт врачу"
+        subtitle="Медицинская сводка за 30 дней"
+        accentColor="#6e5fa0"
+      />
 
-      <div className="px-5 space-y-4 pb-6">
-        {/* Report header */}
-        <div className="bg-gradient-to-br from-blue-50 to-pink-50 rounded-3xl border border-[rgba(120,160,200,0.15)] p-5 shadow-soft">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-pink-blue-mint flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
+      <div className="space-y-4 pb-8">
+
+        {/* Report card */}
+        <div
+          className="rounded-2xl p-5"
+          style={{ background: 'linear-gradient(135deg, #e0d8f0 0%, #d4e8d8 100%)' }}
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <div
+              className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.6)' }}
+            >
+              <Icon3D name="report" size={30} />
             </div>
             <div>
-              <p className="font-semibold text-navy">Медицинский отчёт</p>
-              <p className="text-xs text-[rgb(var(--text-muted))]">№ {reportNumber} · {createdDate}</p>
+              <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>
+                Медицинский отчёт
+              </p>
+              <p className="text-[12px]" style={{ color: '#6a6580' }}>
+                № {reportNumber} · {createdDate}
+              </p>
             </div>
           </div>
-          <div className="text-xs text-[rgb(var(--text-secondary))] space-y-1">
-            <p>✓ Личные данные и антропометрия</p>
-            <p>✓ Аллергии и хронические заболевания</p>
-            <p>✓ История болезней и операций</p>
-            <p>✓ Биометрия за 30 дней (пульс, давление, сон)</p>
-            <p>✓ Health Score по 5 системам</p>
+
+          <div className="space-y-2">
+            {[
+              'Личные данные и антропометрия',
+              'Аллергии и хронические заболевания',
+              'История болезней и операций',
+              'Биометрия за 30 дней (пульс, давление, сон)',
+              'Health Score по 5 системам',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2">
+                <span
+                  className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold"
+                  style={{ background: 'rgba(255,255,255,0.7)', color: '#548068' }}
+                >
+                  ✓
+                </span>
+                <p className="text-[13px]" style={{ color: '#2a2540' }}>{item}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* PDF preview placeholder */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] overflow-hidden shadow-soft">
-          <div className="bg-gray-50 border-b border-gray-100 px-4 py-2 flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-400" />
-            <div className="w-3 h-3 rounded-full bg-yellow-400" />
-            <div className="w-3 h-3 rounded-full bg-green-400" />
-            <span className="text-xs text-gray-400 ml-2">report-{reportNumber}.pdf</span>
+        {/* PDF preview */}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
+        >
+          {/* Browser bar simulation */}
+          <div
+            className="flex items-center gap-2 px-4 py-2.5 border-b"
+            style={{ background: '#f4f3ef', borderColor: '#e8e4dc' }}
+          >
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ background: '#cc8a96' }} />
+              <div className="w-3 h-3 rounded-full" style={{ background: '#9889c4' }} />
+              <div className="w-3 h-3 rounded-full" style={{ background: '#80b094' }} />
+            </div>
+            <p className="text-[11px] ml-2" style={{ color: '#9a96a8' }}>
+              report-{reportNumber}.pdf
+            </p>
           </div>
 
-          {/* Simulated PDF content */}
+          {/* Simulated PDF */}
           <div className="p-6 space-y-4">
-            <div className="text-center border-b border-gray-100 pb-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-[rgb(var(--text-secondary))]">МЕДИЦИНСКИЙ ОТЧЁТ</p>
-              <p className="text-sm font-semibold text-navy mt-1">Азиз Каримов</p>
-              <p className="text-xs text-[rgb(var(--text-muted))]">32 года · A+ · 178 см / 76 кг</p>
+            <div className="text-center pb-4" style={{ borderBottom: '1px solid #e8e4dc' }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9a96a8' }}>
+                МЕДИЦИНСКИЙ ОТЧЁТ · AIVITA
+              </p>
+              <p className="text-[15px] font-bold mt-1" style={{ color: '#2a2540' }}>
+                Азиз Каримов
+              </p>
+              <p className="text-[12px]" style={{ color: '#6a6580' }}>32 года · A+ · 178 см / 76 кг</p>
             </div>
 
             <div>
-              <p className="text-xs font-bold text-pink-600 uppercase mb-2">Аллергии</p>
-              <div className="flex gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#9c5e6c' }}>
+                Аллергии
+              </p>
+              <div className="flex gap-2 flex-wrap">
                 {['Пенициллин', 'Орехи'].map((a) => (
-                  <span key={a} className="px-2 py-0.5 bg-pink-50 text-pink-700 text-xs rounded-lg border border-pink-100">{a}</span>
+                  <span
+                    key={a}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                    style={{ background: '#f0d4dc', color: '#9c5e6c' }}
+                  >
+                    {a}
+                  </span>
                 ))}
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-bold text-blue-600 uppercase mb-2">Хронические</p>
-              <p className="text-xs text-navy">Гастрит (с 2018)</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#6e5fa0' }}>
+                Хронические
+              </p>
+              <p className="text-[13px]" style={{ color: '#2a2540' }}>Гастрит (с 2018)</p>
             </div>
 
             <div>
-              <p className="text-xs font-bold text-emerald-600 uppercase mb-2">Health Score</p>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-light text-navy">87</div>
-                <div className="text-xs text-[rgb(var(--text-muted))]">/ 100</div>
-                <div className="text-xs text-emerald-600 font-medium">↑ +3</div>
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: '#548068' }}>
+                Health Score
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[28px] font-extrabold leading-none" style={{ color: '#2a2540' }}>87</span>
+                <span className="text-[13px]" style={{ color: '#9a96a8' }}>/100</span>
+                <span className="text-[12px] font-semibold" style={{ color: '#548068' }}>↑ +3</span>
               </div>
             </div>
 
-            <div className="text-center pt-2 border-t border-gray-100">
-              <p className="text-[10px] text-gray-300">Создан через aivita.uz · {createdDate}</p>
+            <div
+              className="text-center pt-3"
+              style={{ borderTop: '1px solid #e8e4dc' }}
+            >
+              <p className="text-[10px]" style={{ color: '#9a96a8' }}>
+                Создан через aivita.uz · {createdDate}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <div className="grid grid-cols-2 gap-3">
           {[
             { icon: Share2, label: 'Поделиться', primary: true },
             { icon: Link2, label: 'Скопировать ссылку', primary: false },
             { icon: Download, label: 'Скачать PDF', primary: false },
             { icon: Printer, label: 'Распечатать', primary: false },
-          ].map(({ icon: Icon, label, primary }) => (
+          ].map(({ icon: Ico, label, primary }) => (
             <button
               key={label}
-              className={`flex items-center justify-center gap-2 h-12 rounded-2xl text-sm font-medium transition-all ${
+              className="flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold transition-opacity hover:opacity-80"
+              style={
                 primary
-                  ? 'bg-gradient-pink-blue-mint text-white shadow-pink hover:shadow-pink-strong'
-                  : 'bg-white/80 backdrop-blur border border-[rgba(120,160,200,0.2)] text-navy hover:bg-white'
-              }`}
+                  ? { background: '#9c5e6c', color: '#ffffff' }
+                  : { background: '#ffffff', color: '#2a2540', border: '1px solid #e8e4dc' }
+              }
             >
-              <Icon className="w-4 h-4" />
+              <Ico className="w-4 h-4" />
               {label}
             </button>
           ))}
         </div>
 
-        {/* QR note */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-[rgba(120,160,200,0.15)] p-4 flex items-start gap-3">
-          <span className="text-2xl">🔗</span>
+        {/* QR */}
+        <div
+          className="rounded-2xl p-4 flex items-start gap-4"
+          style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
+        >
+          <span className="text-2xl flex-shrink-0">🔗</span>
           <div>
-            <p className="text-sm font-medium text-navy">QR-код для врача</p>
-            <p className="text-xs text-[rgb(var(--text-secondary))] mt-0.5">
+            <p className="text-[14px] font-semibold mb-0.5" style={{ color: '#2a2540' }}>
+              QR-код для врача
+            </p>
+            <p className="text-[12px] leading-relaxed" style={{ color: '#6a6580' }}>
               Покажи врачу QR-код — он откроет отчёт прямо на своём телефоне без установки приложений.
             </p>
-            <button className="text-xs text-pink-500 font-semibold mt-2">
+            <button
+              className="text-[12px] font-bold mt-2 transition-opacity hover:opacity-70"
+              style={{ color: '#9c5e6c' }}
+            >
               Показать QR →
             </button>
           </div>
