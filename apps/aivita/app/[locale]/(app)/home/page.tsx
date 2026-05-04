@@ -283,9 +283,9 @@ function ActivityChart({ data }: { data: ActivityPoint[] }) {
           const h = Math.max(8, (v / max) * 100);
           const isToday = i === data.length - 1;
           return (
-            <div key={d.day} className="relative flex flex-col items-center" style={{ height: '100%' }}>
+            <div key={d.day} className="relative flex flex-col items-center">
               <div
-                className="w-full rounded-md"
+                className="w-full rounded-md transition-all"
                 style={{
                   height: `${h}%`,
                   background: isToday
