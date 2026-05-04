@@ -189,7 +189,7 @@ export default function ChatPage() {
         }
 
         // Final: mark not streaming, add quick replies
-        const quickReplies = getQuickReplies(text, locale);
+        const quickReplies = getQuickReplies(text);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
@@ -205,7 +205,7 @@ export default function ChatPage() {
       } else {
         // JSON fallback (mock mode)
         const json = await res.json();
-        const quickReplies = getQuickReplies(text, locale);
+        const quickReplies = getQuickReplies(text);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
@@ -383,32 +383,49 @@ export default function ChatPage() {
   );
 }
 
-function getQuickReplies(userMessage: string, locale: string): string[] {
-  const lower = userMessage.toLowerCase();
+/** Detect language from message text (same logic as the API mock) */
+function detectLang(text: string): 'uz' | 'en' | 'ru' {
+  const t = text.toLowerCase();
+  const uzWords = ['salom','uyqu','uxla','ovqat','parhez','qanday','gapir','olaysan',
+    'bosh','charchoq','stress','tashvish','bosim','yurak','tomoq',
+    'салом','уйқу','овқат','ҳам','учун','билан','ўзбек','гапир','олайсан',
+    'қандай','сўз','жавоб','оғри','томоқ'];
+  if (uzWords.some(w => t.includes(w))) return 'uz';
 
-  if (locale === 'uz') {
-    if (lower.includes('uyqu') || lower.includes('uxla') || lower.includes('yotish'))
-      return ['Tezroq uxlash uchun maslahat?', 'Uyqu normalari?', 'Melatonin yordam beradimi?'];
-    if (lower.includes('ovqat') || lower.includes('taom') || lower.includes('parhez'))
+  const enWords = ['sleep','food','diet','nutrition','stress','anxiety','health',
+    'hello','hi ','how are','can you','exercise','weight'];
+  if (enWords.some(w => t.includes(w))) return 'en';
+
+  return 'ru';
+}
+
+function getQuickReplies(userMessage: string): string[] {
+  const lang = detectLang(userMessage);
+  const t = userMessage.toLowerCase();
+
+  if (lang === 'uz') {
+    if (t.includes('uyqu') || t.includes('уйқу') || t.includes('uxla') || t.includes('ухла'))
+      return ['Tezroq uxlash mumkinmi?', 'Uyqu normalari?', 'Melatonin yordam beradimi?'];
+    if (t.includes('ovqat') || t.includes('овқат') || t.includes('parhez') || t.includes('taom'))
       return ['Eng yaxshi nonushta?', 'Kechqurun ovqatlansa bo\'ladimi?', 'Kaloriyani qanday hisoblash?'];
-    if (lower.includes('stress') || lower.includes('tashvish') || lower.includes('nerv'))
+    if (t.includes('stress') || t.includes('tashvish') || t.includes('nerv'))
       return ['Relaksatsiya usullari', 'Meditatsiya boshlash', 'Psixologga qachon borish?'];
     return ['Batafsil ayting', 'Qanday tahlillar topshirish kerak?', 'Shifokorga qachon borish?'];
   }
 
-  if (locale === 'en') {
-    if (lower.includes('sleep')) return ['How to fall asleep faster?', 'Sleep norms by age?', 'Does melatonin help?'];
-    if (lower.includes('food') || lower.includes('diet') || lower.includes('nutrition'))
+  if (lang === 'en') {
+    if (t.includes('sleep')) return ['How to fall asleep faster?', 'Sleep norms by age?', 'Does melatonin help?'];
+    if (t.includes('food') || t.includes('diet') || t.includes('nutrition'))
       return ['Best breakfast?', 'Eating after 6pm?', 'How to count calories?'];
-    if (lower.includes('stress') || lower.includes('anxiety'))
+    if (t.includes('stress') || t.includes('anxiety'))
       return ['Relaxation techniques', 'Meditation for beginners', 'When to see a therapist?'];
-    return ['Tell me more', 'What tests to take?', 'When to see a doctor?'];
+    return ['Tell me more', 'What tests should I take?', 'When to see a doctor?'];
   }
 
-  // Default: Russian
-  if (lower.includes('сон') || lower.includes('спать')) return ['Как засыпать быстрее?', 'Нормы сна по возрасту', 'Мелатонин — помогает?'];
-  if (lower.includes('питание') || lower.includes('еда')) return ['Лучший завтрак?', 'Можно есть после 18?', 'Как считать калории?'];
-  if (lower.includes('стресс') || lower.includes('тревог')) return ['Техники релаксации', 'Медитация для начинающих', 'Когда идти к психологу?'];
-  if (lower.includes('вес') || lower.includes('спорт')) return ['Сколько тренироваться?', 'Кардио или силовые?', 'Как не сорваться с диеты?'];
+  // Russian
+  if (t.includes('сон') || t.includes('спать')) return ['Как засыпать быстрее?', 'Нормы сна по возрасту', 'Мелатонин — помогает?'];
+  if (t.includes('питание') || t.includes('еда')) return ['Лучший завтрак?', 'Можно есть после 18?', 'Как считать калории?'];
+  if (t.includes('стресс') || t.includes('тревог')) return ['Техники релаксации', 'Медитация для начинающих', 'Когда идти к психологу?'];
+  if (t.includes('вес') || t.includes('спорт')) return ['Сколько тренироваться?', 'Кардио или силовые?', 'Как не сорваться с диеты?'];
   return ['Расскажи подробнее', 'Какие анализы сдать?', 'Когда обратиться к врачу?'];
 }
