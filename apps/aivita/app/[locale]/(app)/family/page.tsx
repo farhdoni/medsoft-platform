@@ -1,157 +1,114 @@
-import { cookies } from 'next/headers';
-import { Plus, ChevronRight } from 'lucide-react';
-import { PageHeader } from '@/components/app/page-header';
-import { Icon3D } from '@/components/cabinet/icons/Icon3D';
-import { api } from '@/lib/api-client';
-import { calcAge } from '@/lib/date-utils';
+import { Plus, ChevronRight, Shield } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
+import { Icon } from '@/components/cabinet/icons/Icon';
+import { calcAge } from '@/lib/date-utils';
+import { loadFamilyData } from './data';
 
-type FamilyMember = {
-  id: string;
-  memberName: string;
-  memberRelation: string;
-  memberBirthDate?: string | null;
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const RELATION_LABELS: Record<string, string> = {
+  spouse: 'Супруг/а', child: 'Ребёнок', parent: 'Родитель',
+  sibling: 'Брат/Сестра', other: 'Другое',
 };
 
-const RELATION_EMOJI: Record<string, string> = {
-  spouse: '💑',
-  child: '👶',
-  parent: '👩',
-  sibling: '🧑',
-  other: '👤',
-};
+const SOFT_BGS = [
+  'bg-bg-soft-pink', 'bg-bg-soft-purple', 'bg-bg-soft-mint',
+  'bg-bg-soft-blue', 'bg-bg-soft-sage',
+];
 
-const RELATION_BG: Record<string, string> = {
-  spouse: '#f0d4dc',
-  child: '#d4e8d8',
-  parent: '#e0d8f0',
-  sibling: '#d4dff0',
-  other: '#f4f3ef',
-};
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function FamilyPage() {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
-
-  const res = await api.family.list(sessionCookie);
-  const members: FamilyMember[] =
-    'data' in res ? (res.data as FamilyMember[]) : [];
+  const { members } = await loadFamilyData();
 
   return (
     <PageShell active="family">
-    <div className="max-w-[760px] mx-auto">
-      <PageHeader
-        title="Семья"
-        subtitle="Здоровье близких в одном месте"
-        accentColor="#9889c4"
-      />
+      <div className="max-w-[680px] mx-auto pb-6">
 
-      <div className="space-y-4 pb-8">
-
-        {/* Intro banner */}
-        <div
-          className="rounded-2xl p-4 flex items-center gap-4"
-          style={{ background: 'linear-gradient(135deg, #e0d8f0 0%, #d4dff0 100%)' }}
-        >
-          <Icon3D name="family" size={48} />
-          <div>
-            <p className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>
-              Семейный круг здоровья
+        {/* ── Hero ──────────────────────────────────────────────────────────── */}
+        <section className="rounded-hero bg-hero-gradient p-6 mb-5 flex items-center gap-5">
+          <div className="flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-1">СЕМЬЯ</p>
+            <p className="text-[22px] font-extrabold text-white leading-tight">
+              {members.length === 0
+                ? 'Пригласи близких'
+                : `${members.length} ${members.length === 1 ? 'участник' : members.length < 5 ? 'участника' : 'участников'}`}
             </p>
-            <p className="text-[12px] mt-0.5" style={{ color: '#6a6580' }}>
-              Следи за показателями близких, получай уведомления о важных изменениях.
+            <p className="text-[12px] text-white/70 mt-1">
+              Здоровье близких в одном месте
             </p>
           </div>
-        </div>
+          <div className="flex-shrink-0">
+            <Icon name="family" size={56} />
+          </div>
+        </section>
 
-        {/* Members */}
-        {members.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-[12px] font-bold uppercase tracking-wider px-0.5" style={{ color: '#9a96a8' }}>
-              Члены семьи ({members.length})
+        {/* ── Members ───────────────────────────────────────────────────────── */}
+        {members.length > 0 && (
+          <>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-3">
+              Члены семьи
             </p>
-            {members.map((member) => {
-              const age = member.memberBirthDate ? calcAge(member.memberBirthDate) : null;
-              const emoji = RELATION_EMOJI[member.memberRelation] ?? '👤';
-              const bg = RELATION_BG[member.memberRelation] ?? '#f4f3ef';
-
-              return (
-                <div
-                  key={member.id}
-                  className="flex items-center gap-4 rounded-2xl p-4 transition-opacity hover:opacity-80 cursor-pointer"
-                  style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
-                >
+            <div className="space-y-2 mb-5">
+              {members.map((m, idx) => {
+                const age = m.memberBirthDate ? calcAge(m.memberBirthDate) : null;
+                const relation = RELATION_LABELS[m.memberRelation] ?? m.memberRelation;
+                const initial = m.memberName.charAt(0).toUpperCase();
+                const bg = SOFT_BGS[idx % SOFT_BGS.length];
+                return (
                   <div
-                    className="w-11 h-11 rounded-2xl flex-shrink-0 flex items-center justify-center text-2xl"
-                    style={{ background: bg }}
+                    key={m.id}
+                    className="flex items-center gap-4 p-4 rounded-card bg-white border border-border-soft hover:bg-bg-app transition-colors cursor-pointer"
                   >
-                    {emoji}
+                    <div className={`w-11 h-11 rounded-[14px] flex-shrink-0 flex items-center justify-center text-[18px] font-bold text-text-primary ${bg}`}>
+                      {initial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-semibold text-text-primary">{m.memberName}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        {relation}{age !== null ? ` · ${age} лет` : ''}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>
-                      {member.memberName}
-                    </p>
-                    <p className="text-[11px] mt-0.5" style={{ color: '#9a96a8' }}>
-                      {member.memberRelation}{age !== null ? ` · ${age} лет` : ''}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#9a96a8' }} />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{ background: '#ffffff', border: '1px solid #e8e4dc' }}
-          >
-            <p className="text-[40px] mb-3">👨‍👩‍👧‍👦</p>
-            <p className="text-[15px] font-semibold mb-1" style={{ color: '#2a2540' }}>
-              Семья пока пуста
-            </p>
-            <p className="text-[12px]" style={{ color: '#9a96a8' }}>
-              Добавь близких, чтобы следить за их здоровьем
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* ── Empty state ────────────────────────────────────────────────────── */}
+        {members.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center mb-5">
+            <div className="w-20 h-20 rounded-[24px] bg-bg-soft-purple flex items-center justify-center">
+              <Icon name="family" size={40} />
+            </div>
+            <p className="text-[15px] font-semibold text-text-primary">Семья пока пуста</p>
+            <p className="text-[13px] text-text-muted max-w-[220px] leading-relaxed">
+              Добавь близких, чтобы следить за их здоровьем в одном месте
             </p>
           </div>
         )}
 
-        {/* Add member */}
-        <button
-          className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl text-[13px] font-semibold transition-opacity hover:opacity-80"
-          style={{ background: '#ffffff', color: '#9c5e6c', border: '2px dashed #e8e4dc' }}
-        >
+        {/* ── Add button ─────────────────────────────────────────────────────── */}
+        <button className="w-full flex items-center justify-center gap-2 h-12 rounded-card bg-white text-[13px] font-semibold text-accent-rose border-2 border-dashed border-border-soft hover:bg-bg-app transition-colors mb-4">
           <Plus className="w-4 h-4" />
           Добавить члена семьи
         </button>
 
-        {/* Invite card */}
-        <div
-          className="rounded-2xl p-5 flex items-start gap-4"
-          style={{ background: '#f0d4dc' }}
-        >
-          <div
-            className="w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.6)' }}
-          >
-            <Icon3D name="chat" size={24} />
+        {/* ── Privacy reminder ───────────────────────────────────────────────── */}
+        <div className="rounded-card bg-bg-soft-pink p-4 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-[10px] bg-white/60 flex-shrink-0 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-accent-rose" />
           </div>
-          <div>
-            <p className="text-[14px] font-semibold mb-1" style={{ color: '#2a2540' }}>
-              Пригласить по ссылке
+          <div className="flex-1">
+            <p className="text-[13px] font-semibold text-text-primary mb-0.5">Что видит семья</p>
+            <p className="text-[11px] text-text-secondary leading-relaxed">
+              Общие метрики (Health Score, шаги). <strong>Не видят:</strong> AI-чат, мед. документы, заметки.
             </p>
-            <p className="text-[12px] leading-relaxed" style={{ color: '#6a6580' }}>
-              Отправь ссылку родственнику — они получат профиль, а ты получишь доступ к их показателям.
-            </p>
-            <button
-              className="mt-2 text-[12px] font-bold transition-opacity hover:opacity-70"
-              style={{ color: '#9c5e6c' }}
-            >
-              Создать ссылку →
-            </button>
           </div>
         </div>
       </div>
-    </div>
     </PageShell>
   );
 }
