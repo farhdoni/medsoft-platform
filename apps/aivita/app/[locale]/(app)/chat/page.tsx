@@ -32,6 +32,55 @@ function getTime() {
   return new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Simple inline markdown → JSX renderer (bold, italic, bullet lists) */
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  lines.forEach((line, li) => {
+    const trimmed = line.trim();
+    const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('• ');
+    const content = isBullet ? trimmed.slice(2) : line;
+
+    const inlineNodes = inlineFormat(content);
+
+    if (isBullet) {
+      elements.push(
+        <div key={li} className="flex gap-1.5 items-baseline">
+          <span className="flex-shrink-0 mt-1" style={{ color: '#cc8a96' }}>•</span>
+          <span>{inlineNodes}</span>
+        </div>
+      );
+    } else if (trimmed === '' || trimmed === '---') {
+      elements.push(<div key={li} className="h-2" />);
+    } else {
+      elements.push(<p key={li} className="mb-0.5">{inlineNodes}</p>);
+    }
+  });
+
+  return <>{elements}</>;
+}
+
+/** Replace **bold** and *italic* with JSX spans */
+function inlineFormat(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const re = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[2]) {
+      parts.push(<strong key={key++} style={{ fontWeight: 700 }}>{m[2]}</strong>);
+    } else if (m[3]) {
+      parts.push(<em key={key++}>{m[3]}</em>);
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
 export default function ChatPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -228,15 +277,17 @@ export default function ChatPage() {
                     : { background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }
                 }
               >
-                <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
-                  {msg.content}
+                <div className="text-[14px] leading-relaxed">
+                  {msg.role === 'assistant'
+                    ? renderMarkdown(msg.content)
+                    : <span className="whitespace-pre-wrap">{msg.content}</span>}
                   {msg.streaming && (
                     <span
                       className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
                       style={{ background: '#cc8a96' }}
                     />
                   )}
-                </p>
+                </div>
                 {!msg.streaming && (
                   <p
                     className="text-[10px] mt-1"

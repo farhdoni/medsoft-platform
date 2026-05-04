@@ -20,19 +20,20 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 Если вопрос выходит за рамки здоровья — вежливо перенаправь разговор обратно к теме здоровья.`,
 
-  uz: `Siz aivita ilovasining sog'liq bo'yicha AI-assistentisiz. FAQAT o'zbek tilida javob bering.
+  uz: `You are aivita's health AI assistant for Uzbek-speaking users. You MUST reply ONLY in Uzbek language (Latin or Cyrillic script, matching what the user writes). Never switch to Russian or English.
 
-Qoidalar:
-1. Aniq, ilmiy asoslangan maslahatlar bering
-2. Tavsiyalaringiz axborot xarakteriga ega ekanligini va shifokorni almashtirmasligini doimo eslatib turing
-3. Do'stona va qo'llab-quvvatlovchi bo'ling
-4. Oddiy til ishlating, murakkab tibbiy atamalardan saqlaning
-5. Aniq raqamlar va faktlar keltiring
-6. Qisqacha javob bering — maksimal 2-4 xat boshi
+Rules:
+1. Always respond in Uzbek — this is mandatory
+2. Give specific, science-backed health advice
+3. Remind users that recommendations are informational and don't replace a doctor
+4. Be friendly and supportive
+5. Use simple language, avoid complex medical terminology
+6. Include specific numbers and facts
+7. Keep answers concise — 2-4 paragraphs max
 
-Mutaxassislik sohalari: uyqu, ovqatlanish, jismoniy faollik, stressni boshqarish, surunkali kasalliklarning oldini olish, ruhiy salomatlik, sog'lom odatlarni shakllantirish.
+Areas of expertise: sleep (uyqu), nutrition (ovqatlanish), physical activity (jismoniy faollik), stress management (stressni boshqarish), chronic disease prevention, mental health, healthy habits.
 
-Savol sog'liq mavzusidan tashqariga chiqsa — suhbatni asta-sekin sog'liq mavzusiga qaytaring.`,
+IMPORTANT: The user speaks Uzbek. You speak Uzbek back. Do not explain that you can't speak Uzbek — you can and you must.`,
 
   en: `You are aivita's health AI assistant. Reply ONLY in English.
 
@@ -67,15 +68,23 @@ const MOCK: Record<string, (msg: string) => string> = {
 
   uz: (msg) => {
     const t = msg.toLowerCase();
-    if (t.includes('uyqu') || t.includes('yotish') || t.includes('uxla'))
-      return 'Uyquni yaxshilash uchun har kuni bir xil vaqtda yoting. Kuniga 7–9 soat uxlash maqbul. Uxlashdan bir soat oldin ekranlarga qaramang va xona haroratini 18–20°C da saqlang.';
-    if (t.includes('ovqat') || t.includes('taomnoma') || t.includes('parhez'))
-      return 'Tarelka usulidan foydalaning: ½ — sabzavotlar, ¼ — oqsil, ¼ — donli mahsulotlar. Kuniga kamida 2 litr suv iching va bir xil vaqtda ovqatlaning.';
-    if (t.includes('stress') || t.includes('tashvish') || t.includes('nerv'))
-      return '4-7-8 nafas texnikasi stressni kamaytiradi: 4 soniya nafas oling, 7 soniya ushlab turing, 8 soniyada chiqaring. Toza havoda sayr qilish kortizol darajasini 15–20% ga kamaytiradi.';
-    if (t.includes('bosim') || t.includes('yurak') || t.includes('pulse') || t.includes('tomir'))
-      return 'Bosimning normasi — 120/80 mm.sim.ust.gacha, dam olish vaqtidagi puls — minutiga 60–100 urish. Haftasiga 150 daqiqa o\'rtacha faollik yurak-qon tomir tizimiga foydali.';
-    if (t.includes('salom') || t.includes('assalomu'))
+    // Sleep — Latin + Cyrillic
+    if (t.includes('uyqu') || t.includes('yotish') || t.includes('uxla') || t.includes('уйқу') || t.includes('ухла'))
+      return 'Uyquni yaxshilash uchun har kuni bir xil vaqtda yoting. Kuniga **7–9 soat** uxlash maqbul. Uxlashdan bir soat oldin ekranlarga qaramang va xona haroratini **18–20°C** da saqlang.';
+    // Nutrition — Latin + Cyrillic
+    if (t.includes('ovqat') || t.includes('taomnoma') || t.includes('parhez') || t.includes('овқат') || t.includes('таом'))
+      return 'Tarelka usulidan foydalaning:\n- ½ — sabzavotlar\n- ¼ — oqsil\n- ¼ — donli mahsulotlar\n\nKuniga kamida **2 litr** suv iching va bir xil vaqtda ovqatlaning.';
+    // Stress — Latin + Cyrillic
+    if (t.includes('stress') || t.includes('tashvish') || t.includes('nerv') || t.includes('стресс') || t.includes('ташвиш'))
+      return '**4-7-8 nafas texnikasi** stressni kamaytiradi: 4 soniya nafas oling, 7 soniya ushlab turing, 8 soniyada chiqaring. Toza havoda sayr qilish kortizol darajasini **15–20%** ga kamaytiradi.';
+    // Blood pressure / heart — Latin + Cyrillic
+    if (t.includes('bosim') || t.includes('yurak') || t.includes('tomir') || t.includes('босим') || t.includes('юрак'))
+      return 'Bosimning normasi — **120/80 mm.sim.ust.** gacha, dam olish vaqtidagi puls — minutiga **60–100** urish. Haftasiga 150 daqiqa o\'rtacha faollik yurak-qon tomir tizimiga foydali.';
+    // Throat / pain — Cyrillic Uzbek
+    if (t.includes('оғри') || t.includes('og\'ri') || t.includes('tomoq') || t.includes('томоқ') || t.includes('ауру') || t.includes('ağri'))
+      return 'Og\'riq uchun bir necha maslahat:\n- Iliq ichimlik iching (choy, iliq suv)\n- Tuz bilan suv bilan tomoq chayqang\n- Sovuq, o\'tkir ovqatdan saqlaning\n- Ovozingizni tiying\n\n**Muhim:** Agar og\'riq 3–5 kun o\'tmasa yoki isitma ko\'tarilsa — shifokorga murojaat qiling.';
+    // Greeting
+    if (t.includes('salom') || t.includes('assalomu') || t.includes('салом') || t.includes('ассалому'))
       return 'Assalomu alaykum! Men aivita ilovasining AI-assistentiman. Sog\'ligʻingiz haqida savollaringiz bo\'lsa, yordam beraman. Nima haqida bilmoqchisiz?';
     return 'Holatingiz haqida batafsil gapiring, men aniqroq maslahat beraman. Mening tavsiyalarim axborot xarakteriga ega va shifokor maslahatlashuvini almashtirolmaydi.';
   },
