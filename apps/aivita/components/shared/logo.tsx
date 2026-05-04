@@ -11,7 +11,7 @@ export function Logo({ inverted = false }: { inverted?: boolean }) {
   );
 }
 
-function LogoMark({ className }: { className?: string }) {
+export function LogoMark({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 28 28" fill="none">
       <circle cx="14" cy="14" r="13" stroke="url(#logoGrad)" strokeWidth="1.5" strokeDasharray="4 2" />

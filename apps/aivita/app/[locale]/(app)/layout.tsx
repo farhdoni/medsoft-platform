@@ -20,7 +20,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-base">
       {/* Desktop sidebar */}
-      <SidebarNav />
+      <SidebarNav session={session} />
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
