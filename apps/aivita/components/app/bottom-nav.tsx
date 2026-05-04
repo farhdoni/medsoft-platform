@@ -1,45 +1,63 @@
 'use client';
+import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CheckSquare, MessageCircle, User } from 'lucide-react';
+import { Icon3D, type Icon3DName } from '@/components/cabinet/icons/Icon3D';
 
-const NAV_ITEMS = [
-  { href: '/home', label: 'Главная', icon: Home },
-  { href: '/habits', label: 'Привычки', icon: CheckSquare },
-  { href: '/chat', label: 'AI', icon: MessageCircle },
-  { href: '/profile', label: 'Я', icon: User },
+interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: Icon3DName;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: 'Главная', href: '/home', icon: 'home' },
+  { id: 'test', label: 'Тест', href: '/test', icon: 'test' },
+  { id: 'habit', label: 'Привычки', href: '/habits', icon: 'book' },
+  { id: 'food', label: 'Питание', href: '/nutrition', icon: 'food' },
+  { id: 'family', label: 'Семья', href: '/family', icon: 'family' },
 ];
 
-export function BottomNav() {
+export function BottomNav({ locale = 'ru' }: { locale?: string }) {
   const pathname = usePathname();
 
+  const isActive = (href: string) =>
+    !!(pathname?.includes(href));
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-[rgba(120,160,200,0.15)] pb-safe md:hidden">
-      <div className="flex items-center justify-around py-2 max-w-sm mx-auto">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname.includes(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-2xl transition-all min-w-[64px] ${
-                active
-                  ? 'text-pink-500'
-                  : 'text-gray-400 hover:text-navy'
-              }`}
+    <nav
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-0.5 px-2 py-1.5 rounded-full border"
+      style={{
+        background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(16px)',
+        borderColor: '#e8e4dc',
+        boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
+      }}
+      aria-label="Навигация"
+    >
+      {NAV_ITEMS.map((item) => {
+        const active = isActive(item.href);
+        return (
+          <Link
+            key={item.id}
+            href={`/${locale}${item.href}`}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full transition-all duration-200"
+            style={{
+              background: active ? '#f0d4dc' : 'transparent',
+              color: active ? '#9c5e6c' : '#9a96a8',
+            }}
+          >
+            <Icon3D name={item.icon} size={22} />
+            <span
+              className="text-[12px] font-semibold whitespace-nowrap"
+              style={{ display: active ? 'inline' : 'none' }}
             >
-              <div className={`w-8 h-8 flex items-center justify-center rounded-2xl transition-all ${
-                active ? 'bg-pink-50' : ''
-              }`}>
-                <Icon className={`w-5 h-5 ${active ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
-              </div>
-              <span className={`text-[10px] font-medium ${active ? 'text-pink-500' : ''}`}>
-                {label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+              {item.label}
+            </span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

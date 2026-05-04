@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import { TopHeader } from '@/components/cabinet/TopHeader';
 import { BottomNav } from '@/components/app/bottom-nav';
-import { SidebarNav } from '@/components/app/sidebar-nav';
 
 export default async function AppLayout({
   children,
@@ -10,24 +10,22 @@ export default async function AppLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  const session = await getSession();
   const { locale } = await params;
+  const session = await getSession();
 
   if (!session) {
     redirect(`/${locale}/sign-in`);
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-app">
-      <SidebarNav session={session} locale={locale} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
-          <div className="mx-auto max-w-3xl">
-            {children}
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col" style={{ background: '#f4f3ef' }}>
+      <TopHeader session={session} locale={locale} />
+
+      <main className="flex-1" style={{ paddingBottom: '96px' }}>
+        {children}
       </main>
-      <BottomNav />
+
+      <BottomNav locale={locale} />
     </div>
   );
 }

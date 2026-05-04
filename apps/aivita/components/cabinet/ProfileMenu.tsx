@@ -5,24 +5,30 @@ import { useRouter } from 'next/navigation';
 import { Icon3D, type Icon3DName } from './icons/Icon3D';
 import type { AivitaSession } from '@/lib/auth/session';
 
+interface MenuItem {
+  icon: Icon3DName;
+  softBg: string;
+  title: string;
+  subtitle?: string;
+  href: string;
+}
+
+const MENU_ITEMS: MenuItem[] = [
+  { icon: 'family',   softBg: '#f0d4dc', title: 'Мой профиль',           subtitle: 'Возраст, болезни',     href: '/profile' },
+  { icon: 'kit',      softBg: '#e0d8f0', title: 'Медицинский профиль',   subtitle: 'Аллергии, препараты',  href: '/profile' },
+  { icon: 'chat',     softBg: '#d4e8d8', title: 'AI-чат',                subtitle: 'Помощник по здоровью', href: '/chat' },
+  { icon: 'family',   softBg: '#d4dff0', title: 'Семья',                 subtitle: 'Поделиться доступом',  href: '/family' },
+  { icon: 'shield',   softBg: '#f0d4dc', title: 'Конфиденциальность',                                      href: '/settings' },
+  { icon: 'settings', softBg: '#e0d8f0', title: 'Настройки',             subtitle: 'Уведомления, язык',   href: '/settings' },
+  { icon: 'sparkle',  softBg: '#d4e8d8', title: 'Помощь и поддержка',                                      href: '/settings' },
+];
+
 interface ProfileMenuProps {
   session?: AivitaSession | null;
   locale?: string;
 }
 
-const MENU_ITEMS: Array<{
-  icon: Icon3DName;
-  title: string;
-  subtitle?: string;
-  href: string;
-}> = [
-  { icon: 'family', title: 'Мой профиль', subtitle: 'Личные данные', href: '/profile' },
-  { icon: 'kit', title: 'Мед. профиль', subtitle: 'Аллергии, препараты', href: '/profile' },
-  { icon: 'family', title: 'Семья', subtitle: 'Поделиться доступом', href: '/family' },
-  { icon: 'settings', title: 'Настройки', subtitle: 'Уведомления, язык', href: '/settings' },
-];
-
-export const ProfileMenu: React.FC<ProfileMenuProps> = ({ session, locale = 'ru' }) => {
+export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -46,9 +52,8 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ session, locale = 'ru'
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch {}
+    setOpen(false);
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
     router.push(`/${locale}/sign-in`);
   };
 
@@ -65,7 +70,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ session, locale = 'ru'
 
       {open && (
         <div
-          className="absolute left-full ml-3 bottom-0 w-[280px] bg-white rounded-2xl border overflow-hidden z-50"
+          className="absolute right-0 top-full mt-3 w-[280px] bg-white rounded-2xl overflow-hidden border z-50"
           style={{
             borderColor: '#e8e4dc',
             boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
@@ -80,48 +85,54 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({ session, locale = 'ru'
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold truncate" style={{ color: '#2a2540' }}>{name}</div>
-              <div className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{email}</div>
+              <p className="text-[14px] font-bold truncate" style={{ color: '#2a2540' }}>{name}</p>
+              <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{email}</p>
             </div>
           </div>
 
-          {/* Items */}
+          {/* Menu items */}
           <div className="p-2">
             {MENU_ITEMS.map((item, i) => (
               <Link
                 key={i}
                 href={`/${locale}${item.href}`}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-[#f0d4dc]/40"
+                className="flex items-center gap-3 px-2 py-2 rounded-xl transition-colors"
+                style={{ color: 'inherit' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(240,212,220,0.3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <div className="w-8 h-8 rounded-[9px] flex items-center justify-center flex-shrink-0" style={{ background: '#f0d4dc' }}>
+                <div
+                  className="w-8 h-8 rounded-[9px] flex items-center justify-center flex-shrink-0"
+                  style={{ background: item.softBg }}
+                >
                   <Icon3D name={item.icon} size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>{item.title}</div>
+                  <p className="text-[13px] font-semibold truncate" style={{ color: '#2a2540' }}>{item.title}</p>
                   {item.subtitle && (
-                    <div className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{item.subtitle}</div>
+                    <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{item.subtitle}</p>
                   )}
                 </div>
-                <span style={{ color: '#9a96a8' }}>›</span>
+                <span style={{ color: '#9a96a8', fontSize: 16 }}>›</span>
               </Link>
             ))}
           </div>
 
           {/* Logout */}
-          <div className="p-2" style={{ borderTop: '1px solid #e8e4dc' }}>
+          <div className="p-3" style={{ borderTop: '1px solid #e8e4dc' }}>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-[#f0d4dc]/40 text-left"
+              className="w-full py-2 text-[13px] font-semibold rounded-xl transition-colors hover:bg-[#f0d4dc]/30"
+              style={{ color: '#9a96a8' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#9c5e6c')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#9a96a8')}
             >
-              <div className="w-8 h-8 rounded-[9px] flex items-center justify-center" style={{ background: '#f0d4dc' }}>
-                <Icon3D name="arrow" size={18} />
-              </div>
-              <div className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>Выйти из аккаунта</div>
+              Выйти из аккаунта
             </button>
           </div>
         </div>
       )}
     </div>
   );
-};
+}
