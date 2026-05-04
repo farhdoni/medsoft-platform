@@ -40,6 +40,15 @@
     "scheme": "aivita",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "b634c834-d7c1-43d7-9cee-0d150d4136ce"
+      }
+    },
+    "owner": "farhodni"
   }
 }
