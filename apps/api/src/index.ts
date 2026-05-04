@@ -31,6 +31,7 @@ import { aivitaFamilyRouter } from './routes/aivita/family.js';
 import { aivitaNotificationsRouter } from './routes/aivita/notifications.js';
 import { aivitaReportsRouter } from './routes/aivita/reports.js';
 import { aivitaDeviceTokensRouter } from './routes/aivita/device-tokens.js';
+import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 
@@ -151,6 +152,8 @@ async function main() {
   serve({ fetch: app.fetch, port: env.PORT }, (info) => {
     logger.info(`Server running on port ${info.port}`);
   });
+
+  startPushReminders();
 }
 
 main().catch((err) => {
