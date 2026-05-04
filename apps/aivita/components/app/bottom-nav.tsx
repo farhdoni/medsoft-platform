@@ -12,24 +12,22 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Главная', href: '/home', icon: 'home' },
-  { id: 'test', label: 'Тест', href: '/test', icon: 'test' },
-  { id: 'habit', label: 'Привычки', href: '/habits', icon: 'book' },
-  { id: 'food', label: 'Питание', href: '/nutrition', icon: 'food' },
-  { id: 'family', label: 'Семья', href: '/family', icon: 'family' },
+  { id: 'home',   label: 'Главная',  href: '/home',      icon: 'home'   },
+  { id: 'test',   label: 'Тест',     href: '/test',      icon: 'test'   },
+  { id: 'habits', label: 'Привычки', href: '/habits',    icon: 'book'   },
+  { id: 'food',   label: 'Питание',  href: '/nutrition', icon: 'food'   },
+  { id: 'family', label: 'Семья',    href: '/family',    icon: 'family' },
 ];
 
 export function BottomNav({ locale = 'ru' }: { locale?: string }) {
   const pathname = usePathname();
-
-  const isActive = (href: string) =>
-    !!(pathname?.includes(href));
+  const isActive = (href: string) => !!pathname?.includes(href);
 
   return (
     <nav
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-0.5 px-2 py-1.5 rounded-full border"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center px-2 py-2 rounded-full border"
       style={{
-        background: 'rgba(255,255,255,0.95)',
+        background: 'rgba(255,255,255,0.96)',
         backdropFilter: 'blur(16px)',
         borderColor: '#e8e4dc',
         boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
@@ -42,16 +40,16 @@ export function BottomNav({ locale = 'ru' }: { locale?: string }) {
           <Link
             key={item.id}
             href={`/${locale}${item.href}`}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full transition-all duration-200"
+            className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-full transition-all duration-200"
             style={{
               background: active ? '#f0d4dc' : 'transparent',
-              color: active ? '#9c5e6c' : '#9a96a8',
+              minWidth: 64,
             }}
           >
-            <Icon3D name={item.icon} size={22} />
+            <Icon3D name={item.icon} size={24} />
             <span
-              className="text-[12px] font-semibold whitespace-nowrap"
-              style={{ display: active ? 'inline' : 'none' }}
+              className="text-[11px] font-semibold leading-none whitespace-nowrap"
+              style={{ color: active ? '#9c5e6c' : '#9a96a8' }}
             >
               {item.label}
             </span>
