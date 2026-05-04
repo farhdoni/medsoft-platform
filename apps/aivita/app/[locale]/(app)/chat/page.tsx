@@ -32,30 +32,59 @@ function getTime() {
   return new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
 }
 
-/** Simple inline markdown → JSX renderer (bold, italic, bullet lists) */
+/** Simple markdown → JSX renderer: headings, bold, italic, bullets */
 function renderMarkdown(text: string): React.ReactNode {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
 
   lines.forEach((line, li) => {
     const trimmed = line.trim();
-    const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('• ');
-    const content = isBullet ? trimmed.slice(2) : line;
 
-    const inlineNodes = inlineFormat(content);
+    // Headings: ## or #
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <p key={li} className="text-[13px] font-bold mt-2 mb-0.5" style={{ color: '#2a2540' }}>
+          {inlineFormat(trimmed.slice(4))}
+        </p>
+      );
+      return;
+    }
+    if (trimmed.startsWith('## ')) {
+      elements.push(
+        <p key={li} className="text-[14px] font-bold mt-2 mb-0.5" style={{ color: '#2a2540' }}>
+          {inlineFormat(trimmed.slice(3))}
+        </p>
+      );
+      return;
+    }
+    if (trimmed.startsWith('# ')) {
+      elements.push(
+        <p key={li} className="text-[15px] font-bold mt-2 mb-1" style={{ color: '#2a2540' }}>
+          {inlineFormat(trimmed.slice(2))}
+        </p>
+      );
+      return;
+    }
 
-    if (isBullet) {
+    // Bullet lists
+    if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
       elements.push(
         <div key={li} className="flex gap-1.5 items-baseline">
-          <span className="flex-shrink-0 mt-1" style={{ color: '#cc8a96' }}>•</span>
-          <span>{inlineNodes}</span>
+          <span className="flex-shrink-0" style={{ color: '#cc8a96' }}>•</span>
+          <span>{inlineFormat(trimmed.slice(2))}</span>
         </div>
       );
-    } else if (trimmed === '' || trimmed === '---') {
-      elements.push(<div key={li} className="h-2" />);
-    } else {
-      elements.push(<p key={li} className="mb-0.5">{inlineNodes}</p>);
+      return;
     }
+
+    // Empty line / divider
+    if (trimmed === '' || trimmed === '---') {
+      elements.push(<div key={li} className="h-1.5" />);
+      return;
+    }
+
+    // Normal paragraph
+    elements.push(<p key={li} className="mb-0.5">{inlineFormat(line)}</p>);
   });
 
   return <>{elements}</>;
@@ -383,17 +412,32 @@ export default function ChatPage() {
   );
 }
 
-/** Detect language from message text (same logic as the API mock) */
+/** Detect language from message text */
 function detectLang(text: string): 'uz' | 'en' | 'ru' {
   const t = text.toLowerCase();
-  const uzWords = ['salom','uyqu','uxla','ovqat','parhez','qanday','gapir','olaysan',
-    'bosh','charchoq','stress','tashvish','bosim','yurak','tomoq',
-    'салом','уйқу','овқат','ҳам','учун','билан','ўзбек','гапир','олайсан',
-    'қандай','сўз','жавоб','оғри','томоқ'];
-  if (uzWords.some(w => t.includes(w))) return 'uz';
 
+  // Uzbek Cyrillic — common words that don't appear in Russian
+  const uzCyrillic = [
+    'нима','қандай','қилиш','керак','билан','учун','ҳам','бор','йўқ',
+    'маслахат','беролийсан','беринг','айтинг','гапиринг','мумкин',
+    'сизга','сизни','мени','менга','биз','улар','ўзбек','тилида',
+    'уйқу','овқат','оғриқ','томоқ','юрак','босим','стресс','ташвиш',
+    'соғлиқ','касаллик','шифокор','дори','ичиш','овқатланиш',
+    'салом','ассалому','гапир','олайсан','қандай','ёрдам',
+  ];
+  if (uzCyrillic.some(w => t.includes(w))) return 'uz';
+
+  // Uzbek Latin
+  const uzLatin = [
+    'salom','uyqu','uxla','ovqat','parhez','qanday','gapir','olaysan',
+    'bosh','charchoq','bosim','yurak','tomoq','sog\'liq','kasallik',
+    'shifokor','yordam','nima','kerak','bilan','uchun','ham',
+  ];
+  if (uzLatin.some(w => t.includes(w))) return 'uz';
+
+  // English
   const enWords = ['sleep','food','diet','nutrition','stress','anxiety','health',
-    'hello','hi ','how are','can you','exercise','weight'];
+    'hello','how are','can you','exercise','weight','advice','help me'];
   if (enWords.some(w => t.includes(w))) return 'en';
 
   return 'ru';
