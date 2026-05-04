@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send } from 'lucide-react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 type Message = {
@@ -12,26 +13,45 @@ type Message = {
   quickReplies?: string[];
 };
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: '1',
-    role: 'assistant',
+const INITIAL: Record<string, { content: string; quickReplies: string[] }> = {
+  ru: {
     content: 'Привет! Я AI-помощник aivita. Расскажи о своём самочувствии — я помогу разобраться.',
-    time: 'сейчас',
     quickReplies: ['Болит голова', 'Плохо сплю', 'Усталость', 'Как улучшить питание?'],
   },
-];
+  uz: {
+    content: 'Salom! Men aivita AI-yordamchisiman. O\'zingizni qanday his qilayotganingizni ayting — yordam beraman.',
+    quickReplies: ['Bosh og\'riq', 'Uxlay olmayman', 'Charchoq', 'Ovqatlanishni yaxshilash?'],
+  },
+  en: {
+    content: 'Hi! I\'m aivita\'s AI assistant. Tell me how you\'re feeling — I\'ll help you out.',
+    quickReplies: ['Headache', 'Can\'t sleep', 'Fatigue', 'How to improve nutrition?'],
+  },
+};
 
 function getTime() {
   return new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const locale = (['ru', 'uz', 'en'].includes(params?.locale as string) ? params?.locale : 'ru') as string;
+
+  const initData = INITIAL[locale] ?? INITIAL.ru;
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', role: 'assistant', content: initData.content, time: 'сейчас', quickReplies: initData.quickReplies },
+  ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Handle ?q= from home page search
+  useEffect(() => {
+    const q = searchParams?.get('q');
+    if (q) sendMessage(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -73,7 +93,7 @@ export default function ChatPage() {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: payload }),
+        body: JSON.stringify({ messages: payload, locale }),
         signal: ctrl.signal,
       });
 
@@ -116,7 +136,7 @@ export default function ChatPage() {
         }
 
         // Final: mark not streaming, add quick replies
-        const quickReplies = getQuickReplies(text);
+        const quickReplies = getQuickReplies(text, locale);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
@@ -132,7 +152,7 @@ export default function ChatPage() {
       } else {
         // JSON fallback (mock mode)
         const json = await res.json();
-        const quickReplies = getQuickReplies(text);
+        const quickReplies = getQuickReplies(text, locale);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
@@ -286,7 +306,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
-            placeholder="Напишите о самочувствии..."
+            placeholder={locale === 'uz' ? 'O\'zingizni qanday his qilayotganingizni yozing...' : locale === 'en' ? 'Describe how you feel...' : 'Напишите о самочувствии...'}
             className="flex-1 rounded-2xl px-4 py-3 text-[14px] focus:outline-none"
             style={{
               background: '#ffffff',
@@ -308,8 +328,29 @@ export default function ChatPage() {
   );
 }
 
-function getQuickReplies(userMessage: string): string[] {
+function getQuickReplies(userMessage: string, locale: string): string[] {
   const lower = userMessage.toLowerCase();
+
+  if (locale === 'uz') {
+    if (lower.includes('uyqu') || lower.includes('uxla') || lower.includes('yotish'))
+      return ['Tezroq uxlash uchun maslahat?', 'Uyqu normalari?', 'Melatonin yordam beradimi?'];
+    if (lower.includes('ovqat') || lower.includes('taom') || lower.includes('parhez'))
+      return ['Eng yaxshi nonushta?', 'Kechqurun ovqatlansa bo\'ladimi?', 'Kaloriyani qanday hisoblash?'];
+    if (lower.includes('stress') || lower.includes('tashvish') || lower.includes('nerv'))
+      return ['Relaksatsiya usullari', 'Meditatsiya boshlash', 'Psixologga qachon borish?'];
+    return ['Batafsil ayting', 'Qanday tahlillar topshirish kerak?', 'Shifokorga qachon borish?'];
+  }
+
+  if (locale === 'en') {
+    if (lower.includes('sleep')) return ['How to fall asleep faster?', 'Sleep norms by age?', 'Does melatonin help?'];
+    if (lower.includes('food') || lower.includes('diet') || lower.includes('nutrition'))
+      return ['Best breakfast?', 'Eating after 6pm?', 'How to count calories?'];
+    if (lower.includes('stress') || lower.includes('anxiety'))
+      return ['Relaxation techniques', 'Meditation for beginners', 'When to see a therapist?'];
+    return ['Tell me more', 'What tests to take?', 'When to see a doctor?'];
+  }
+
+  // Default: Russian
   if (lower.includes('сон') || lower.includes('спать')) return ['Как засыпать быстрее?', 'Нормы сна по возрасту', 'Мелатонин — помогает?'];
   if (lower.includes('питание') || lower.includes('еда')) return ['Лучший завтрак?', 'Можно есть после 18?', 'Как считать калории?'];
   if (lower.includes('стресс') || lower.includes('тревог')) return ['Техники релаксации', 'Медитация для начинающих', 'Когда идти к психологу?'];
