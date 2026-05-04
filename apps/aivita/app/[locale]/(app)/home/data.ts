@@ -3,7 +3,8 @@ import type { User, DailyMetrics, ActivityPoint, Report } from '@/lib/cabinet-ty
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://api.aivita.uz';
 
-async function authFetch<T>(path: string, fallback: T): Promise<T> {
+// All aivita API responses are { data: T } — unwrap automatically
+async function authFetch<T>(path: string): Promise<T | null> {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('aivita_session');
@@ -17,50 +18,88 @@ async function authFetch<T>(path: string, fallback: T): Promise<T> {
     });
 
     if (!r.ok) {
-      console.warn(`[home/data] ${path} → ${r.status}, using fallback`);
-      return fallback;
+      console.warn(`[home/data] ${path} → ${r.status}`);
+      return null;
     }
-    return r.json() as Promise<T>;
+    const json = await r.json() as unknown;
+    if (json !== null && typeof json === 'object' && 'data' in (json as Record<string, unknown>)) {
+      return (json as { data: T }).data;
+    }
+    return json as T;
   } catch (e) {
     console.warn(`[home/data] ${path} failed:`, e);
-    return fallback;
+    return null;
   }
 }
 
-// ─── Fallbacks ────────────────────────────────────────────────────────────────
+// ─── API response shapes (verified against apps/api/src/routes/aivita/) ──────
 
-const FALLBACK_USER: User = {
-  id: 'unknown',
-  name: 'Пользователь',
-  email: 'user@aivita.uz',
-  avatarInitial: 'U',
-  locale: 'ru',
-};
+interface ApiUser {
+  id: string;
+  email: string | null;
+  name: string | null;          // field is `name` (not fullName)
+  nickname: string | null;
+  locale: string;
+}
 
-const FALLBACK_METRICS: DailyMetrics = {
-  heartRate: { bpm: 72, deltaWeek: 3 },
-  water: { liters: 1.4, goalLiters: 2.0 },
-  steps: { count: 8200, deltaPctWeek: 12 },
-  habits: { completed: 2, total: 3 },
-  healthIndex: { score: 76, label: 'хорошо' },
-};
+interface ApiHealthScore {
+  totalScore: number;           // field is `totalScore` (not `score`)
+  calculatedAt: string;
+  cardiovascularScore?: number | null;
+  digestiveScore?: number | null;
+  sleepScore?: number | null;
+  mentalScore?: number | null;
+  musculoskeletalScore?: number | null;
+}
 
-const FALLBACK_ACTIVITY: ActivityPoint[] = [
-  { day: 'Пн', steps: 5400, km: 3.6, sleepHours: 7.2 },
-  { day: 'Вт', steps: 7100, km: 4.7, sleepHours: 6.8 },
-  { day: 'Ср', steps: 6200, km: 4.2, sleepHours: 7.5 },
-  { day: 'Чт', steps: 8800, km: 5.9, sleepHours: 7.0 },
-  { day: 'Пт', steps: 7600, km: 5.1, sleepHours: 6.5 },
-  { day: 'Сб', steps: 9200, km: 6.2, sleepHours: 8.1 },
-  { day: 'Вс', steps: 8200, km: 5.5, sleepHours: 7.8 },
-];
+// vitals.value is JSONB — shape depends on type:
+// heart_rate / water_ml / steps → { value: number, unit: string }
+// blood_pressure → { systolic: number, diastolic: number }
+// sleep_hours → { hours: number, quality?: string }
+interface ApiVitalNumeric { value: number; unit: string }
+interface ApiVitalSleep { hours: number; quality?: string }
+interface ApiVital {
+  id: string;
+  type: string;
+  value: ApiVitalNumeric | ApiVitalSleep | Record<string, unknown>;
+  recordedAt: string;
+}
 
-// ─── API response shapes ──────────────────────────────────────────────────────
+interface ApiHabit {
+  id: string;
+  name: string;
+  emoji: string | null;
+  goalType: string;
+  isActive: boolean;
+}
 
-interface ApiMe { name?: string; email?: string; id?: string; locale?: string }
-interface ApiHealthScore { score?: number }
-interface ApiMetrics { heart_rate?: number; water_ml?: number; steps?: number }
-interface ApiHabits { items?: { completed: boolean }[] }
+interface ApiHabitLog {
+  habitId: string;
+  date: string;
+}
+
+interface ApiReport {
+  id: string;
+  reportNumber: string;
+  fileUrl: string;              // field is `fileUrl` (not `pdfUrl`)
+  shareToken: string | null;
+  createdAt: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function numericVitalValue(v: ApiVital): number {
+  const val = v.value as ApiVitalNumeric;
+  return typeof val?.value === 'number' ? val.value : 0;
+}
+
+function sleepVitalValue(v: ApiVital): number {
+  const val = v.value as ApiVitalSleep;
+  return typeof val?.hours === 'number' ? val.hours : 0;
+}
+
+const RU_DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] as const;
+type RuDay = typeof RU_DAYS[number];
 
 // ─── Main loader ──────────────────────────────────────────────────────────────
 
@@ -70,52 +109,138 @@ export async function loadHomeData(): Promise<{
   activity: ActivityPoint[];
   report: Report | null;
 }> {
-  const [me, healthScore, metricsRaw, habitsRaw] = await Promise.all([
-    authFetch<ApiMe>('/v1/aivita/me', {}),
-    authFetch<ApiHealthScore>('/v1/aivita/health-score', {}),
-    authFetch<ApiMetrics>('/v1/aivita/metrics/today', {}),
-    authFetch<ApiHabits>('/v1/aivita/habits', {}),
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
+    .toISOString().split('T')[0];
+
+  const [
+    apiUser,
+    apiHealthScore,
+    vitalsHR,
+    vitalsWater,
+    vitalsSteps,
+    vitalsSleep,
+    apiHabits,
+    apiHabitLogs,
+    apiReports,
+  ] = await Promise.all([
+    authFetch<ApiUser>('/v1/aivita/auth/me'),
+    authFetch<ApiHealthScore>('/v1/aivita/health-score'),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=heart_rate&from=${today}`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=water_ml&from=${today}`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=steps&from=${sevenDaysAgo}`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=sleep_hours&from=${sevenDaysAgo}`),
+    authFetch<ApiHabit[]>('/v1/aivita/habits'),
+    authFetch<ApiHabitLog[]>(`/v1/aivita/habits/logs/range?from=${today}&to=${today}`),
+    authFetch<ApiReport[]>('/v1/aivita/reports'),
   ]);
 
-  const name = me.name ?? FALLBACK_USER.name;
+  // ─── User ──────────────────────────────────────────────────────────────────
+  const displayName =
+    apiUser?.name ||
+    apiUser?.nickname ||
+    apiUser?.email?.split('@')[0] ||
+    'Пользователь';
+
   const user: User = {
-    id: me.id ?? FALLBACK_USER.id,
-    name,
-    email: me.email ?? FALLBACK_USER.email,
-    avatarInitial: name.charAt(0).toUpperCase(),
-    locale: (me.locale as User['locale']) ?? 'ru',
+    id: apiUser?.id ?? 'unknown',
+    name: displayName,
+    email: apiUser?.email ?? 'user@aivita.uz',
+    avatarInitial: displayName.charAt(0).toUpperCase(),
+    locale: (apiUser?.locale as User['locale']) ?? 'ru',
   };
 
-  const score = healthScore.score ?? FALLBACK_METRICS.healthIndex.score;
-  const completedHabits = habitsRaw.items?.filter(h => h.completed).length ?? FALLBACK_METRICS.habits.completed;
-  const totalHabits = habitsRaw.items?.length ?? FALLBACK_METRICS.habits.total;
+  // ─── Health score ──────────────────────────────────────────────────────────
+  const score = apiHealthScore?.totalScore ?? 0;
 
+  // ─── Vitals — heart rate (latest today) ───────────────────────────────────
+  const hrBpm = vitalsHR && vitalsHR.length > 0
+    ? numericVitalValue(vitalsHR[0])
+    : 0;
+
+  // ─── Vitals — water (sum today, ml → liters) ──────────────────────────────
+  const waterMlTotal = vitalsWater
+    ? vitalsWater.reduce((sum, v) => sum + numericVitalValue(v), 0)
+    : 0;
+  const waterLiters = Math.round((waterMlTotal / 1000) * 10) / 10;
+
+  // ─── Vitals — steps (latest for today = last item for today) ──────────────
+  const todayStepsVitals = vitalsSteps?.filter(v =>
+    v.recordedAt.startsWith(today)
+  ) ?? [];
+  const stepsToday = todayStepsVitals.length > 0
+    ? numericVitalValue(todayStepsVitals[0])
+    : 0;
+
+  // ─── Habits — count done today ─────────────────────────────────────────────
+  const allHabits = apiHabits ?? [];
+  const doneHabitIds = new Set((apiHabitLogs ?? []).map(l => l.habitId));
+  const completedHabits = allHabits.filter(h => doneHabitIds.has(h.id)).length;
+  const totalHabits = allHabits.length;
+
+  // ─── Metrics ───────────────────────────────────────────────────────────────
   const metrics: DailyMetrics = {
-    heartRate: {
-      bpm: metricsRaw.heart_rate ?? FALLBACK_METRICS.heartRate.bpm,
-      deltaWeek: FALLBACK_METRICS.heartRate.deltaWeek,
-    },
-    water: {
-      liters: metricsRaw.water_ml != null ? metricsRaw.water_ml / 1000 : FALLBACK_METRICS.water.liters,
-      goalLiters: FALLBACK_METRICS.water.goalLiters,
-    },
-    steps: {
-      count: metricsRaw.steps ?? FALLBACK_METRICS.steps.count,
-      deltaPctWeek: FALLBACK_METRICS.steps.deltaPctWeek,
-    },
+    heartRate: { bpm: hrBpm, deltaWeek: 0 },
+    water: { liters: waterLiters, goalLiters: 2.0 },
+    steps: { count: stepsToday, deltaPctWeek: 0 },
     habits: { completed: completedHabits, total: totalHabits || 1 },
     healthIndex: {
       score,
-      label: score >= 80 ? 'отлично' : score >= 60 ? 'хорошо' : 'требует внимания',
+      label: score === 0 ? 'нет данных'
+           : score >= 80 ? 'отлично'
+           : score >= 60 ? 'хорошо'
+           : 'требует внимания',
     },
   };
 
-  // Last day synced with real step count
-  const activity = FALLBACK_ACTIVITY.map((pt, i) =>
-    i === FALLBACK_ACTIVITY.length - 1
-      ? { ...pt, steps: metrics.steps.count }
-      : pt
-  );
+  // ─── Activity 7 days (from steps + sleep vitals) ──────────────────────────
+  // Build a map: date → { steps, sleepHours }
+  const dayMap = new Map<string, { steps: number; sleepHours: number }>();
 
-  return { user, metrics, activity, report: null };
+  // Fill 7 days with zeros first
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().split('T')[0];
+    dayMap.set(key, { steps: 0, sleepHours: 0 });
+  }
+
+  // Fill steps — take max per day if multiple entries
+  for (const v of vitalsSteps ?? []) {
+    const key = v.recordedAt.split('T')[0];
+    if (dayMap.has(key)) {
+      const cur = dayMap.get(key)!;
+      const val = numericVitalValue(v);
+      dayMap.set(key, { ...cur, steps: Math.max(cur.steps, val) });
+    }
+  }
+
+  // Fill sleep — take first (most recent) per day
+  const seenSleepDays = new Set<string>();
+  for (const v of vitalsSleep ?? []) {
+    const key = v.recordedAt.split('T')[0];
+    if (dayMap.has(key) && !seenSleepDays.has(key)) {
+      seenSleepDays.add(key);
+      const cur = dayMap.get(key)!;
+      dayMap.set(key, { ...cur, sleepHours: sleepVitalValue(v) });
+    }
+  }
+
+  const activity: ActivityPoint[] = Array.from(dayMap.entries()).map(([dateStr, vals]) => {
+    const dow = new Date(dateStr + 'T12:00:00').getDay(); // noon to avoid TZ edge cases
+    const day = RU_DAYS[dow] as RuDay;
+    const km = Math.round((vals.steps / 1300) * 10) / 10; // ~1300 steps/km average
+    return { day, steps: vals.steps, km, sleepHours: vals.sleepHours };
+  });
+
+  // ─── Latest report ─────────────────────────────────────────────────────────
+  const latestReport = apiReports && apiReports.length > 0 ? apiReports[0] : null;
+  const report: Report | null = latestReport ? {
+    id: latestReport.id,
+    title: `Отчёт врачу № ${latestReport.reportNumber}`,
+    body: 'Медицинская сводка — биомаркеры, привычки, здоровье. Готово к отправке.',
+    pdfUrl: latestReport.fileUrl,
+    generatedAt: latestReport.createdAt,
+  } : null;
+
+  return { user, metrics, activity, report };
 }
