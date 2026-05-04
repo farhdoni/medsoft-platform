@@ -5,100 +5,92 @@ export const maxDuration = 30;
 
 // ─── System prompts per locale ───────────────────────────────────────────────
 
-const SYSTEM_PROMPTS: Record<string, string> = {
-  ru: `Ты — AI-ассистент по здоровью приложения aivita. Отвечай ТОЛЬКО на русском языке.
+// Single adaptive prompt — Claude auto-detects and mirrors user's language
+const SYSTEM_PROMPT = `You are aivita's health AI assistant. You support three languages: Russian (русский), Uzbek (o'zbek / ўзбек), and English.
 
-Правила:
-1. Давай конкретные, научно обоснованные советы
-2. Всегда напоминай, что рекомендации носят информационный характер и не заменяют врача
-3. Будь дружелюбным и поддерживающим
-4. Используй простой язык, избегай сложной медицинской терминологии
-5. Давай конкретные цифры и факты
-6. Отвечай кратко — 2-4 абзаца максимум
-
-Области экспертизы: сон, питание, физическая активность, управление стрессом, профилактика хронических заболеваний, ментальное здоровье, формирование здоровых привычек.
-
-Если вопрос выходит за рамки здоровья — вежливо перенаправь разговор обратно к теме здоровья.`,
-
-  uz: `You are aivita's health AI assistant for Uzbek-speaking users. You MUST reply ONLY in Uzbek language (Latin or Cyrillic script, matching what the user writes). Never switch to Russian or English.
+CRITICAL LANGUAGE RULE: Always respond in the SAME language the user writes in.
+- If the user writes in Russian → respond in Russian
+- If the user writes in Uzbek (Latin or Cyrillic) → respond in Uzbek
+- If the user writes in English → respond in English
+- Never switch languages. Never apologise for not knowing a language.
 
 Rules:
-1. Always respond in Uzbek — this is mandatory
-2. Give specific, science-backed health advice
-3. Remind users that recommendations are informational and don't replace a doctor
-4. Be friendly and supportive
-5. Use simple language, avoid complex medical terminology
-6. Include specific numbers and facts
-7. Keep answers concise — 2-4 paragraphs max
-
-Areas of expertise: sleep (uyqu), nutrition (ovqatlanish), physical activity (jismoniy faollik), stress management (stressni boshqarish), chronic disease prevention, mental health, healthy habits.
-
-IMPORTANT: The user speaks Uzbek. You speak Uzbek back. Do not explain that you can't speak Uzbek — you can and you must.`,
-
-  en: `You are aivita's health AI assistant. Reply ONLY in English.
-
-Rules:
-1. Give specific, science-backed advice
+1. Give specific, science-backed health advice
 2. Always remind that recommendations are informational and don't replace a doctor
 3. Be friendly and supportive
 4. Use simple language, avoid complex medical terminology
 5. Include specific numbers and facts
 6. Keep answers concise — 2-4 paragraphs max
+7. Use markdown: **bold** for key terms, bullet lists with - for tips
 
 Areas of expertise: sleep, nutrition, physical activity, stress management, chronic disease prevention, mental health, healthy habit formation.
 
-If the question goes beyond health topics — politely redirect back to health.`,
+If the question goes beyond health — politely redirect back to health in the user's language.`;
+
+const SYSTEM_PROMPTS: Record<string, string> = {
+  ru: SYSTEM_PROMPT,
+  uz: SYSTEM_PROMPT,
+  en: SYSTEM_PROMPT,
 };
 
-// ─── Mock responses per locale ────────────────────────────────────────────────
+// ─── Mock responses — language auto-detected from message text ────────────────
+
+function mockResponse(msg: string): string {
+  const t = msg.toLowerCase();
+
+  // ── Uzbek detection (Latin or Cyrillic keywords) ──────────────────────────
+  const isUz = t.includes('salom') || t.includes('assalomu') || t.includes('салом')
+    || t.includes('uyqu') || t.includes('уйқу') || t.includes('uxla')
+    || t.includes('ovqat') || t.includes('овқат') || t.includes('parhez')
+    || t.includes('stress') && (t.includes('tashvish') || t.includes('nerv'))
+    || t.includes('bosim') || t.includes('босим') || t.includes('yurak') || t.includes('юрак')
+    || t.includes('оғри') || t.includes("og'ri") || t.includes('tomoq') || t.includes('томоқ')
+    || t.includes('bosh') || t.includes('charchoq') || t.includes('qanday')
+    || t.includes('gapir') || t.includes('гапир') || t.includes('olaysan') || t.includes('олайсан');
+
+  // ── English detection ─────────────────────────────────────────────────────
+  const isEn = !isUz && (t.includes('sleep') || t.includes('food') || t.includes('diet')
+    || t.includes('stress') || t.includes('health') || t.includes('hello') || t.includes('hi ')
+    || t.includes('how are') || t.includes('can you'));
+
+  if (isUz) {
+    if (t.includes('uyqu') || t.includes('уйқу') || t.includes('uxla'))
+      return 'Uyquni yaxshilash uchun har kuni bir xil vaqtda yoting. Kuniga **7–9 soat** uxlash maqbul. Uxlashdan bir soat oldin ekranlarga qaramang va xona haroratini **18–20°C** da saqlang.';
+    if (t.includes('ovqat') || t.includes('овқат') || t.includes('parhez') || t.includes('taom'))
+      return 'Tarelka usulidan foydalaning:\n- ½ — sabzavotlar\n- ¼ — oqsil\n- ¼ — donli mahsulotlar\n\nKuniga kamida **2 litr** suv iching.';
+    if (t.includes('оғри') || t.includes("og'ri") || t.includes('tomoq') || t.includes('томоқ'))
+      return 'Og\'riq uchun maslahatlar:\n- Iliq ichimlik iching (choy, iliq suv)\n- Tuz suvi bilan tomoq chayqang\n- Ovozingizni tiying\n\n**Muhim:** 3–5 kun o\'tmasa — shifokorga murojaat qiling.';
+    if (t.includes('salom') || t.includes('салом') || t.includes('assalomu'))
+      return 'Assalomu alaykum! Men aivita AI-assistentiman. Sog\'ligʻingiz haqida savollaringiz bo\'lsa, yordam beraman!';
+    return 'Holatingiz haqida batafsil gapiring — aniqroq maslahat beraman. Tavsiyalarim axborot xarakteriga ega va shifokorni almashtirolmaydi.';
+  }
+
+  if (isEn) {
+    if (t.includes('sleep'))
+      return 'For better sleep, go to bed at the same time every day. **7–9 hours** is optimal. Avoid screens 1 hour before bed and keep your bedroom at **18–20°C**.';
+    if (t.includes('food') || t.includes('diet') || t.includes('nutrition'))
+      return 'Use the plate method:\n- ½ vegetables\n- ¼ protein\n- ¼ whole grains\n\nDrink at least **2 litres** of water per day.';
+    if (t.includes('stress') || t.includes('anxiety'))
+      return 'The **4-7-8 breathing technique** reduces stress: inhale 4 counts, hold 7, exhale 8. Fresh air walks reduce cortisol by **15–20%**.';
+    return 'Tell me more about how you feel and I\'ll give specific advice. My recommendations are informational and do not replace a doctor\'s consultation.';
+  }
+
+  // ── Default: Russian ──────────────────────────────────────────────────────
+  if (t.includes('сон') || t.includes('спать') || t.includes('ночь'))
+    return 'Для улучшения сна ложитесь в одно время каждый день. Оптимально **7–9 часов**. Избегайте экранов за час до сна, держите в спальне **18–20°C**.';
+  if (t.includes('питание') || t.includes('еда') || t.includes('диет'))
+    return 'Метод тарелки:\n- ½ — овощи\n- ¼ — белок\n- ¼ — злаки\n\nПейте не менее **2 литров** воды в день.';
+  if (t.includes('стресс') || t.includes('тревог'))
+    return '**Техника 4-7-8**: вдох 4 счёта, задержка 7, выдох 8. Прогулки на свежем воздухе снижают кортизол на **15–20%**.';
+  if (t.includes('давление') || t.includes('сердц') || t.includes('пульс'))
+    return 'Норма давления — **120/80 мм рт. ст.**, пульс в покое — **60–100 уд/мин**. 150 минут активности в неделю полезны для сердца.';
+  return 'Расскажите подробнее о своём состоянии — дам более точный совет. Мои рекомендации носят информационный характер и не заменяют врача.';
+}
 
 const MOCK: Record<string, (msg: string) => string> = {
-  ru: (msg) => {
-    const t = msg.toLowerCase();
-    if (t.includes('сон') || t.includes('спать'))
-      return 'Для улучшения сна ложитесь в одно и то же время. 7–9 часов — оптимально. Избегайте экранов за час до сна и поддерживайте температуру в спальне 18–20°C.';
-    if (t.includes('питание') || t.includes('еда') || t.includes('диет'))
-      return 'Используйте метод тарелки: ½ — овощи, ¼ — белок, ¼ — злаки. Пейте не менее 2 литров воды в день и старайтесь есть в одно и то же время.';
-    if (t.includes('стресс') || t.includes('тревог'))
-      return 'Техника дыхания 4-7-8 помогает снизить стресс: вдох на 4 счёта, задержка на 7, выдох на 8. Прогулки на свежем воздухе снижают уровень кортизола на 15–20%.';
-    if (t.includes('давление') || t.includes('сердц') || t.includes('пульс'))
-      return 'Норма давления — до 120/80 мм рт. ст., пульс в покое — 60–100 уд/мин. 150 минут умеренной активности в неделю благотворно влияют на сердце.';
-    return 'Расскажите подробнее о своём состоянии, и я дам более точный совет. Мои рекомендации носят информационный характер и не заменяют консультацию врача.';
-  },
-
-  uz: (msg) => {
-    const t = msg.toLowerCase();
-    // Sleep — Latin + Cyrillic
-    if (t.includes('uyqu') || t.includes('yotish') || t.includes('uxla') || t.includes('уйқу') || t.includes('ухла'))
-      return 'Uyquni yaxshilash uchun har kuni bir xil vaqtda yoting. Kuniga **7–9 soat** uxlash maqbul. Uxlashdan bir soat oldin ekranlarga qaramang va xona haroratini **18–20°C** da saqlang.';
-    // Nutrition — Latin + Cyrillic
-    if (t.includes('ovqat') || t.includes('taomnoma') || t.includes('parhez') || t.includes('овқат') || t.includes('таом'))
-      return 'Tarelka usulidan foydalaning:\n- ½ — sabzavotlar\n- ¼ — oqsil\n- ¼ — donli mahsulotlar\n\nKuniga kamida **2 litr** suv iching va bir xil vaqtda ovqatlaning.';
-    // Stress — Latin + Cyrillic
-    if (t.includes('stress') || t.includes('tashvish') || t.includes('nerv') || t.includes('стресс') || t.includes('ташвиш'))
-      return '**4-7-8 nafas texnikasi** stressni kamaytiradi: 4 soniya nafas oling, 7 soniya ushlab turing, 8 soniyada chiqaring. Toza havoda sayr qilish kortizol darajasini **15–20%** ga kamaytiradi.';
-    // Blood pressure / heart — Latin + Cyrillic
-    if (t.includes('bosim') || t.includes('yurak') || t.includes('tomir') || t.includes('босим') || t.includes('юрак'))
-      return 'Bosimning normasi — **120/80 mm.sim.ust.** gacha, dam olish vaqtidagi puls — minutiga **60–100** urish. Haftasiga 150 daqiqa o\'rtacha faollik yurak-qon tomir tizimiga foydali.';
-    // Throat / pain — Cyrillic Uzbek
-    if (t.includes('оғри') || t.includes('og\'ri') || t.includes('tomoq') || t.includes('томоқ') || t.includes('ауру') || t.includes('ağri'))
-      return 'Og\'riq uchun bir necha maslahat:\n- Iliq ichimlik iching (choy, iliq suv)\n- Tuz bilan suv bilan tomoq chayqang\n- Sovuq, o\'tkir ovqatdan saqlaning\n- Ovozingizni tiying\n\n**Muhim:** Agar og\'riq 3–5 kun o\'tmasa yoki isitma ko\'tarilsa — shifokorga murojaat qiling.';
-    // Greeting
-    if (t.includes('salom') || t.includes('assalomu') || t.includes('салом') || t.includes('ассалому'))
-      return 'Assalomu alaykum! Men aivita ilovasining AI-assistentiman. Sog\'ligʻingiz haqida savollaringiz bo\'lsa, yordam beraman. Nima haqida bilmoqchisiz?';
-    return 'Holatingiz haqida batafsil gapiring, men aniqroq maslahat beraman. Mening tavsiyalarim axborot xarakteriga ega va shifokor maslahatlashuvini almashtirolmaydi.';
-  },
-
-  en: (msg) => {
-    const t = msg.toLowerCase();
-    if (t.includes('sleep'))
-      return 'For better sleep, go to bed at the same time every day. 7–9 hours is optimal. Avoid screens 1 hour before bed and keep your bedroom at 18–20°C.';
-    if (t.includes('food') || t.includes('diet') || t.includes('nutrition'))
-      return 'Use the plate method: ½ vegetables, ¼ protein, ¼ whole grains. Drink at least 2 litres of water per day and try to eat at consistent times.';
-    if (t.includes('stress') || t.includes('anxiety'))
-      return 'The 4-7-8 breathing technique helps reduce stress: inhale for 4 counts, hold for 7, exhale for 8. Fresh air walks reduce cortisol by 15–20%.';
-    return 'Tell me more about how you feel and I\'ll give you more specific advice. My recommendations are informational and do not replace a doctor\'s consultation.';
-  },
+  ru: mockResponse,
+  uz: mockResponse,
+  en: mockResponse,
 };
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
