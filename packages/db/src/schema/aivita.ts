@@ -681,3 +681,23 @@ export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
     relationName: 'member',
   }),
 }));
+
+// ─── Device tokens (push notifications) ───────────────────────────────────────
+
+export const aivitaDeviceTokens = pgTable(
+  'aivita_device_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    pushToken: text('push_token').notNull(),
+    platform: text('platform').notNull().default('android'), // 'android' | 'ios'
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueToken: unique('unique_device_push_token').on(table.pushToken),
+    userIdx: index('device_tokens_user_idx').on(table.userId),
+  })
+);

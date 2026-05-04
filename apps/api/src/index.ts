@@ -30,6 +30,7 @@ import { aivitaChatRouter } from './routes/aivita/chat.js';
 import { aivitaFamilyRouter } from './routes/aivita/family.js';
 import { aivitaNotificationsRouter } from './routes/aivita/notifications.js';
 import { aivitaReportsRouter } from './routes/aivita/reports.js';
+import { aivitaDeviceTokensRouter } from './routes/aivita/device-tokens.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 
@@ -70,6 +71,7 @@ app.route('/v1/aivita/chat', aivitaChatRouter);
 app.route('/v1/aivita/family', aivitaFamilyRouter);
 app.route('/v1/aivita/notifications', aivitaNotificationsRouter);
 app.route('/v1/aivita/reports', aivitaReportsRouter);
+app.route('/v1/aivita/device-tokens', aivitaDeviceTokensRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');

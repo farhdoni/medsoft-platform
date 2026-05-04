@@ -11,9 +11,22 @@ import {
 import { eq, or, and, isNull, gt } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { randomInt, createHash, randomBytes } from 'crypto';
+import { SignJWT } from 'jose';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { sendVerificationCode, sendPasswordReset } from '../../lib/email.js';
 import { env } from '../../env.js';
+
+function getSessionSecret(): Uint8Array {
+  return new TextEncoder().encode(env.SESSION_SECRET);
+}
+
+async function signMobileToken(payload: SessionPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getSessionSecret());
+}
 
 export const aivitaAuthRouter = new Hono();
 
@@ -306,6 +319,71 @@ aivitaAuthRouter.get('/me', requireAivitaAuth, async (c) => {
   if (!user || user.deletedAt) return c.json({ error: 'user_not_found' }, 404);
   return c.json({ data: user });
 });
+
+// ─── Mobile token (returns signed JWT for React Native app) ───────────────────
+
+aivitaAuthRouter.post(
+  '/mobile-token',
+  zValidator('json', z.object({
+    identifier: z.string(),
+    password: z.string(),
+  })),
+  async (c) => {
+    const { identifier, password } = c.req.valid('json');
+    const isEmail = identifier.includes('@');
+
+    const user = await db.query.aivitaUsers.findFirst({
+      where: isEmail
+        ? eq(aivitaUsers.email, identifier.toLowerCase())
+        : eq(aivitaUsers.nickname, identifier.toLowerCase()),
+    });
+
+    const invalidErr = () => c.json({ error: 'invalid_credentials' }, 401);
+
+    if (!user || !user.passwordHash || user.deletedAt) return invalidErr();
+
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const retryAfter = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000);
+      return c.json({ error: 'account_locked', retryAfter }, 429);
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!valid) {
+      const attempts = (user.failedLoginAttempts ?? 0) + 1;
+      const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+      await db.update(aivitaUsers)
+        .set({ failedLoginAttempts: attempts, lockedUntil, updatedAt: new Date() })
+        .where(eq(aivitaUsers.id, user.id));
+      return invalidErr();
+    }
+
+    if (!user.emailVerified) {
+      return c.json({ error: 'email_not_verified', userId: user.id }, 403);
+    }
+
+    await db.update(aivitaUsers)
+      .set({ failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date(), updatedAt: new Date() })
+      .where(eq(aivitaUsers.id, user.id));
+
+    const session: SessionPayload = {
+      userId: user.id,
+      email: user.email!,
+      name: user.name ?? user.nickname ?? '',
+      avatarUrl: user.avatarUrl ?? undefined,
+      onboardingCompleted: user.onboardingCompleted,
+    };
+
+    const token = await signMobileToken(session);
+
+    return c.json({
+      data: {
+        token,
+        user: { id: user.id, email: user.email, name: session.name, onboardingCompleted: user.onboardingCompleted },
+      },
+    });
+  }
+);
 
 // ─── Sign out ──────────────────────────────────────────────────────────────────
 
