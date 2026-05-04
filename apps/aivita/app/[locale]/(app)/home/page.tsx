@@ -277,23 +277,18 @@ function ActivityChart({ data }: { data: ActivityPoint[] }) {
         </div>
       </div>
 
-      <div className="mt-5 grid h-[110px] grid-cols-7 items-end gap-3">
+      <div className="mt-5 flex items-end gap-3" style={{ height: 110 }}>
         {data.map((d, i) => {
           const v = d[field];
-          const h = Math.max(8, (v / max) * 100);
+          const barH = Math.max(8, Math.round((v / max) * 110));
           const isToday = i === data.length - 1;
           return (
-            <div key={d.day} className="relative flex flex-col items-center">
-              <div
-                className="w-full rounded-md transition-all"
-                style={{
-                  height: `${h}%`,
-                  background: isToday
-                    ? 'linear-gradient(180deg, #cc8a96 0%, #9889c4 100%)'
-                    : '#e8e4dc',
-                }}
-              />
-            </div>
+            <div key={d.day} className="flex-1 rounded-md transition-all" style={{
+              height: barH,
+              background: isToday
+                ? 'linear-gradient(180deg, #cc8a96 0%, #9889c4 100%)'
+                : '#e8e4dc',
+            }} />
           );
         })}
       </div>
