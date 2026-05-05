@@ -1,10 +1,8 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Icon3D, type Icon3DName } from './icons/Icon3D';
 import type { AivitaSession } from '@/lib/auth/session';
-import { signOut } from '@/app/[locale]/(app)/settings/actions';
 
 interface MenuItem {
   icon: Icon3DName;
@@ -32,8 +30,6 @@ interface ProfileMenuProps {
 export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
-  const router = useRouter();
-
   React.useEffect(() => {
     if (!open) return;
     const onMouse = (e: MouseEvent) => {
@@ -54,7 +50,9 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
 
   const handleLogout = async () => {
     setOpen(false);
-    await signOut(locale);
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    // Full navigation clears Next.js client cache; cookie already deleted server-side
+    window.location.href = `/${locale}/sign-in`;
   };
 
   return (
