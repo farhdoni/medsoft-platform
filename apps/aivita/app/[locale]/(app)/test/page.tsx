@@ -136,7 +136,7 @@ export default async function TestPage({
   const { hasScore, score, history } = await loadTestData();
 
   return (
-    <PageShell active="test">
+    <PageShell active="test" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── State A: no test result ─────────────────────────────────────── */}

@@ -91,7 +91,7 @@ export default async function SettingsPage({
   ];
 
   return (
-    <PageShell active="home">
+    <PageShell active="home" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Title ────────────────────────────────────────────────────────── */}

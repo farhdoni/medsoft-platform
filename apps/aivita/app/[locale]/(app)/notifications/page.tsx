@@ -33,11 +33,16 @@ function notifStyle(type: string): { icon: IconName; bg: string } {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const { notifications, unreadCount } = await loadNotificationsData();
 
   return (
-    <PageShell active="home">
+    <PageShell active="home" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Header ────────────────────────────────────────────────────────── */}

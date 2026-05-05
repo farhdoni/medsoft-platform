@@ -17,14 +17,19 @@ const MACROS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function NutritionPage() {
+export default async function NutritionPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const { totals, meals, waterLiters, caloriesGoal } = await loadNutritionData();
 
   const calPct   = Math.min(Math.round((totals.calories / caloriesGoal) * 100), 100);
   const remaining = Math.max(caloriesGoal - totals.calories, 0);
 
   return (
-    <PageShell active="nutrition">
+    <PageShell active="nutrition" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Hero — calories ───────────────────────────────────────────────── */}

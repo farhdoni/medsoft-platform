@@ -61,7 +61,12 @@ async function getProfileData(cookie: string) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
 
@@ -80,7 +85,7 @@ export default async function ProfilePage() {
   const metaLine = metaParts.join(' · ') || 'Заполни профиль';
 
   return (
-    <PageShell active="home">
+    <PageShell active="home" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}

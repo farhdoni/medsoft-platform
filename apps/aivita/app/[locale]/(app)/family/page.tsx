@@ -18,11 +18,16 @@ const SOFT_BGS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function FamilyPage() {
+export default async function FamilyPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const { members } = await loadFamilyData();
 
   return (
-    <PageShell active="family">
+    <PageShell active="family" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}

@@ -28,13 +28,18 @@ function MiniRing({ pct }: { pct: number }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function HabitsPage() {
+export default async function HabitsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const { habits, doneToday, today } = await loadHabitsData();
   const total = habits.length || 1;
   const pct = Math.round((doneToday / total) * 100);
 
   return (
-    <PageShell active="habits">
+    <PageShell active="habits" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Hero card ──────────────────────────────────────────────────── */}

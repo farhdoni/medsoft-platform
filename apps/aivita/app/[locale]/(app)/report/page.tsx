@@ -20,11 +20,16 @@ const REPORT_CONTENTS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function ReportPage() {
+export default async function ReportPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const { latest, reports } = await loadReportData();
 
   return (
-    <PageShell active="home">
+    <PageShell active="home" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
