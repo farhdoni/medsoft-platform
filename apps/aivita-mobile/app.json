@@ -6,49 +6,31 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f9f7f4"
+      "backgroundColor": "#f4f3ef"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uz.aivita.app"
     },
     "android": {
       "package": "uz.aivita.app",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f9f7f4"
+        "backgroundColor": "#f4f3ef"
       },
-      "permissions": [
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
-      ]
+      "permissions": ["INTERNET", "RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
+    "scheme": "aivita",
     "plugins": [
       "expo-router",
-      "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#9c5e6c",
-          "sounds": []
-        }
-      ]
+      "expo-secure-store"
     ],
-    "scheme": "aivita",
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "b634c834-d7c1-43d7-9cee-0d150d4136ce"
-      }
-    },
-    "owner": "farhodni"
+    }
   }
 }

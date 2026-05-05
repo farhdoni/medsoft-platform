@@ -1,143 +1,321 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, FileText } from 'lucide-react-native';
-import { api, isOk } from '../../src/lib/api';
-import { Screen } from '../../src/components/Screen';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { authFetch, ApiError } from '../../lib/api';
+import { COLORS } from '../../lib/constants';
 
-type Report = {
-  id: string;
-  reportNumber: number;
-  fileUrl: string;
-  shareToken?: string;
-  createdAt: string;
+type ReportData = {
+  period?: string;
+  healthScore?: number;
+  scoreChange?: number;
+  habitsCompleted?: number;
+  habitsTotal?: number;
+  testsCompleted?: number;
+  insights?: string[];
+  recommendations?: string[];
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
+function ScoreChangeChip({ change }: { change: number }) {
+  const up = change >= 0;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: up ? '#d4e8d8' : '#fde8ec',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        gap: 2,
+      }}
+    >
+      <Text style={{ fontSize: 12, color: up ? COLORS.accentMintDeep : '#9c3050', fontWeight: '700' }}>
+        {up ? '↑' : '↓'} {Math.abs(change)} pts
+      </Text>
+    </View>
+  );
 }
 
-const CONTENTS = [
-  'Личные данные и антропометрия',
-  'Аллергии и хронические заболевания',
-  'История болезней и операций',
-  'Биометрия за 30 дней (пульс, давление, сон)',
-  'Health Score по 5 системам',
-];
+function StatCard({
+  emoji,
+  label,
+  value,
+  sub,
+  color,
+}: {
+  emoji: string;
+  label: string;
+  value: string;
+  sub?: string;
+  color: string;
+}) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: color,
+        borderRadius: 16,
+        padding: 16,
+        minHeight: 100,
+        justifyContent: 'space-between',
+      }}
+    >
+      <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <View>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: '800',
+            color: COLORS.textPrimary,
+            letterSpacing: -0.5,
+          }}
+        >
+          {value}
+        </Text>
+        <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{label}</Text>
+        {sub && <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>{sub}</Text>}
+      </View>
+    </View>
+  );
+}
 
 export default function ReportScreen() {
-  const queryClient = useQueryClient();
+  const router = useRouter();
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
-  const { data: reports = [], isLoading } = useQuery({
-    queryKey: ['reports'],
-    queryFn: async () => {
-      const res = await api.reports.list();
-      return isOk(res) ? (res.data as Report[]) : [];
-    },
-  });
+  const fetchReport = useCallback(async () => {
+    setError('');
+    try {
+      const data = await authFetch<ReportData>('/report/weekly');
+      setReport(data);
+    } catch (e: any) {
+      if (e instanceof ApiError && e.status === 401) return;
+      setError('Failed to load report');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const generateMutation = useMutation({
-    mutationFn: () => api.reports.generate(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reports'] }),
-  });
+  useEffect(() => { fetchReport(); }, [fetchReport]);
 
-  const latest = reports[0] ?? null;
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchReport();
+  }, [fetchReport]);
+
+  const habitsPercent =
+    report?.habitsTotal && report.habitsTotal > 0
+      ? Math.round(((report.habitsCompleted ?? 0) / report.habitsTotal) * 100)
+      : 0;
 
   return (
-    <Screen title="Отчёт врачу">
-      {/* Hero */}
-      <View style={{ borderRadius: 24, backgroundColor: '#9c5e6c', padding: 20, marginBottom: 16 }}>
-        <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-          ОТЧЁТ ВРАЧУ
-        </Text>
-        <Text style={{ fontSize: 22, fontWeight: '800', color: '#ffffff', marginBottom: 4 }}>
-          {latest ? `Отчёт № ${latest.reportNumber}` : 'Нет готового отчёта'}
-        </Text>
-        <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 16 }}>
-          {latest ? `Создан ${formatDate(latest.createdAt)}` : 'Сгенерируй сводку для врача за 30 дней'}
-        </Text>
+    <View style={{ flex: 1, backgroundColor: COLORS.bgApp }}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgApp} />
 
-        {isLoading ? (
-          <ActivityIndicator color="#ffffff" />
-        ) : latest ? (
-          <TouchableOpacity
-            onPress={() => Linking.openURL(latest.fileUrl)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 100, paddingHorizontal: 16, paddingVertical: 10, alignSelf: 'flex-start' }}
-          >
-            <Download size={16} color="#ffffff" />
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#ffffff' }}>Скачать PDF</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 100, paddingHorizontal: 16, paddingVertical: 10, alignSelf: 'flex-start', opacity: generateMutation.isPending ? 0.7 : 1 }}
-          >
-            {generateMutation.isPending
-              ? <ActivityIndicator size="small" color="#ffffff" />
-              : <FileText size={16} color="#ffffff" />}
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#ffffff' }}>
-              {generateMutation.isPending ? 'Генерация...' : 'Создать отчёт'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Contents */}
-      <Text style={{ fontSize: 11, fontWeight: '700', color: '#9090a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-        Что включено в отчёт
-      </Text>
-      <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e8e4dc', marginBottom: 16, gap: 10 }}>
-        {CONTENTS.map((item) => (
-          <View key={item} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#e5f2ee', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: '#2d7a5f' }}>✓</Text>
-            </View>
-            <Text style={{ fontSize: 13, color: '#1a1a2e', flex: 1 }}>{item}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* History */}
-      {reports.length > 1 && (
-        <>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#9090a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Предыдущие отчёты
+      {/* Header */}
+      <View
+        style={{
+          paddingTop: 60,
+          paddingHorizontal: 24,
+          paddingBottom: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: COLORS.white,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+            borderWidth: 1,
+            borderColor: COLORS.borderSoft,
+          }}
+        >
+          <Text style={{ fontSize: 16 }}>←</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.textPrimary }}>
+            Weekly Report
           </Text>
-          <View style={{ gap: 8, marginBottom: 16 }}>
-            {reports.slice(1, 5).map((r) => (
-              <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e8e4dc' }}>
-                <View>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1a1a2e' }}>№ {r.reportNumber}</Text>
-                  <Text style={{ fontSize: 11, color: '#9090a8', marginTop: 2 }}>{formatDate(r.createdAt)}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => Linking.openURL(r.fileUrl)}
-                  style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, backgroundColor: '#ede8f5' }}
-                >
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#5e4a8c' }}>PDF</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        </>
-      )}
-
-      {/* Generate new if has latest */}
-      {latest && (
-        <View style={{ alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending}
-            style={{ opacity: generateMutation.isPending ? 0.7 : 1 }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#9c5e6c' }}>
-              {generateMutation.isPending ? 'Генерация...' : 'Создать новый отчёт'}
+          {report?.period && (
+            <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
+              {report.period}
             </Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 11, color: '#9090a8', marginTop: 4 }}>за текущий период</Text>
+          )}
         </View>
+      </View>
+
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator color={COLORS.accentRose} size="large" />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accentRose} />
+          }
+        >
+          {error ? (
+            <View style={{ backgroundColor: '#fde8ec', borderRadius: 12, padding: 14, marginBottom: 16 }}>
+              <Text style={{ color: '#9c3050' }}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* Health score highlight */}
+          <View
+            style={{
+              backgroundColor: COLORS.bgSoftPink,
+              borderRadius: 24,
+              padding: 24,
+              marginBottom: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <View>
+              <Text style={{ fontSize: 13, color: COLORS.accentRose, fontWeight: '600' }}>
+                HEALTH SCORE
+              </Text>
+              <Text
+                style={{
+                  fontSize: 48,
+                  fontWeight: '800',
+                  color: COLORS.textPrimary,
+                  letterSpacing: -1,
+                }}
+              >
+                {report?.healthScore ?? '--'}
+              </Text>
+              {report?.scoreChange !== undefined && (
+                <ScoreChangeChip change={report.scoreChange} />
+              )}
+            </View>
+            <Text style={{ fontSize: 56 }}>📊</Text>
+          </View>
+
+          {/* Stats row */}
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+            <StatCard
+              emoji="✅"
+              label="Habits Done"
+              value={`${habitsPercent}%`}
+              sub={`${report?.habitsCompleted ?? 0}/${report?.habitsTotal ?? 0} total`}
+              color={COLORS.bgSoftMint}
+            />
+            <StatCard
+              emoji="📋"
+              label="Tests"
+              value={String(report?.testsCompleted ?? 0)}
+              sub="completed this week"
+              color={COLORS.bgSoftPurple}
+            />
+          </View>
+
+          {/* Insights */}
+          {(report?.insights?.length ?? 0) > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: COLORS.textPrimary,
+                  marginBottom: 12,
+                }}
+              >
+                Insights
+              </Text>
+              {report!.insights!.map((insight, i) => (
+                <View
+                  key={i}
+                  style={{
+                    backgroundColor: COLORS.white,
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    borderWidth: 1,
+                    borderColor: COLORS.borderSoft,
+                  }}
+                >
+                  <Text style={{ fontSize: 16, marginRight: 10, marginTop: 1 }}>💡</Text>
+                  <Text style={{ flex: 1, fontSize: 14, color: COLORS.textSecondary, lineHeight: 20 }}>
+                    {insight}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Recommendations */}
+          {(report?.recommendations?.length ?? 0) > 0 && (
+            <View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: COLORS.textPrimary,
+                  marginBottom: 12,
+                }}
+              >
+                Recommendations
+              </Text>
+              {report!.recommendations!.map((rec, i) => (
+                <View
+                  key={i}
+                  style={{
+                    backgroundColor: COLORS.bgSoftPurple,
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, marginRight: 10, marginTop: 1 }}>⭐</Text>
+                  <Text
+                    style={{ flex: 1, fontSize: 14, color: COLORS.accentPurpleDeep, lineHeight: 20 }}
+                  >
+                    {rec}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {!report && !error && (
+            <View style={{ alignItems: 'center', paddingTop: 40 }}>
+              <Text style={{ fontSize: 48, marginBottom: 16 }}>📊</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary }}>
+                No report yet
+              </Text>
+              <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginTop: 8 }}>
+                Your weekly report will appear here after you've been active for a week
+              </Text>
+            </View>
+          )}
+        </ScrollView>
       )}
-    </Screen>
+    </View>
   );
 }

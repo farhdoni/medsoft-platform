@@ -1,175 +1,194 @@
-import React from 'react';
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+  Alert,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, AlertTriangle, Pill, Clock } from 'lucide-react-native';
-import { api, isOk } from '../../src/lib/api';
-import { useUser } from '../../src/lib/AuthContext';
+import { useAuth } from '../../lib/auth';
+import { COLORS } from '../../lib/constants';
 
-type Allergy = { id: string; allergen: string; type: string };
-type Chronic = { id: string; name: string; diagnosedYear?: number };
-type History = { id: string; name: string; type: string; startDate?: string };
-
-function calcAge(dateStr: string): number {
-  const birth = new Date(dateStr);
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  if (now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) age--;
-  return age;
-}
-
-function getInitials(name: string): string {
-  return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.borderSoft,
+      }}
+    >
+      <Text style={{ fontSize: 14, color: COLORS.textSecondary, fontWeight: '500' }}>{label}</Text>
+      <Text style={{ fontSize: 14, color: COLORS.textPrimary, fontWeight: '600' }}>{value}</Text>
+    </View>
+  );
 }
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
   const router = useRouter();
-  const user = useUser();
+  const [signingOut, setSigningOut] = useState(false);
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ['health-profile'],
-    queryFn: async () => {
-      const res = await api.healthProfile.get();
-      return isOk(res) ? (res.data as Record<string, unknown>) : null;
-    },
-  });
+  const initials = (user?.name ?? 'U')
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
-  const { data: allergies = [] } = useQuery({
-    queryKey: ['allergies'],
-    queryFn: async () => {
-      const res = await api.healthProfile.allergies();
-      return isOk(res) ? (res.data as Allergy[]) : [];
-    },
-  });
-
-  const { data: chronic = [] } = useQuery({
-    queryKey: ['chronic'],
-    queryFn: async () => {
-      const res = await api.healthProfile.chronic();
-      return isOk(res) ? (res.data as Chronic[]) : [];
-    },
-  });
-
-  const { data: history = [] } = useQuery({
-    queryKey: ['history'],
-    queryFn: async () => {
-      const res = await api.healthProfile.history();
-      return isOk(res) ? (res.data as History[]) : [];
-    },
-  });
-
-  const name = user.name ?? 'Пользователь';
-  const initials = getInitials(name);
-  const age = profile?.birthDate ? calcAge(profile.birthDate as string) : null;
-
-  const metaParts: string[] = [];
-  if (age) metaParts.push(`${age} лет`);
-  if (profile?.gender) metaParts.push(profile.gender === 'male' ? 'Мужской' : 'Женский');
-  if (profile?.bloodType) metaParts.push(`Гр. ${profile.bloodType}`);
-  if (profile?.heightCm) metaParts.push(`${profile.heightCm} см`);
-  if (profile?.weightKg) metaParts.push(`${profile.weightKg} кг`);
-  const metaLine = metaParts.join(' · ') || 'Заполни профиль';
+  function confirmSignOut() {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          setSigningOut(true);
+          await signOut();
+        },
+      },
+    ]);
+  }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9f7f4' }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
-        {/* Back button */}
-        <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, marginBottom: 8 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-            <ArrowLeft size={18} color="#1a1a2e" />
+    <View style={{ flex: 1, backgroundColor: COLORS.bgApp }}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgApp} />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View
+          style={{
+            paddingTop: 60,
+            paddingHorizontal: 24,
+            paddingBottom: 24,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: COLORS.white,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 12,
+              borderWidth: 1,
+              borderColor: COLORS.borderSoft,
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.textPrimary }}>
+            My Profile
+          </Text>
+        </View>
+
+        {/* Avatar section */}
+        <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+          <View
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 48,
+              backgroundColor: COLORS.bgSoftPink,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16,
+              shadowColor: COLORS.accentRose,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+          >
+            <Text style={{ fontSize: 36, fontWeight: '700', color: COLORS.accentRose }}>
+              {initials}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 22, fontWeight: '700', color: COLORS.textPrimary }}>
+            {user?.name ?? 'User'}
+          </Text>
+          {user?.nickname && (
+            <Text style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 4 }}>
+              @{user.nickname}
+            </Text>
+          )}
+        </View>
+
+        {/* Info card */}
+        <View
+          style={{
+            marginHorizontal: 24,
+            backgroundColor: COLORS.white,
+            borderRadius: 20,
+            paddingHorizontal: 20,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: COLORS.borderSoft,
+          }}
+        >
+          <InfoRow label="Email" value={user?.email ?? '-'} />
+          {user?.nickname && <InfoRow label="Nickname" value={`@${user.nickname}`} />}
+          <InfoRow
+            label="Onboarding"
+            value={user?.onboardingCompleted ? 'Completed' : 'Pending'}
+          />
+          {user?.locale && <InfoRow label="Language" value={user.locale} />}
+        </View>
+
+        {/* Actions */}
+        <View style={{ paddingHorizontal: 24, gap: 12 }}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/settings')}
+            style={{
+              backgroundColor: COLORS.white,
+              borderRadius: 16,
+              paddingHorizontal: 20,
+              paddingVertical: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: COLORS.borderSoft,
+            }}
+            activeOpacity={0.75}
+          >
+            <Text style={{ fontSize: 20, marginRight: 14 }}>⚙️</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: COLORS.textPrimary, flex: 1 }}>
+              Settings
+            </Text>
+            <Text style={{ fontSize: 16, color: COLORS.textMuted }}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={confirmSignOut}
+            disabled={signingOut}
+            style={{
+              backgroundColor: '#fde8ec',
+              borderRadius: 16,
+              paddingHorizontal: 20,
+              paddingVertical: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#f5b8c4',
+            }}
+            activeOpacity={0.75}
+          >
+            <Text style={{ fontSize: 20, marginRight: 14 }}>🚪</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#9c3050', flex: 1 }}>
+              {signingOut ? 'Signing out...' : 'Sign Out'}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Hero */}
-        <View style={{ backgroundColor: '#9c5e6c', marginHorizontal: 16, borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 24, fontWeight: '800', color: '#ffffff' }}>{initials}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>МОЙ ПРОФИЛЬ</Text>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: '#ffffff' }}>{name}</Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{metaLine}</Text>
-          </View>
-        </View>
-
-        <View style={{ paddingHorizontal: 16, gap: 10 }}>
-          {/* Allergies */}
-          <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e8e4dc' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#f5eaed', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={16} color="#c8576b" />
-              </View>
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: '#1a1a2e' }}>Аллергии</Text>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100, backgroundColor: '#f5eaed' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#c8576b' }}>{allergies.length}</Text>
-              </View>
-            </View>
-            {allergies.length === 0 ? (
-              <Text style={{ fontSize: 12, color: '#9090a8' }}>Не указано</Text>
-            ) : (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {allergies.map((a) => (
-                  <View key={a.id} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: '#f5eaed' }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#c8576b' }}>{a.allergen}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* Chronic */}
-          <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e8e4dc' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#e8eef8', alignItems: 'center', justifyContent: 'center' }}>
-                <Pill size={16} color="#3d5a99" />
-              </View>
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: '#1a1a2e' }}>Хронические</Text>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100, backgroundColor: '#e8eef8' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#3d5a99' }}>{chronic.length}</Text>
-              </View>
-            </View>
-            {chronic.length === 0 ? (
-              <Text style={{ fontSize: 12, color: '#9090a8' }}>Не указано</Text>
-            ) : (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {chronic.map((c) => (
-                  <View key={c.id} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: '#e8eef8' }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#3d5a99' }}>
-                      {c.name}{c.diagnosedYear ? ` (${c.diagnosedYear})` : ''}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* History */}
-          <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e8e4dc' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#e5f2ee', alignItems: 'center', justifyContent: 'center' }}>
-                <Clock size={16} color="#2d7a5f" />
-              </View>
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: '600', color: '#1a1a2e' }}>История болезней</Text>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100, backgroundColor: '#e5f2ee' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#2d7a5f' }}>{history.length}</Text>
-              </View>
-            </View>
-            {history.length === 0 ? (
-              <Text style={{ fontSize: 12, color: '#9090a8' }}>Не указано</Text>
-            ) : (
-              <View style={{ gap: 8 }}>
-                {history.map((h, idx) => (
-                  <View key={h.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: idx < history.length - 1 ? 8 : 0, borderBottomWidth: idx < history.length - 1 ? 1 : 0, borderBottomColor: '#f0f0f0' }}>
-                    <Text style={{ fontSize: 13, color: '#1a1a2e' }}>{h.name}</Text>
-                    {h.startDate && <Text style={{ fontSize: 11, color: '#9090a8' }}>{new Date(h.startDate).getFullYear()}</Text>}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );

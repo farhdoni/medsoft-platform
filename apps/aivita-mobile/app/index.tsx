@@ -1,24 +1,17 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
+import { useAuth } from '../lib/auth';
 import { View, ActivityIndicator } from 'react-native';
-import { useAuth } from '../src/lib/AuthContext';
 
 export default function Index() {
-  const router = useRouter();
-  const { state } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (state.status === 'loading') return;
-    if (state.status === 'authenticated') {
-      router.replace('/(app)/');
-    } else {
-      router.replace('/(auth)/login');
-    }
-  }, [state.status]);
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f3ef' }}>
+        <ActivityIndicator size="large" color="#9c5e6c" />
+      </View>
+    );
+  }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: '#f9f7f4', alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator size="large" color="#9c5e6c" />
-    </View>
-  );
+  return <Redirect href={user ? '/(app)/(tabs)/home' : '/(auth)/sign-in'} />;
 }
