@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aivita-v1';
+const CACHE_NAME = 'aivita-v2';
 const OFFLINE_URL = '/ru/offline';
 
 const PRECACHE_URLS = [
@@ -31,13 +31,31 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+const CABINET_ROUTES = ['/home', '/profile', '/habits', '/nutrition', '/chat', '/test', '/family', '/report', '/settings', '/notifications', '/install'];
+
+function isCabinetRoute(pathname) {
+  return CABINET_ROUTES.some((r) => {
+    const segments = pathname.split('/').filter(Boolean);
+    // Strip locale prefix (ru/uz/en) before matching
+    const withoutLocale = segments[0] === 'ru' || segments[0] === 'uz' || segments[0] === 'en'
+      ? '/' + segments.slice(1).join('/')
+      : pathname;
+    return withoutLocale === r || withoutLocale.startsWith(r + '/') || withoutLocale.startsWith(r + '?');
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Don't cache API calls
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/v1/') || url.pathname.startsWith('/_next/')) {
+  // Don't cache API calls, Next.js internals, or authenticated cabinet routes
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/v1/') ||
+    url.pathname.startsWith('/_next/') ||
+    isCabinetRoute(url.pathname)
+  ) {
     return;
   }
 
