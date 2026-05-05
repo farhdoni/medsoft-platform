@@ -34,10 +34,6 @@ const DEVICE_ICONS: Record<string, string> = {
   xiaomi_band: '📱',
   samsung_galaxy_watch: '⌚',
   google_fit: '🏃',
-  huawei_band: '⌚',
-  apple_health: '🍎',
-  garmin: '⌚',
-  fitbit: '⌚',
 };
 
 const METRIC_LABELS: Record<string, string> = {

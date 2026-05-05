@@ -50,33 +50,6 @@ const DEVICE_CATALOG = [
     connectMethod: 'oauth',
     instructions: [],
   },
-  {
-    type: 'huawei_band',
-    name: 'Huawei Band / Watch',
-    icon: 'huawei',
-    metrics: ['heart_rate', 'steps', 'sleep_hours', 'spo2'],
-    status: 'coming_soon',
-    connectMethod: 'huawei_health_api',
-    instructions: [],
-  },
-  {
-    type: 'apple_health',
-    name: 'Apple Health',
-    icon: 'apple',
-    metrics: ['heart_rate', 'steps', 'sleep_hours', 'weight', 'spo2'],
-    status: 'coming_soon',
-    connectMethod: 'healthkit',
-    instructions: [],
-  },
-  {
-    type: 'garmin',
-    name: 'Garmin',
-    icon: 'garmin',
-    metrics: ['heart_rate', 'steps', 'sleep_hours', 'spo2'],
-    status: 'coming_soon',
-    connectMethod: 'garmin_api',
-    instructions: [],
-  },
 ];
 
 // ─── GET /devices/catalog ──────────────────────────────────────────────────────
