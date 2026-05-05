@@ -4,11 +4,11 @@ import { useRouter, useParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
 
 const TABS: { id: string; label: string; icon: IconName }[] = [
-  { id: "home",    label: "Главная",  icon: "heart"  },
-  { id: "test",    label: "Тест",     icon: "test"   },
-  { id: "habits",  label: "Привычки", icon: "habit"  },
-  { id: "nutrition", label: "Питание", icon: "food"  },
-  { id: "family",  label: "Семья",    icon: "family" },
+  { id: "home",    label: "Главная",   icon: "home"   },
+  { id: "vitals",  label: "Биометрия", icon: "heart"  },
+  { id: "habits",  label: "Привычки",  icon: "habit"  },
+  { id: "gadgets", label: "Гаджеты",   icon: "steps"  },
+  { id: "family",  label: "Семья",     icon: "family" },
 ];
 
 export function FloatingNav({ active = "home" }: { active?: string }) {

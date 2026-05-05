@@ -29,7 +29,7 @@ export default async function VitalsPage({
       : [];
 
   return (
-    <PageShell active="home" locale={locale}>
+    <PageShell active="vitals" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
         <VitalsClient initialLatest={latest} initialRows={rows} />
       </div>

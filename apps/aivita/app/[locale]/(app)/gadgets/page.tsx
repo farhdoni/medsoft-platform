@@ -28,7 +28,7 @@ export default async function GadgetsPage({
       : [];
 
   return (
-    <PageShell active="home" locale={locale}>
+    <PageShell active="gadgets" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
         <GadgetsClient catalog={catalog} connected={connected} />
       </div>
