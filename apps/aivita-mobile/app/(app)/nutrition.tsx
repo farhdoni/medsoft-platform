@@ -1,152 +1,183 @@
-import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { api, isOk } from '../../src/lib/api';
-import { Screen } from '../../src/components/Screen';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { authFetch } from '../../lib/api';
+import { COLORS } from '../../lib/constants';
 
 const today = new Date().toISOString().slice(0, 10);
 
-const CALORIES_GOAL = 1800;
+type NutritionSummary = {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  meals?: { name: string; calories: number; time?: string }[];
+};
+
+const GOALS = { calories: 1800, protein: 120, fat: 60, carbs: 250 };
+
 const MACROS = [
-  { key: 'protein' as const, label: 'Белки',    goal: 120, bg: '#e8eef8', color: '#3d5a99' },
-  { key: 'fat'     as const, label: 'Жиры',     goal: 60,  bg: '#f5eaed', color: '#c8576b' },
-  { key: 'carbs'   as const, label: 'Углеводы', goal: 250, bg: '#ede8f5', color: '#5e4a8c' },
+  { key: 'protein' as const, label: 'Белки',    color: '#3d5a99', bg: '#e8eef8' },
+  { key: 'fat'     as const, label: 'Жиры',     color: '#c8576b', bg: '#f5eaed' },
+  { key: 'carbs'   as const, label: 'Углеводы', color: '#5e4a8c', bg: '#ede8f5' },
 ];
 
-const MEAL_LABELS: Record<string, string> = {
-  breakfast: 'Завтрак', lunch: 'Обед', dinner: 'Ужин', snack: 'Перекус',
-};
-
-type NutritionSummary = {
-  totals: { calories: number; protein: number; fat: number; carbs: number };
-  meals: Array<{
-    id: string;
-    name: string;
-    emoji?: string;
-    mealType: string;
-    calories: string | number;
-    proteinG?: string | number;
-    fatG?: string | number;
-    carbsG?: string | number;
-    consumedAt?: string;
-  }>;
-};
+function MacroBar({ label, value, goal, color, bg }: {
+  label: string; value: number; goal: number; color: string; bg: string;
+}) {
+  const pct = Math.min(1, value / goal);
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textSecondary }}>{label}</Text>
+        <Text style={{ fontSize: 13, color: COLORS.textMuted }}>{value}g / {goal}g</Text>
+      </View>
+      <View style={{ height: 8, backgroundColor: bg, borderRadius: 4, overflow: 'hidden' }}>
+        <View style={{ height: '100%', width: `${pct * 100}%`, backgroundColor: color, borderRadius: 4 }} />
+      </View>
+    </View>
+  );
+}
 
 export default function NutritionScreen() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['nutrition', today],
-    queryFn: async () => {
-      const res = await api.nutrition.summary(today);
-      return isOk(res) ? (res.data as NutritionSummary) : null;
-    },
-  });
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [data, setData] = useState<NutritionSummary | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const totals = data?.totals ?? { calories: 0, protein: 0, fat: 0, carbs: 0 };
-  const meals = data?.meals ?? [];
-  const calPct = Math.min(Math.round((totals.calories / CALORIES_GOAL) * 100), 100);
-  const remaining = Math.max(CALORIES_GOAL - totals.calories, 0);
+  useEffect(() => {
+    authFetch<NutritionSummary>(`/nutrition/summary?date=${today}`)
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const calPct = data ? Math.min(1, data.calories / GOALS.calories) : 0;
 
   return (
-    <Screen title="Питание">
-      {/* Hero */}
+    <View style={{ flex: 1, backgroundColor: COLORS.bgApp }}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bgApp} />
       <View
         style={{
-          borderRadius: 24,
-          backgroundColor: '#e5f2ee',
-          padding: 20,
-          marginBottom: 14,
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 24,
+          paddingBottom: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: COLORS.white,
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.borderSoft,
         }}
       >
-        <Text style={{ fontSize: 11, fontWeight: '700', color: '#9090a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-          КАЛОРИИ СЕГОДНЯ
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Text style={{ fontSize: 44, fontWeight: '800', color: '#1a1a2e', lineHeight: 48 }}>
-            {totals.calories}
-          </Text>
-          <Text style={{ fontSize: 15, color: '#4a4a6a' }}>/ {CALORIES_GOAL} ккал</Text>
-        </View>
-        <Text style={{ fontSize: 12, color: '#4a4a6a', marginTop: 4, marginBottom: 12 }}>
-          Б {Math.round(totals.protein)}г · Ж {Math.round(totals.fat)}г · У {Math.round(totals.carbs)}г
-        </Text>
-        {/* Progress bar */}
-        <View style={{ height: 10, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' }}>
-          <View style={{ height: '100%', width: `${calPct}%`, borderRadius: 100, backgroundColor: '#9c5e6c' }} />
-        </View>
-        <Text style={{ fontSize: 11, color: '#9090a8', marginTop: 6 }}>
-          {remaining > 0 ? `↓ ${remaining} ккал осталось` : '✓ Цель достигнута'}
-        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+          <Text style={{ fontSize: 18 }}>←</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.textPrimary }}>Питание</Text>
       </View>
 
-      {/* Macros */}
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-        {MACROS.map(({ key, label, goal, bg, color }) => {
-          const value = Math.round(totals[key]);
-          const pct = Math.min(Math.round((value / goal) * 100), 100);
-          return (
-            <View key={key} style={{ flex: 1, backgroundColor: bg, borderRadius: 16, padding: 12 }}>
-              <Text style={{ fontSize: 11, fontWeight: '600', color, marginBottom: 4 }}>{label}</Text>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1a1a2e' }}>{value}г</Text>
-              <Text style={{ fontSize: 10, color: '#9090a8' }}>/ {goal}г</Text>
-              <View style={{ height: 6, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.5)', marginTop: 8, overflow: 'hidden' }}>
-                <View style={{ height: '100%', width: `${pct}%`, borderRadius: 100, backgroundColor: color }} />
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
-      {/* Meals */}
-      <Text style={{ fontSize: 11, fontWeight: '700', color: '#9090a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-        Приёмы пищи
-      </Text>
-
-      {isLoading ? (
-        <ActivityIndicator color="#9c5e6c" />
-      ) : meals.length === 0 ? (
-        <View style={{ alignItems: 'center', paddingVertical: 40, backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#e8e4dc' }}>
-          <Text style={{ fontSize: 36 }}>🍽️</Text>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#1a1a2e', marginTop: 10 }}>Ещё ничего не записано</Text>
-          <Text style={{ fontSize: 12, color: '#9090a8', marginTop: 4 }}>Добавь первый приём пищи сегодня</Text>
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator color={COLORS.accentRose} />
         </View>
       ) : (
-        <View style={{ gap: 10 }}>
-          {meals.map((meal) => {
-            const time = meal.consumedAt
-              ? new Date(meal.consumedAt).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
-              : '';
-            return (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+          {/* Calories hero */}
+          <View
+            style={{
+              backgroundColor: COLORS.bgSoftPink,
+              borderRadius: 20,
+              padding: 24,
+              marginBottom: 20,
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.accentRose, marginBottom: 8 }}>
+              КАЛОРИИ
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 }}>
+              <Text style={{ fontSize: 40, fontWeight: '800', color: COLORS.textPrimary, lineHeight: 44 }}>
+                {data?.calories ?? 0}
+              </Text>
+              <Text style={{ fontSize: 16, color: COLORS.textSecondary, marginLeft: 6, marginBottom: 4 }}>
+                / {GOALS.calories} ккал
+              </Text>
+            </View>
+            <View style={{ height: 10, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 5, overflow: 'hidden' }}>
               <View
-                key={meal.id}
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                  backgroundColor: '#ffffff',
-                  borderRadius: 16,
-                  padding: 14,
-                  borderWidth: 1,
-                  borderColor: '#e8e4dc',
+                  height: '100%',
+                  width: `${calPct * 100}%`,
+                  backgroundColor: COLORS.accentRose,
+                  borderRadius: 5,
                 }}
-              >
-                <Text style={{ fontSize: 28 }}>{meal.emoji ?? '🍽️'}</Text>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1a1a2e', flex: 1 }}>{meal.name}</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#c8576b' }}>
-                      {Math.round(Number(meal.calories))} ккал
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 11, color: '#9090a8', marginTop: 2 }}>
-                    {MEAL_LABELS[meal.mealType] ?? meal.mealType}
-                    {time ? ` · ${time}` : ''}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+              />
+            </View>
+          </View>
+
+          {/* Macros */}
+          <View
+            style={{
+              backgroundColor: COLORS.white,
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 20,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 }}>
+              Макронутриенты
+            </Text>
+            {MACROS.map((m) => (
+              <MacroBar
+                key={m.key}
+                label={m.label}
+                value={data?.[m.key] ?? 0}
+                goal={GOALS[m.key]}
+                color={m.color}
+                bg={m.bg}
+              />
+            ))}
+          </View>
+
+          {/* AI camera coming soon */}
+          <View
+            style={{
+              backgroundColor: COLORS.bgSoftPurple,
+              borderRadius: 20,
+              padding: 20,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 28, marginBottom: 8 }}>📸</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 }}>
+              AI-сканер блюд
+            </Text>
+            <Text style={{ fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' }}>
+              Скоро: фотографируйте еду и получайте данные о КБЖУ автоматически
+            </Text>
+            <View
+              style={{
+                marginTop: 12,
+                backgroundColor: COLORS.accentPurpleDeep,
+                borderRadius: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                opacity: 0.5,
+              }}
+            >
+              <Text style={{ color: COLORS.white, fontSize: 13, fontWeight: '600' }}>
+                Скоро
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
       )}
-    </Screen>
+    </View>
   );
 }
