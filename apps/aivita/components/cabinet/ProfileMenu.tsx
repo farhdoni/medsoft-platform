@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon3D, type Icon3DName } from './icons/Icon3D';
 import type { AivitaSession } from '@/lib/auth/session';
+import { signOut } from '@/app/[locale]/(app)/settings/actions';
 
 interface MenuItem {
   icon: Icon3DName;
@@ -53,8 +54,7 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
 
   const handleLogout = async () => {
     setOpen(false);
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
-    router.push(`/${locale}/sign-in`);
+    await signOut(locale);
   };
 
   return (
