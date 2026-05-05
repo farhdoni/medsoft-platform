@@ -15,6 +15,8 @@ interface MenuItem {
 const MENU_ITEMS: MenuItem[] = [
   { icon: 'family',   softBg: '#f0d4dc', title: 'Мой профиль',           subtitle: 'Возраст, болезни',     href: '/profile' },
   { icon: 'kit',      softBg: '#e0d8f0', title: 'Медицинский профиль',   subtitle: 'Аллергии, препараты',  href: '/profile' },
+  { icon: 'heart',    softBg: '#f0d4dc', title: 'Биометрия',             subtitle: 'Показатели здоровья', href: '/vitals' },
+  { icon: 'steps',    softBg: '#d4e8d8', title: 'Гаджеты',               subtitle: 'Трекеры и часы',     href: '/gadgets' },
   { icon: 'chat',     softBg: '#d4e8d8', title: 'AI-чат',                subtitle: 'Помощник по здоровью', href: '/chat' },
   { icon: 'family',   softBg: '#d4dff0', title: 'Семья',                 subtitle: 'Поделиться доступом',  href: '/family' },
   { icon: 'shield',   softBg: '#f0d4dc', title: 'Конфиденциальность',                                      href: '/settings' },

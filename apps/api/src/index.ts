@@ -31,6 +31,8 @@ import { aivitaFamilyRouter } from './routes/aivita/family.js';
 import { aivitaNotificationsRouter } from './routes/aivita/notifications.js';
 import { aivitaReportsRouter } from './routes/aivita/reports.js';
 import { aivitaDeviceTokensRouter } from './routes/aivita/device-tokens.js';
+import { aivitaVitalsRouter } from './routes/aivita/vitals.js';
+import { aivitaUserDevicesRouter } from './routes/aivita/user-devices.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
@@ -73,6 +75,8 @@ app.route('/v1/aivita/family', aivitaFamilyRouter);
 app.route('/v1/aivita/notifications', aivitaNotificationsRouter);
 app.route('/v1/aivita/reports', aivitaReportsRouter);
 app.route('/v1/aivita/device-tokens', aivitaDeviceTokensRouter);
+app.route('/v1/aivita/vitals', aivitaVitalsRouter);
+app.route('/v1/aivita/devices', aivitaUserDevicesRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');

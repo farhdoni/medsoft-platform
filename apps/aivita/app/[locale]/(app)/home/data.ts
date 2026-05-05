@@ -108,6 +108,7 @@ export async function loadHomeData(): Promise<{
   metrics: DailyMetrics;
   activity: ActivityPoint[];
   report: Report | null;
+  vitalsLatest: Record<string, ApiVital | null>;
 }> {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
@@ -123,6 +124,7 @@ export async function loadHomeData(): Promise<{
     apiHabits,
     apiHabitLogs,
     apiReports,
+    apiVitalsLatest,
   ] = await Promise.all([
     authFetch<ApiUser>('/v1/aivita/auth/me'),
     authFetch<ApiHealthScore>('/v1/aivita/health-score'),
@@ -133,6 +135,7 @@ export async function loadHomeData(): Promise<{
     authFetch<ApiHabit[]>('/v1/aivita/habits'),
     authFetch<ApiHabitLog[]>(`/v1/aivita/habits/logs/range?from=${today}&to=${today}`),
     authFetch<ApiReport[]>('/v1/aivita/reports'),
+    authFetch<Record<string, ApiVital | null>>('/v1/aivita/vitals/latest'),
   ]);
 
   // ─── User ──────────────────────────────────────────────────────────────────
@@ -242,5 +245,7 @@ export async function loadHomeData(): Promise<{
     generatedAt: latestReport.createdAt,
   } : null;
 
-  return { user, metrics, activity, report };
+  const vitalsLatest: Record<string, ApiVital | null> = apiVitalsLatest ?? {};
+
+  return { user, metrics, activity, report, vitalsLatest };
 }

@@ -638,6 +638,7 @@ export const aivitaUsersRelations = relations(aivitaUsers, ({ one, many }) => ({
   doctorReports: many(doctorReports),
   emailVerifications: many(aivitaEmailVerifications),
   passwordResets: many(aivitaPasswordResets),
+  userDevices: many(userDevices),
 }));
 
 export const healthProfilesRelations = relations(healthProfiles, ({ one }) => ({
@@ -681,6 +682,38 @@ export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
     relationName: 'member',
   }),
 }));
+
+// ─── 16. user_devices (gadget connections) ────────────────────────────────────
+
+export const userDevices = pgTable(
+  'user_devices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+
+    type: text('type').notNull(),
+    // 'xiaomi_band' | 'samsung_galaxy_watch' | 'huawei_band' | 'google_fit' | 'apple_health' | 'garmin' | 'fitbit'
+
+    name: text('name').notNull(), // "Xiaomi Mi Band 8"
+
+    status: text('status').notNull().default('pending'),
+    // 'pending' | 'connected' | 'disconnected' | 'error'
+
+    lastSyncAt: timestamp('last_sync_at'),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    metadata: jsonb('metadata'),
+    connectedAt: timestamp('connected_at'),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('user_devices_user_idx').on(table.userId),
+    userTypeIdx: index('user_devices_user_type_idx').on(table.userId, table.type),
+  })
+);
 
 // ─── Device tokens (push notifications) ───────────────────────────────────────
 

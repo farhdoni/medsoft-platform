@@ -133,4 +133,30 @@ export const api = {
     history: (cookie: string) =>
       apiRequest('/health-profile/medical-history', { sessionCookie: cookie }),
   },
+  vitals: {
+    latest: (cookie: string) =>
+      apiRequest('/vitals/latest', { sessionCookie: cookie }),
+    list: (cookie: string, params?: string) =>
+      apiRequest(`/vitals${params ? '?' + params : ''}`, { sessionCookie: cookie }),
+    stats: (cookie: string, type: string, period = 'week') =>
+      apiRequest(`/vitals/stats?type=${type}&period=${period}`, { sessionCookie: cookie }),
+    add: (data: unknown, cookie: string) =>
+      apiRequest('/vitals', { method: 'POST', body: data, sessionCookie: cookie }),
+    batch: (entries: unknown[], cookie: string) =>
+      apiRequest('/vitals/batch', { method: 'POST', body: { entries }, sessionCookie: cookie }),
+    remove: (id: string, cookie: string) =>
+      apiRequest(`/vitals/${id}`, { method: 'DELETE', sessionCookie: cookie }),
+  },
+  devices: {
+    list: (cookie: string) =>
+      apiRequest('/devices', { sessionCookie: cookie }),
+    catalog: (cookie: string) =>
+      apiRequest('/devices/catalog', { sessionCookie: cookie }),
+    connect: (data: unknown, cookie: string) =>
+      apiRequest('/devices', { method: 'POST', body: data, sessionCookie: cookie }),
+    sync: (id: string, cookie: string) =>
+      apiRequest(`/devices/${id}/sync`, { method: 'POST', sessionCookie: cookie }),
+    disconnect: (id: string, cookie: string) =>
+      apiRequest(`/devices/${id}`, { method: 'DELETE', sessionCookie: cookie }),
+  },
 };

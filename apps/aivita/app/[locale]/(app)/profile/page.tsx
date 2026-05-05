@@ -70,7 +70,15 @@ export default async function ProfilePage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
 
-  const { user, profile, allergies, chronic, history } = await getProfileData(sessionCookie);
+  const [{ user, profile, allergies, chronic, history }, vitalsLatestRes] = await Promise.all([
+    getProfileData(sessionCookie),
+    api.vitals.latest(sessionCookie),
+  ]);
+
+  const vitalsLatest =
+    vitalsLatestRes && 'data' in vitalsLatestRes
+      ? (vitalsLatestRes.data as Record<string, { value: Record<string, unknown>; recordedAt: string } | null>)
+      : {};
 
   const name = user?.name ?? 'Пользователь';
   const initials = getInitials(name);
@@ -103,6 +111,48 @@ export default async function ProfilePage({
           </div>
           <div className="flex-shrink-0">
             <Icon name="doctor" size={48} />
+          </div>
+        </section>
+
+        {/* ── Biometrics ────────────────────────────────────────────────────── */}
+        <section className="mb-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#9a96a8' }}>
+              БИОМЕТРИЯ
+            </p>
+            <Link href={`/${locale}/vitals`} className="text-[12px] font-semibold" style={{ color: '#9c5e6c' }}>
+              Все показатели →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {([
+              { key: 'heart_rate',     icon: '❤️',  label: 'Пульс',    unit: 'bpm',  bg: '#f0d4dc', color: '#9c5e6c' },
+              { key: 'blood_pressure', icon: '🩺',  label: 'Давление', unit: 'mmHg', bg: '#d4dff0', color: '#5e75a8' },
+              { key: 'weight',         icon: '⚖️',  label: 'Вес',      unit: 'кг',   bg: '#e0d8f0', color: '#6e5fa0' },
+              { key: 'sleep_hours',    icon: '😴',  label: 'Сон',      unit: 'ч',    bg: '#d4dff0', color: '#5e75a8' },
+            ] as const).map(({ key, icon, label, unit, bg, color }) => {
+              const row = vitalsLatest[key];
+              const v = row?.value;
+              let val: string | null = null;
+              if (v) {
+                if (typeof v.value === 'number') val = v.value % 1 === 0 ? `${v.value}` : v.value.toFixed(1);
+                else if (typeof v.systolic === 'number') val = `${v.systolic}/${v.diastolic}`;
+                else if (typeof v.hours === 'number') val = `${v.hours}`;
+              }
+              return (
+                <div key={key} className="rounded-[14px] p-3 flex flex-col gap-1" style={{ background: bg }}>
+                  <span className="text-[18px]">{icon}</span>
+                  <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
+                  {val ? (
+                    <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>
+                      {val} <span className="text-[10px] font-normal" style={{ color: '#9a96a8' }}>{unit}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px]" style={{ color: '#9a96a8' }}>—</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
 
