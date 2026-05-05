@@ -29,11 +29,19 @@ interface ProfileMenuProps {
 
 export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
+  const [pos, setPos] = React.useState({ top: 0, right: 0 });
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     if (!open) return;
     const onMouse = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onMouse);
@@ -44,6 +52,17 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
     };
   }, [open]);
 
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + 12,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(o => !o);
+  };
+
   const name = session?.name ?? 'Пользователь';
   const email = session?.email ?? '';
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -51,14 +70,14 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const handleLogout = async () => {
     setOpen(false);
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    // Full navigation clears Next.js client cache; cookie already deleted server-side
     window.location.href = `/${locale}/sign-in`;
   };
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold hover:opacity-90 transition-opacity"
         style={{ background: 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)' }}
         aria-label="Меню профиля"
@@ -68,10 +87,18 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-3 w-[280px] bg-white rounded-2xl overflow-hidden border z-50"
+          ref={menuRef}
           style={{
-            borderColor: '#e8e4dc',
+            position: 'fixed',
+            top: pos.top,
+            right: pos.right,
+            zIndex: 9999,
+            width: 280,
+            background: 'white',
+            borderRadius: 16,
+            border: '1px solid #e8e4dc',
             boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
+            overflow: 'hidden',
           }}
         >
           {/* Header */}
@@ -131,6 +158,6 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
