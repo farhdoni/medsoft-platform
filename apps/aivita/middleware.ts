@@ -37,6 +37,12 @@ function stripLocale(pathname: string): string {
   return pathname.replace(/^\/(ru|uz|en)(\/|$)/, '/') || '/';
 }
 
+// Extract locale from pathname (falls back to DEFAULT_LOCALE)
+function extractLocale(pathname: string): string {
+  const m = pathname.match(/^\/(ru|uz|en)(\/|$)/);
+  return m ? m[1] : DEFAULT_LOCALE;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -56,6 +62,7 @@ export async function middleware(request: NextRequest) {
 
   const isAuthenticated = hasSession(request);
   const realPath = stripLocale(pathname);
+  const locale = extractLocale(pathname);
 
   const isAppRoute = APP_ROUTES.some(
     (r) => realPath === r || realPath.startsWith(r + '/')
@@ -65,27 +72,27 @@ export async function middleware(request: NextRequest) {
   );
   const isOnboarding = realPath.startsWith('/onboarding');
 
-  // App route + not authenticated → redirect to /sign-in
+  // App route + not authenticated → redirect to /{locale}/sign-in
   if (isAppRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
-    url.pathname = '/sign-in';
+    url.pathname = `/${locale}/sign-in`;
     if (realPath !== '/home') {
       url.searchParams.set('from', realPath);
     }
     return NextResponse.redirect(url);
   }
 
-  // sign-in + authenticated (not onboarding) → redirect to /home
+  // sign-in + authenticated → redirect to /{locale}/home
   if (isAuthRedirectRoute && isAuthenticated) {
     const url = request.nextUrl.clone();
-    url.pathname = '/home';
+    url.pathname = `/${locale}/home`;
     return NextResponse.redirect(url);
   }
 
-  // Onboarding + not authenticated → redirect to /sign-in
+  // Onboarding + not authenticated → redirect to /{locale}/sign-in
   if (isOnboarding && !isAuthenticated) {
     const url = request.nextUrl.clone();
-    url.pathname = '/sign-in';
+    url.pathname = `/${locale}/sign-in`;
     return NextResponse.redirect(url);
   }
 
