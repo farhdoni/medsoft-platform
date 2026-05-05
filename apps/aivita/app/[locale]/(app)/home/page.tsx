@@ -5,14 +5,23 @@ import { ActivityChart } from '@/components/cabinet/dashboard/ActivityChart';
 import { ReportCard } from '@/components/cabinet/dashboard/ReportCard';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 import { loadHomeData } from './data';
+import { getSession } from '@/lib/auth/session';
 
-export default async function HomePage() {
-  const { user, metrics, activity, report } = await loadHomeData();
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const [{ user, metrics, activity, report }, session] = await Promise.all([
+    loadHomeData(),
+    getSession(),
+  ]);
 
   return (
     <main className="mx-auto min-h-screen max-w-[1100px] px-4 pb-32 md:px-6">
       <div className="mt-6 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_64px_rgba(42,37,64,0.10)]">
-        <TopBar avatarInitial={user.avatarInitial} />
+        <TopBar avatarInitial={user.avatarInitial} session={session} locale={locale} />
         <HeroSection user={user} metrics={metrics} />
         <MetricsRow metrics={metrics} />
 

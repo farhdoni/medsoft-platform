@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import type { ChatPrompt, DailyMetrics, User } from "@/lib/cabinet-types";
 
 const PROMPTS: ChatPrompt[] = ["Анализы", "Сон", "Питание", "Тренировки"];
+
+function getGreeting() {
+  const h = new Date().getHours();
+  return h < 6 ? "Доброй ночи" :
+         h < 12 ? "Доброе утро" :
+         h < 18 ? "Добрый день" : "Добрый вечер";
+}
 
 interface Props {
   user: User;
@@ -14,21 +21,21 @@ interface Props {
 export function HeroSection({ user, metrics }: Props) {
   const [question, setQuestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Avoid SSR/client time mismatch: render neutral default, update after mount
+  const [greeting, setGreeting] = useState("Добрый день");
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "ru";
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
 
   function ask(q: string) {
     if (!q.trim() || submitting) return;
     setSubmitting(true);
     router.push(`/${locale}/chat?q=${encodeURIComponent(q)}`);
   }
-
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 6 ? "Доброй ночи" :
-    hour < 12 ? "Доброе утро" :
-    hour < 18 ? "Добрый день" : "Добрый вечер";
 
   const ringPct = Math.min(100, Math.max(0, metrics.healthIndex.score));
   const C = 2 * Math.PI * 56;
