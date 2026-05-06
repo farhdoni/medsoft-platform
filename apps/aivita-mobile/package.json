@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "build:android": "eas build --platform android --profile preview"
   },
   "dependencies": {
@@ -16,7 +16,7 @@
     "expo-status-bar": "~2.0.0",
     "expo-font": "~13.0.0",
     "react": "18.3.1",
-    "react-native": "0.76.5",
+    "react-native": "0.76.9",
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "4.4.0",
     "react-native-svg": "15.8.0",
