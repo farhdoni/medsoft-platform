@@ -1,7 +1,99 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+// ─── Patient context builder ─────────────────────────────────────────────────
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+
+async function fetchPatientContext(sessionCookie: string): Promise<string> {
+  if (!sessionCookie) return '';
+
+  const headers = { Cookie: `aivita_session=${sessionCookie}`, 'Content-Type': 'application/json' };
+  const opts = { headers, cache: 'no-store' as const };
+
+  try {
+    const [userRes, profileRes, latestRes, allergiesRes, chronicRes] = await Promise.allSettled([
+      fetch(`${API_BASE}/v1/aivita/users`, opts),
+      fetch(`${API_BASE}/v1/aivita/health-profile`, opts),
+      fetch(`${API_BASE}/v1/aivita/vitals/latest`, opts),
+      fetch(`${API_BASE}/v1/aivita/health-profile/allergies`, opts),
+      fetch(`${API_BASE}/v1/aivita/health-profile/chronic-conditions`, opts),
+    ]);
+
+    const parse = async (r: PromiseSettledResult<Response>) => {
+      if (r.status !== 'fulfilled' || !r.value.ok) return null;
+      try { return (await r.value.json())?.data ?? null; } catch { return null; }
+    };
+
+    const [user, profile, latest, allergies, chronic] = await Promise.all([
+      parse(userRes), parse(profileRes), parse(latestRes), parse(allergiesRes), parse(chronicRes),
+    ]);
+
+    const age = profile?.birthDate
+      ? (() => {
+          const d = new Date(profile.birthDate);
+          const a = new Date().getFullYear() - d.getFullYear();
+          return a > 0 ? `${a} лет` : '< 1 года';
+        })()
+      : null;
+
+    const bmi = profile?.heightCm && profile?.weightKg
+      ? (Number(profile.weightKg) / ((profile.heightCm / 100) ** 2)).toFixed(1)
+      : null;
+
+    const formatVital = (v: Record<string, number> | null, key?: string) => {
+      if (!v?.value) return null;
+      if (key === 'blood_pressure') return `${v.systolic}/${v.diastolic} мм рт.ст.`;
+      return `${v.value} ${v.unit ?? ''}`.trim();
+    };
+
+    const lines: string[] = ['=== ДАННЫЕ ПАЦИЕНТА ==='];
+
+    if (user?.name) lines.push(`Имя: ${user.name}`);
+    if (age) lines.push(`Возраст: ${age}`);
+    if (profile?.gender) lines.push(`Пол: ${profile.gender === 'male' ? 'мужской' : profile.gender === 'female' ? 'женский' : profile.gender}`);
+    if (profile?.heightCm) lines.push(`Рост: ${profile.heightCm} см`);
+    if (profile?.weightKg) lines.push(`Вес: ${profile.weightKg} кг`);
+    if (bmi) lines.push(`ИМТ: ${bmi}`);
+    if (profile?.bloodType) lines.push(`Группа крови: ${profile.bloodType}`);
+    if (profile?.smokingStatus) lines.push(`Курение: ${profile.smokingStatus}`);
+    if (profile?.alcoholFrequency) lines.push(`Алкоголь: ${profile.alcoholFrequency}`);
+    if (profile?.exerciseFrequency) lines.push(`Активность: ${profile.exerciseFrequency}`);
+
+    const allergyList = Array.isArray(allergies) && allergies.length > 0
+      ? allergies.map((a: { allergen: string; severity?: string }) => `${a.allergen}${a.severity ? ` (${a.severity})` : ''}`).join(', ')
+      : null;
+    if (allergyList) lines.push(`Аллергии: ${allergyList}`);
+
+    const chronicList = Array.isArray(chronic) && chronic.length > 0
+      ? chronic.map((c: { name: string }) => c.name).join(', ')
+      : null;
+    if (chronicList) lines.push(`Хронические заболевания: ${chronicList}`);
+
+    if (latest && typeof latest === 'object') {
+      lines.push('\nПОСЛЕДНИЕ ПОКАЗАТЕЛИ:');
+      const vitalLabels: Record<string, string> = {
+        heart_rate: 'Пульс', blood_pressure: 'Давление', blood_sugar: 'Сахар',
+        temperature: 'Температура', weight: 'Вес', sleep_hours: 'Сон',
+        water_ml: 'Вода', steps: 'Шаги', spo2: 'SpO2',
+      };
+      for (const [type, row] of Object.entries(latest as Record<string, Record<string, number>>)) {
+        const label = vitalLabels[type] ?? type;
+        const val = formatVital(row, type);
+        if (val) lines.push(`  ${label}: ${val}`);
+      }
+    }
+
+    if (lines.length <= 1) return '';
+    lines.push('\n=== КОНЕЦ ДАННЫХ ===');
+    return lines.join('\n');
+  } catch {
+    return '';
+  }
+}
 
 // ─── System prompts per locale ───────────────────────────────────────────────
 
@@ -119,9 +211,16 @@ export async function POST(req: Request) {
     );
   }
 
-  // Build system prompt for the chosen locale + optional user context
+  // Fetch patient context from session cookie
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const patientContext = await fetchPatientContext(sessionCookie);
+
+  // Build system prompt with patient data
   let systemPrompt = SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru;
-  if (userContext?.name) {
+  if (patientContext) {
+    systemPrompt += `\n\n${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
+  } else if (userContext?.name) {
     const suffix: Record<string, string> = {
       ru: `\n\nПользователь: ${userContext.name}${userContext.score ? `, Health Score: ${userContext.score}/100` : ''}`,
       uz: `\n\nFoydalanuvchi: ${userContext.name}${userContext.score ? `, Health Score: ${userContext.score}/100` : ''}`,

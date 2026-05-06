@@ -243,7 +243,7 @@ export default async function ProfilePage({
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
         <Link
-          href="#"
+          href={`/${locale}/report`}
           className="flex items-center justify-center gap-2 h-14 rounded-hero text-[14px] font-bold text-white transition-opacity hover:opacity-80 mt-1"
           style={{ background: '#9c5e6c' }}
         >
