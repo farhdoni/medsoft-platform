@@ -55,7 +55,7 @@ export async function HeroSection({ isAuthenticated = false }: Props) {
                 Скачать для Android (APK)
               </a>
               <p style={{ fontSize: 11, color: '#9090a8', marginTop: 6 }}>
-                Android 10+  ·  ~25 MB  ·  бесплатно
+                Android 7+  ·  ~65 MB  ·  бесплатно
               </p>
             </div>
 
