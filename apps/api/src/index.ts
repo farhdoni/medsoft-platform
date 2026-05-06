@@ -33,6 +33,20 @@ import { aivitaReportsRouter } from './routes/aivita/reports.js';
 import { aivitaDeviceTokensRouter } from './routes/aivita/device-tokens.js';
 import { aivitaVitalsRouter } from './routes/aivita/vitals.js';
 import { aivitaUserDevicesRouter } from './routes/aivita/user-devices.js';
+// Aivita Doctor routes
+import { doctorProfileRouter } from './routes/aivita/doctor/profile.js';
+import { doctorPatientsRouter } from './routes/aivita/doctor/patients.js';
+import { doctorScheduleRouter } from './routes/aivita/doctor/schedule.js';
+import { doctorAppointmentsRouter } from './routes/aivita/doctor/appointments.js';
+import { doctorPrescriptionsRouter } from './routes/aivita/doctor/prescriptions.js';
+import { doctorTemplatesRouter } from './routes/aivita/doctor/templates.js';
+import { doctorNotesRouter } from './routes/aivita/doctor/notes.js';
+import { doctorNotificationsRouter } from './routes/aivita/doctor/notifications.js';
+import { doctorLikesRouter } from './routes/aivita/doctor/likes.js';
+import { doctorReviewsRouter } from './routes/aivita/doctor/reviews.js';
+import { doctorReferralsRouter } from './routes/aivita/doctor/referrals.js';
+import { doctorStatsRouter } from './routes/aivita/doctor/stats.js';
+import { doctorCatalogRouter } from './routes/aivita/doctor/catalog.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
@@ -77,6 +91,20 @@ app.route('/v1/aivita/reports', aivitaReportsRouter);
 app.route('/v1/aivita/device-tokens', aivitaDeviceTokensRouter);
 app.route('/v1/aivita/vitals', aivitaVitalsRouter);
 app.route('/v1/aivita/devices', aivitaUserDevicesRouter);
+// Aivita Doctor Cabinet
+app.route('/v1/aivita/doctor/profile', doctorProfileRouter);
+app.route('/v1/aivita/doctor/patients', doctorPatientsRouter);
+app.route('/v1/aivita/doctor/schedule', doctorScheduleRouter);
+app.route('/v1/aivita/doctor/appointments', doctorAppointmentsRouter);
+app.route('/v1/aivita/doctor/prescriptions', doctorPrescriptionsRouter);
+app.route('/v1/aivita/doctor/templates', doctorTemplatesRouter);
+app.route('/v1/aivita/doctor/notes', doctorNotesRouter);
+app.route('/v1/aivita/doctor/notifications', doctorNotificationsRouter);
+app.route('/v1/aivita/doctor/likes', doctorLikesRouter);
+app.route('/v1/aivita/doctor/reviews', doctorReviewsRouter);
+app.route('/v1/aivita/doctor/referrals', doctorReferralsRouter);
+app.route('/v1/aivita/doctor/stats', doctorStatsRouter);
+app.route('/v1/aivita/catalog', doctorCatalogRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
