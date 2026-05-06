@@ -62,7 +62,7 @@ function formatTime(iso: string) {
 
 // ─── Latest Vitals Grid ────────────────────────────────────────────────────────
 
-function LatestGrid({ latest }: { latest: LatestVitals }) {
+function LatestGrid({ latest, onCardClick }: { latest: LatestVitals; onCardClick: (type: string) => void }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {VITAL_DEFS.map((def) => {
@@ -71,8 +71,11 @@ function LatestGrid({ latest }: { latest: LatestVitals }) {
         return (
           <div
             key={def.type}
-            className="rounded-[16px] p-3 flex flex-col gap-1"
+            className="rounded-[16px] p-3 flex flex-col gap-1 cursor-pointer active:scale-95 transition-transform"
             style={{ background: def.bg }}
+            onClick={() => onCardClick(def.type)}
+            role="button"
+            aria-label={`Добавить ${def.label}`}
           >
             <span className="text-[20px]">{def.icon}</span>
             <p className="text-[11px] font-semibold" style={{ color: def.color }}>{def.label}</p>
@@ -136,10 +139,11 @@ function HistoryList({ rows, onDelete }: { rows: VitalRow[]; onDelete: (id: stri
 interface ModalProps {
   onClose: () => void;
   onSaved: () => void;
+  initialType?: string;
 }
 
-function AddVitalModal({ onClose, onSaved }: ModalProps) {
-  const [type, setType] = useState('heart_rate');
+function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
+  const [type, setType] = useState(initialType ?? 'heart_rate');
   const [value, setValue] = useState('');
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
@@ -293,6 +297,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
   const [latest, setLatest] = useState<LatestVitals>(initialLatest);
   const [rows, setRows] = useState<VitalRow[]>(initialRows);
   const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<string>('heart_rate');
   const [, startTransition] = useTransition();
 
   function handleSaved() {
@@ -344,7 +349,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
       {/* Latest vitals grid */}
       <section className="mb-6">
         <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ПОСЛЕДНИЕ ПОКАЗАТЕЛИ</h2>
-        <LatestGrid latest={latest} />
+        <LatestGrid latest={latest} onCardClick={(type) => { setModalType(type); setShowModal(true); }} />
       </section>
 
       {/* History */}
@@ -368,6 +373,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
         <AddVitalModal
           onClose={() => setShowModal(false)}
           onSaved={handleSaved}
+          initialType={modalType}
         />
       )}
     </>

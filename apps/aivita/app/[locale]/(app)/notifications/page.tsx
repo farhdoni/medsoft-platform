@@ -42,7 +42,7 @@ export default async function NotificationsPage({
   const { notifications, unreadCount } = await loadNotificationsData();
 
   return (
-    <PageShell active="home" locale={locale}>
+    <PageShell active="" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Header ────────────────────────────────────────────────────────── */}

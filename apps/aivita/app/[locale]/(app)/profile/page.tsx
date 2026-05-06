@@ -93,7 +93,7 @@ export default async function ProfilePage({
   const metaLine = metaParts.join(' · ') || 'Заполни профиль';
 
   return (
-    <PageShell active="home" locale={locale}>
+    <PageShell active="" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
