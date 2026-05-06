@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 
 type Message = {
@@ -110,8 +111,20 @@ function inlineFormat(text: string): React.ReactNode[] {
   return parts;
 }
 
+const NAV_ITEMS = [
+  { id: 'home',       icon: '🏠', ru: 'Главная',       uz: 'Bosh sahifa', en: 'Home' },
+  { id: 'test',       icon: '🧪', ru: 'Тест 5 систем', uz: '5 tizim testi', en: '5-System Test' },
+  { id: 'habits',     icon: '📋', ru: 'Привычки',       uz: 'Odatlar', en: 'Habits' },
+  { id: 'nutrition',  icon: '🍎', ru: 'Питание',        uz: 'Ovqatlanish', en: 'Nutrition' },
+  { id: 'family',     icon: '👨‍👩‍👧', ru: 'Семья',          uz: 'Oila', en: 'Family' },
+  { id: 'report',     icon: '📄', ru: 'Отчёт врачу',    uz: 'Shifokorga hisobot', en: 'Doctor Report' },
+  { id: 'profile',    icon: '👤', ru: 'Профиль',        uz: 'Profil', en: 'Profile' },
+  { id: 'settings',   icon: '⚙️', ru: 'Настройки',      uz: 'Sozlamalar', en: 'Settings' },
+];
+
 export default function ChatPage() {
   const params = useParams();
+  const router = useRouter();
   const locale = (['ru', 'uz', 'en'].includes(params?.locale as string) ? params?.locale : 'ru') as string;
 
   const initData = INITIAL[locale] ?? INITIAL.ru;
@@ -120,6 +133,7 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showNav, setShowNav] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const didAutoSend = useRef(false);
@@ -263,31 +277,118 @@ export default function ChatPage() {
     }
   }, [messages, isLoading]);
 
+  const navLabel = (item: typeof NAV_ITEMS[0]) =>
+    locale === 'uz' ? item.uz : locale === 'en' ? item.en : item.ru;
+
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 56px)' }}>
 
-      {/* AI banner */}
+      {/* Slide-out navigation */}
+      {showNav && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/20 z-[998]"
+            onClick={() => setShowNav(false)}
+          />
+          <div
+            className="fixed top-0 right-0 h-full w-[280px] bg-white shadow-xl z-[999] flex flex-col"
+            style={{ animation: 'slideInRight 0.22s ease-out' }}
+          >
+            <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: '#e8e4dc' }}>
+              <span className="text-[16px] font-bold" style={{ color: '#2a2540' }}>
+                {locale === 'uz' ? 'Menyu' : locale === 'en' ? 'Menu' : 'Меню'}
+              </span>
+              <button
+                onClick={() => setShowNav(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f4f3ef] transition-colors text-[#9a96a8]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/${locale}/${item.id}`}
+                  onClick={() => setShowNav(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#f4f3ef] transition-colors"
+                >
+                  <span className="text-[18px] w-6 text-center">{item.icon}</span>
+                  <span className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>{navLabel(item)}</span>
+                </Link>
+              ))}
+            </nav>
+
+            <div className="p-4 border-t" style={{ borderColor: '#e8e4dc' }}>
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                style={{ background: '#e0d8f0' }}
+              >
+                <span className="text-[18px]">💬</span>
+                <span className="text-[13px] font-semibold" style={{ color: '#6e5fa0' }}>
+                  {locale === 'uz' ? 'AI-chat (hozir shu yerdasiz)' : locale === 'en' ? 'AI Chat (you are here)' : 'AI-чат (вы здесь)'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Top bar */}
       <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-2">
         <div
-          className="flex items-center gap-3 rounded-2xl p-3"
+          className="flex items-center gap-2 rounded-2xl px-3 py-2.5"
           style={{ background: 'linear-gradient(135deg, #e0d8f0 0%, #d4e8d8 100%)' }}
         >
+          {/* Back button */}
+          <button
+            onClick={() => router.push(`/${locale}/home`)}
+            className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-white/40 transition-colors flex-shrink-0"
+            aria-label="Назад"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2a2540" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+
+          {/* AI avatar + info */}
           <Icon3D name="doctor" size={36} />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>AI ассистент</p>
+              <p className="text-[14px] font-bold truncate" style={{ color: '#2a2540' }}>AI ассистент</p>
               <span
-                className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                 style={{ background: '#d4e8d8', color: '#548068' }}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#548068] inline-block" />
                 онлайн
               </span>
             </div>
-            <p className="text-[11px]" style={{ color: '#6a6580' }}>Claude AI · aivita health</p>
+            <p className="text-[11px] truncate" style={{ color: '#6a6580' }}>Claude AI · aivita health</p>
           </div>
+
+          {/* Menu button */}
+          <button
+            onClick={() => setShowNav(true)}
+            className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-white/40 transition-colors flex-shrink-0"
+            aria-label="Меню"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2a2540" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-2 space-y-3">
