@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { AlertTriangle, Pill, Clock, FileText } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
-import { Icon } from '@/components/cabinet/icons/Icon';
 import { api } from '@/lib/api-client';
 import { calcAge, getInitials } from '@/lib/date-utils';
+import { ProfileClient } from './ProfileClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,11 +13,47 @@ type HealthProfile = {
   bloodType?: string | null;
   heightCm?: number | null;
   weightKg?: string | null;
+  smokingStatus?: string | null;
+  alcoholFrequency?: string | null;
+  exerciseFrequency?: string | null;
+  dietType?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelation?: string | null;
+  doctorName?: string | null;
+  insuranceCompany?: string | null;
+  insuranceNumber?: string | null;
 };
 
-type Allergy = { id: string; allergen: string; type: string };
+type Allergy = { id: string; allergen: string; type: string; severity?: string };
 type ChronicCondition = { id: string; name: string; diagnosedYear?: number | null };
 type HistoryEntry = { id: string; name: string; type: string; startDate?: string | null };
+
+// ─── Completion calc ──────────────────────────────────────────────────────────
+
+function calcCompletion(p: HealthProfile | null, allergies: Allergy[], phone?: string): number {
+  if (!p) return 0;
+  const fields = [
+    { filled: !!p.birthDate, w: 3 },
+    { filled: !!p.gender, w: 3 },
+    { filled: !!p.heightCm, w: 3 },
+    { filled: !!p.weightKg, w: 3 },
+    { filled: allergies.length > 0, w: 3 },
+    { filled: !!p.city, w: 2 },
+    { filled: !!p.bloodType, w: 2 },
+    { filled: !!p.smokingStatus, w: 2 },
+    { filled: !!p.alcoholFrequency, w: 2 },
+    { filled: !!p.exerciseFrequency, w: 2 },
+    { filled: !!p.emergencyContactName, w: 2 },
+    { filled: !!p.dietType, w: 1 },
+    { filled: !!p.doctorName, w: 1 },
+  ];
+  const total = fields.reduce((s, f) => s + f.w, 0);
+  const done = fields.filter(f => f.filled).reduce((s, f) => s + f.w, 0);
+  return Math.round((done / total) * 100);
+}
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -70,186 +105,115 @@ export default async function ProfilePage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
 
-  const [{ user, profile, allergies, chronic, history }, vitalsLatestRes] = await Promise.all([
-    getProfileData(sessionCookie),
-    api.vitals.latest(sessionCookie),
-  ]);
-
-  const vitalsLatest =
-    vitalsLatestRes && 'data' in vitalsLatestRes
-      ? (vitalsLatestRes.data as Record<string, { value: Record<string, unknown>; recordedAt: string } | null>)
-      : {};
+  const { user, profile, allergies, chronic, history } = await getProfileData(sessionCookie);
 
   const name = user?.name ?? 'Пользователь';
+  const email = user?.email ?? '';
   const initials = getInitials(name);
   const age = profile?.birthDate ? calcAge(profile.birthDate) : null;
+  const completion = calcCompletion(profile, allergies);
 
-  const metaParts: string[] = [];
-  if (age) metaParts.push(`${age} лет`);
-  if (profile?.gender) metaParts.push(profile.gender === 'male' ? 'Мужской' : 'Женский');
-  if (profile?.bloodType) metaParts.push(`Гр. ${profile.bloodType}`);
-  if (profile?.heightCm) metaParts.push(`${profile.heightCm} см`);
-  if (profile?.weightKg) metaParts.push(`${profile.weightKg} кг`);
-  const metaLine = metaParts.join(' · ') || 'Заполни профиль';
+  const bmi =
+    profile?.heightCm && profile?.weightKg
+      ? (Number(profile.weightKg) / Math.pow(profile.heightCm / 100, 2)).toFixed(1)
+      : null;
 
   return (
     <PageShell active="" locale={locale}>
-      <div className="max-w-[680px] mx-auto pb-6">
+      <div className="max-w-[720px] mx-auto pb-8">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <section className="rounded-hero bg-hero-gradient p-6 mb-5 flex items-center gap-5">
-          {/* Avatar */}
+        <section
+          className="rounded-[20px] p-6 mb-5 flex items-center gap-5"
+          style={{ background: 'linear-gradient(135deg, #b89dc4, #957aaa)' }}
+        >
           <div className="w-20 h-20 rounded-[20px] bg-white/20 flex-shrink-0 flex items-center justify-center text-[28px] font-bold text-white">
             {initials}
           </div>
-          <div className="flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-1">
-              МОЙ ПРОФИЛЬ
-            </p>
-            <p className="text-[20px] font-extrabold text-white leading-tight">{name}</p>
-            <p className="text-[12px] text-white/70 mt-1">{metaLine}</p>
-          </div>
-          <div className="flex-shrink-0">
-            <Icon name="doctor" size={48} />
-          </div>
-        </section>
-
-        {/* ── Biometrics ────────────────────────────────────────────────────── */}
-        <section className="mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#9a96a8' }}>
-              БИОМЕТРИЯ
-            </p>
-            <Link href={`/${locale}/vitals`} className="text-[12px] font-semibold" style={{ color: '#9c5e6c' }}>
-              Все показатели →
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {([
-              { key: 'heart_rate',     icon: '❤️',  label: 'Пульс',    unit: 'bpm',  bg: '#f0d4dc', color: '#9c5e6c' },
-              { key: 'blood_pressure', icon: '🩺',  label: 'Давление', unit: 'mmHg', bg: '#d4dff0', color: '#5e75a8' },
-              { key: 'weight',         icon: '⚖️',  label: 'Вес',      unit: 'кг',   bg: '#e0d8f0', color: '#6e5fa0' },
-              { key: 'sleep_hours',    icon: '😴',  label: 'Сон',      unit: 'ч',    bg: '#d4dff0', color: '#5e75a8' },
-            ] as const).map(({ key, icon, label, unit, bg, color }) => {
-              const row = vitalsLatest[key];
-              const v = row?.value;
-              let val: string | null = null;
-              if (v) {
-                if (typeof v.value === 'number') val = v.value % 1 === 0 ? `${v.value}` : v.value.toFixed(1);
-                else if (typeof v.systolic === 'number') val = `${v.systolic}/${v.diastolic}`;
-                else if (typeof v.hours === 'number') val = `${v.hours}`;
-              }
-              return (
-                <div key={key} className="rounded-[14px] p-3 flex flex-col gap-1" style={{ background: bg }}>
-                  <span className="text-[18px]">{icon}</span>
-                  <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
-                  {val ? (
-                    <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>
-                      {val} <span className="text-[10px] font-normal" style={{ color: '#9a96a8' }}>{unit}</span>
-                    </p>
-                  ) : (
-                    <p className="text-[11px]" style={{ color: '#9a96a8' }}>—</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── Medical sections ──────────────────────────────────────────────── */}
-        {[
-          {
-            title: 'Аллергии',
-            Icon: AlertTriangle,
-            count: allergies.length,
-            tileBg: 'bg-bg-soft-pink',
-            tileColor: 'text-accent-rose',
-            countBg: 'bg-bg-soft-pink',
-            content:
-              allergies.length === 0 ? (
-                <p className="text-[12px] text-text-muted">Не указано</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {allergies.map((a) => (
-                    <span key={a.id} className="rounded-chip bg-bg-soft-pink px-3 py-1.5 text-[12px] font-semibold text-accent-rose">
-                      {a.allergen}
-                    </span>
-                  ))}
-                </div>
-              ),
-          },
-          {
-            title: 'Хронические',
-            Icon: Pill,
-            count: chronic.length,
-            tileBg: 'bg-bg-soft-blue',
-            tileColor: 'text-accent-blue-deep',
-            countBg: 'bg-bg-soft-blue',
-            content:
-              chronic.length === 0 ? (
-                <p className="text-[12px] text-text-muted">Не указано</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {chronic.map((c) => (
-                    <span key={c.id} className="rounded-chip bg-bg-soft-blue px-3 py-1.5 text-[12px] font-semibold text-accent-blue-deep">
-                      {c.name}{c.diagnosedYear ? ` (${c.diagnosedYear})` : ''}
-                    </span>
-                  ))}
-                </div>
-              ),
-          },
-          {
-            title: 'История болезней',
-            Icon: Clock,
-            count: history.length,
-            tileBg: 'bg-bg-soft-mint',
-            tileColor: 'text-accent-mint-deep',
-            countBg: 'bg-bg-soft-mint',
-            content:
-              history.length === 0 ? (
-                <p className="text-[12px] text-text-muted">Не указано</p>
-              ) : (
-                <div className="space-y-2">
-                  {history.map((h, idx) => (
-                    <div
-                      key={h.id}
-                      className={`flex items-center justify-between py-2 ${idx < history.length - 1 ? 'border-b border-border-soft' : ''}`}
-                    >
-                      <p className="text-[13px] text-text-primary">{h.name}</p>
-                      {h.startDate && (
-                        <p className="text-[11px] text-text-muted">
-                          {new Date(h.startDate).getFullYear()}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ),
-          },
-        ].map(({ title, Icon: Ico, count, tileBg, tileColor, countBg, content }) => (
-          <div key={title} className="rounded-card bg-white border border-border-soft p-4 mb-3">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`w-8 h-8 rounded-[10px] flex-shrink-0 flex items-center justify-center ${tileBg}`}>
-                <Ico className={`w-4 h-4 ${tileColor}`} />
-              </div>
-              <p className="text-[14px] font-semibold text-text-primary flex-1">{title}</p>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-chip ${countBg} ${tileColor}`}>
-                {count}
-              </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-0.5">МОЙ ПРОФИЛЬ</p>
+            <p className="text-[20px] font-extrabold text-white leading-tight truncate">{name}</p>
+            {email && <p className="text-[12px] text-white/70 mt-0.5 truncate">{email}</p>}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {age && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{age} лет</span>}
+              {profile?.gender && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{profile.gender === 'male' ? 'Муж' : 'Жен'}</span>}
+              {profile?.bloodType && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{profile.bloodType}</span>}
+              {profile?.city && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{profile.city}</span>}
             </div>
-            {content}
           </div>
-        ))}
+        </section>
+
+        {/* ── Completion bar ─────────────────────────────────────────────────── */}
+        <section className="rounded-[16px] bg-white border border-[#e8e4dc] p-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>Профиль заполнен</p>
+            <p className="text-[13px] font-bold" style={{ color: '#9c5e6c' }}>{completion}%</p>
+          </div>
+          <div className="h-2 rounded-full bg-[#f0d4dc] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #9c5e6c, #6e5fa0)' }}
+            />
+          </div>
+          {completion < 100 && (
+            <p className="text-[11px] mt-1.5" style={{ color: '#9a96a8' }}>Заполните профиль для лучших AI-рекомендаций</p>
+          )}
+        </section>
+
+        {/* ── Anthropometrics ────────────────────────────────────────────────── */}
+        <section className="grid grid-cols-4 gap-2 mb-4">
+          {[
+            { label: 'Рост', value: profile?.heightCm ? `${profile.heightCm}` : null, unit: 'см', bg: '#f0d4dc', color: '#9c5e6c' },
+            { label: 'Вес', value: profile?.weightKg ?? null, unit: 'кг', bg: '#e0d8f0', color: '#6e5fa0' },
+            { label: 'ИМТ', value: bmi, unit: '', bg: '#d4e8d8', color: '#548068' },
+            { label: 'Кровь', value: profile?.bloodType ?? null, unit: '', bg: '#d4dff0', color: '#5e75a8' },
+          ].map(({ label, value, unit, bg, color }) => (
+            <div key={label} className="rounded-[14px] p-3 flex flex-col gap-1" style={{ background: bg }}>
+              <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
+              {value ? (
+                <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>
+                  {value}{unit && <span className="text-[10px] font-normal ml-0.5" style={{ color: '#9a96a8' }}>{unit}</span>}
+                </p>
+              ) : (
+                <p className="text-[12px] font-medium" style={{ color: '#cc8a96' }}>+ добавить</p>
+              )}
+            </div>
+          ))}
+        </section>
+
+        {/* ── Client interactive sections ────────────────────────────────────── */}
+        <ProfileClient
+          locale={locale}
+          profile={profile}
+          allergies={allergies}
+          chronic={chronic}
+          history={history}
+        />
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <Link
-          href={`/${locale}/report`}
-          className="flex items-center justify-center gap-2 h-14 rounded-hero text-[14px] font-bold text-white transition-opacity hover:opacity-80 mt-1"
-          style={{ background: '#9c5e6c' }}
+        <section
+          className="rounded-[20px] p-5 mt-2"
+          style={{ background: 'linear-gradient(135deg, #b89dc4, #957aaa)' }}
         >
-          <FileText className="w-4 h-4" />
-          Создать отчёт для врача
-        </Link>
+          <p className="text-white font-bold text-[15px] mb-3 text-center">Показать анкету врачу</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href={`/${locale}/report`}
+              className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-[13px] font-semibold py-2.5 rounded-[12px] transition"
+            >
+              📄 Создать PDF
+            </Link>
+            <button className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-[13px] font-semibold py-2.5 rounded-[12px] transition">
+              📤 Отправить врачу
+            </button>
+            <button className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-[13px] font-semibold py-2.5 rounded-[12px] transition">
+              🖨️ Печать
+            </button>
+            <button className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-[13px] font-semibold py-2.5 rounded-[12px] transition">
+              🔗 Поделиться
+            </button>
+          </div>
+        </section>
       </div>
     </PageShell>
   );
