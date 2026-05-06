@@ -21,9 +21,7 @@
     "react-native-screens": "4.4.0",
     "react-native-svg": "15.8.0",
     "react-native-reanimated": "3.16.7",
-    "@expo/vector-icons": "^14.0.0",
-    "nativewind": "^4.1.23",
-    "tailwindcss": "^3.4.0"
+    "@expo/vector-icons": "^14.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",

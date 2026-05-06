@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../lib/auth';
-import '../global.css';
 
 export default function RootLayout() {
   return (
