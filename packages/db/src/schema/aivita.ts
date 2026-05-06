@@ -35,6 +35,9 @@ export const aivitaUsers = pgTable(
     failedLoginAttempts: integer('failed_login_attempts').default(0).notNull(),
     lockedUntil: timestamp('locked_until'),
 
+    role: text('role').notNull().default('patient'), // 'patient' | 'doctor' | 'admin'
+    plan: text('plan').notNull().default('free'),   // 'free' | 'plus' | 'pro'
+
     locale: text('locale').default('ru').notNull(),
 
     preferences: jsonb('preferences')

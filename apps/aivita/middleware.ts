@@ -23,6 +23,16 @@ const APP_ROUTES = [
   '/settings',
   '/notifications',
   '/install',
+  // Doctor cabinet routes
+  '/doctor-home',
+  '/doctor-patients',
+  '/doctor-patient',
+  '/doctor-schedule',
+  '/doctor-appointments',
+  '/doctor-chats',
+  '/doctor-prescriptions',
+  '/doctor-ai',
+  '/doctor-profile',
 ];
 
 // Auth routes — redirect to /home if already authenticated

@@ -1,0 +1,27 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1777312424486,
+      "tag": "0000_exotic_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1777455935117,
+      "tag": "0001_abnormal_falcon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778094573147,
+      "tag": "0002_bent_clint_barton",
+      "breakpoints": true
+    }
+  ]
+}

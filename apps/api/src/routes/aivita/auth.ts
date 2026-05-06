@@ -7,6 +7,7 @@ import {
   aivitaUsers,
   aivitaEmailVerifications,
   aivitaPasswordResets,
+  doctorProfiles,
 } from '@medsoft/db';
 import { eq, or, and, isNull, gt } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
@@ -38,6 +39,8 @@ type SessionPayload = {
   name: string;
   avatarUrl?: string;
   onboardingCompleted: boolean;
+  role?: 'patient' | 'doctor' | 'admin';
+  plan?: 'free' | 'plus' | 'pro';
 };
 
 // ─── Register ─────────────────────────────────────────────────────────────────
@@ -50,9 +53,11 @@ aivitaAuthRouter.post(
     password: z.string().min(8),
     name: z.string().min(1).max(100).optional(),
     locale: z.string().default('ru'),
+    role: z.enum(['patient', 'doctor']).default('patient'),
+    specialization: z.string().max(100).optional(),
   })),
   async (c) => {
-    const { email, nickname, password, name, locale } = c.req.valid('json');
+    const { email, nickname, password, name, locale, role, specialization } = c.req.valid('json');
 
     // Check uniqueness
     const existing = await db.query.aivitaUsers.findFirst({
@@ -77,7 +82,18 @@ aivitaAuthRouter.post(
       passwordHash,
       provider: 'email',
       locale,
+      role,
+      plan: 'free',
     }).returning();
+
+    // Если врач — создать пустой профиль сразу
+    if (role === 'doctor') {
+      await db.insert(doctorProfiles).values({
+        userId: user.id,
+        specialization: specialization ?? null,
+        verificationStatus: 'not_verified',
+      });
+    }
 
     // Create verification code (15 min TTL)
     await db.insert(aivitaEmailVerifications).values({
@@ -139,6 +155,8 @@ aivitaAuthRouter.post(
       name: user.name ?? user.nickname ?? '',
       avatarUrl: user.avatarUrl ?? undefined,
       onboardingCompleted: user.onboardingCompleted,
+      role: (user.role as SessionPayload['role']) ?? 'patient',
+      plan: (user.plan as SessionPayload['plan']) ?? 'free',
     };
 
     // Return session data — Next.js will create the JWT cookie
@@ -372,6 +390,8 @@ aivitaAuthRouter.post(
       name: user.name ?? user.nickname ?? '',
       avatarUrl: user.avatarUrl ?? undefined,
       onboardingCompleted: user.onboardingCompleted,
+      role: (user.role as SessionPayload['role']) ?? 'patient',
+      plan: (user.plan as SessionPayload['plan']) ?? 'free',
     };
 
     const token = await signMobileToken(session);

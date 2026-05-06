@@ -8,6 +8,8 @@ export type AivitaSession = {
   name: string;
   avatarUrl?: string;
   onboardingCompleted: boolean;
+  role?: 'patient' | 'doctor' | 'admin';
+  plan?: 'free' | 'plus' | 'pro';
 };
 
 declare module 'hono' {

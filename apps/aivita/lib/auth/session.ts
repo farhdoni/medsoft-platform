@@ -15,6 +15,8 @@ export type AivitaSession = {
   name: string;
   avatarUrl?: string;
   onboardingCompleted: boolean;
+  role?: 'patient' | 'doctor' | 'admin';
+  plan?: 'free' | 'plus' | 'pro';
 };
 
 export async function getSession(): Promise<AivitaSession | null> {

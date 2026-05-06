@@ -10,6 +10,8 @@ type SessionPayload = {
   name: string;
   avatarUrl?: string;
   onboardingCompleted: boolean;
+  role?: 'patient' | 'doctor' | 'admin';
+  plan?: 'free' | 'plus' | 'pro';
 };
 
 export type RegisterState = {
@@ -28,13 +30,15 @@ export async function registerAction(
   const nickname = (formData.get('nickname') as string).trim().toLowerCase();
   const name = (formData.get('name') as string | null)?.trim() || nickname;
   const password = formData.get('password') as string;
+  const role = (formData.get('role') as string | null) ?? 'patient';
+  const specialization = (formData.get('specialization') as string | null)?.trim() || undefined;
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/v1/aivita/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, nickname, name, password, locale }),
+      body: JSON.stringify({ email, nickname, name, password, locale, role, specialization }),
     });
   } catch {
     return { error: 'network' };
@@ -80,7 +84,11 @@ export async function verifyEmailAction(
 
   await setSession(json.data.session);
 
-  redirect(json.data.session.onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding/welcome`);
+  const session = json.data.session;
+  if (session.role === 'doctor') {
+    redirect(`/${locale}/doctor-home`);
+  }
+  redirect(session.onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding/welcome`);
 }
 
 export async function resendCodeAction(userId: string): Promise<void> {

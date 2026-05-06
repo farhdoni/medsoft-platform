@@ -8,4 +8,5 @@ export * from './appointments';
 export * from './sos-calls';
 export * from './audit-logs';
 export * from './aivita';
+export * from './aivita-doctor';
 export * from './landing';
