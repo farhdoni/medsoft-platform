@@ -5,6 +5,7 @@ import { MetricsRow } from '@/components/cabinet/dashboard/MetricsRow';
 import { ActivityChart } from '@/components/cabinet/dashboard/ActivityChart';
 import { ReportCard } from '@/components/cabinet/dashboard/ReportCard';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
+import SosButton from '@/components/sos/SosButton';
 import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
 
@@ -130,6 +131,7 @@ export default async function HomePage({
       </div>
 
       <FloatingNav active="home" />
+      <SosButton />
     </main>
   );
 }
