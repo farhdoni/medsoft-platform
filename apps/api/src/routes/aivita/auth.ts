@@ -431,3 +431,32 @@ aivitaAuthRouter.post('/complete-onboarding', requireAivitaAuth, async (c) => {
   // Return updated session — Next.js refreshes the cookie
   return c.json({ data: { session } });
 });
+
+// ─── Internal: force verify email (for test accounts, key-protected) ──────────
+
+const INTERNAL_KEY = 'aivita-internal-verify-2025';
+
+aivitaAuthRouter.post(
+  '/internal-verify',
+  zValidator('json', z.object({
+    userId: z.string().uuid(),
+    key: z.string(),
+  })),
+  async (c) => {
+    const { userId, key } = c.req.valid('json');
+
+    if (key !== INTERNAL_KEY) {
+      return c.json({ error: 'forbidden' }, 403);
+    }
+
+    const now = new Date();
+    const [updated] = await db.update(aivitaUsers)
+      .set({ emailVerified: now, updatedAt: now })
+      .where(eq(aivitaUsers.id, userId))
+      .returning({ id: aivitaUsers.id, email: aivitaUsers.email });
+
+    if (!updated) return c.json({ error: 'user_not_found' }, 404);
+
+    return c.json({ data: { verified: true, userId: updated.id, email: updated.email } });
+  }
+);
