@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import { DoctorBottomNav } from '@/components/doctor/DoctorBottomNav';
 
 export default async function DoctorLayout({
   children,
@@ -22,6 +23,7 @@ export default async function DoctorLayout({
   return (
     <div className="min-h-screen bg-[#f4f3ef]">
       {children}
+      <DoctorBottomNav locale={locale} />
     </div>
   );
 }
