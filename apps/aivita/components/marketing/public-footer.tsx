@@ -100,7 +100,7 @@ export async function PublicFooter() {
                 Стань врачом в нашей экосистеме!
               </div>
               <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px' }}>
-                Подключайтесь к Aivita — управляйте пациентами онлайн
+                Подключайтесь к Aivita — консультируйте пациентов онлайн
               </div>
             </div>
           </div>
