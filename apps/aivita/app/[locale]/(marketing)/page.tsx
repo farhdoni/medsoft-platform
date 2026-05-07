@@ -42,7 +42,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function MarketingPage() {
+export default async function MarketingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const session = await getSession();
   const isAuthenticated = !!session;
 
