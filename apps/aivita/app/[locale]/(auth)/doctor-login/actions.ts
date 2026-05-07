@@ -13,13 +13,13 @@ type SessionPayload = {
   role?: 'patient' | 'doctor' | 'admin';
 };
 
-export type LoginState = { error: string | null };
+export type DoctorLoginState = { error: string | null };
 
-export async function loginAction(
+export async function doctorLoginAction(
   locale: string,
-  _prev: LoginState,
+  _prev: DoctorLoginState,
   formData: FormData
-): Promise<LoginState> {
+): Promise<DoctorLoginState> {
   const identifier = (formData.get('identifier') as string).trim();
   const password = formData.get('password') as string;
 
@@ -48,9 +48,13 @@ export async function loginAction(
     return { error: 'invalid_credentials' };
   }
 
-  await setSession(json.data.session);
+  const session = json.data.session;
 
-  const { role, onboardingCompleted } = json.data.session;
-  if (role === 'doctor') redirect(`/${locale}/doctor-home`);
-  redirect(onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding/welcome`);
+  // Только врачи и администраторы могут войти через эту страницу
+  if (session.role !== 'doctor' && session.role !== 'admin') {
+    return { error: 'not_doctor' };
+  }
+
+  await setSession(session);
+  redirect(`/${locale}/doctor-home`);
 }
