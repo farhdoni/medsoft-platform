@@ -159,4 +159,81 @@ export const api = {
     disconnect: (id: string, cookie: string) =>
       apiRequest(`/devices/${id}`, { method: 'DELETE', sessionCookie: cookie }),
   },
+  doctor: {
+    profile: (cookie?: string) =>
+      apiRequest('/doctor/profile', { sessionCookie: cookie }),
+    updateProfile: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/profile', { method: 'PUT', body: data, sessionCookie: cookie }),
+    completion: (cookie?: string) =>
+      apiRequest('/doctor/profile/completion', { sessionCookie: cookie }),
+    addCertificate: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/profile/certificates', { method: 'POST', body: data, sessionCookie: cookie }),
+    deleteCertificate: (index: number, cookie?: string) =>
+      apiRequest(`/doctor/profile/certificates/${index}`, { method: 'DELETE', sessionCookie: cookie }),
+
+    patients: (cookie?: string, params?: string) =>
+      apiRequest(`/doctor/patients${params ? '?' + params : ''}`, { sessionCookie: cookie }),
+    patient: (id: string, cookie?: string) =>
+      apiRequest(`/doctor/patients/${id}`, { sessionCookie: cookie }),
+    patientTimeline: (id: string, cookie?: string, limit = 20) =>
+      apiRequest(`/doctor/patients/${id}/timeline?limit=${limit}`, { sessionCookie: cookie }),
+    acceptPatient: (patientId: string, cookie?: string) =>
+      apiRequest('/doctor/patients/accept', { method: 'POST', body: { patientId }, sessionCookie: cookie }),
+    archivePatient: (patientId: string, cookie?: string) =>
+      apiRequest('/doctor/patients/archive', { method: 'POST', body: { patientId }, sessionCookie: cookie }),
+    updatePatientNotes: (id: string, notes: string, cookie?: string) =>
+      apiRequest(`/doctor/patients/${id}/notes`, { method: 'PUT', body: { notes }, sessionCookie: cookie }),
+
+    schedule: (cookie?: string) =>
+      apiRequest('/doctor/schedule', { sessionCookie: cookie }),
+    updateSchedule: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/schedule', { method: 'PUT', body: data, sessionCookie: cookie }),
+    slots: (doctorId: string, date: string) =>
+      apiRequest(`/doctor/schedule/slots?doctorId=${doctorId}&date=${date}`),
+
+    appointments: (cookie?: string, params?: string) =>
+      apiRequest(`/doctor/appointments${params ? '?' + params : ''}`, { sessionCookie: cookie }),
+    upcoming: (cookie?: string) =>
+      apiRequest('/doctor/appointments/upcoming', { sessionCookie: cookie }),
+    createAppointment: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/appointments', { method: 'POST', body: data, sessionCookie: cookie }),
+    updateAppointment: (id: string, data: unknown, cookie?: string) =>
+      apiRequest(`/doctor/appointments/${id}`, { method: 'PUT', body: data, sessionCookie: cookie }),
+    completeAppointment: (id: string, data: unknown, cookie?: string) =>
+      apiRequest(`/doctor/appointments/${id}/complete`, { method: 'PUT', body: data, sessionCookie: cookie }),
+
+    prescriptions: (cookie?: string, params?: string) =>
+      apiRequest(`/doctor/prescriptions${params ? '?' + params : ''}`, { sessionCookie: cookie }),
+    createPrescription: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/prescriptions', { method: 'POST', body: data, sessionCookie: cookie }),
+    updatePrescription: (id: string, data: unknown, cookie?: string) =>
+      apiRequest(`/doctor/prescriptions/${id}`, { method: 'PUT', body: data, sessionCookie: cookie }),
+
+    templates: (cookie?: string) =>
+      apiRequest('/doctor/templates', { sessionCookie: cookie }),
+    createTemplate: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/templates', { method: 'POST', body: data, sessionCookie: cookie }),
+
+    notes: (cookie?: string, patientId?: string) =>
+      apiRequest(`/doctor/notes${patientId ? '?patientId=' + patientId : ''}`, { sessionCookie: cookie }),
+    addNote: (data: unknown, cookie?: string) =>
+      apiRequest('/doctor/notes', { method: 'POST', body: data, sessionCookie: cookie }),
+    deleteNote: (id: string, cookie?: string) =>
+      apiRequest(`/doctor/notes/${id}`, { method: 'DELETE', sessionCookie: cookie }),
+
+    notifications: (cookie?: string, unread?: boolean) =>
+      apiRequest(`/doctor/notifications${unread ? '?unread=true' : ''}`, { sessionCookie: cookie }),
+    markNotifRead: (id: string, cookie?: string) =>
+      apiRequest(`/doctor/notifications/${id}/read`, { method: 'PUT', sessionCookie: cookie }),
+    markAllRead: (cookie?: string) =>
+      apiRequest('/doctor/notifications/read-all', { method: 'PUT', sessionCookie: cookie }),
+
+    stats: (cookie?: string) =>
+      apiRequest('/doctor/stats', { sessionCookie: cookie }),
+    monthlyStats: (cookie?: string) =>
+      apiRequest('/doctor/stats/monthly', { sessionCookie: cookie }),
+
+    reviews: (doctorId: string) =>
+      apiRequest(`/doctor/reviews/doctor/${doctorId}`),
+  },
 };
