@@ -1,5 +1,6 @@
 import createIntlMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
 const LOCALES = ['ru', 'uz', 'en'] as const;
 const DEFAULT_LOCALE = 'ru';
@@ -38,8 +39,42 @@ const APP_ROUTES = [
 // Auth routes — redirect to /home if already authenticated
 const AUTH_ROUTES_REDIRECT = ['/sign-in'];
 
-function hasSession(request: NextRequest): boolean {
-  return !!request.cookies.get('aivita_session')?.value;
+const SESSION_COOKIE = 'aivita_session';
+
+function getSecret(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error('SESSION_SECRET missing');
+  return new TextEncoder().encode(secret);
+}
+
+/** Returns userId if cookie is a valid JWT, otherwise null */
+async function getSessionUserId(request: NextRequest): Promise<string | null> {
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    const userId = (payload as { userId?: string }).userId;
+    return userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Clears the session cookie and redirects to sign-in */
+function forceLogout(request: NextRequest, locale: string): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = `/${locale}/sign-in`;
+  const res = NextResponse.redirect(url);
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookies.set(SESSION_COOKIE, '', {
+    maxAge: 0,
+    path: '/',
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    ...(isProduction ? { domain: '.aivita.uz' } : {}),
+  });
+  return res;
 }
 
 // Strip locale prefix to get the real path
@@ -70,9 +105,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isAuthenticated = hasSession(request);
+  const userId   = await getSessionUserId(request);
+  const isAuth   = !!userId;
   const realPath = stripLocale(pathname);
-  const locale = extractLocale(pathname);
+  const locale   = extractLocale(pathname);
 
   const isAppRoute = APP_ROUTES.some(
     (r) => realPath === r || realPath.startsWith(r + '/')
@@ -83,7 +119,7 @@ export async function middleware(request: NextRequest) {
   const isOnboarding = realPath.startsWith('/onboarding');
 
   // App route + not authenticated → redirect to /{locale}/sign-in
-  if (isAppRoute && !isAuthenticated) {
+  if (isAppRoute && !isAuth) {
     const url = request.nextUrl.clone();
     url.pathname = `/${locale}/sign-in`;
     if (realPath !== '/home') {
@@ -93,17 +129,22 @@ export async function middleware(request: NextRequest) {
   }
 
   // sign-in + authenticated → redirect to /{locale}/home
-  if (isAuthRedirectRoute && isAuthenticated) {
+  if (isAuthRedirectRoute && isAuth) {
     const url = request.nextUrl.clone();
     url.pathname = `/${locale}/home`;
     return NextResponse.redirect(url);
   }
 
   // Onboarding + not authenticated → redirect to /{locale}/sign-in
-  if (isOnboarding && !isAuthenticated) {
+  if (isOnboarding && !isAuth) {
     const url = request.nextUrl.clone();
     url.pathname = `/${locale}/sign-in`;
     return NextResponse.redirect(url);
+  }
+
+  // Invalid JWT (token exists but can't verify) — force logout
+  if (!isAuth && request.cookies.get(SESSION_COOKIE)?.value) {
+    return forceLogout(request, locale);
   }
 
   return intlMiddleware(request);
