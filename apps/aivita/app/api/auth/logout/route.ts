@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
   return response;
 }
 
-// Keep POST for backward compat
+// POST — clears cookie, client handles redirect
 export async function POST() {
-  const response = NextResponse.json({ ok: true });
   const isProduction = process.env.NODE_ENV === 'production';
+  const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, '', {
     maxAge: 0,
     path: '/',

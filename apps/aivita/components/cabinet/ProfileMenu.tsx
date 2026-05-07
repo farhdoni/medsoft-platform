@@ -69,9 +69,15 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const email = session?.email ?? '';
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
-  const handleLogout = () => {
-    // Navigate directly to logout route — server clears cookie and redirects to sign-in
-    window.location.href = `/api/auth/logout?locale=${locale}`;
+  const handleLogout = async () => {
+    // POST clears the httpOnly cookie via Set-Cookie header,
+    // then we redirect client-side (avoids Docker internal hostname issue)
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore network errors — cookie may already be invalid
+    }
+    window.location.href = `/${locale}/sign-in`;
   };
 
   return (
