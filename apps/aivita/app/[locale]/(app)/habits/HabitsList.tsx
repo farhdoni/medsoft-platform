@@ -1,107 +1,223 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { api } from '@/lib/api-client';
-import type { HabitWithStatus } from './data';
+import { useRouter } from 'next/navigation';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+
+export interface HabitWithStatus {
+  id: string;
+  name: string;
+  emoji: string;
+  goal: string;
+  done: boolean;
+}
+
+// ─── Add Habit Modal ──────────────────────────────────────────────────────────
+
+const EMOJI_OPTIONS = ['💧','🏃','🧘','😴','🥗','📚','💊','🚴','🏋️','🧹','✍️','🎯','🚶','🍎','☕'];
+
+function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h: HabitWithStatus) => void }) {
+  const [name, setName]         = useState('');
+  const [emoji, setEmoji]       = useState('✅');
+  const [goalType, setGoalType] = useState<'binary' | 'count'>('binary');
+  const [goalValue, setGoalValue] = useState('1');
+  const [goalUnit, setGoalUnit]   = useState('раз');
+  const [saving, setSaving]     = useState(false);
+  const [err, setErr]           = useState('');
+
+  async function submit() {
+    if (!name.trim()) { setErr('Введите название'); return; }
+    setSaving(true); setErr('');
+    try {
+      const res = await fetch(`${API}/v1/aivita/habits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: name.trim(),
+          emoji: emoji || '✅',
+          goalType,
+          goalValue: goalType === 'count' ? goalValue : null,
+          goalUnit:  goalType === 'count' ? goalUnit  : null,
+        }),
+      });
+      if (!res.ok) throw new Error('Ошибка сервера');
+      const json = await res.json();
+      const h = json.data;
+      onAdded({
+        id: h.id,
+        name: h.name,
+        emoji: h.emoji ?? '✅',
+        goal: goalType === 'count' ? `${goalValue} ${goalUnit}` : '1 раз',
+        done: false,
+      });
+      onClose();
+    } catch {
+      setErr('Не удалось сохранить. Попробуйте снова.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+      <div className="bg-white rounded-t-[20px] sm:rounded-[20px] w-full sm:max-w-md p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[17px] font-bold" style={{ color: '#2a2540' }}>Новая привычка</h2>
+          <button onClick={onClose} className="text-[20px] text-gray-400 hover:text-gray-600 leading-none">×</button>
+        </div>
+
+        {/* Emoji picker */}
+        <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: '#9a96a8' }}>Эмодзи</p>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {EMOJI_OPTIONS.map(e => (
+            <button key={e} onClick={() => setEmoji(e)}
+              className="w-9 h-9 rounded-[10px] text-[18px] flex items-center justify-center transition-all"
+              style={{ background: emoji === e ? '#e0d8f0' : '#f4f3ef', border: emoji === e ? '2px solid #6e5fa0' : '2px solid transparent' }}
+            >{e}</button>
+          ))}
+        </div>
+
+        {/* Name */}
+        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Название *</p>
+        <input
+          autoFocus value={name} onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
+          placeholder="Например: пить воду, читать..."
+          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
+          style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+        />
+
+        {/* Goal type */}
+        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Тип цели</p>
+        <div className="flex gap-2 mb-4">
+          {(['binary', 'count'] as const).map(t => (
+            <button key={t} onClick={() => setGoalType(t)}
+              className="flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all"
+              style={{ background: goalType === t ? '#6e5fa0' : '#f4f3ef', color: goalType === t ? '#fff' : '#2a2540' }}
+            >{t === 'binary' ? 'Да/Нет' : 'Количество'}</button>
+          ))}
+        </div>
+
+        {goalType === 'count' && (
+          <div className="flex gap-2 mb-4">
+            <input value={goalValue} onChange={e => setGoalValue(e.target.value)}
+              type="number" min="1" placeholder="Кол-во"
+              className="w-24 rounded-[10px] border px-3 py-2 text-[14px] outline-none"
+              style={{ borderColor: '#e8e4dc' }}
+            />
+            <input value={goalUnit} onChange={e => setGoalUnit(e.target.value)}
+              placeholder="раз / мин / мл"
+              className="flex-1 rounded-[10px] border px-3 py-2 text-[14px] outline-none"
+              style={{ borderColor: '#e8e4dc' }}
+            />
+          </div>
+        )}
+
+        {err && <p className="text-[12px] mb-3" style={{ color: '#9c5e6c' }}>{err}</p>}
+
+        <button onClick={() => void submit()} disabled={saving || !name.trim()}
+          className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
+          style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+        >
+          {saving ? 'Сохраняем…' : `${emoji} Добавить привычку`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
 
 interface Props {
   initialHabits: HabitWithStatus[];
   today: string;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function HabitsList({ initialHabits, today }: Props) {
-  const [habits, setHabits] = useState<HabitWithStatus[]>(initialHabits);
+  const router = useRouter();
+  const [habits, setHabits]   = useState<HabitWithStatus[]>(initialHabits);
+  const [showAdd, setShowAdd] = useState(false);
 
   function toggleHabit(id: string) {
     setHabits((prev) => {
       const habit = prev.find((h) => h.id === id);
-      // Only allow marking done (no delete endpoint)
       if (habit && !habit.done) {
-        api.habits.log(id, { date: today, value: '1' }).catch(() => {});
+        fetch(`${API}/v1/aivita/habits/${id}/logs`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: today, value: '1' }),
+        }).catch(() => {});
       }
       return prev.map((h) => (h.id === id ? { ...h, done: !h.done } : h));
     });
   }
 
-  if (habits.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
-        <span className="text-4xl">🌱</span>
-        <p className="text-[14px] text-text-muted">Нет привычек — добавь первую!</p>
-        <button
-          className="inline-flex items-center gap-2 rounded-chip px-5 py-2.5 text-[13px] font-semibold transition-opacity hover:opacity-80"
-          style={{ background: '#9c5e6c', color: '#ffffff' }}
-        >
-          <Plus className="w-4 h-4" />
-          Добавить привычку
-        </button>
-      </div>
-    );
+  function handleAdded(h: HabitWithStatus) {
+    setHabits(prev => [...prev, h]);
+    router.refresh();
   }
 
   return (
-    <div className="space-y-2.5">
-      {habits.map((habit) => (
-        <div
-          key={habit.id}
-          className="flex items-center gap-4 p-4 rounded-card transition-all"
-          style={{
-            background: habit.done ? '#eef6f1' : '#ffffff',
-            border: `1px solid ${habit.done ? '#a8d4b8' : '#e8e4dc'}`,
-          }}
-        >
-          {/* Emoji */}
-          <span className="text-2xl flex-shrink-0 leading-none">{habit.emoji}</span>
+    <>
+      {showAdd && <AddHabitModal onClose={() => setShowAdd(false)} onAdded={handleAdded} />}
 
-          {/* Text */}
-          <div className="flex-1 min-w-0">
-            <p
-              className="text-[14px] font-semibold leading-snug"
-              style={{
-                color: habit.done ? '#548068' : '#2a2540',
-                textDecoration: habit.done ? 'line-through' : 'none',
-                textDecorationColor: '#80b094',
-              }}
-            >
-              {habit.name}
-            </p>
-            <p className="text-[11px] text-text-muted mt-0.5">
-              Цель: {habit.goal}
-            </p>
-          </div>
-
-          {/* Checkbox */}
+      {habits.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <span className="text-4xl">🌱</span>
+          <p className="text-[14px] text-text-muted">Нет привычек — добавь первую!</p>
           <button
-            onClick={() => toggleHabit(habit.id)}
-            aria-label={habit.done ? 'Отметить невыполненной' : 'Отметить выполненной'}
-            className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-all"
-            style={{
-              background: habit.done ? '#548068' : 'transparent',
-              border: `2px solid ${habit.done ? '#548068' : '#d0ccc4'}`,
-            }}
+            onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-2 rounded-chip px-5 py-2.5 text-[13px] font-semibold transition-opacity hover:opacity-80"
+            style={{ background: '#9c5e6c', color: '#ffffff' }}
           >
-            {habit.done && (
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            )}
+            + Добавить привычку
           </button>
         </div>
-      ))}
+      ) : (
+        <div className="space-y-2.5">
+          {habits.map((habit) => (
+            <div
+              key={habit.id}
+              className="flex items-center gap-4 p-4 rounded-card transition-all"
+              style={{
+                background: habit.done ? '#eef6f1' : '#ffffff',
+                border: `1px solid ${habit.done ? '#a8d4b8' : '#e8e4dc'}`,
+              }}
+            >
+              <span className="text-2xl flex-shrink-0 leading-none">{habit.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold leading-snug"
+                  style={{ color: habit.done ? '#548068' : '#2a2540', textDecoration: habit.done ? 'line-through' : 'none', textDecorationColor: '#80b094' }}>
+                  {habit.name}
+                </p>
+                <p className="text-[11px] text-text-muted mt-0.5">Цель: {habit.goal}</p>
+              </div>
+              <button
+                onClick={() => toggleHabit(habit.id)}
+                aria-label={habit.done ? 'Отметить невыполненной' : 'Отметить выполненной'}
+                className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center transition-all"
+                style={{ background: habit.done ? '#548068' : 'transparent', border: `2px solid ${habit.done ? '#548068' : '#d0ccc4'}` }}
+              >
+                {habit.done && (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          ))}
 
-      {/* Add habit */}
-      <button
-        className="w-full flex items-center justify-center gap-2 h-12 rounded-card text-[13px] font-semibold transition-opacity hover:opacity-80 mt-1"
-        style={{ background: '#ffffff', color: '#9a96a8', border: '2px dashed #e8e4dc' }}
-      >
-        <Plus className="w-4 h-4" />
-        Добавить привычку
-      </button>
-    </div>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="w-full flex items-center justify-center gap-2 h-12 rounded-card text-[13px] font-semibold transition-opacity hover:opacity-80 mt-1"
+            style={{ background: '#ffffff', color: '#9a96a8', border: '2px dashed #e8e4dc' }}
+          >
+            + Добавить привычку
+          </button>
+        </div>
+      )}
+    </>
   );
 }
