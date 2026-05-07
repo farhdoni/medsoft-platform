@@ -500,4 +500,26 @@ router.get('/dashboard', zValidator('query', dashboardSchema), async (c) => {
   });
 });
 
+// ─── H. Force verify email (admin tool) ──────────────────────────────────────
+
+router.post('/users/:id/verify-email', async (c) => {
+  const { id } = c.req.param();
+  const adminId = c.get('adminId');
+
+  const user = await db.query.aivitaUsers.findFirst({
+    where: eq(aivitaUsers.id, id),
+  });
+
+  if (!user) return c.json({ error: 'Not found' }, 404);
+
+  const now = new Date();
+  await db.update(aivitaUsers)
+    .set({ emailVerified: now, updatedAt: now })
+    .where(eq(aivitaUsers.id, id));
+
+  await auditLog(adminId, 'force_verify_email', 'aivita_user', id, {}, c.req);
+
+  return c.json({ data: { verified: true, userId: id } });
+});
+
 export { router as aivitaAdminRouter };

@@ -188,7 +188,9 @@ aivitaAuthRouter.post(
 
     await sendVerificationCode(user.email!, code);
 
-    return c.json({ data: { sent: true } });
+    // In non-production: return the code directly so admins can verify test accounts
+    const isDev = env.NODE_ENV !== 'production';
+    return c.json({ data: { sent: true, ...(isDev ? { code } : {}) } });
   }
 );
 
@@ -252,6 +254,8 @@ aivitaAuthRouter.post(
       name: user.name ?? user.nickname ?? '',
       avatarUrl: user.avatarUrl ?? undefined,
       onboardingCompleted: user.onboardingCompleted,
+      role: (user.role as SessionPayload['role']) ?? 'patient',
+      plan: (user.plan as SessionPayload['plan']) ?? 'free',
     };
 
     // Return session data — Next.js will create the JWT cookie
