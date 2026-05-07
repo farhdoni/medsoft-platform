@@ -62,7 +62,7 @@ export default async function SettingsPage({
       title: 'Аккаунт',
       items: [
         { icon: User,   label: 'Профиль',          sub: 'Имя, дата рождения, пол',   href: `/${locale}/profile`, bg: '#f0d4dc', color: '#9c5e6c' },
-        { icon: Heart,  label: 'Мед. профиль',      sub: 'Аллергии, заболевания',     href: '#',                  bg: '#d4e8d8', color: '#548068' },
+        { icon: Heart,  label: 'Мед. профиль',      sub: 'Аллергии, заболевания',     href: `/${locale}/profile`, bg: '#d4e8d8', color: '#548068' },
         { icon: Target, label: 'Цели здоровья',     sub: 'Шаги, сон, вода',           href: '#',                  bg: '#d4dff0', color: '#5e75a8' },
       ],
     },
@@ -78,7 +78,7 @@ export default async function SettingsPage({
       title: 'Здоровье',
       items: [
         { icon: Users, label: 'Семья',          sub: 'Члены и приглашения',   href: `/${locale}/family`, bg: '#e0d8f0', color: '#6e5fa0' },
-        { icon: Cpu,   label: 'Гаджеты',        sub: 'Не подключено',         href: '#',                 bg: '#d4dff0', color: '#5e75a8' },
+        { icon: Cpu,   label: 'Гаджеты',        sub: 'Не подключено',         href: `/${locale}/gadgets`, bg: '#d4dff0', color: '#5e75a8' },
       ],
     },
     {

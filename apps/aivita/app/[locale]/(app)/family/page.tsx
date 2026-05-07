@@ -1,8 +1,9 @@
-import { Plus, ChevronRight, Shield } from 'lucide-react';
+import { ChevronRight, Shield } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { Icon } from '@/components/cabinet/icons/Icon';
 import { calcAge } from '@/lib/date-utils';
 import { loadFamilyData } from './data';
+import { FamilyActions } from './FamilyActions';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -96,10 +97,7 @@ export default async function FamilyPage({
         )}
 
         {/* ── Add button ─────────────────────────────────────────────────────── */}
-        <button className="w-full flex items-center justify-center gap-2 h-12 rounded-card bg-white text-[13px] font-semibold text-accent-rose border-2 border-dashed border-border-soft hover:bg-bg-app transition-colors mb-4">
-          <Plus className="w-4 h-4" />
-          Добавить члена семьи
-        </button>
+        <FamilyActions />
 
         {/* ── Privacy reminder ───────────────────────────────────────────────── */}
         <div className="rounded-card bg-bg-soft-pink p-4 flex items-start gap-3">

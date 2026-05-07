@@ -1,7 +1,7 @@
-import { Plus, Camera } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { Icon } from '@/components/cabinet/icons/Icon';
 import { loadNutritionData } from './data';
+import { NutritionActions } from './NutritionActions';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -121,16 +121,7 @@ export default async function NutritionPage({
         )}
 
         {/* ── Action buttons ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center justify-center gap-2 h-12 rounded-card bg-white border-2 border-dashed border-border-soft text-[13px] font-semibold text-accent-rose hover:bg-bg-app transition-colors">
-            <Plus className="w-4 h-4" />
-            Добавить
-          </button>
-          <button className="flex items-center justify-center gap-2 h-12 rounded-card bg-bg-soft-purple text-[13px] font-semibold text-accent-purple-deep hover:opacity-80 transition-opacity" disabled>
-            <Camera className="w-4 h-4" />
-            AI-камера
-          </button>
-        </div>
+        <NutritionActions />
 
         {/* AI placeholder */}
         <div className="rounded-card bg-bg-soft-blue p-4 mt-4 flex items-start gap-3">
