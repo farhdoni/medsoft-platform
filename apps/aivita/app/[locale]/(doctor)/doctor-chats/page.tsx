@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import VoiceInput from '@/components/voice/VoiceInput';
 
 interface Patient {
   connection: { consultationCount: number; lastConsultationAt?: string };
@@ -161,6 +162,7 @@ export default function DoctorChatsPage() {
                 className="flex-1 p-3 rounded-xl border text-sm outline-none resize-none"
                 style={{ borderColor: '#e8e4dc', color: '#2a2540', maxHeight: 120 }}
               />
+              <VoiceInput onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)} />
               <button onClick={handleSend} disabled={sending || !input.trim()}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-opacity"
                 style={{ background: '#6e5fa0', opacity: !input.trim() ? 0.4 : 1 }}>

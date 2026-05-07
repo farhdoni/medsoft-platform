@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send } from 'lucide-react';
+import VoiceInput from '@/components/voice/VoiceInput';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
@@ -499,6 +500,7 @@ export default function ChatPage() {
               color: '#2a2540',
             }}
           />
+          <VoiceInput onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)} />
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || isLoading}
