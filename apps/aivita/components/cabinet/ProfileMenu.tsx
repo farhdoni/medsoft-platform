@@ -69,10 +69,9 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const email = session?.email ?? '';
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
-  const handleLogout = async () => {
-    setOpen(false);
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    window.location.href = `/${locale}/sign-in`;
+  const handleLogout = () => {
+    // Navigate directly to logout route — server clears cookie and redirects to sign-in
+    window.location.href = `/api/auth/logout?locale=${locale}`;
   };
 
   return (
