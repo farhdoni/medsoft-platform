@@ -5,7 +5,6 @@ import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import VoiceInput from '@/components/voice/VoiceInput';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
 interface Patient { user: { id: string; name: string }; connection: { consultationCount: number }; }
 interface Vital { type: string; value: any; recordedAt: string; }
@@ -76,51 +75,17 @@ export default function DoctorAiPage() {
       const systemNote = `[DOCTOR_MODE] Ты AI-ассистент для врача. Используй медицинскую терминологию. Давай дифференциальные диагнозы. Контекст пациента: ${patientCtx}`;
       const fullMsg = messages.length === 0 ? `${systemNote}\n\nВопрос врача: ${text}` : text;
 
-      // Stream response
-      const response = await fetch(`${API_BASE}/v1/aivita/chat/sessions/${sid}/messages/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: fullMsg }),
-      });
+      // Send message with required role field
+      const res = await apiRequest<{ userMessage: { content: string }; aiMessage: { content: string } }>(
+        `/chat/sessions/${sid}/messages`,
+        { method: 'POST', body: { role: 'user', content: fullMsg } }
+      );
 
-      if (!response.ok || !response.body) {
-        // Fallback to non-stream
-        const fallback = await apiRequest<{ data: { content: string } }>(
-          `/chat/sessions/${sid}/messages`, { method: 'POST', body: { content: fullMsg } }
-        );
-        const content = 'data' in fallback ? (fallback.data as any).content ?? 'Ошибка ответа' : 'Ошибка';
-        setMessages(prev => [...prev, { role: 'assistant', content }]);
-        setStreaming(false);
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (data === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(data);
-              const token = parsed.delta ?? parsed.content ?? parsed.text ?? '';
-              fullContent += token;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: fullContent };
-                return updated;
-              });
-            } catch {}
-          }
-        }
+      if ('data' in res) {
+        const aiContent = res.data?.aiMessage?.content ?? 'Нет ответа';
+        setMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Ошибка ответа' }]);
       }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Ошибка соединения. Попробуйте снова.' }]);

@@ -276,10 +276,10 @@ export default function DoctorPatientPage() {
         {/* Action buttons */}
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: '💬 Написать', href: `/${locale}/doctor-chats` },
-            { label: '📅 Записать', href: `/${locale}/doctor-appointments` },
-            { label: '💊 Назначить', href: `/${locale}/doctor-prescriptions` },
-            { label: '📋 Отчёт', href: `/${locale}/doctor-patients` },
+            { label: '💬 Написать', href: `/${locale}/doctor-chats?patientId=${patientId}` },
+            { label: '📅 Записать', href: `/${locale}/doctor-appointments?patientId=${patientId}` },
+            { label: '💊 Назначить', href: `/${locale}/doctor-prescriptions?patientId=${patientId}` },
+            { label: '📋 Отчёт', href: `/${locale}/doctor-patient/${patientId}` },
           ].map(btn => (
             <Link key={btn.label} href={btn.href}>
               <button className="w-full py-3 rounded-xl text-sm font-medium border text-[#2a2540] bg-white"

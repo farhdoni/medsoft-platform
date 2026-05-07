@@ -68,6 +68,17 @@ export default function DoctorHomePage() {
     });
   }, []);
 
+  const handlePatientRequest = async (notifId: string, patientId: string | undefined, action: 'accept' | 'archive') => {
+    if (patientId) {
+      if (action === 'accept') {
+        await apiRequest(`/doctor/patients/accept`, { method: 'POST', body: { patientId } });
+      } else {
+        await apiRequest(`/doctor/patients/archive`, { method: 'POST', body: { patientId } });
+      }
+    }
+    setNotifs(prev => prev.filter(n => n.id !== notifId));
+  };
+
   const today = new Date();
   const todayAppts = upcoming.filter(u => new Date(u.appointment.scheduledAt).toDateString() === today.toDateString());
   const alertNotifs = notifs.filter(n => n.type === 'vital_anomaly');
@@ -204,9 +215,11 @@ export default function DoctorHomePage() {
                 <div key={n.id} className="flex items-center gap-3 p-3 rounded-xl bg-purple-50">
                   <p className="flex-1 text-xs text-[#2a2540]">{n.message ?? n.title}</p>
                   <div className="flex gap-1.5">
-                    <button className="text-xs px-2.5 py-1 rounded-full text-white font-medium"
+                    <button onClick={() => handlePatientRequest(n.id, n.relatedPatientId, 'accept')}
+                      className="text-xs px-2.5 py-1 rounded-full text-white font-medium"
                       style={{ background: '#6e5fa0' }}>✓</button>
-                    <button className="text-xs px-2.5 py-1 rounded-full text-[#9a96a8] bg-gray-100">✕</button>
+                    <button onClick={() => handlePatientRequest(n.id, n.relatedPatientId, 'archive')}
+                      className="text-xs px-2.5 py-1 rounded-full text-[#9a96a8] bg-gray-100">✕</button>
                   </div>
                 </div>
               ))}
