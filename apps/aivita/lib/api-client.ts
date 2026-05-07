@@ -132,6 +132,8 @@ export const api = {
       apiRequest('/health-profile/chronic-conditions', { sessionCookie: cookie }),
     history: (cookie: string) =>
       apiRequest('/health-profile/medical-history', { sessionCookie: cookie }),
+    medications: (cookie: string) =>
+      apiRequest('/health-profile/medications', { sessionCookie: cookie }),
   },
   vitals: {
     latest: (cookie: string) =>

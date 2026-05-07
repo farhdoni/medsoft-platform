@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { api } from '@/lib/api-client';
-import { calcAge, getInitials } from '@/lib/date-utils';
+import { getInitials } from '@/lib/date-utils';
 import { ProfileClient } from './ProfileClient';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types (exported so ProfileClient can import) ─────────────────────────────
 
-type HealthProfile = {
+export type HealthProfile = {
   birthDate?: string | null;
   gender?: string | null;
   bloodType?: string | null;
@@ -17,54 +17,45 @@ type HealthProfile = {
   alcoholFrequency?: string | null;
   exerciseFrequency?: string | null;
   dietType?: string | null;
+  sleepSchedule?: string | null;
+  stressLevel?: string | null;
   city?: string | null;
   phone?: string | null;
+  telegram?: string | null;
+  whatsapp?: string | null;
+  pinfl?: string | null;
+  passportIssuedBy?: string | null;
+  passportIssuedDate?: string | null;
+  passportExpires?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   emergencyContactRelation?: string | null;
   doctorName?: string | null;
+  doctorPhone?: string | null;
+  clinic?: string | null;
   insuranceCompany?: string | null;
   insuranceNumber?: string | null;
+  insuranceExpires?: string | null;
+  insuranceHotline?: string | null;
 };
 
-type Allergy = { id: string; allergen: string; type: string; severity?: string };
-type ChronicCondition = { id: string; name: string; diagnosedYear?: number | null };
-type HistoryEntry = { id: string; name: string; type: string; startDate?: string | null };
-
-// ─── Completion calc ──────────────────────────────────────────────────────────
-
-function calcCompletion(p: HealthProfile | null, allergies: Allergy[], phone?: string): number {
-  if (!p) return 0;
-  const fields = [
-    { filled: !!p.birthDate, w: 3 },
-    { filled: !!p.gender, w: 3 },
-    { filled: !!p.heightCm, w: 3 },
-    { filled: !!p.weightKg, w: 3 },
-    { filled: allergies.length > 0, w: 3 },
-    { filled: !!p.city, w: 2 },
-    { filled: !!p.bloodType, w: 2 },
-    { filled: !!p.smokingStatus, w: 2 },
-    { filled: !!p.alcoholFrequency, w: 2 },
-    { filled: !!p.exerciseFrequency, w: 2 },
-    { filled: !!p.emergencyContactName, w: 2 },
-    { filled: !!p.dietType, w: 1 },
-    { filled: !!p.doctorName, w: 1 },
-  ];
-  const total = fields.reduce((s, f) => s + f.w, 0);
-  const done = fields.filter(f => f.filled).reduce((s, f) => s + f.w, 0);
-  return Math.round((done / total) * 100);
-}
+export type Allergy = { id: string; allergen: string; type: string; severity?: string };
+export type ChronicCondition = { id: string; name: string; diagnosedYear?: number | null };
+export type HistoryEntry = { id: string; name: string; type: string; startDate?: string | null };
+export type Medication = { id: string; name: string; dosage?: string | null; frequency?: string | null };
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 async function getProfileData(cookie: string) {
-  const [userRes, profileRes, allergiesRes, chronicRes, historyRes] = await Promise.allSettled([
-    api.users.me(cookie),
-    api.healthProfile.get(cookie),
-    api.healthProfile.allergies(cookie),
-    api.healthProfile.chronic(cookie),
-    api.healthProfile.history(cookie),
-  ]);
+  const [userRes, profileRes, allergiesRes, chronicRes, historyRes, medsRes] =
+    await Promise.allSettled([
+      api.users.me(cookie),
+      api.healthProfile.get(cookie),
+      api.healthProfile.allergies(cookie),
+      api.healthProfile.chronic(cookie),
+      api.healthProfile.history(cookie),
+      api.healthProfile.medications(cookie),
+    ]);
 
   const user =
     userRes.status === 'fulfilled' && 'data' in userRes.value
@@ -91,7 +82,12 @@ async function getProfileData(cookie: string) {
       ? (historyRes.value.data as HistoryEntry[])
       : [];
 
-  return { user, profile, allergies, chronic, history };
+  const medications: Medication[] =
+    medsRes.status === 'fulfilled' && 'data' in medsRes.value
+      ? (medsRes.value.data as Medication[])
+      : [];
+
+  return { user, profile, allergies, chronic, history, medications };
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -105,18 +101,12 @@ export default async function ProfilePage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
 
-  const { user, profile, allergies, chronic, history } = await getProfileData(sessionCookie);
+  const { user, profile, allergies, chronic, history, medications } =
+    await getProfileData(sessionCookie);
 
   const name = user?.name ?? 'Пользователь';
   const email = user?.email ?? '';
   const initials = getInitials(name);
-  const age = profile?.birthDate ? calcAge(profile.birthDate) : null;
-  const completion = calcCompletion(profile, allergies);
-
-  const bmi =
-    profile?.heightCm && profile?.weightKg
-      ? (Number(profile.weightKg) / Math.pow(profile.heightCm / 100, 2)).toFixed(1)
-      : null;
 
   return (
     <PageShell active="" locale={locale}>
@@ -134,60 +124,17 @@ export default async function ProfilePage({
             <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-0.5">МОЙ ПРОФИЛЬ</p>
             <p className="text-[20px] font-extrabold text-white leading-tight truncate">{name}</p>
             {email && <p className="text-[12px] text-white/70 mt-0.5 truncate">{email}</p>}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {age && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{age} лет</span>}
-              {profile?.gender && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{profile.gender === 'male' ? 'Муж' : 'Жен'}</span>}
-              {profile?.bloodType && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{profile.bloodType}</span>}
-              {profile?.city && <span className="bg-white/20 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">{profile.city}</span>}
-            </div>
           </div>
         </section>
 
-        {/* ── Completion bar ─────────────────────────────────────────────────── */}
-        <section className="rounded-[16px] bg-white border border-[#e8e4dc] p-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>Профиль заполнен</p>
-            <p className="text-[13px] font-bold" style={{ color: '#9c5e6c' }}>{completion}%</p>
-          </div>
-          <div className="h-2 rounded-full bg-[#f0d4dc] overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #9c5e6c, #6e5fa0)' }}
-            />
-          </div>
-          {completion < 100 && (
-            <p className="text-[11px] mt-1.5" style={{ color: '#9a96a8' }}>Заполните профиль для лучших AI-рекомендаций</p>
-          )}
-        </section>
-
-        {/* ── Anthropometrics ────────────────────────────────────────────────── */}
-        <section className="grid grid-cols-4 gap-2 mb-4">
-          {[
-            { label: 'Рост', value: profile?.heightCm ? `${profile.heightCm}` : null, unit: 'см', bg: '#f0d4dc', color: '#9c5e6c' },
-            { label: 'Вес', value: profile?.weightKg ?? null, unit: 'кг', bg: '#e0d8f0', color: '#6e5fa0' },
-            { label: 'ИМТ', value: bmi, unit: '', bg: '#d4e8d8', color: '#548068' },
-            { label: 'Кровь', value: profile?.bloodType ?? null, unit: '', bg: '#d4dff0', color: '#5e75a8' },
-          ].map(({ label, value, unit, bg, color }) => (
-            <div key={label} className="rounded-[14px] p-3 flex flex-col gap-1" style={{ background: bg }}>
-              <p className="text-[10px] font-semibold" style={{ color }}>{label}</p>
-              {value ? (
-                <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>
-                  {value}{unit && <span className="text-[10px] font-normal ml-0.5" style={{ color: '#9a96a8' }}>{unit}</span>}
-                </p>
-              ) : (
-                <p className="text-[12px] font-medium" style={{ color: '#cc8a96' }}>+ добавить</p>
-              )}
-            </div>
-          ))}
-        </section>
-
-        {/* ── Client interactive sections ────────────────────────────────────── */}
+        {/* ── All interactive sections (metric cards + editing + lists) ──────── */}
         <ProfileClient
           locale={locale}
           profile={profile}
           allergies={allergies}
           chronic={chronic}
           history={history}
+          medications={medications}
         />
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
