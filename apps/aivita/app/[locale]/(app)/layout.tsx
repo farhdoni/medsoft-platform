@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import PushManager from '@/components/push/PushManager';
 
 export default async function CabinetLayout({
   children,
@@ -17,6 +18,7 @@ export default async function CabinetLayout({
 
   return (
     <div className="min-h-screen bg-bg-app">
+      <PushManager />
       {children}
     </div>
   );

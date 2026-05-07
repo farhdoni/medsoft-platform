@@ -8,8 +8,8 @@
 
 import cron from 'node-cron';
 import { db } from '@medsoft/db';
-import { aivitaUsers, aivitaDeviceTokens, habitLogs, habits } from '@medsoft/db';
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { aivitaUsers, aivitaDeviceTokens, habitLogs, habits, medicationSchedule, medicationLog } from '@medsoft/db';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { sendPushNotification } from '../lib/push-notifications.js';
 import { logger } from '../lib/logger.js';
 
@@ -110,6 +110,78 @@ async function sendWeeklyHealthSummary() {
   }
 }
 
+// ─── Medication reminders ─────────────────────────────────────────────────────
+
+async function sendMedicationReminders() {
+  logger.info('[Cron] Sending medication reminders…');
+
+  try {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Get all active medications with reminder enabled
+    const activeMeds = await db.select().from(medicationSchedule)
+      .where(and(
+        eq(medicationSchedule.isActive, true),
+        eq(medicationSchedule.reminderEnabled, true),
+      ));
+
+    let sent = 0;
+
+    for (const med of activeMeds) {
+      // Check date range
+      if (med.startDate && todayStr < med.startDate) continue;
+      if (med.endDate && todayStr > med.endDate) continue;
+
+      const times = (med.times as string[]) || [];
+
+      for (const time of times) {
+        const [h, m] = time.split(':').map(Number);
+        const scheduled = new Date();
+        scheduled.setHours(h, m, 0, 0);
+
+        // Check if we're within the reminder window (default 5 min before)
+        const minutesBefore = med.reminderMinutesBefore ?? 5;
+        const diff = (scheduled.getTime() - now.getTime()) / 60000;
+        if (diff < 0 || diff > minutesBefore + 1) continue;
+
+        // Check not already taken today
+        const todayStart = new Date(`${todayStr}T00:00:00`);
+        const todayEnd = new Date(`${todayStr}T23:59:59`);
+        const [existingLog] = await db.select().from(medicationLog)
+          .where(and(
+            eq(medicationLog.scheduleId, med.id),
+            eq(medicationLog.userId, med.userId),
+            gte(medicationLog.scheduledAt, todayStart),
+            lte(medicationLog.scheduledAt, todayEnd),
+          ))
+          .limit(1);
+
+        if (existingLog && (existingLog.status === 'taken' || existingLog.status === 'skipped')) continue;
+
+        // Get user device tokens
+        const tokens = await db.select({ pushToken: aivitaDeviceTokens.pushToken })
+          .from(aivitaDeviceTokens)
+          .where(eq(aivitaDeviceTokens.userId, med.userId));
+
+        if (tokens.length === 0) continue;
+
+        await sendPushNotification(
+          tokens.map(t => t.pushToken),
+          `💊 ${med.title}`,
+          `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${time}`,
+          { scheduleId: med.id, time, url: '/ru/medications' },
+        );
+        sent++;
+      }
+    }
+
+    logger.info({ sent }, '[Cron] Medication reminders sent.');
+  } catch (err) {
+    logger.error({ err }, '[Cron] Failed to send medication reminders');
+  }
+}
+
 // ─── Start crons ──────────────────────────────────────────────────────────────
 
 export function startPushReminders() {
@@ -118,6 +190,9 @@ export function startPushReminders() {
 
   // Weekly on Monday at 09:00 UTC
   cron.schedule('0 9 * * 1', sendWeeklyHealthSummary, { timezone: 'UTC' });
+
+  // Medication reminders — run every 5 minutes
+  cron.schedule('*/5 * * * *', sendMedicationReminders, { timezone: 'UTC' });
 
   logger.info('[Cron] Push reminder jobs scheduled.');
 }

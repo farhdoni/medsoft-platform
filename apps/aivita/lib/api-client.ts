@@ -135,6 +135,14 @@ export const api = {
     medications: (cookie: string) =>
       apiRequest('/health-profile/medications', { sessionCookie: cookie }),
   },
+  medications: {
+    list: (cookie: string) =>
+      apiRequest('/medications', { sessionCookie: cookie }),
+    today: (cookie: string) =>
+      apiRequest('/medications/today', { sessionCookie: cookie }),
+    stats: (cookie: string, period = 'week') =>
+      apiRequest(`/medications/stats?period=${period}`, { sessionCookie: cookie }),
+  },
   vitals: {
     latest: (cookie: string) =>
       apiRequest('/vitals/latest', { sessionCookie: cookie }),

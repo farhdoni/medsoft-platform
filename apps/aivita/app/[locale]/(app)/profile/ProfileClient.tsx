@@ -488,6 +488,13 @@ interface Props {
   medications: Medication[];
 }
 
+interface AiRec {
+  level: 'critical' | 'important' | 'info';
+  message: string;
+  recommendation: string;
+  specialization: string | null;
+}
+
 export function ProfileClient({ locale, profile: initProfile, allergies: initAllergies, chronic: initChronic, history: initHistory, medications: initMeds }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -497,6 +504,15 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
   const [chronic,   setChronic]   = useState<ChronicCondition[]>(initChronic);
   const [history,   setHistory]   = useState<HistoryEntry[]>(initHistory);
   const [meds,      setMeds]      = useState<Medication[]>(initMeds);
+  const [aiRec,     setAiRec]     = useState<AiRec | null>(null);
+
+  function showAiRec(rec: AiRec | null) {
+    if (!rec) return;
+    setAiRec(rec);
+    if (rec.level !== 'critical') {
+      setTimeout(() => setAiRec(null), 15000);
+    }
+  }
 
   function refresh() { startTransition(() => router.refresh()); }
 
@@ -520,6 +536,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
   async function addAllergy(data: Omit<Allergy, 'id'>) {
     const json = await apiPost('/health-profile/allergies', data as Record<string, unknown>);
     setAllergies(prev => [...prev, json.data as Allergy]);
+    if (json.aiRecommendation) showAiRec(json.aiRecommendation as AiRec);
   }
   function deleteAllergy(id: string) {
     void apiDelete(`/health-profile/allergies/${id}`);
@@ -530,6 +547,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
   async function addChronic(name: string) {
     const json = await apiPost('/health-profile/chronic-conditions', { name });
     setChronic(prev => [...prev, json.data as ChronicCondition]);
+    if (json.aiRecommendation) showAiRec(json.aiRecommendation as AiRec);
   }
   function deleteChronic(id: string) {
     void apiDelete(`/health-profile/chronic-conditions/${id}`);
@@ -563,6 +581,36 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
 
   return (
     <>
+      {/* ── AI Recommendation card ──────────────────────────────────────────── */}
+      {aiRec && (
+        <div className={`rounded-[16px] p-4 mb-4 border ${
+          aiRec.level === 'critical' ? 'bg-red-50 border-red-200' :
+          aiRec.level === 'important' ? 'bg-amber-50 border-amber-200' :
+          'bg-purple-50 border-purple-200'
+        }`}>
+          <div className="flex items-center gap-2 text-[13px] font-bold mb-2">
+            {aiRec.level === 'critical' ? '🔴' : aiRec.level === 'important' ? '🟡' : '🟢'}
+            AI-рекомендация
+          </div>
+          <p className="text-[13px] mb-1.5" style={{ color: '#2a2540' }}>{aiRec.message}</p>
+          <p className="text-[12px] mb-3" style={{ color: '#6a6580' }}>{aiRec.recommendation}</p>
+          <div className="flex gap-2 flex-wrap">
+            {aiRec.specialization && (
+              <Link href={`/${locale}/chat`}
+                className="px-3 py-1.5 rounded-full text-[12px] font-semibold text-white"
+                style={{ background: '#6e5fa0' }}
+              >
+                Спросить AI о {aiRec.specialization}е
+              </Link>
+            )}
+            <button onClick={() => setAiRec(null)}
+              className="px-3 py-1.5 rounded-full text-[12px] font-semibold"
+              style={{ background: '#f4f3ef', color: '#9a96a8' }}
+            >Понятно</button>
+          </div>
+        </div>
+      )}
+
       {/* ── Completion bar ──────────────────────────────────────────────────── */}
       <section className="rounded-[16px] bg-white border border-[#e8e4dc] p-4 mb-4">
         <div className="flex items-center justify-between mb-2">

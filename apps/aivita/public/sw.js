@@ -31,7 +31,59 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-const CABINET_ROUTES = ['/home', '/profile', '/habits', '/nutrition', '/chat', '/test', '/family', '/report', '/settings', '/notifications', '/install'];
+// ─── Push Notifications (medication reminders) ────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'Aivita 💊', body: 'Время принять лекарство', tag: 'medication', scheduleId: null, time: null };
+  try { if (event.data) Object.assign(data, event.data.json()); } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
+      tag: data.tag,
+      data: { url: '/ru/medications', scheduleId: data.scheduleId, time: data.time },
+      actions: [
+        { action: 'take', title: '✅ Принял' },
+        { action: 'skip', title: '⏭️ Позже' },
+      ],
+      requireInteraction: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  const { action } = event;
+  const { scheduleId, url, time } = event.notification.data || {};
+
+  event.notification.close();
+
+  if (scheduleId && (action === 'take' || action === 'skip')) {
+    const endpoint = action === 'take' ? 'take' : 'skip';
+    event.waitUntil(
+      fetch(`https://api.aivita.uz/v1/aivita/medications/${scheduleId}/${endpoint}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ time: time || null }),
+      }).catch(() => {})
+    );
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url || '/ru/medications');
+    })
+  );
+});
+
+// ─── Cabinet routes (used for cache bypass) ───────────────────────────────────
+
+const CABINET_ROUTES = ['/home', '/profile', '/habits', '/medications', '/nutrition', '/chat', '/test', '/family', '/report', '/settings', '/notifications', '/install'];
 
 function isCabinetRoute(pathname) {
   return CABINET_ROUTES.some((r) => {
