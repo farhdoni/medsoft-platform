@@ -9,6 +9,7 @@ import { BigCtaSection } from '@/components/marketing/big-cta';
 import { FaqSection } from '@/components/marketing/faq';
 import { PublicFooter } from '@/components/marketing/public-footer';
 import { getSession } from '@/lib/auth/session';
+import DoctorsSection from '@/components/landing/DoctorsSection';
 
 export async function generateMetadata({
   params,
@@ -84,6 +85,7 @@ export default async function MarketingPage() {
         <HowItWorksSection />
         <PersonasSection />
         <BigCtaSection isAuthenticated={isAuthenticated} />
+        <DoctorsSection locale={locale} />
         <FaqSection />
       </main>
       <PublicFooter />
