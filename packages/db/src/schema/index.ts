@@ -9,4 +9,5 @@ export * from './sos-calls';
 export * from './audit-logs';
 export * from './aivita';
 export * from './aivita-doctor';
+export * from './aivita-medications';
 export * from './landing';

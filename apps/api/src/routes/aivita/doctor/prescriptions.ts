@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { sql } from 'drizzle-orm';
 import { db } from '@medsoft/db';
-import { aivitaUsers, aivitaPrescriptions, prescriptionTemplates } from '@medsoft/db';
+import { aivitaUsers, aivitaPrescriptions, prescriptionTemplates, medicationSchedule } from '@medsoft/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../../middleware/aivita-auth.js';
 
@@ -60,6 +60,49 @@ doctorPrescriptionsRouter.post('/', async (c) => {
     await db.update(prescriptionTemplates)
       .set({ usageCount: sql`usage_count + 1` })
       .where(eq(prescriptionTemplates.id, body.templateId));
+  }
+
+  // Auto-create medication schedule when doctor prescribes a medication
+  if (body.type === 'medication' && body.patientId) {
+    try {
+      const freq = (body.frequency ?? '').toLowerCase();
+      let times: string[] = ['08:00'];
+      if (freq.includes('2 раза') || freq.includes('дважды') || freq.includes('каждые 12')) {
+        times = ['08:00', '20:00'];
+      } else if (freq.includes('3 раза') || freq.includes('трижды') || freq.includes('каждые 8')) {
+        times = ['08:00', '14:00', '20:00'];
+      } else if (freq.includes('веч') || freq.includes('перед сном')) {
+        times = ['21:00'];
+      } else if (freq.includes('ден') && !freq.includes('2')) {
+        times = ['08:00'];
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      let endDate: string | null = null;
+      if (body.durationDays) {
+        const d = new Date();
+        d.setDate(d.getDate() + body.durationDays);
+        endDate = d.toISOString().split('T')[0];
+      }
+
+      await db.insert(medicationSchedule).values({
+        userId: body.patientId,
+        prescriptionId: row.id,
+        title: body.title,
+        dosage: body.details ?? null,
+        frequency: body.frequency ?? '1 раз в день',
+        times,
+        durationDays: body.durationDays ?? null,
+        startDate: today,
+        endDate,
+        instructions: null,
+        createdBy: 'doctor',
+        doctorId: doctorId,
+      });
+    } catch (err) {
+      // Non-fatal: log and continue
+      console.error('[Prescriptions] Failed to create medication schedule:', err);
+    }
   }
 
   return c.json({ data: row });

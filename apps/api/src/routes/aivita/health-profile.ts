@@ -7,6 +7,7 @@ import {
 } from '@medsoft/db';
 import { eq, isNull, and } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { analyzeHealthChange } from '../../lib/health-monitor.js';
 
 export const aivitaHealthProfileRouter = new Hono();
 
@@ -99,7 +100,11 @@ aivitaHealthProfileRouter.post(
     const [created] = await db.insert(chronicConditions)
       .values({ userId, ...body })
       .returning();
-    return c.json({ data: created }, 201);
+
+    // AI monitor: analyze the new chronic condition
+    const aiRecommendation = analyzeHealthChange('chronicConditions', body.name);
+
+    return c.json({ data: created, aiRecommendation: aiRecommendation.level !== 'none' ? aiRecommendation : null }, 201);
   }
 );
 
@@ -134,7 +139,20 @@ aivitaHealthProfileRouter.post(
     const [created] = await db.insert(allergies)
       .values({ userId, ...body })
       .returning();
-    return c.json({ data: created }, 201);
+
+    // AI monitor: analyze the new allergy
+    // Anaphylaxis severity always triggers critical alert
+    let aiRecommendation = analyzeHealthChange('allergies', body.allergen);
+    if (body.severity === 'anaphylaxis' && aiRecommendation.level !== 'critical') {
+      aiRecommendation = {
+        level: 'critical',
+        message: '⚠️ Риск анафилаксии! Тяжёлая аллергическая реакция в анамнезе.',
+        recommendation: 'Всегда носите с собой адреналин (эпинефрин). Немедленно запишитесь к Аллергологу.',
+        specialization: 'Аллерголог',
+      };
+    }
+
+    return c.json({ data: created, aiRecommendation: aiRecommendation.level !== 'none' ? aiRecommendation : null }, 201);
   }
 );
 

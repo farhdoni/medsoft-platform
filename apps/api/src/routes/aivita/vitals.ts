@@ -3,8 +3,9 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
 import { vitals } from '@medsoft/db';
-import { eq, and, desc, asc, gte, lte, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { analyzeHealthChange } from '../../lib/health-monitor.js';
 
 export const aivitaVitalsRouter = new Hono();
 
@@ -145,7 +146,22 @@ aivitaVitalsRouter.post(
       recordedAt: body.recordedAt ? new Date(body.recordedAt) : new Date(),
     }).returning();
 
-    return c.json({ data: row }, 201);
+    // AI monitor: analyze vital value for anomalies
+    let aiRecommendation = null;
+    const v = body.value as Record<string, unknown>;
+    if (body.type === 'blood_pressure' && typeof v.systolic === 'number') {
+      const sysAnalysis = analyzeHealthChange('systolic', v.systolic);
+      const diaAnalysis = typeof v.diastolic === 'number' ? analyzeHealthChange('diastolic', v.diastolic) : { level: 'none' as const };
+      const worst = sysAnalysis.level === 'critical' || diaAnalysis.level === 'critical'
+        ? (sysAnalysis.level === 'critical' ? sysAnalysis : diaAnalysis)
+        : (sysAnalysis.level === 'important' ? sysAnalysis : diaAnalysis);
+      if (worst.level !== 'none') aiRecommendation = worst;
+    } else if (typeof v.value === 'number') {
+      const analysis = analyzeHealthChange(body.type, v.value);
+      if (analysis.level !== 'none') aiRecommendation = analysis;
+    }
+
+    return c.json({ data: row, aiRecommendation }, 201);
   }
 );
 
