@@ -121,9 +121,31 @@ export const healthProfiles = pgTable(
     weightKg: numeric('weight_kg', { precision: 5, scale: 2 }),
 
     pinfl: text('pinfl'),
+    city: text('city'),
+    phone: text('phone'),
+    telegram: text('telegram'),
+    whatsapp: text('whatsapp'),
+
+    dietType: text('diet_type'),
+    sleepSchedule: text('sleep_schedule'),
+    stressLevel: text('stress_level'),
+
+    passportIssuedBy: text('passport_issued_by'),
+    passportIssuedDate: text('passport_issued_date'),
+    passportExpires: text('passport_expires'),
 
     emergencyContactName: text('emergency_contact_name'),
     emergencyContactPhone: text('emergency_contact_phone'),
+    emergencyContactRelation: text('emergency_contact_relation'),
+
+    doctorName: text('doctor_name'),
+    doctorPhone: text('doctor_phone'),
+    clinic: text('clinic'),
+
+    insuranceCompany: text('insurance_company'),
+    insuranceNumber: text('insurance_number'),
+    insuranceExpires: text('insurance_expires'),
+    insuranceHotline: text('insurance_hotline'),
 
     smokingStatus: text('smoking_status'), // 'never' | 'former' | 'current'
     alcoholFrequency: text('alcohol_frequency'), // 'never' | 'rare' | 'moderate' | 'frequent'
@@ -715,6 +737,48 @@ export const userDevices = pgTable(
   (table) => ({
     userIdx: index('user_devices_user_idx').on(table.userId),
     userTypeIdx: index('user_devices_user_type_idx').on(table.userId, table.type),
+  })
+);
+
+// ─── SOS Events ────────────────────────────────────────────────────────────────
+
+export const sosEvents = pgTable(
+  'sos_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    latitude: numeric('latitude', { precision: 10, scale: 7 }),
+    longitude: numeric('longitude', { precision: 10, scale: 7 }),
+    emergencyContactName: text('emergency_contact_name'),
+    emergencyContactPhone: text('emergency_contact_phone'),
+    medicalDataSent: jsonb('medical_data_sent'),
+    smsSent: boolean('sms_sent').notNull().default(false),
+    callInitiated: boolean('call_initiated').notNull().default(false),
+    resolvedAt: timestamp('resolved_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index('sos_events_user_idx').on(table.userId),
+  })
+);
+
+// ─── Medical Cards (QR) ────────────────────────────────────────────────────────
+
+export const medicalCards = pgTable(
+  'medical_cards',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }).unique(),
+    cardCode: text('card_code').notNull().unique(),
+    isActive: boolean('is_active').notNull().default(true),
+    pinProtected: boolean('pin_protected').notNull().default(false),
+    pinHash: text('pin_hash'),
+    accessCount: integer('access_count').notNull().default(0),
+    lastAccessedAt: timestamp('last_accessed_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    codeIdx: index('medical_cards_code_idx').on(table.cardCode),
   })
 );
 

@@ -22,6 +22,20 @@
       "when": 1778094573147,
       "tag": "0002_bent_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778134247089,
+      "tag": "0003_broad_pete_wisdom",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778200000000,
+      "tag": "0004_health_profile_fields",
+      "breakpoints": true
     }
   ]
 }
