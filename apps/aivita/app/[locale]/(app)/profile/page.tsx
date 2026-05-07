@@ -4,6 +4,7 @@ import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { api } from '@/lib/api-client';
 import { getInitials } from '@/lib/date-utils';
 import { ProfileClient } from './ProfileClient';
+import QrCardSection from '@/components/medical-card/QrCardSection';
 
 // ─── Types (exported so ProfileClient can import) ─────────────────────────────
 
@@ -136,6 +137,11 @@ export default async function ProfilePage({
           history={history}
           medications={medications}
         />
+
+        {/* ── QR Medical Card ─────────────────────────────────────────────── */}
+        <div className="mt-2 mb-2">
+          <QrCardSection />
+        </div>
 
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
         <section
