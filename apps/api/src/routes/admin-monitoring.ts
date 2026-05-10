@@ -15,14 +15,6 @@ const execAsync = promisify(exec);
 const router = new Hono();
 router.use('*', requireAuth);
 
-// ─── Whitelist ────────────────────────────────────────────────────────────────
-
-const ALLOWED_CONTAINERS = ['aivita', 'admin', 'api', 'postgres', 'redis', 'nginx', 'caddy'];
-
-function isContainerAllowed(name: string): boolean {
-  return ALLOWED_CONTAINERS.some((allowed) => name.toLowerCase().includes(allowed));
-}
-
 // ─── Shell helpers ────────────────────────────────────────────────────────────
 
 async function safe(cmd: string, timeoutMs = 5000): Promise<string> {
@@ -131,26 +123,6 @@ router.get('/containers', async (c) => {
     return c.json({ containers: result });
   } catch (err) {
     return c.json({ containers: [], error: 'Docker not available' });
-  }
-});
-
-// ─── C. Container logs ────────────────────────────────────────────────────────
-
-router.get('/logs/:container', async (c) => {
-  const containerName = c.req.param('container');
-  const lines = Math.min(parseInt(c.req.query('lines') ?? '100'), 1000);
-
-  if (!isContainerAllowed(containerName)) {
-    return c.json({ error: 'Container not in allowlist' }, 403);
-  }
-
-  try {
-    // Redirect stderr to stdout (2>&1) so we capture all log output
-    const out = await safe(`docker logs --tail ${lines} "${containerName}" 2>&1`, 15000);
-    return c.json({ container: containerName, logs: out, lines });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to fetch logs';
-    return c.json({ container: containerName, logs: '', error: msg }, 500);
   }
 });
 
