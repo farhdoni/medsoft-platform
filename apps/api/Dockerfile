@@ -13,7 +13,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --no-strict-peer-dependencies
 ENV NODE_ENV=production
 EXPOSE 3001
 CMD ["/app/node_modules/.bin/tsx", "apps/api/src/index.ts"]
