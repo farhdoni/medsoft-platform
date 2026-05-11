@@ -99,9 +99,9 @@ export default function DoctorAiPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef] flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3">
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3">
         <div className="flex items-center gap-3 mb-3">
           <Icon3D name="sparkle" size={28} />
           <div>

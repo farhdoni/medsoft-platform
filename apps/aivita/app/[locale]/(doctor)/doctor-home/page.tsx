@@ -86,13 +86,13 @@ export default function DoctorHomePage() {
   const greeting = today.getHours() < 12 ? 'Доброе утро' : today.getHours() < 18 ? 'Добрый день' : 'Добрый вечер';
 
   if (loading) return (
-    <div className="min-h-screen bg-[#f4f3ef] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
+    <div>
       {/* TopBar */}
       <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         <span className="text-xl font-bold text-[#2a2540]">aivita</span>

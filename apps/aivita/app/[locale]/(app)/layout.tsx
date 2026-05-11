@@ -17,9 +17,11 @@ export default async function CabinetLayout({
   }
 
   return (
-    <div className="min-h-screen bg-bg-app">
+    <div className="min-h-screen bg-app">
       <PushManager />
-      {children}
+      <div className="mx-auto w-full max-w-[480px]">
+        {children}
+      </div>
     </div>
   );
 }

@@ -70,15 +70,15 @@ export default function DoctorChatsPage() {
   const [showList, setShowList] = useState(true);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#f4f3ef] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef] flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         {!showList && selected && (
           <button onClick={() => { setShowList(true); setSelected(null); }}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[#6e5fa0] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</button>

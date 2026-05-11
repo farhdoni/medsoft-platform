@@ -74,8 +74,8 @@ export default function DoctorAppointmentsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3">
+    <div>
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3">
         <h1 className="text-xl font-bold text-[#2a2540] mb-3">Приёмы</h1>
         <div className="flex gap-2">
           {TABS.map(t => (

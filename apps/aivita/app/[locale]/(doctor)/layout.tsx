@@ -21,8 +21,10 @@ export default async function DoctorLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
-      {children}
+    <div className="min-h-screen bg-app">
+      <div className="mx-auto w-full max-w-[480px]">
+        {children}
+      </div>
       <DoctorBottomNav locale={locale} />
     </div>
   );

@@ -211,7 +211,7 @@ export default function DoctorProfilePage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#f4f3ef] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
     </div>
   );
@@ -220,7 +220,7 @@ export default function DoctorProfilePage() {
   const verStatus = profile?.verificationStatus ?? 'not_verified';
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
+    <div>
       {/* Hero */}
       <div className="px-4 pt-14 pb-4" style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
         <div className="flex items-center gap-4 mb-4">

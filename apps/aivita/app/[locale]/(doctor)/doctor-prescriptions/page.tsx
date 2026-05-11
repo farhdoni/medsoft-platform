@@ -101,8 +101,8 @@ export default function DoctorPrescriptionsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3">
+    <div>
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-[#2a2540]">Назначения</h1>
           <button onClick={() => setShowCreate(true)}

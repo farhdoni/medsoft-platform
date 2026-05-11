@@ -92,15 +92,15 @@ export default function DoctorSchedulePage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#f4f3ef] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
+    <div>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-[#2a2540]">Расписание</h1>
         <button onClick={() => { setShowSettings(true); setEditDays([...schedule.length ? schedule : DEFAULT_DAYS]); }}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-white border" style={{ borderColor: '#e8e4dc' }}>

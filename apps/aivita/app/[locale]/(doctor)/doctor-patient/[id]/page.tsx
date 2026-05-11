@@ -88,13 +88,13 @@ export default function DoctorPatientPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#f4f3ef] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (!patient) return (
-    <div className="min-h-screen bg-[#f4f3ef] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <p className="text-[#9a96a8]">Пациент не найден</p>
     </div>
   );
@@ -105,9 +105,9 @@ export default function DoctorPatientPage() {
   const otherNotes = notes.filter(n => !n.isPinned);
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
+    <div>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[#6e5fa0] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</Link>
         <h1 className="font-bold text-[#2a2540] flex-1 truncate">{patient.user.name}</h1>
         <Link href={`/${locale}/doctor-appointments`}

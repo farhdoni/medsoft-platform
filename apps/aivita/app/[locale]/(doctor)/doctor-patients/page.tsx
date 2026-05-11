@@ -57,9 +57,9 @@ export default function DoctorPatientsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef]">
+    <div>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3">
+      <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-[#2a2540]">Мои пациенты</h1>
           <span className="text-sm text-[#9a96a8]">{patients.length} чел.</span>
