@@ -21,11 +21,11 @@ export default async function DoctorLayout({
   }
 
   return (
-    <div className="doctor-theme min-h-screen bg-app-bg">
-      <div className="mx-auto w-full max-w-[480px]">
+    <div className="min-h-screen bg-app-bg doctor-theme">
+      <div className="relative max-w-[480px] mx-auto w-full min-h-screen bg-app-bg shadow-xl">
         {children}
+        <DoctorBottomNav locale={locale} />
       </div>
-      <DoctorBottomNav locale={locale} />
     </div>
   );
 }
