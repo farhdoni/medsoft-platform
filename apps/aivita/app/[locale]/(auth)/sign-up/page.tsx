@@ -259,7 +259,7 @@ export default function SignUpPage() {
                 onClick={() => setRole('doctor')}
                 className={`flex-1 py-3 rounded-2xl text-sm font-semibold transition-all ${
                   role === 'doctor'
-                    ? 'bg-[#e0d8f0] text-[#6e5fa0] border-2 border-[#9889c4]'
+                    ? 'bg-[color:var(--accent-bg-light)] text-[color:var(--accent-dark)] border-2 border-[color:var(--accent)]'
                     : 'bg-white text-[#9a96a8] border border-[#e8e4dc]'
                 }`}
               >
@@ -278,7 +278,7 @@ export default function SignUpPage() {
               <select
                 id="specialization"
                 name="specialization"
-                className="w-full h-12 px-4 rounded-2xl border border-[rgba(120,160,200,0.2)] bg-white/80 text-navy text-sm outline-none focus:border-[#9889c4] focus:ring-2 focus:ring-[#e0d8f0] transition-all appearance-none"
+                className="w-full h-12 px-4 rounded-2xl border border-[rgba(120,160,200,0.2)] bg-white/80 text-navy text-sm outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-bg-light)] transition-all appearance-none"
               >
                 <option value="">Выберите специализацию</option>
                 {SPECIALIZATIONS.map((s) => (

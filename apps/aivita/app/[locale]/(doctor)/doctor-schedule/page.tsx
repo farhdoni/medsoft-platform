@@ -93,7 +93,7 @@ export default function DoctorSchedulePage() {
 
   if (loading) return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -125,7 +125,7 @@ export default function DoctorSchedulePage() {
                 <button key={day} onClick={() => setSelectedDay(selectedDay === i ? null : i)}
                   className="flex flex-col items-center gap-1 p-2 rounded-xl transition-colors"
                   style={{
-                    background: selectedDay === i ? '#6e5fa0' : isToday ? '#e8e4f0' : 'transparent',
+                    background: selectedDay === i ? 'var(--accent-dark)' : isToday ? 'var(--accent-bg)' : 'transparent',
                     opacity: isWorkday ? 1 : 0.4,
                   }}>
                   <span className="text-[10px] font-semibold"
@@ -134,7 +134,7 @@ export default function DoctorSchedulePage() {
                     style={{ color: selectedDay === i ? '#fff' : '#2a2540' }}>{d.getDate()}</span>
                   {appts.length > 0 && (
                     <span className="text-[9px] font-bold px-1 rounded-full"
-                      style={{ background: selectedDay === i ? 'rgba(255,255,255,0.3)' : '#e8e4f0', color: selectedDay === i ? '#fff' : '#6e5fa0' }}>
+                      style={{ background: selectedDay === i ? 'rgba(255,255,255,0.3)' : 'var(--accent-bg)', color: selectedDay === i ? '#fff' : 'var(--accent-dark)' }}>
                       {appts.length}
                     </span>
                   )}
@@ -168,15 +168,15 @@ export default function DoctorSchedulePage() {
                         <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl"
                           style={{ background: a.status === 'cancelled' ? '#fff8f0' : '#f0eefc' }}>
                           <div className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ background: a.status === 'completed' ? '#4caf82' : a.status === 'cancelled' ? '#f47c5f' : '#6e5fa0' }} />
+                            style={{ background: a.status === 'completed' ? '#4caf82' : a.status === 'cancelled' ? '#f47c5f' : 'var(--accent-dark)' }} />
                           <span className="text-xs font-medium text-[#2a2540]">
                             {new Date(a.scheduledAt).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           <span className="text-xs text-[#9a96a8] capitalize">{a.type} · {a.durationMinutes} мин</span>
                           <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium"
                             style={{
-                              background: a.status === 'completed' ? '#e8f4ec' : a.status === 'cancelled' ? '#fff0ec' : '#e8e4f0',
-                              color: a.status === 'completed' ? '#2d7a56' : a.status === 'cancelled' ? '#c0304a' : '#6e5fa0',
+                              background: a.status === 'completed' ? '#e8f4ec' : a.status === 'cancelled' ? '#fff0ec' : 'var(--accent-bg)',
+                              color: a.status === 'completed' ? '#2d7a56' : a.status === 'cancelled' ? '#c0304a' : 'var(--accent-dark)',
                             }}>
                             {a.status === 'completed' ? 'Завершён' : a.status === 'cancelled' ? 'Отменён' : 'Запланирован'}
                           </span>
@@ -200,7 +200,7 @@ export default function DoctorSchedulePage() {
               <div key={i} className="bg-white rounded-xl p-4 border flex items-center gap-3"
                 style={{ borderColor: '#e8e4dc', opacity: sched?.isActive ? 1 : 0.5 }}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: i === todayDow ? '#6e5fa0' : '#f0eefc', color: i === todayDow ? '#fff' : '#6e5fa0' }}>
+                  style={{ background: i === todayDow ? 'var(--accent-dark)' : '#f0eefc', color: i === todayDow ? '#fff' : 'var(--accent-dark)' }}>
                   {DAYS_RU[i]}
                 </div>
                 <div className="flex-1">
@@ -212,7 +212,7 @@ export default function DoctorSchedulePage() {
                 </div>
                 {cnt > 0 && (
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: '#e8e4f0', color: '#6e5fa0' }}>{cnt} приём</span>
+                    style={{ background: 'var(--accent-bg)', color: 'var(--accent-dark)' }}>{cnt} приём</span>
                 )}
               </div>
             );
@@ -237,7 +237,7 @@ export default function DoctorSchedulePage() {
                 return (
                   <button key={day} onClick={() => toggleDay(i)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors"
-                    style={{ background: isActive ? '#6e5fa0' : '#f0f0f0', color: isActive ? '#fff' : '#9a96a8' }}>
+                    style={{ background: isActive ? 'var(--accent-dark)' : '#f0f0f0', color: isActive ? '#fff' : '#9a96a8' }}>
                     {day}
                   </button>
                 );
@@ -294,7 +294,7 @@ export default function DoctorSchedulePage() {
                 style={{ borderColor: '#e8e4dc' }}>Отмена</button>
               <button onClick={handleSave} disabled={saving}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
-                style={{ background: '#6e5fa0', opacity: saving ? 0.6 : 1 }}>
+                style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Сохранение...' : 'Сохранить'}
               </button>
             </div>

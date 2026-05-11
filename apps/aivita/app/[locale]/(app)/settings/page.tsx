@@ -76,14 +76,14 @@ export default async function SettingsPage({
       title: 'Приложение',
       items: [
         { icon: Globe, label: 'Язык',          sub: localeLabel,                          href: '#', value: localeLabel, bg: '#d4dff0', color: '#5e75a8' },
-        { icon: Bell,  label: 'Уведомления',   sub: 'Привычки, напоминания',              href: '#', value: notificationsOn ? 'Вкл' : 'Выкл', bg: '#e0d8f0', color: '#6e5fa0' },
+        { icon: Bell,  label: 'Уведомления',   sub: 'Привычки, напоминания',              href: '#', value: notificationsOn ? 'Вкл' : 'Выкл', bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
         { icon: Lock,  label: 'Конфиденциальность', sub: 'Что видит семья, экспорт',     href: `/${locale}/privacy`, bg: '#d4e8d8', color: '#548068' },
       ],
     },
     {
       title: 'Здоровье',
       items: [
-        { icon: Users, label: 'Семья',          sub: 'Члены и приглашения',   href: `/${locale}/family`, bg: '#e0d8f0', color: '#6e5fa0' },
+        { icon: Users, label: 'Семья',          sub: 'Члены и приглашения',   href: `/${locale}/family`, bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
         { icon: Cpu,   label: 'Гаджеты',        sub: 'Не подключено',         href: `/${locale}/gadgets`, bg: '#d4dff0', color: '#5e75a8' },
       ],
     },

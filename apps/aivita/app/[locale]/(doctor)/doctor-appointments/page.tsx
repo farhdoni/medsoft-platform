@@ -17,7 +17,7 @@ function fmtDate(s: string) { return new Date(s).toLocaleDateString('ru', { day:
 function fmtTime(s: string) { return new Date(s).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }); }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  scheduled:  { bg: '#e8e4f0', color: '#6e5fa0', label: 'Запланирован' },
+  scheduled:  { bg: 'var(--accent-bg)', color: 'var(--accent-dark)', label: 'Запланирован' },
   completed:  { bg: '#e8f4ec', color: '#2d7a56', label: 'Завершён' },
   cancelled:  { bg: '#fff0ec', color: '#c0304a', label: 'Отменён' },
 };
@@ -81,7 +81,7 @@ export default function DoctorAppointmentsPage() {
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex-1 py-2 rounded-full text-xs font-semibold transition-colors"
-              style={{ background: tab === t.id ? '#6e5fa0' : '#fff', color: tab === t.id ? '#fff' : '#9a96a8', border: `1px solid ${tab === t.id ? '#6e5fa0' : '#e8e4dc'}` }}>
+              style={{ background: tab === t.id ? 'var(--accent-dark)' : '#fff', color: tab === t.id ? '#fff' : '#9a96a8', border: `1px solid ${tab === t.id ? 'var(--accent-dark)' : '#e8e4dc'}` }}>
               {t.label}
             </button>
           ))}
@@ -91,7 +91,7 @@ export default function DoctorAppointmentsPage() {
       <div className="px-4 pb-4 space-y-3">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : appts.length === 0 ? (
           <div className="text-center py-12">
@@ -105,7 +105,7 @@ export default function DoctorAppointmentsPage() {
               className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80"
               style={{ borderColor: '#e8e4dc' }}>
               <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
-                style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                 {initials(row.patient.name)}
               </div>
               <div className="flex-1 min-w-0">
@@ -161,12 +161,12 @@ export default function DoctorAppointmentsPage() {
 
             <div className="flex gap-3">
               <button onClick={handleSaveNotes}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#6e5fa0]"
-                style={{ borderColor: '#6e5fa0' }}>Сохранить</button>
+                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[color:var(--accent-dark)]"
+                style={{ borderColor: 'var(--accent-dark)' }}>Сохранить</button>
               {selected.appointment.status === 'scheduled' && (
                 <button onClick={handleComplete} disabled={completing}
                   className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
-                  style={{ background: '#6e5fa0', opacity: completing ? 0.6 : 1 }}>
+                  style={{ background: 'var(--accent-dark)', opacity: completing ? 0.6 : 1 }}>
                   {completing ? 'Завершение...' : '✓ Завершить приём'}
                 </button>
               )}

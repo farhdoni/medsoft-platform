@@ -47,7 +47,7 @@ export function DoctorCtaBanner() {
       </div>
       <div style={{
         flexShrink: 0,
-        background: 'linear-gradient(135deg, #6e5fa0, #4a7ab5)',
+        background: 'linear-gradient(135deg, var(--accent-dark), #4a7ab5)',
         color: '#fff',
         fontWeight: '600',
         fontSize: '12px',

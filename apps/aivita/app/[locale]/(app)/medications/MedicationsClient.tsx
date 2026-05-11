@@ -89,7 +89,7 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
           {FREQ_OPTIONS.map((f, i) => (
             <button key={f.value} onClick={() => setFreqKey(i)}
               className="py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: freqKey === i ? '#6e5fa0' : '#f4f3ef', color: freqKey === i ? '#fff' : '#2a2540' }}
+              style={{ background: freqKey === i ? 'var(--accent-dark)' : '#f4f3ef', color: freqKey === i ? '#fff' : '#2a2540' }}
             >{f.label}</button>
           ))}
         </div>
@@ -109,7 +109,7 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
           <div className="flex gap-2 mb-3">
             {times.map(t => (
               <span key={t} className="px-3 py-1 rounded-full text-[12px] font-semibold"
-                style={{ background: '#e0d8f0', color: '#6e5fa0' }}>🕐 {t}</span>
+                style={{ background: 'var(--accent-bg-light)', color: 'var(--accent-dark)' }}>🕐 {t}</span>
             ))}
           </div>
         )}
@@ -132,7 +132,7 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
         <label className="flex items-center gap-3 mb-5 cursor-pointer">
           <div onClick={() => setReminder(r => !r)}
             className="w-11 h-6 rounded-full transition-all flex items-center px-1"
-            style={{ background: reminder ? '#6e5fa0' : '#e8e4dc' }}>
+            style={{ background: reminder ? 'var(--accent-dark)' : '#e8e4dc' }}>
             <div className="w-4 h-4 rounded-full bg-white transition-all"
               style={{ transform: reminder ? 'translateX(20px)' : 'translateX(0)' }} />
           </div>
@@ -143,7 +143,7 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
 
         <button onClick={() => void submit()} disabled={saving || !title.trim()}
           className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >{saving ? 'Сохраняем…' : '💊 Добавить лекарство'}</button>
       </div>
     </div>
@@ -158,8 +158,8 @@ function StatusIcon({ status }: { status: string }) {
   if (status === 'missed')  return <span className="text-[20px]">❌</span>;
   return (
     <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
-      style={{ borderColor: '#6e5fa0' }}>
-      <div className="w-2 h-2 rounded-full" style={{ background: '#6e5fa0' }} />
+      style={{ borderColor: 'var(--accent-dark)' }}>
+      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent-dark)' }} />
     </div>
   );
 }
@@ -173,7 +173,7 @@ function ReminderBanner({ item, onTake, onDismiss }: {
 }) {
   return (
     <div className="rounded-[16px] p-4 mb-4 flex items-center gap-3"
-      style={{ background: 'linear-gradient(135deg, #6e5fa0, #9c5e6c)', color: '#fff' }}>
+      style={{ background: 'linear-gradient(135deg, var(--accent-dark), var(--accent-rose))', color: '#fff' }}>
       <span className="text-[28px] flex-shrink-0">💊</span>
       <div className="flex-1 min-w-0">
         <p className="text-[14px] font-bold leading-tight">Время принять {item.title}</p>
@@ -182,7 +182,7 @@ function ReminderBanner({ item, onTake, onDismiss }: {
       <div className="flex gap-2 flex-shrink-0">
         <button onClick={onTake}
           className="px-3 py-1.5 rounded-full text-[12px] font-bold bg-white"
-          style={{ color: '#6e5fa0' }}>✅ Принял</button>
+          style={{ color: 'var(--accent-dark)' }}>✅ Принял</button>
         <button onClick={onDismiss}
           className="px-2 py-1.5 rounded-full text-[12px] font-bold"
           style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>✕</button>
@@ -282,9 +282,9 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
           <div className="flex items-center gap-3 mb-2">
             <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ background: '#f4f3ef' }}>
               <div className="h-full rounded-full transition-all"
-                style={{ width: `${stats.percent}%`, background: 'linear-gradient(90deg, #6e5fa0, #9c5e6c)' }} />
+                style={{ width: `${stats.percent}%`, background: 'linear-gradient(90deg, var(--accent-dark), var(--accent-rose))' }} />
             </div>
-            <span className="text-[16px] font-extrabold" style={{ color: '#6e5fa0' }}>{stats.percent}%</span>
+            <span className="text-[16px] font-extrabold" style={{ color: 'var(--accent-dark)' }}>{stats.percent}%</span>
           </div>
           <p className="text-[11px] text-text-muted">
             ✅ Принято: {stats.taken} · ⏭️ Пропущено: {stats.skipped} · ❌ Забыто: {stats.missed}
@@ -407,7 +407,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
       <button
         onClick={() => setShowAdd(true)}
         className="w-full flex items-center justify-center gap-2 h-12 rounded-card text-[13px] font-semibold transition-opacity hover:opacity-80"
-        style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)', color: '#ffffff' }}
+        style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))', color: '#ffffff' }}
       >
         + Добавить лекарство
       </button>

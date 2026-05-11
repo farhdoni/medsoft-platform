@@ -116,7 +116,7 @@ export default async function ProfilePage({
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <section
           className="rounded-[20px] p-6 mb-5 flex items-center gap-5"
-          style={{ background: 'linear-gradient(135deg, #b89dc4, #957aaa)' }}
+          style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-mid))' }}
         >
           <div className="w-20 h-20 rounded-[20px] bg-white/20 flex-shrink-0 flex items-center justify-center text-[28px] font-bold text-white">
             {initials}
@@ -146,7 +146,7 @@ export default async function ProfilePage({
         {/* ── CTA ───────────────────────────────────────────────────────────── */}
         <section
           className="rounded-[20px] p-5 mt-2"
-          style={{ background: 'linear-gradient(135deg, #b89dc4, #957aaa)' }}
+          style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-mid))' }}
         >
           <p className="text-white font-bold text-[15px] mb-3 text-center">Показать анкету врачу</p>
           <div className="grid grid-cols-2 gap-2">

@@ -14,13 +14,13 @@ interface MenuItem {
 
 const MENU_ITEMS: MenuItem[] = [
   { icon: 'family',   softBg: '#f0d4dc', title: 'Мой профиль',           subtitle: 'Возраст, болезни',     href: '/profile' },
-  { icon: 'kit',      softBg: '#e0d8f0', title: 'Медицинский профиль',   subtitle: 'Аллергии, препараты',  href: '/profile' },
+  { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медицинский профиль',   subtitle: 'Аллергии, препараты',  href: '/profile' },
   { icon: 'heart',    softBg: '#f0d4dc', title: 'Биометрия',             subtitle: 'Показатели здоровья', href: '/vitals' },
   { icon: 'steps',    softBg: '#d4e8d8', title: 'Гаджеты',               subtitle: 'Трекеры и часы',     href: '/gadgets' },
   { icon: 'chat',     softBg: '#d4e8d8', title: 'AI-чат',                subtitle: 'Помощник по здоровью', href: '/chat' },
   { icon: 'family',   softBg: '#d4dff0', title: 'Семья',                 subtitle: 'Поделиться доступом',  href: '/family' },
   { icon: 'shield',   softBg: '#f0d4dc', title: 'Конфиденциальность',                                      href: '/settings' },
-  { icon: 'settings', softBg: '#e0d8f0', title: 'Настройки',             subtitle: 'Уведомления, язык',   href: '/settings' },
+  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',             subtitle: 'Уведомления, язык',   href: '/settings' },
   { icon: 'sparkle',  softBg: '#d4e8d8', title: 'Помощь и поддержка',                                      href: '/settings' },
 ];
 
@@ -86,7 +86,7 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
         ref={buttonRef}
         onClick={handleToggle}
         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold hover:opacity-90 transition-opacity"
-        style={{ background: 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)' }}
+        style={{ background: 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)' }}
         aria-label="Меню профиля"
       >
         {initials}
@@ -112,7 +112,7 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
           <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid #e8e4dc' }}>
             <div
               className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)' }}
             >
               {initials}
             </div>

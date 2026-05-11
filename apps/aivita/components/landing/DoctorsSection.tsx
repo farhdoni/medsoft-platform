@@ -35,7 +35,7 @@ function DoctorAvatar({ doc }: { doc: DoctorCard }) {
   const initials = doc.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? '?';
   return (
     <div className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-lg"
-      style={{ background: 'linear-gradient(135deg, #9889c4, #6e5fa0)' }}>
+      style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))' }}>
       {initials}
     </div>
   );
@@ -99,7 +99,7 @@ export default function DoctorsSection({ locale = 'ru' }: { locale?: string }) {
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Поиск врача по имени..."
-            className="w-full px-4 py-3 rounded-2xl border border-[#e8e4dc] bg-white text-sm focus:outline-none focus:border-[#9889c4]"
+            className="w-full px-4 py-3 rounded-2xl border border-[#e8e4dc] bg-white text-sm focus:outline-none focus:border-[color:var(--accent)]"
           />
         </div>
 
@@ -109,9 +109,9 @@ export default function DoctorsSection({ locale = 'ru' }: { locale?: string }) {
             <button key={s} onClick={() => setFilter(s)}
               className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
               style={{
-                background: filter === s ? '#6e5fa0' : '#fff',
+                background: filter === s ? 'var(--accent-dark)' : '#fff',
                 color: filter === s ? '#fff' : '#6a6580',
-                border: `1px solid ${filter === s ? '#6e5fa0' : '#e8e4dc'}`,
+                border: `1px solid ${filter === s ? 'var(--accent-dark)' : '#e8e4dc'}`,
               }}>
               {s}
             </button>
@@ -121,7 +121,7 @@ export default function DoctorsSection({ locale = 'ru' }: { locale?: string }) {
         {/* Cards */}
         {loading ? (
           <div className="text-center text-[#9a96a8] py-12">
-            <div className="w-8 h-8 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             Загрузка...
           </div>
         ) : doctors.length === 0 ? (
@@ -161,7 +161,7 @@ export default function DoctorsSection({ locale = 'ru' }: { locale?: string }) {
                 <div className="flex gap-2">
                   <a href={`/${locale}/doctors/${doc.userId}`}
                     className="flex-1 py-2.5 text-white rounded-xl text-xs font-semibold text-center"
-                    style={{ background: '#6e5fa0' }}>
+                    style={{ background: 'var(--accent-dark)' }}>
                     Подробнее
                   </a>
                   <a href={`/${locale}/chat`}

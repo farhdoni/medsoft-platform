@@ -9,7 +9,7 @@ export function MobileHeroPulse({ metrics }: { metrics: DailyMetrics }) {
       className="relative mx-5 mt-3 overflow-hidden rounded-[20px] p-5 text-white"
       style={{
         background:
-          "linear-gradient(135deg, #c4a8c8 0%, #b89dc4 50%, #a890b8 100%)",
+          "linear-gradient(135deg, var(--hero-from-light) 0%, var(--hero-from) 50%, var(--hero-mid) 100%)",
       }}
     >
       <div className="text-[12px] font-medium opacity-90">Индекс здоровья</div>

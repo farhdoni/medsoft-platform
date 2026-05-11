@@ -61,7 +61,7 @@ export default function DoctorLoginPage() {
           <div className="text-center mb-8">
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl"
-              style={{ background: 'linear-gradient(135deg, #6e5fa0, #4a7ab5)' }}
+              style={{ background: 'linear-gradient(135deg, var(--accent-dark), #4a7ab5)' }}
             >
               👨‍⚕️
             </div>
@@ -115,7 +115,7 @@ export default function DoctorLoginPage() {
                     background: '#f9f8f6',
                     color: '#2a2540',
                   }}
-                  onFocus={e => { e.currentTarget.style.borderColor = '#6e5fa0'; e.currentTarget.style.background = '#fff'; }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent-dark)'; e.currentTarget.style.background = '#fff'; }}
                   onBlur={e => { e.currentTarget.style.borderColor = '#e8e4dc'; e.currentTarget.style.background = '#f9f8f6'; }}
                 />
               </div>
@@ -133,7 +133,7 @@ export default function DoctorLoginPage() {
                   <Link
                     href={`/${locale}/forgot-password`}
                     className="text-xs"
-                    style={{ color: '#6e5fa0' }}
+                    style={{ color: 'var(--accent-dark)' }}
                   >
                     Забыли пароль?
                   </Link>
@@ -152,7 +152,7 @@ export default function DoctorLoginPage() {
                       background: '#f9f8f6',
                       color: '#2a2540',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#6e5fa0'; e.currentTarget.style.background = '#fff'; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent-dark)'; e.currentTarget.style.background = '#fff'; }}
                     onBlur={e => { e.currentTarget.style.borderColor = '#e8e4dc'; e.currentTarget.style.background = '#f9f8f6'; }}
                   />
                   <button
@@ -175,8 +175,8 @@ export default function DoctorLoginPage() {
                 style={{
                   height: 52,
                   background: pending
-                    ? '#c4bdd8'
-                    : 'linear-gradient(135deg, #6e5fa0, #4a7ab5)',
+                    ? 'var(--accent-disabled)'
+                    : 'linear-gradient(135deg, var(--accent-dark), #4a7ab5)',
                   cursor: pending ? 'not-allowed' : 'pointer',
                 }}
               >
@@ -199,12 +199,12 @@ export default function DoctorLoginPage() {
               <Link
                 href={`/${locale}/sign-up`}
                 className="font-semibold"
-                style={{ color: '#6e5fa0' }}
+                style={{ color: 'var(--accent-dark)' }}
               >
                 Создать аккаунт врача
               </Link>
             </p>
-            <p className="text-xs" style={{ color: '#c4bdd8' }}>
+            <p className="text-xs" style={{ color: 'var(--accent-disabled)' }}>
               Пациент?{' '}
               <Link
                 href={`/${locale}/sign-in`}

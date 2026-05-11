@@ -73,7 +73,7 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
           {RELATION_OPTIONS.map(r => (
             <button key={r.value} onClick={() => setRelation(r.value)}
               className="py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: relation === r.value ? '#6e5fa0' : '#f4f3ef', color: relation === r.value ? '#fff' : '#2a2540' }}
+              style={{ background: relation === r.value ? 'var(--accent-dark)' : '#f4f3ef', color: relation === r.value ? '#fff' : '#2a2540' }}
             >{r.label}</button>
           ))}
         </div>
@@ -93,7 +93,7 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
           {(['male', 'female', ''] as const).map((g) => (
             <button key={g} onClick={() => setGender(g)}
               className="flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: gender === g ? '#6e5fa0' : '#f4f3ef', color: gender === g ? '#fff' : '#2a2540' }}
+              style={{ background: gender === g ? 'var(--accent-dark)' : '#f4f3ef', color: gender === g ? '#fff' : '#2a2540' }}
             >{g === 'male' ? 'Мужской' : g === 'female' ? 'Женский' : 'Не указан'}</button>
           ))}
         </div>
@@ -102,7 +102,7 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
 
         <button onClick={() => void submit()} disabled={saving || !name.trim()}
           className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >
           {saving ? 'Сохраняем…' : '👨‍👩‍👧 Добавить'}
         </button>

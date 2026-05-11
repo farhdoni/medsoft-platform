@@ -71,7 +71,7 @@ export default function DoctorChatsPage() {
 
   if (loading) return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -81,14 +81,14 @@ export default function DoctorChatsPage() {
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         {!showList && selected && (
           <button onClick={() => { setShowList(true); setSelected(null); }}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[#6e5fa0] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</button>
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</button>
         )}
         <h1 className="text-xl font-bold text-[#2a2540] flex-1">
           {!showList && selected ? selected.user.name : 'Чаты'}
         </h1>
         {!showList && selected && (
           <Link href={`/${locale}/doctor-patient/${selected.user.id}`}
-            className="text-xs text-[#6e5fa0] font-medium">Карточка →</Link>
+            className="text-xs text-[color:var(--accent-dark)] font-medium">Карточка →</Link>
         )}
       </div>
 
@@ -107,7 +107,7 @@ export default function DoctorChatsPage() {
                 className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80"
                 style={{ borderColor: '#e8e4dc' }}>
                 <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
-                  style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                  style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                   {initials(p.user.name)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -130,7 +130,7 @@ export default function DoctorChatsPage() {
           <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
             {loadingNotes && (
               <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             {!loadingNotes && notes.length === 0 && (
@@ -141,7 +141,7 @@ export default function DoctorChatsPage() {
             {notes.map(n => (
               <div key={n.id} className="flex justify-end">
                 <div className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm"
-                  style={{ background: '#6e5fa0', color: '#fff' }}>
+                  style={{ background: 'var(--accent-dark)', color: '#fff' }}>
                   <p>{n.text}</p>
                   <p className="text-[10px] text-white/60 mt-1 text-right">{fmtTime(n.createdAt)}</p>
                 </div>
@@ -165,7 +165,7 @@ export default function DoctorChatsPage() {
               <VoiceInput onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)} />
               <button onClick={handleSend} disabled={sending || !input.trim()}
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-opacity"
-                style={{ background: '#6e5fa0', opacity: !input.trim() ? 0.4 : 1 }}>
+                style={{ background: 'var(--accent-dark)', opacity: !input.trim() ? 0.4 : 1 }}>
                 {sending ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
@@ -179,13 +179,13 @@ export default function DoctorChatsPage() {
             {/* Quick action */}
             <div className="flex gap-2 mt-2 pb-1">
               <Link href={`/${locale}/doctor-prescriptions`}
-                className="text-xs px-3 py-1.5 rounded-full border font-medium text-[#6e5fa0]"
-                style={{ borderColor: '#6e5fa0' }}>
+                className="text-xs px-3 py-1.5 rounded-full border font-medium text-[color:var(--accent-dark)]"
+                style={{ borderColor: 'var(--accent-dark)' }}>
                 💊 Назначить
               </Link>
               <Link href={`/${locale}/doctor-appointments`}
-                className="text-xs px-3 py-1.5 rounded-full border font-medium text-[#6e5fa0]"
-                style={{ borderColor: '#6e5fa0' }}>
+                className="text-xs px-3 py-1.5 rounded-full border font-medium text-[color:var(--accent-dark)]"
+                style={{ borderColor: 'var(--accent-dark)' }}>
                 📅 Записать
               </Link>
             </div>

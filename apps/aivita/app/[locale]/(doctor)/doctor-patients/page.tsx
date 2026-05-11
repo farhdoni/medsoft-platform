@@ -86,9 +86,9 @@ export default function DoctorPatientsPage() {
             <button key={t.id} onClick={() => setTab(t.id)}
               className="px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors flex-shrink-0"
               style={{
-                background: tab === t.id ? '#6e5fa0' : '#fff',
+                background: tab === t.id ? 'var(--accent-dark)' : '#fff',
                 color: tab === t.id ? '#fff' : '#9a96a8',
-                border: `1px solid ${tab === t.id ? '#6e5fa0' : '#e8e4dc'}`,
+                border: `1px solid ${tab === t.id ? 'var(--accent-dark)' : '#e8e4dc'}`,
               }}>
               {t.label}
               {t.id === 'pending' && pending.length > 0 && (
@@ -109,7 +109,7 @@ export default function DoctorPatientsPage() {
                 <div key={p.user.id} className="bg-white rounded-2xl p-4 border flex items-center gap-3"
                   style={{ borderColor: '#e8e4dc' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                    style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                     {initials(p.user.name)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -119,7 +119,7 @@ export default function DoctorPatientsPage() {
                   <div className="flex gap-2">
                     <button onClick={() => handleAccept(p.user.id)} disabled={accepting === p.user.id}
                       className="text-xs px-3 py-1.5 rounded-full text-white font-medium transition-opacity"
-                      style={{ background: '#6e5fa0', opacity: accepting === p.user.id ? 0.6 : 1 }}>
+                      style={{ background: 'var(--accent-dark)', opacity: accepting === p.user.id ? 0.6 : 1 }}>
                       {accepting === p.user.id ? '...' : 'Принять'}
                     </button>
                     <button onClick={() => handleArchive(p.user.id)}
@@ -136,7 +136,7 @@ export default function DoctorPatientsPage() {
         {/* Patient list */}
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
@@ -153,7 +153,7 @@ export default function DoctorPatientsPage() {
                   style={{ borderColor: '#e8e4dc' }}>
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
-                    style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                    style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                     {initials(p.user.name)}
                   </div>
                   {/* Info */}

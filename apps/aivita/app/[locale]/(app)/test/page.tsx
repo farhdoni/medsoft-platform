@@ -50,7 +50,7 @@ const SYSTEMS: Array<{
     icon: 'bell',
     softBg: 'bg-bg-soft-purple',
     accentText: 'text-accent-purple-deep',
-    accentHex: '#6e5fa0',
+    accentHex: 'var(--accent-dark)',
   },
   {
     id: 'mental',
@@ -87,8 +87,8 @@ function scoreLabel(n: number) {
 
 function scoreColor(n: number) {
   if (n >= 80) return '#548068';
-  if (n >= 65) return '#9889c4';
-  if (n >= 50) return '#8aa1cc';
+  if (n >= 65) return 'var(--accent)';
+  if (n >= 50) return 'var(--hero-from)';
   return '#cc8a96';
 }
 

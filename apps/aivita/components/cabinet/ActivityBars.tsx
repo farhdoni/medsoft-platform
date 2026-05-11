@@ -25,7 +25,7 @@ export const ActivityBars: React.FC<ActivityBarsProps> = ({
               style={{
                 height: `${(v / max) * 100}%`,
                 background: highlightLast && i === data.length - 1
-                  ? 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)'
+                  ? 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)'
                   : '#e8e4dc',
               }}
             />

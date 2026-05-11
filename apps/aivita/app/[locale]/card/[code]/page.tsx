@@ -36,7 +36,7 @@ export default async function MedicalCardPage({
           <div className="text-5xl mb-4">🚫</div>
           <h1 className="text-xl font-bold text-[#2a2540] mb-2">Карта не найдена</h1>
           <p className="text-sm text-[#9a96a8]">Медкарта деактивирована или не существует</p>
-          <a href="https://aivita.uz" className="text-xs text-[#6e5fa0] font-semibold mt-3 block">
+          <a href="https://aivita.uz" className="text-xs text-[color:var(--accent-dark)] font-semibold mt-3 block">
             aivita.uz
           </a>
         </div>
@@ -49,7 +49,7 @@ export default async function MedicalCardPage({
       <div className="bg-white rounded-3xl shadow-xl max-w-md w-full overflow-hidden">
         {/* Header */}
         <div className="p-6 text-white text-center"
-          style={{ background: 'linear-gradient(135deg, #b89dc4, #957aaa)' }}>
+          style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-mid))' }}>
           <div className="text-3xl mb-2">🏥</div>
           <h1 className="text-lg font-bold">{data.name}</h1>
           <p className="text-xs opacity-70 mt-1">Медицинская карта · Aivita</p>
@@ -79,7 +79,7 @@ export default async function MedicalCardPage({
               <div className="text-sm font-semibold text-[#2a2540]">{data.emergencyContactName}</div>
               {data.emergencyContactPhone && (
                 <a href={`tel:${data.emergencyContactPhone}`}
-                  className="text-xs text-[#6e5fa0] underline">{data.emergencyContactPhone}</a>
+                  className="text-xs text-[color:var(--accent-dark)] underline">{data.emergencyContactPhone}</a>
               )}
             </div>
           </div>
@@ -90,7 +90,7 @@ export default async function MedicalCardPage({
           <p className="text-xs text-[#9a96a8]">
             Полная информация доступна авторизованным врачам
           </p>
-          <a href="https://aivita.uz" className="text-xs text-[#6e5fa0] font-semibold mt-1 block">
+          <a href="https://aivita.uz" className="text-xs text-[color:var(--accent-dark)] font-semibold mt-1 block">
             aivita.uz
           </a>
         </div>

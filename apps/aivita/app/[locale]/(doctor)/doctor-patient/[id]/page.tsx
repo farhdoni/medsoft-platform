@@ -29,7 +29,7 @@ function calcAge(dob?: string) {
 }
 
 const TYPE_ICONS: Record<string, { icon: string; label: string; color: string }> = {
-  appointment: { icon: '🩺', label: 'Приём', color: '#e8e4f0' },
+  appointment: { icon: '🩺', label: 'Приём', color: 'var(--accent-bg)' },
   prescription: { icon: '💊', label: 'Назначение', color: '#e8f4ec' },
   vital:        { icon: '📊', label: 'Показатель', color: '#fff3e8' },
 };
@@ -89,7 +89,7 @@ export default function DoctorPatientPage() {
 
   if (loading) return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -108,18 +108,18 @@ export default function DoctorPatientPage() {
     <div>
       {/* Header */}
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
-        <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[#6e5fa0] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</Link>
+        <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</Link>
         <h1 className="font-bold text-[#2a2540] flex-1 truncate">{patient.user.name}</h1>
         <Link href={`/${locale}/doctor-appointments`}
           className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
-          style={{ background: '#6e5fa0' }}>+ Приём</Link>
+          style={{ background: 'var(--accent-dark)' }}>+ Приём</Link>
       </div>
 
       <div className="px-4 pb-4 space-y-4">
         {/* Hero */}
         <div className="bg-white rounded-2xl p-5 border flex gap-4" style={{ borderColor: '#e8e4dc' }}>
           <div className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl font-bold"
-            style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
             {initials(patient.user.name)}
           </div>
           <div className="flex-1 min-w-0">
@@ -189,7 +189,7 @@ export default function DoctorPatientPage() {
           {(['timeline', 'vitals', 'notes'] as const).map(t => (
             <button key={t} onClick={() => setActiveTab(t)}
               className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
-              style={{ background: activeTab === t ? '#6e5fa0' : '#fff', color: activeTab === t ? '#fff' : '#9a96a8', border: `1px solid ${activeTab === t ? '#6e5fa0' : '#e8e4dc'}` }}>
+              style={{ background: activeTab === t ? 'var(--accent-dark)' : '#fff', color: activeTab === t ? '#fff' : '#9a96a8', border: `1px solid ${activeTab === t ? 'var(--accent-dark)' : '#e8e4dc'}` }}>
               {t === 'timeline' ? 'Таймлайн' : t === 'vitals' ? 'Показатели' : `Заметки (${notes.length})`}
             </button>
           ))}
@@ -248,8 +248,8 @@ export default function DoctorPatientPage() {
         {activeTab === 'notes' && (
           <div className="space-y-3">
             <button onClick={() => setShowAddNote(true)}
-              className="w-full py-3 rounded-xl border-2 border-dashed text-sm font-medium text-[#6e5fa0] flex items-center justify-center gap-2"
-              style={{ borderColor: '#6e5fa0' }}>
+              className="w-full py-3 rounded-xl border-2 border-dashed text-sm font-medium text-[color:var(--accent-dark)] flex items-center justify-center gap-2"
+              style={{ borderColor: 'var(--accent-dark)' }}>
               <span>+</span> Добавить заметку
             </button>
             {pinnedNotes.map(n => (
@@ -311,7 +311,7 @@ export default function DoctorPatientPage() {
                 style={{ borderColor: '#e8e4dc' }}>Отмена</button>
               <button onClick={handleAddNote} disabled={savingNote}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
-                style={{ background: '#6e5fa0', opacity: savingNote ? 0.6 : 1 }}>
+                style={{ background: 'var(--accent-dark)', opacity: savingNote ? 0.6 : 1 }}>
                 {savingNote ? 'Сохранение...' : 'Сохранить'}
               </button>
             </div>

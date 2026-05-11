@@ -135,7 +135,7 @@ export default function DoctorAiPage() {
               const val = typeof v.value === 'object' ? Object.values(v.value).join('/') : v.value;
               return (
                 <span key={i} className="text-xs px-2 py-1 rounded-lg font-medium"
-                  style={{ background: '#f0eefc', color: '#6e5fa0' }}>
+                  style={{ background: 'var(--accent-bg)', color: 'var(--accent-dark)' }}>
                   {v.type.replace('_', ' ')}: {val}
                 </span>
               );
@@ -149,7 +149,7 @@ export default function DoctorAiPage() {
         {messages.length === 0 && (
           <div className="text-center py-8">
             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+              style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
               <Icon3D name="sparkle" size={32} />
             </div>
             <p className="text-[#9a96a8] text-sm mb-4">
@@ -159,8 +159,8 @@ export default function DoctorAiPage() {
               <div className="flex flex-wrap gap-2 justify-center">
                 {QUICK_PROMPTS.map(p => (
                   <button key={p} onClick={() => sendMessage(p)}
-                    className="text-xs px-3 py-1.5 rounded-full border font-medium text-[#6e5fa0] transition-colors active:bg-[#e8e4f0]"
-                    style={{ borderColor: '#6e5fa0' }}>{p}</button>
+                    className="text-xs px-3 py-1.5 rounded-full border font-medium  transition-colors "
+                    style={{ borderColor: 'var(--accent-dark)' }}>{p}</button>
                 ))}
               </div>
             )}
@@ -171,7 +171,7 @@ export default function DoctorAiPage() {
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'assistant' && (
               <div className="w-7 h-7 rounded-full flex-shrink-0 mr-2 flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                 <Icon3D name="sparkle" size={14} />
               </div>
             )}
@@ -179,7 +179,7 @@ export default function DoctorAiPage() {
               m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'
             }`}
               style={{
-                background: m.role === 'user' ? '#6e5fa0' : '#fff',
+                background: m.role === 'user' ? 'var(--accent-dark)' : '#fff',
                 color: m.role === 'user' ? '#fff' : '#2a2540',
                 border: m.role === 'assistant' ? '1px solid #e8e4dc' : 'none',
               }}>
@@ -214,7 +214,7 @@ export default function DoctorAiPage() {
           )}
           <button onClick={() => sendMessage(input)} disabled={streaming || !input.trim() || !selectedPatient}
             className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-opacity"
-            style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)', opacity: streaming || !input.trim() || !selectedPatient ? 0.4 : 1 }}>
+            style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))', opacity: streaming || !input.trim() || !selectedPatient ? 0.4 : 1 }}>
             {streaming ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (

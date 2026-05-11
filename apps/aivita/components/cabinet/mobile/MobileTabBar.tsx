@@ -65,7 +65,7 @@ export function MobileTabBar({
         className="-mt-7 grid h-[58px] w-[58px] place-items-center rounded-full text-white shadow-[0_8px_24px_rgba(110,95,160,0.4)] transition active:scale-95"
         style={{
           background:
-            "linear-gradient(135deg, #9889c4 0%, #6e5fa0 100%)",
+            "linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)",
         }}
       >
         <span className="text-[28px] font-light leading-none">+</span>

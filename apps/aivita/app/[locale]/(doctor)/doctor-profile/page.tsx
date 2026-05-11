@@ -212,7 +212,7 @@ export default function DoctorProfilePage() {
 
   if (loading) return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -222,7 +222,7 @@ export default function DoctorProfilePage() {
   return (
     <div>
       {/* Hero */}
-      <div className="px-4 pt-14 pb-4" style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+      <div className="px-4 pt-14 pb-4" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
         <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold border-2 border-white/40"
             style={{ background: 'rgba(255,255,255,0.2)' }}>
@@ -256,11 +256,11 @@ export default function DoctorProfilePage() {
         <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-[#2a2540]">Заполненность профиля</span>
-            <span className="text-sm font-bold text-[#6e5fa0]">{completion}%</span>
+            <span className="text-sm font-bold text-[color:var(--accent-dark)]">{completion}%</span>
           </div>
           <div className="h-2 bg-[#e8e4dc] rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #8aa1cc, #6e5fa0)' }} />
+              style={{ width: `${completion}%`, background: 'linear-gradient(90deg, var(--hero-from), var(--accent-dark))' }} />
           </div>
           {completion < 80 && <p className="text-xs text-[#9a96a8] mt-2">Заполните профиль для прохождения верификации</p>}
         </div>
@@ -293,7 +293,7 @@ export default function DoctorProfilePage() {
         <Section title="👤 Личные данные" open={openSections.personal} onToggle={() => toggleSection('personal')}>
           <div className="flex justify-end mb-3">
             <button onClick={() => openEdit('personal')}
-              className="text-xs font-medium text-[#6e5fa0]">✎ Редактировать</button>
+              className="text-xs font-medium text-[color:var(--accent-dark)]">✎ Редактировать</button>
           </div>
           {/* Passport accordion */}
           <div className="mb-4 p-3 rounded-xl bg-[#f8f7ff]">
@@ -325,7 +325,7 @@ export default function DoctorProfilePage() {
                 <button key={l.code} onClick={() => toggleLanguage(l.code)}
                   className="flex-1 py-1.5 rounded-full text-xs font-semibold transition-colors"
                   style={{
-                    background: (profile?.languages ?? []).includes(l.code) ? '#6e5fa0' : '#f0f0f0',
+                    background: (profile?.languages ?? []).includes(l.code) ? 'var(--accent-dark)' : '#f0f0f0',
                     color: (profile?.languages ?? []).includes(l.code) ? '#fff' : '#9a96a8',
                   }}>{l.label}</button>
               ))}
@@ -336,7 +336,7 @@ export default function DoctorProfilePage() {
         {/* 2. Professional */}
         <Section title="🩺 Профессиональные данные" open={openSections.professional} onToggle={() => toggleSection('professional')}>
           <div className="flex justify-end mb-3">
-            <button onClick={() => openEdit('professional')} className="text-xs font-medium text-[#6e5fa0]">✎ Редактировать</button>
+            <button onClick={() => openEdit('professional')} className="text-xs font-medium text-[color:var(--accent-dark)]">✎ Редактировать</button>
           </div>
           <Field label="Специализация" value={profile?.specialization} />
           {exp !== null && <Field label="Опыт работы" value={`${exp} лет`} />}
@@ -349,9 +349,9 @@ export default function DoctorProfilePage() {
             <div className="flex flex-wrap gap-1.5 mb-2">
               {(profile?.additionalSkills ?? []).map((s, i) => (
                 <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full"
-                  style={{ background: '#e8e4f0', color: '#6e5fa0' }}>
+                  style={{ background: 'var(--accent-bg)', color: 'var(--accent-dark)' }}>
                   {s}
-                  <button onClick={() => removeSkill(i)} className="ml-0.5 text-[#6e5fa0] font-bold">×</button>
+                  <button onClick={() => removeSkill(i)} className="ml-0.5 text-[color:var(--accent-dark)] font-bold">×</button>
                 </span>
               ))}
             </div>
@@ -362,7 +362,7 @@ export default function DoctorProfilePage() {
                 className="flex-1 p-2 rounded-xl border text-xs outline-none"
                 style={{ borderColor: '#e8e4dc' }} />
               <button onClick={addSkill} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
-                style={{ background: '#6e5fa0' }}>+</button>
+                style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
           </div>
 
@@ -385,7 +385,7 @@ export default function DoctorProfilePage() {
                 className="flex-1 p-2 rounded-xl border text-xs outline-none"
                 style={{ borderColor: '#e8e4dc' }} />
               <button onClick={addDisease} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
-                style={{ background: '#6e5fa0' }}>+</button>
+                style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
           </div>
         </Section>
@@ -407,7 +407,7 @@ export default function DoctorProfilePage() {
               <Field label="Номер" value={profile?.diplomaNumber} />
             </div>
             <button onClick={() => openEdit('diploma')}
-              className="text-xs font-medium text-[#6e5fa0] mt-1">✎ Редактировать</button>
+              className="text-xs font-medium text-[color:var(--accent-dark)] mt-1">✎ Редактировать</button>
           </div>
 
           {/* Certificates */}
@@ -436,7 +436,7 @@ export default function DoctorProfilePage() {
                 type="number" placeholder="Год" style={{ width: 64, borderColor: '#e8e4dc' }}
                 className="p-2 rounded-xl border text-xs outline-none" />
               <button onClick={addCertificate}
-                className="px-3 py-2 rounded-xl text-xs text-white font-medium" style={{ background: '#6e5fa0' }}>+</button>
+                className="px-3 py-2 rounded-xl text-xs text-white font-medium" style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
           </div>
 
@@ -454,14 +454,14 @@ export default function DoctorProfilePage() {
               <Field label="Дата выдачи" value={profile?.licenseIssuedAt} />
               <Field label="Действует до" value={profile?.licenseExpiresAt} />
             </div>
-            <button onClick={() => openEdit('license')} className="text-xs font-medium text-[#6e5fa0] mt-1">✎ Редактировать</button>
+            <button onClick={() => openEdit('license')} className="text-xs font-medium text-[color:var(--accent-dark)] mt-1">✎ Редактировать</button>
           </div>
         </Section>
 
         {/* 4. Workplace */}
         <Section title="🏥 Место работы" open={openSections.workplace} onToggle={() => toggleSection('workplace')}>
           <div className="flex justify-end mb-3">
-            <button onClick={() => openEdit('workplace')} className="text-xs font-medium text-[#6e5fa0]">✎ Редактировать</button>
+            <button onClick={() => openEdit('workplace')} className="text-xs font-medium text-[color:var(--accent-dark)]">✎ Редактировать</button>
           </div>
           {!profile?.clinicName ? (
             <div className="text-center py-4 text-[#9a96a8]">
@@ -493,7 +493,7 @@ export default function DoctorProfilePage() {
               <span className="text-sm text-[#2a2540]">{item.label}</span>
               <button onClick={() => toggleVisibility(item.field as keyof DoctorProfile)}
                 className="w-12 h-6 rounded-full transition-colors relative"
-                style={{ background: profile?.[item.field as keyof DoctorProfile] ? '#6e5fa0' : '#e8e4dc' }}>
+                style={{ background: profile?.[item.field as keyof DoctorProfile] ? 'var(--accent-dark)' : '#e8e4dc' }}>
                 <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
                   style={{ left: profile?.[item.field as keyof DoctorProfile] ? '26px' : '2px' }} />
               </button>
@@ -501,18 +501,18 @@ export default function DoctorProfilePage() {
           ))}
 
           {/* Preview card */}
-          <div className="mt-4 p-4 rounded-2xl border-2 border-dashed" style={{ borderColor: '#6e5fa0' }}>
-            <p className="text-xs font-bold text-[#6e5fa0] mb-3">Превью для пациентов</p>
+          <div className="mt-4 p-4 rounded-2xl border-2 border-dashed" style={{ borderColor: 'var(--accent-dark)' }}>
+            <p className="text-xs font-bold text-[color:var(--accent-dark)] mb-3">Превью для пациентов</p>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                 {initials(session?.name ?? '?')}
               </div>
               <div>
                 <p className="font-semibold text-[#2a2540] text-sm">{session?.name}</p>
                 <p className="text-xs text-[#9a96a8]">{profile?.specialization}</p>
                 {profile?.showRating && profile?.rating && (
-                  <p className="text-xs text-[#6e5fa0]">★ {(+profile.rating).toFixed(1)} · {profile.ratingCount} отзывов</p>
+                  <p className="text-xs text-[color:var(--accent-dark)]">★ {(+profile.rating).toFixed(1)} · {profile.ratingCount} отзывов</p>
                 )}
               </div>
               {profile?.showPrice && (
@@ -600,7 +600,7 @@ export default function DoctorProfilePage() {
                 style={{ borderColor: '#e8e4dc' }}>Отмена</button>
               <button onClick={handleSave} disabled={saving}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
-                style={{ background: '#6e5fa0', opacity: saving ? 0.6 : 1 }}>
+                style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Сохранение...' : 'Сохранить'}
               </button>
             </div>

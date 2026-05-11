@@ -64,7 +64,7 @@ export default async function PublicDoctorPage({
         <div className="text-center">
           <div className="text-5xl mb-4">👤</div>
           <h1 className="text-xl font-bold text-[#2a2540] mb-2">Врач не найден</h1>
-          <a href={`/${locale}`} className="text-sm text-[#6e5fa0] underline">На главную</a>
+          <a href={`/${locale}`} className="text-sm text-[color:var(--accent-dark)] underline">На главную</a>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default async function PublicDoctorPage({
   return (
     <div className="min-h-screen bg-[#f4f3ef]">
       {/* Header */}
-      <div className="p-6 text-white" style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+      <div className="p-6 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
         <a href={`/${locale}`} className="text-white/70 text-sm mb-4 block">← Назад</a>
         <div className="flex items-center gap-4">
           {p.photoUrl ? (
@@ -130,7 +130,7 @@ export default async function PublicDoctorPage({
           )}
           <a href={`/${locale}/chat`}
             className="block w-full py-3 text-white text-sm font-semibold rounded-2xl text-center"
-            style={{ background: '#6e5fa0' }}>
+            style={{ background: 'var(--accent-dark)' }}>
             Записаться на приём
           </a>
         </div>
@@ -150,7 +150,7 @@ export default async function PublicDoctorPage({
             <div className="flex gap-2 flex-wrap">
               {p.languages.map(lang => (
                 <span key={lang} className="text-xs px-3 py-1 rounded-full"
-                  style={{ background: '#e8e4f0', color: '#6e5fa0' }}>
+                  style={{ background: 'var(--accent-bg)', color: 'var(--accent-dark)' }}>
                   {lang === 'ru' ? '🇷🇺 Русский' : lang === 'uz' ? '🇺🇿 Узбекский' : lang === 'en' ? '🇬🇧 English' : lang}
                 </span>
               ))}

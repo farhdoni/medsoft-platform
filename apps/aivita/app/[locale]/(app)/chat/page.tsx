@@ -324,10 +324,10 @@ export default function ChatPage() {
             <div className="p-4 border-t" style={{ borderColor: '#e8e4dc' }}>
               <div
                 className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                style={{ background: '#e0d8f0' }}
+                style={{ background: 'var(--accent-bg)' }}
               >
                 <span className="text-[18px]">💬</span>
-                <span className="text-[13px] font-semibold" style={{ color: '#6e5fa0' }}>
+                <span className="text-[13px] font-semibold" style={{ color: 'var(--accent-dark)' }}>
                   {locale === 'uz' ? 'AI-chat (hozir shu yerdasiz)' : locale === 'en' ? 'AI Chat (you are here)' : 'AI-чат (вы здесь)'}
                 </span>
               </div>

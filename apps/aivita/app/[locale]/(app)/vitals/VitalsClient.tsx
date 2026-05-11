@@ -24,10 +24,10 @@ export const VITAL_DEFS: VitalDef[] = [
   { type: 'blood_pressure', label: 'Давление',     unit: 'mmHg', min: 40,  max: 250, icon: '🩺',  color: '#5e75a8', bg: '#d4dff0', dual: true },
   { type: 'blood_sugar',  label: 'Сахар',          unit: 'мг/дл',min: 20,  max: 600, icon: '🩸',  color: '#9c5e6c', bg: '#f0d4dc' },
   { type: 'temperature',  label: 'Температура',    unit: '°C',   min: 34,  max: 42,  step: 0.1, icon: '🌡️', color: '#688844', bg: '#d4e8d8' },
-  { type: 'weight',       label: 'Вес',            unit: 'кг',   min: 20,  max: 300, step: 0.1, icon: '⚖️', color: '#6e5fa0', bg: '#e0d8f0' },
+  { type: 'weight',       label: 'Вес',            unit: 'кг',   min: 20,  max: 300, step: 0.1, icon: '⚖️', color: 'var(--accent-dark)', bg: 'var(--accent-bg-light)' },
   { type: 'sleep_hours',  label: 'Сон',            unit: 'часов',min: 0,   max: 24,  step: 0.5, icon: '😴', color: '#5e75a8', bg: '#d4dff0' },
   { type: 'water_ml',     label: 'Вода',           unit: 'мл',   min: 0,   max: 10000,step: 100, icon: '💧', color: '#548068', bg: '#d4e8d8' },
-  { type: 'steps',        label: 'Шаги',           unit: 'шагов',min: 0,   max: 100000, icon: '👟', color: '#6e5fa0', bg: '#e0d8f0' },
+  { type: 'steps',        label: 'Шаги',           unit: 'шагов',min: 0,   max: 100000, icon: '👟', color: 'var(--accent-dark)', bg: 'var(--accent-bg-light)' },
   { type: 'spo2',         label: 'SpO2',           unit: '%',    min: 70,  max: 100, icon: '🫁', color: '#5e75a8', bg: '#d4dff0' },
 ];
 
@@ -269,7 +269,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
           onClick={handleSave}
           disabled={saving}
           className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mb-2"
-          style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >
           {saving ? 'Сохранение...' : '💾 Сохранить'}
         </button>
@@ -339,7 +339,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
         <button
           onClick={() => setShowModal(true)}
           className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[20px] font-bold hover:opacity-90 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #cc8a96 0%, #9889c4 100%)' }}
+          style={{ background: 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)' }}
           aria-label="Добавить показатель"
         >
           +
@@ -364,7 +364,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
       <button
         onClick={() => setShowModal(true)}
         className="w-full py-3.5 rounded-[16px] text-[14px] font-bold text-white transition-opacity hover:opacity-90"
-        style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+        style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
       >
         + Добавить показатель
       </button>

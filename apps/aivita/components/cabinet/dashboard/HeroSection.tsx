@@ -46,7 +46,7 @@ export function HeroSection({ user, metrics }: Props) {
       className="relative mx-7 mt-3 overflow-hidden rounded-hero p-8 text-white"
       style={{
         background:
-          "linear-gradient(135deg, #b89dc4 0%, #a890b8 45%, #957aaa 100%)",
+          "linear-gradient(135deg, var(--hero-from) 0%, var(--hero-mid) 45%, var(--hero-to) 100%)",
       }}
     >
       <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-start">
@@ -120,7 +120,7 @@ export function HeroSection({ user, metrics }: Props) {
               <defs>
                 <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#cc8a96" />
-                  <stop offset="55%" stopColor="#9889c4" />
+                  <stop offset="55%" stopColor="var(--accent)" />
                   <stop offset="100%" stopColor="#80b094" />
                 </linearGradient>
               </defs>

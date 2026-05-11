@@ -49,7 +49,7 @@ export default function QrCardSection() {
     <>
       <button onClick={() => setShowQr(true)}
         className="w-full bg-white border border-[#e8e4dc] rounded-2xl p-4 flex items-center gap-3 hover:bg-[#faf9f6] transition-colors active:opacity-80">
-        <div className="w-10 h-10 rounded-full bg-[#e0d8f0] flex items-center justify-center text-lg flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-[color:var(--accent-bg-light)] flex items-center justify-center text-lg flex-shrink-0">
           📱
         </div>
         <div className="text-left flex-1 min-w-0">
@@ -72,7 +72,7 @@ export default function QrCardSection() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qrUrl} alt="QR код медкарты" className="mx-auto w-48 h-48 rounded-xl mb-3" />
 
-            <p className="text-xs text-[#6e5fa0] font-mono mb-2">{card.cardCode}</p>
+            <p className="text-xs text-[color:var(--accent-dark)] font-mono mb-2">{card.cardCode}</p>
             <p className="text-xs text-[#9a96a8] mb-5">{card.url}</p>
 
             <div className="flex gap-2 mb-3">
@@ -81,7 +81,7 @@ export default function QrCardSection() {
                 📥 Скачать
               </a>
               <button onClick={handleShare}
-                className="flex-1 py-3 bg-[#6e5fa0] text-white rounded-2xl text-xs font-medium">
+                className="flex-1 py-3 bg-[color:var(--accent-dark)] text-white rounded-2xl text-xs font-medium">
                 📤 Поделиться
               </button>
             </div>

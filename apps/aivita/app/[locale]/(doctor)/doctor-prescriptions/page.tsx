@@ -16,7 +16,7 @@ interface Patient { user: { id: string; name: string }; }
 const TYPE_ICON: Record<string, string> = { medication: '💊', test: '🧪', procedure: '🩺' };
 const TYPE_LABEL: Record<string, string> = { medication: 'Лекарство', test: 'Анализ', procedure: 'Процедура' };
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  active:    { bg: '#e8e4f0', color: '#6e5fa0', label: 'Активно' },
+  active:    { bg: 'var(--accent-bg)', color: 'var(--accent-dark)', label: 'Активно' },
   pending:   { bg: '#fff3e8', color: '#c07038', label: 'Ожидание' },
   completed: { bg: '#e8f4ec', color: '#2d7a56', label: 'Выполнено' },
   cancelled: { bg: '#fff0ec', color: '#c0304a', label: 'Отменено' },
@@ -107,13 +107,13 @@ export default function DoctorPrescriptionsPage() {
           <h1 className="text-xl font-bold text-[#2a2540]">Назначения</h1>
           <button onClick={() => setShowCreate(true)}
             className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
-            style={{ background: '#6e5fa0' }}>+ Создать</button>
+            style={{ background: 'var(--accent-dark)' }}>+ Создать</button>
         </div>
         <div className="flex gap-2">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex-1 py-2 rounded-full text-xs font-semibold transition-colors"
-              style={{ background: tab === t.id ? '#6e5fa0' : '#fff', color: tab === t.id ? '#fff' : '#9a96a8', border: `1px solid ${tab === t.id ? '#6e5fa0' : '#e8e4dc'}` }}>
+              style={{ background: tab === t.id ? 'var(--accent-dark)' : '#fff', color: tab === t.id ? '#fff' : '#9a96a8', border: `1px solid ${tab === t.id ? 'var(--accent-dark)' : '#e8e4dc'}` }}>
               {t.label}
             </button>
           ))}
@@ -123,7 +123,7 @@ export default function DoctorPrescriptionsPage() {
       <div className="px-4 pb-4 space-y-3">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-[3px] border-[color:var(--accent-dark)] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : presc.length === 0 ? (
           <div className="text-center py-12">
@@ -169,7 +169,7 @@ export default function DoctorPrescriptionsPage() {
               {(['medication', 'test', 'procedure'] as const).map(t => (
                 <button key={t} onClick={() => setForm(f => ({ ...f, type: t, templateId: '' }))}
                   className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
-                  style={{ background: form.type === t ? '#6e5fa0' : '#f0f0f0', color: form.type === t ? '#fff' : '#9a96a8' }}>
+                  style={{ background: form.type === t ? 'var(--accent-dark)' : '#f0f0f0', color: form.type === t ? '#fff' : '#9a96a8' }}>
                   {TYPE_ICON[t]} {TYPE_LABEL[t]}
                 </button>
               ))}
@@ -248,7 +248,7 @@ export default function DoctorPrescriptionsPage() {
             <label className="flex items-center gap-2 mb-5 cursor-pointer">
               <input type="checkbox" checked={form.saveAsTemplate}
                 onChange={e => setForm(f => ({ ...f, saveAsTemplate: e.target.checked }))}
-                className="w-4 h-4 rounded" style={{ accentColor: '#6e5fa0' }} />
+                className="w-4 h-4 rounded" style={{ accentColor: 'var(--accent-dark)' }} />
               <span className="text-sm text-[#2a2540]">Сохранить как шаблон</span>
             </label>
 
@@ -258,7 +258,7 @@ export default function DoctorPrescriptionsPage() {
                 style={{ borderColor: '#e8e4dc' }}>Отмена</button>
               <button onClick={handleCreate} disabled={saving || !form.title || !form.patientId}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
-                style={{ background: '#6e5fa0', opacity: saving || !form.title || !form.patientId ? 0.5 : 1 }}>
+                style={{ background: 'var(--accent-dark)', opacity: saving || !form.title || !form.patientId ? 0.5 : 1 }}>
                 {saving ? 'Сохранение...' : 'Создать'}
               </button>
             </div>

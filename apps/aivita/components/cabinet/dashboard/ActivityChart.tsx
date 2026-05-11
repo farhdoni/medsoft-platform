@@ -63,7 +63,7 @@ export function ActivityChart({ data }: { data: ActivityPoint[] }) {
               style={{
                 height: barH,
                 background: isToday
-                  ? "linear-gradient(180deg, #cc8a96 0%, #9889c4 100%)"
+                  ? "linear-gradient(180deg, var(--accent-rose-light) 0%, var(--accent) 100%)"
                   : "#e8e4dc",
               }}
               aria-label={`${d.day}: ${v}`}

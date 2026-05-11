@@ -108,7 +108,7 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
             autoFocus
             value={val}
             className="text-[13px] rounded-[8px] border px-2 py-1 outline-none bg-white max-w-[180px] flex-1"
-            style={{ borderColor: err ? '#cc8a96' : '#9889c4', color: '#2a2540' }}
+            style={{ borderColor: err ? 'var(--accent-rose-light)' : 'var(--accent)', color: '#2a2540' }}
             onChange={e => {
               const v = e.target.value;
               setVal(v);
@@ -137,7 +137,7 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
           autoFocus
           disabled={saving}
           className="text-[13px] rounded-[8px] border px-2 py-1 outline-none text-right max-w-[180px] flex-1 disabled:opacity-50"
-          style={{ borderColor: err ? '#cc8a96' : '#9889c4', color: '#2a2540' }}
+          style={{ borderColor: err ? 'var(--accent-rose-light)' : 'var(--accent)', color: '#2a2540' }}
           onChange={e => setVal(e.target.value)}
           onBlur={() => commit(val)}
           onKeyDown={e => {
@@ -598,7 +598,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
             {aiRec.specialization && (
               <Link href={`/${locale}/chat`}
                 className="px-3 py-1.5 rounded-full text-[12px] font-semibold text-white"
-                style={{ background: '#6e5fa0' }}
+                style={{ background: 'var(--accent-dark)' }}
               >
                 Спросить AI о {aiRec.specialization}е
               </Link>
@@ -619,7 +619,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
         </div>
         <div className="h-2 rounded-full bg-[#f0d4dc] overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${completion}%`, background: 'linear-gradient(90deg,#9c5e6c,#6e5fa0)' }} />
+            style={{ width: `${completion}%`, background: 'linear-gradient(90deg,var(--accent-rose),var(--accent-dark))' }} />
         </div>
         {completion < 100 && (
           <p className="text-[11px] mt-1.5" style={{ color: '#9a96a8' }}>
@@ -631,7 +631,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
       {/* ── Metric cards ────────────────────────────────────────────────────── */}
       <section className="grid grid-cols-4 gap-2 mb-4">
         <MetricCard label="Рост"  field="heightCm" value={profile?.heightCm ?? null} unit="см" bg="#f0d4dc" color="#9c5e6c" inputType="number" onSave={saveField} />
-        <MetricCard label="Вес"   field="weightKg" value={profile?.weightKg ?? null} unit="кг" bg="#e0d8f0" color="#6e5fa0" inputType="number" onSave={saveField} />
+        <MetricCard label="Вес"   field="weightKg" value={profile?.weightKg ?? null} unit="кг" bg="var(--accent-bg-light)" color="var(--accent-dark)" inputType="number" onSave={saveField} />
         <MetricCard label="ИМТ"   field="bmi"      value={bmi}                        bg="#d4e8d8" color="#548068" onSave={saveField} readOnly />
         <MetricCard label="Кровь" field="bloodType" value={profile?.bloodType ?? null} bg="#d4dff0" color="#5e75a8" options={BLOOD_OPTS} onSave={saveField} />
       </section>
@@ -639,7 +639,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
       {/* ── Profile chips ────────────────────────────────────────────────────── */}
       {(profile?.gender || profile?.city || profile?.bloodType) && (
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {profile.gender   && <span className="bg-[#e0d8f0] text-[#6e5fa0] text-[11px] font-semibold px-2 py-0.5 rounded-full">{labelOf(GENDER_OPTS, profile.gender)}</span>}
+          {profile.gender   && <span className="bg-[color:var(--accent-bg-light)] text-[color:var(--accent-dark)] text-[11px] font-semibold px-2 py-0.5 rounded-full">{labelOf(GENDER_OPTS, profile.gender)}</span>}
           {profile.city     && <span className="bg-[#d4dff0] text-[#5e75a8] text-[11px] font-semibold px-2 py-0.5 rounded-full">📍 {profile.city}</span>}
           {profile.bloodType && <span className="bg-[#f0d4dc] text-[#9c5e6c] text-[11px] font-semibold px-2 py-0.5 rounded-full">🩸 {profile.bloodType}</span>}
         </div>
@@ -692,7 +692,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
               <QuickAddList
                 items={vaccinations.map(v => ({ id: v.id, name: v.name }))}
                 onAdd={n => addHistory(n, 'other')} onDelete={deleteHistory}
-                placeholder="Название прививки" tagBg="#e0d8f0" tagColor="#6e5fa0"
+                placeholder="Название прививки" tagBg="var(--accent-bg-light)" tagColor="var(--accent-dark)"
               />
             </ListSection>
             <ListSection label="Операции">
@@ -728,7 +728,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
           <Link
             href={`/${locale}/family`}
             className="block text-center text-[13px] font-semibold py-2 rounded-[12px] border border-[#e8e4dc] hover:bg-[#f4f3ef] transition-colors"
-            style={{ color: '#6e5fa0' }}
+            style={{ color: 'var(--accent-dark)' }}
           >
             + Пригласить члена семьи
           </Link>

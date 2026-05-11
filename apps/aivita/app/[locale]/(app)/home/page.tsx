@@ -105,7 +105,7 @@ export default async function HomePage({
             <VitalMiniTile
               icon="⚖️" label="Вес"
               value={getNumericVal(vitals.weight)} unit="кг"
-              bg="#e0d8f0" color="#6e5fa0"
+              bg="var(--accent-bg-light)" color="var(--accent-dark)"
             />
             <VitalMiniTile
               icon="😴" label="Сон"

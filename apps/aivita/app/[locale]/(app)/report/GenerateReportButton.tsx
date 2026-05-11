@@ -25,7 +25,7 @@ export function GenerateReportButton() {
       onClick={generate}
       disabled={status === 'loading'}
       className="inline-flex items-center gap-2 rounded-chip px-5 py-2.5 text-[13px] font-semibold text-white transition hover:opacity-80 disabled:opacity-60"
-      style={{ background: '#6e5fa0' }}
+      style={{ background: 'var(--accent-dark)' }}
     >
       {status === 'loading' ? (
         <>

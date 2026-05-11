@@ -36,14 +36,14 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
               href={`/${locale}${item.href}`}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition-all duration-200"
               style={{
-                background: active ? '#e8e4f0' : 'transparent',
+                background: active ? 'var(--accent-bg)' : 'transparent',
                 minWidth: 54,
               }}
             >
               <Icon3D name={item.icon} size={24} />
               <span
                 className="text-[10px] font-semibold leading-none whitespace-nowrap"
-                style={{ color: active ? '#6e5fa0' : '#9a96a8' }}
+                style={{ color: active ? 'var(--accent-dark)' : '#9a96a8' }}
               >
                 {item.label}
               </span>
@@ -56,7 +56,7 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
           href={`/${locale}/doctor-ai`}
           className="flex items-center justify-center w-11 h-11 rounded-full ml-1 transition-all duration-200 active:scale-95"
           style={{
-            background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)',
+            background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))',
             boxShadow: '0 4px 16px rgba(110, 95, 160, 0.45)',
           }}
           title="AI-ассистент"

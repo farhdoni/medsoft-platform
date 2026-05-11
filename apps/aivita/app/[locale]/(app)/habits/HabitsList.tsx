@@ -74,7 +74,7 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
           {EMOJI_OPTIONS.map(e => (
             <button key={e} onClick={() => setEmoji(e)}
               className="w-9 h-9 rounded-[10px] text-[18px] flex items-center justify-center transition-all"
-              style={{ background: emoji === e ? '#e0d8f0' : '#f4f3ef', border: emoji === e ? '2px solid #6e5fa0' : '2px solid transparent' }}
+              style={{ background: emoji === e ? 'var(--accent-bg-light)' : '#f4f3ef', border: emoji === e ? '2px solid var(--accent-dark)' : '2px solid transparent' }}
             >{e}</button>
           ))}
         </div>
@@ -95,7 +95,7 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
           {(['binary', 'count'] as const).map(t => (
             <button key={t} onClick={() => setGoalType(t)}
               className="flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: goalType === t ? '#6e5fa0' : '#f4f3ef', color: goalType === t ? '#fff' : '#2a2540' }}
+              style={{ background: goalType === t ? 'var(--accent-dark)' : '#f4f3ef', color: goalType === t ? '#fff' : '#2a2540' }}
             >{t === 'binary' ? 'Да/Нет' : 'Количество'}</button>
           ))}
         </div>
@@ -119,7 +119,7 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
 
         <button onClick={() => void submit()} disabled={saving || !name.trim()}
           className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >
           {saving ? 'Сохраняем…' : `${emoji} Добавить привычку`}
         </button>

@@ -115,7 +115,7 @@ function InstructionsModal({
             <button
               onClick={() => { onConnect(device); onClose(); }}
               className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white transition-opacity hover:opacity-90 mb-2"
-              style={{ background: 'linear-gradient(135deg, #9c5e6c, #6e5fa0)' }}
+              style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
             >
               Подключить через Google Fit
             </button>
