@@ -21,7 +21,7 @@ export default async function DoctorLayout({
   }
 
   return (
-    <div className="min-h-screen bg-app">
+    <div className="doctor-theme min-h-screen bg-app-bg">
       <div className="mx-auto w-full max-w-[480px]">
         {children}
       </div>
