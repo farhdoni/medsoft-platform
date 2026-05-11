@@ -5,6 +5,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // ── Soft Clay Matte design tokens ─────────────────────────────────
+        'app-bg': '#f4f3ef',
+        'app-card': '#ffffff',
+        'app-t1': '#2a2540',
+        'app-t2': '#6a6580',
+        'app-t3': '#9a96a8',
+        'app-border': '#e8e4dc',
+        // Patient (pink) accent
+        'patient': '#cc8a96',
+        'patient-light': '#f0d4dc',
+        'patient-dark': '#9c5e6c',
+        // Doctor (sky-blue) accent
+        'doctor': '#6BA3D6',
+        'doctor-light': '#dbeeff',
+        'doctor-dark': '#4a7fb5',
+        'doctor-bg': '#eef5fc',
+        // Icon palette
+        'icon-pink': '#cc8a96',
+        'icon-purple': '#9889c4',
+        'icon-mint': '#80b094',
+        'icon-blue': '#8aa1cc',
+        'icon-green': '#9ab866',
+        'icon-sky': '#6BA3D6',
         // ── Handoff tokens (cabinet) ──────────────────────────────────────
         bg: {
           app: '#f4f3ef',
@@ -111,6 +134,8 @@ const config: Config = {
         'gradient-pink-blue': 'linear-gradient(135deg, rgb(var(--pink-500)) 0%, rgb(var(--blue-700)) 100%)',
         'gradient-air-pink': 'linear-gradient(135deg, rgba(255,232,240,0.7), rgba(255,218,232,0.6))',
         'gradient-air-blue': 'linear-gradient(135deg, rgba(180,220,240,0.4), rgba(255,218,232,0.45), rgba(200,235,225,0.4))',
+        'gradient-doctor': 'linear-gradient(135deg, #6BA3D6 0%, #89b8e0 100%)',
+        'gradient-doctor-soft': 'linear-gradient(135deg, #dbeeff 0%, #eef5fc 100%)',
       },
       boxShadow: {
         card: '0 4px 12px rgba(42, 37, 64, 0.06)',

@@ -41,6 +41,32 @@
     --shadow-pink: 0 12px 30px rgb(212 132 154 / 0.2);
     --shadow-pink-strong: 0 20px 50px rgb(212 132 154 / 0.3);
     --shadow-mint: 0 12px 30px rgb(45 186 154 / 0.2);
+
+    /* ── Soft Clay Matte theming vars (patient = pink default) ── */
+    --accent: #cc8a96;
+    --accent-light: #f0d4dc;
+    --accent-dark: #9c5e6c;
+    --accent-bg: #fdf5f7;
+    --hero-from: #b89dc4;
+    --hero-mid: #a890b8;
+    --hero-to: #9c83ad;
+    --role-badge-bg: #f0d4dc;
+    --role-badge-text: #9c5e6c;
+    --shadow-accent: 0 12px 30px rgb(204 138 150 / 0.25);
+  }
+
+  /* ── Doctor cabinet theme (sky-blue accent) ── */
+  .doctor-theme {
+    --accent: #6BA3D6;
+    --accent-light: #dbeeff;
+    --accent-dark: #4a7fb5;
+    --accent-bg: #eef5fc;
+    --hero-from: #6BA3D6;
+    --hero-mid: #89b8e0;
+    --hero-to: #4a7fb5;
+    --role-badge-bg: #dbeeff;
+    --role-badge-text: #4a7fb5;
+    --shadow-accent: 0 12px 30px rgb(107 163 214 / 0.25);
   }
 
   * { box-sizing: border-box; }
