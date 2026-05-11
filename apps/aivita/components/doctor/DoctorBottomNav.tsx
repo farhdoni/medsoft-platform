@@ -17,9 +17,9 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
   const isActive = (href: string) => !!pathname?.includes(href);
 
   return (
-    <>
+    <div className="sticky bottom-0 w-full z-40 flex justify-center pb-4 pt-2 pointer-events-none">
       <nav
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center px-2 py-2 rounded-full border border-app-border"
+        className="flex items-center px-2 py-2 rounded-full border border-app-border pointer-events-auto"
         style={{
           background: 'rgba(255,255,255,0.96)',
           backdropFilter: 'blur(16px)',
@@ -63,7 +63,6 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
           <Icon3D name="sparkle" size={20} />
         </Link>
       </nav>
-      <div className="h-24" />
-    </>
+    </div>
   );
 }
