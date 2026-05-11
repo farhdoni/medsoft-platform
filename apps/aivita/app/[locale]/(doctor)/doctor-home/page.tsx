@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import { TopBar } from '@/components/cabinet/dashboard/TopBar';
 
 interface DoctorStats {
   totalConsultations: number;
@@ -87,36 +88,24 @@ export default function DoctorHomePage() {
 
   if (loading) return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="w-10 h-10 border-[3px] border-[#6e5fa0] border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-[3px] border-t-transparent rounded-full animate-spin"
+        style={{ borderColor: 'var(--accent) transparent var(--accent) var(--accent)' }} />
     </div>
   );
 
   return (
     <div>
       {/* TopBar */}
-      <div className="sticky top-0 z-30 bg-[#f4f3ef]/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
-        <span className="text-xl font-bold text-[#2a2540]">aivita</span>
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: '#6e5fa0' }}>Врач</span>
-        <div className="flex-1" />
-        <div className="relative">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#f0eefc' }}>
-            <Icon3D name="bell" size={18} />
-          </div>
-          {notifs.length > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center">
-              {Math.min(notifs.length, 9)}
-            </span>
-          )}
-        </div>
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-          style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
-          {initials(docName)}
-        </div>
-      </div>
+      <TopBar
+        avatarInitial={initials(docName)}
+        locale={locale}
+        role="doctor"
+        unreadCount={notifs.length}
+      />
 
       <div className="px-4 pb-4 space-y-4">
         {/* Hero */}
-        <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+        <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
           <p className="text-white/70 text-sm">{greeting}</p>
           <h1 className="text-xl font-bold mt-0.5">Dr. {docName.split(' ')[0]}</h1>
           {docSpec && <p className="text-white/80 text-xs mt-1">{docSpec}</p>}
@@ -149,12 +138,12 @@ export default function DoctorHomePage() {
               const cnt = upcoming.filter(u => new Date(u.appointment.scheduledAt).toDateString() === d.toDateString()).length;
               return (
                 <div key={day} className="flex flex-col items-center gap-1 p-1.5 rounded-xl"
-                  style={{ background: isToday ? '#6e5fa0' : 'transparent' }}>
+                  style={{ background: isToday ? 'var(--accent)' : 'transparent' }}>
                   <span className="text-[10px] font-semibold" style={{ color: isToday ? '#fff' : '#9a96a8' }}>{day}</span>
                   <span className="text-sm font-bold" style={{ color: isToday ? '#fff' : '#2a2540' }}>{d.getDate()}</span>
                   {cnt > 0 && (
                     <span className="text-[9px] font-bold px-1.5 rounded-full"
-                      style={{ background: isToday ? 'rgba(255,255,255,0.3)' : '#e8e4f0', color: isToday ? '#fff' : '#6e5fa0' }}>
+                      style={{ background: isToday ? 'rgba(255,255,255,0.3)' : 'var(--accent-light)', color: isToday ? '#fff' : 'var(--accent-dark)' }}>
                       {cnt}
                     </span>
                   )}
@@ -170,7 +159,7 @@ export default function DoctorHomePage() {
             <h2 className="text-sm font-bold text-[#2a2540] mb-3">Ближайший приём</h2>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
                 {initials(upcoming[0].patient.name)}
               </div>
               <div className="flex-1">
@@ -179,7 +168,7 @@ export default function DoctorHomePage() {
               </div>
               <Link href={`/${locale}/doctor-appointments`}
                 className="text-xs font-medium px-3 py-1 rounded-full"
-                style={{ background: '#f0eefc', color: '#6e5fa0' }}>Открыть</Link>
+                style={{ background: 'var(--accent-light)', color: 'var(--accent-dark)' }}>Открыть</Link>
             </div>
           </div>
         )}
@@ -198,7 +187,7 @@ export default function DoctorHomePage() {
                   </div>
                   {n.relatedPatientId && (
                     <Link href={`/${locale}/doctor-patient/${n.relatedPatientId}`}
-                      className="text-xs font-medium text-[#6e5fa0] flex-shrink-0">→</Link>
+                      className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--accent)' }}>→</Link>
                   )}
                 </div>
               ))}
@@ -212,12 +201,12 @@ export default function DoctorHomePage() {
             <h2 className="text-sm font-bold text-[#2a2540] mb-3">🆕 Новые запросы ({pendingNotifs.length})</h2>
             <div className="space-y-2">
               {pendingNotifs.slice(0, 2).map(n => (
-                <div key={n.id} className="flex items-center gap-3 p-3 rounded-xl bg-purple-50">
+                <div key={n.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--accent-bg)' }}>
                   <p className="flex-1 text-xs text-[#2a2540]">{n.message ?? n.title}</p>
                   <div className="flex gap-1.5">
                     <button onClick={() => handlePatientRequest(n.id, n.relatedPatientId, 'accept')}
                       className="text-xs px-2.5 py-1 rounded-full text-white font-medium"
-                      style={{ background: '#6e5fa0' }}>✓</button>
+                      style={{ background: 'var(--accent)' }}>✓</button>
                     <button onClick={() => handlePatientRequest(n.id, n.relatedPatientId, 'archive')}
                       className="text-xs px-2.5 py-1 rounded-full text-[#9a96a8] bg-gray-100">✕</button>
                   </div>
@@ -232,7 +221,7 @@ export default function DoctorHomePage() {
           <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-[#2a2540]">Пациенты</h2>
-              <Link href={`/${locale}/doctor-patients`} className="text-xs text-[#6e5fa0]">Все →</Link>
+              <Link href={`/${locale}/doctor-patients`} className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Все →</Link>
             </div>
             <div className="space-y-2">
               {patients.length === 0 && <p className="text-xs text-[#9a96a8]">Нет пациентов</p>}
@@ -240,7 +229,7 @@ export default function DoctorHomePage() {
                 <Link key={p.user.id} href={`/${locale}/doctor-patient/${p.user.id}`}
                   className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold"
-                    style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                    style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
                     {initials(p.user.name)}
                   </div>
                   <div className="min-w-0">
@@ -255,14 +244,14 @@ export default function DoctorHomePage() {
           <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-[#2a2540]">Приёмы</h2>
-              <Link href={`/${locale}/doctor-appointments`} className="text-xs text-[#6e5fa0]">Все →</Link>
+              <Link href={`/${locale}/doctor-appointments`} className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Все →</Link>
             </div>
             <div className="space-y-2">
               {upcoming.length === 0 && <p className="text-xs text-[#9a96a8]">Нет приёмов</p>}
               {upcoming.slice(0, 3).map(u => (
                 <div key={u.appointment.id} className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold"
-                    style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+                    style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
                     {initials(u.patient.name)}
                   </div>
                   <div className="min-w-0">
@@ -277,7 +266,7 @@ export default function DoctorHomePage() {
 
         {/* AI CTA */}
         <Link href={`/${locale}/doctor-ai`}>
-          <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, #8aa1cc, #6e5fa0)' }}>
+          <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
             <div className="flex items-center gap-3 mb-3">
               <Icon3D name="sparkle" size={28} />
               <div>
