@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon, type IconName } from "@/components/icons/Icon";
+import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
 import { useState } from "react";
 
 interface Tab {

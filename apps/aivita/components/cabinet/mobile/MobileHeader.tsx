@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@/components/icons/Icon";
+import { Icon } from "@/components/cabinet/icons/Icon";
 import type { User } from "@/lib/types";
 
 export function MobileHeader({ user }: { user: User }) {

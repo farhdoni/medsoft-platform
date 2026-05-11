@@ -37,9 +37,9 @@ function calcExp(dateStr?: string) {
 export default async function PublicDoctorPage({
   params,
 }: {
-  params: { locale: string; id: string };
+  params: Promise<{ locale: string; id: string }>;
 }) {
-  const { locale, id } = params;
+  const { locale, id } = await params;
   let data: DoctorPublicData | null = null;
   let reviews: DoctorPublicData['reviews'] = [];
 

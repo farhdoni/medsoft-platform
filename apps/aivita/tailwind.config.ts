@@ -93,11 +93,6 @@ const config: Config = {
         hero: '24px',
         chip: '20px',
       },
-      boxShadow: {
-        card: '0 4px 12px rgba(42, 37, 64, 0.06)',
-        dropdown: '0 16px 48px rgba(42, 37, 64, 0.18)',
-        modal: '0 24px 64px rgba(42, 37, 64, 0.24)',
-      },
       letterSpacing: {
         'tightest': '-0.05em',
         'tighter': '-0.04em',
@@ -118,6 +113,9 @@ const config: Config = {
         'gradient-air-blue': 'linear-gradient(135deg, rgba(180,220,240,0.4), rgba(255,218,232,0.45), rgba(200,235,225,0.4))',
       },
       boxShadow: {
+        card: '0 4px 12px rgba(42, 37, 64, 0.06)',
+        dropdown: '0 16px 48px rgba(42, 37, 64, 0.18)',
+        modal: '0 24px 64px rgba(42, 37, 64, 0.24)',
         'card-hover': '0 4px 12px rgba(42, 37, 64, 0.06)',
         'clay-dropdown': '0 16px 48px rgba(42, 37, 64, 0.18)',
         'clay-modal': '0 24px 64px rgba(42, 37, 64, 0.24)',
