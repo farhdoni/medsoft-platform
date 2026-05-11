@@ -104,7 +104,7 @@ function InstructionsModal({
                 <li key={i} className="flex gap-3">
                   <span
                     className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-bold text-white"
-                    style={{ background: '#9c5e6c' }}
+                    style={{ background: 'var(--accent-dark)' }}
                   >
                     {i + 1}
                   </span>
@@ -238,7 +238,7 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
                     <button
                       onClick={() => handleDisconnect(device.id)}
                       className="px-3 py-2 rounded-[12px] text-[13px] transition-colors hover:bg-[#f0d4dc]"
-                      style={{ border: '1px solid #e8e4dc', color: '#9c5e6c' }}
+                      style={{ border: '1px solid #e8e4dc', color: 'var(--accent-dark)' }}
                     >
                       Отключить
                     </button>
@@ -282,7 +282,7 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
                   <button
                     onClick={() => setSelectedDevice(device)}
                     className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors hover:opacity-90"
-                    style={{ background: '#9c5e6c', color: '#ffffff' }}
+                    style={{ background: 'var(--accent-dark)', color: '#ffffff' }}
                   >
                     Подключить
                   </button>

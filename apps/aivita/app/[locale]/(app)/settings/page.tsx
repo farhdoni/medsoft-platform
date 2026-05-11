@@ -67,7 +67,7 @@ export default async function SettingsPage({
     {
       title: 'Аккаунт',
       items: [
-        { icon: User,   label: 'Профиль',          sub: 'Имя, дата рождения, пол',   href: `/${locale}/profile`, bg: '#f0d4dc', color: '#9c5e6c' },
+        { icon: User,   label: 'Профиль',          sub: 'Имя, дата рождения, пол',   href: `/${locale}/profile`, bg: 'var(--accent-light)', color: 'var(--accent-dark)' },
         { icon: Heart,  label: 'Мед. профиль',      sub: 'Аллергии, заболевания',     href: `/${locale}/profile`, bg: '#d4e8d8', color: '#548068' },
         { icon: Target, label: 'Цели здоровья',     sub: 'Шаги, сон, вода',           href: `/${locale}/profile`, bg: '#d4dff0', color: '#5e75a8' },
       ],

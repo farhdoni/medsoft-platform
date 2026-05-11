@@ -20,9 +20,9 @@ export interface VitalDef {
 }
 
 export const VITAL_DEFS: VitalDef[] = [
-  { type: 'heart_rate',   label: 'Пульс',         unit: 'bpm',   min: 30,  max: 250, icon: '❤️',  color: '#9c5e6c', bg: '#f0d4dc' },
+  { type: 'heart_rate',   label: 'Пульс',         unit: 'bpm',   min: 30,  max: 250, icon: '❤️',  color: 'var(--accent-dark)', bg: 'var(--accent-light)' },
   { type: 'blood_pressure', label: 'Давление',     unit: 'mmHg', min: 40,  max: 250, icon: '🩺',  color: '#5e75a8', bg: '#d4dff0', dual: true },
-  { type: 'blood_sugar',  label: 'Сахар',          unit: 'мг/дл',min: 20,  max: 600, icon: '🩸',  color: '#9c5e6c', bg: '#f0d4dc' },
+  { type: 'blood_sugar',  label: 'Сахар',          unit: 'мг/дл',min: 20,  max: 600, icon: '🩸',  color: 'var(--accent-dark)', bg: 'var(--accent-light)' },
   { type: 'temperature',  label: 'Температура',    unit: '°C',   min: 34,  max: 42,  step: 0.1, icon: '🌡️', color: '#688844', bg: '#d4e8d8' },
   { type: 'weight',       label: 'Вес',            unit: 'кг',   min: 20,  max: 300, step: 0.1, icon: '⚖️', color: 'var(--accent-dark)', bg: 'var(--accent-bg-light)' },
   { type: 'sleep_hours',  label: 'Сон',            unit: 'часов',min: 0,   max: 24,  step: 0.5, icon: '😴', color: '#5e75a8', bg: '#d4dff0' },
@@ -263,7 +263,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
           />
         </div>
 
-        {error && <p className="text-[12px] mb-3" style={{ color: '#9c5e6c' }}>{error}</p>}
+        {error && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{error}</p>}
 
         <button
           onClick={handleSave}

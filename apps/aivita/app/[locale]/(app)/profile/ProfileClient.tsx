@@ -156,7 +156,7 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
       className="w-full flex items-center justify-between py-2.5 border-b border-[#f0ede8] last:border-0 hover:bg-[#f9f8f5] rounded transition-colors text-left group"
     >
       <span className="text-[12px]" style={{ color: '#9a96a8' }}>{label}</span>
-      <span className="text-[13px] font-semibold" style={{ color: shown ? '#2a2540' : '#cc8a96' }}>
+      <span className="text-[13px] font-semibold" style={{ color: shown ? '#2a2540' : 'var(--accent)' }}>
         {saving ? '…' : (shown || placeholder)}
       </span>
     </button>
@@ -246,7 +246,7 @@ function MetricCard({ label, field, value, unit, bg, color, inputType = 'text', 
             {unit && <span className="text-[10px] font-normal ml-0.5" style={{ color: '#9a96a8' }}>{unit}</span>}
           </p>
         ) : (
-          <p className="text-[12px] font-medium" style={{ color: readOnly ? '#9a96a8' : '#cc8a96' }}>
+          <p className="text-[12px] font-medium" style={{ color: readOnly ? '#9a96a8' : 'var(--accent)' }}>
             {readOnly ? '—' : '+ добавить'}
           </p>
         )
@@ -349,13 +349,13 @@ function AllergyList({ items, onAdd, onDelete }: {
     <div>
       <div className="flex flex-wrap gap-1 items-center mb-1">
         {items.map(a => (
-          <span key={a.id} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f0d4dc]" style={{ color: '#9c5e6c' }}>
+          <span key={a.id} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f0d4dc]" style={{ color: 'var(--accent-dark)' }}>
             {a.allergen}
             <button type="button" onClick={() => onDelete(a.id)} className="opacity-50 hover:opacity-100 ml-0.5 font-bold">×</button>
           </span>
         ))}
         {!adding && (
-          <button type="button" onClick={() => setAdding(true)} className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-dashed hover:opacity-70 transition-opacity" style={{ borderColor: '#9c5e6c', color: '#9c5e6c' }}>
+          <button type="button" onClick={() => setAdding(true)} className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-dashed hover:opacity-70 transition-opacity" style={{ borderColor: 'var(--accent-dark)', color: 'var(--accent-dark)' }}>
             + добавить
           </button>
         )}
@@ -369,27 +369,27 @@ function AllergyList({ items, onAdd, onDelete }: {
             onKeyDown={e => { if (e.key === 'Enter') void handleAdd(); if (e.key === 'Escape') setAdding(false); }}
             placeholder="Аллерген (напр: пенициллин)"
             className="text-[12px] rounded-[8px] border px-2 py-1.5 outline-none w-full"
-            style={{ borderColor: '#f0d4dc' }}
+            style={{ borderColor: 'var(--accent-light)' }}
           />
           <div className="flex gap-1.5">
-            <select value={type} onChange={e => setType(e.target.value)} className="flex-1 text-[11px] rounded-[8px] border px-1.5 py-1 outline-none bg-white" style={{ borderColor: '#f0d4dc' }}>
+            <select value={type} onChange={e => setType(e.target.value)} className="flex-1 text-[11px] rounded-[8px] border px-1.5 py-1 outline-none bg-white" style={{ borderColor: 'var(--accent-light)' }}>
               <option value="medication">Лекарство</option>
               <option value="food">Еда</option>
               <option value="material">Материал</option>
               <option value="other">Другое</option>
             </select>
-            <select value={severity} onChange={e => setSev(e.target.value)} className="flex-1 text-[11px] rounded-[8px] border px-1.5 py-1 outline-none bg-white" style={{ borderColor: '#f0d4dc' }}>
+            <select value={severity} onChange={e => setSev(e.target.value)} className="flex-1 text-[11px] rounded-[8px] border px-1.5 py-1 outline-none bg-white" style={{ borderColor: 'var(--accent-light)' }}>
               <option value="mild">Лёгкая</option>
               <option value="moderate">Умеренная</option>
               <option value="severe">Тяжёлая</option>
               <option value="anaphylaxis">Анафилаксия</option>
             </select>
           </div>
-          {err && <p className="text-[11px]" style={{ color: '#9c5e6c' }}>{err}</p>}
+          {err && <p className="text-[11px]" style={{ color: 'var(--accent-dark)' }}>{err}</p>}
           <div className="flex gap-1.5">
             <button type="button" onClick={() => void handleAdd()} disabled={saving || !allergen.trim()}
               className="flex-1 py-1.5 rounded-[8px] text-[12px] font-semibold text-white disabled:opacity-40"
-              style={{ background: '#9c5e6c' }}>
+              style={{ background: 'var(--accent-dark)' }}>
               {saving ? '…' : 'Добавить'}
             </button>
             <button type="button" onClick={() => { setAllergen(''); setAdding(false); }}
@@ -615,7 +615,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
       <section className="rounded-[16px] bg-white border border-[#e8e4dc] p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>Профиль заполнен</p>
-          <p className="text-[13px] font-bold" style={{ color: '#9c5e6c' }}>{completion}%</p>
+          <p className="text-[13px] font-bold" style={{ color: 'var(--accent-dark)' }}>{completion}%</p>
         </div>
         <div className="h-2 rounded-full bg-[#f0d4dc] overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500"
@@ -630,7 +630,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
 
       {/* ── Metric cards ────────────────────────────────────────────────────── */}
       <section className="grid grid-cols-4 gap-2 mb-4">
-        <MetricCard label="Рост"  field="heightCm" value={profile?.heightCm ?? null} unit="см" bg="#f0d4dc" color="#9c5e6c" inputType="number" onSave={saveField} />
+        <MetricCard label="Рост"  field="heightCm" value={profile?.heightCm ?? null} unit="см" bg='var(--accent-light)' color='var(--accent-dark)' inputType="number" onSave={saveField} />
         <MetricCard label="Вес"   field="weightKg" value={profile?.weightKg ?? null} unit="кг" bg="var(--accent-bg-light)" color="var(--accent-dark)" inputType="number" onSave={saveField} />
         <MetricCard label="ИМТ"   field="bmi"      value={bmi}                        bg="#d4e8d8" color="#548068" onSave={saveField} readOnly />
         <MetricCard label="Кровь" field="bloodType" value={profile?.bloodType ?? null} bg="#d4dff0" color="#5e75a8" options={BLOOD_OPTS} onSave={saveField} />

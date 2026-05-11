@@ -113,7 +113,7 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
           </div>
         )}
 
-        {err && <p className="text-[12px] mb-3" style={{ color: '#9c5e6c' }}>{err}</p>}
+        {err && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{err}</p>}
 
         <button onClick={() => void submit()} disabled={saving || !name.trim()}
           className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
@@ -168,7 +168,7 @@ export function HabitsList({ initialHabits, today }: Props) {
           <button
             onClick={() => setShowAdd(true)}
             className="inline-flex items-center gap-2 rounded-chip px-5 py-2.5 text-[13px] font-semibold transition-opacity hover:opacity-80"
-            style={{ background: '#9c5e6c', color: '#ffffff' }}
+            style={{ background: 'var(--accent-dark)', color: '#ffffff' }}
           >
             + Добавить привычку
           </button>

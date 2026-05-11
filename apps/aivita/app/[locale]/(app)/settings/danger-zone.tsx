@@ -30,11 +30,11 @@ export function DangerZone({ locale = 'ru' }: { locale?: string }) {
         >
           <div
             className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center"
-            style={{ background: '#f0d4dc' }}
+            style={{ background: 'var(--accent-light)' }}
           >
-            <LogOut className="w-4 h-4" style={{ color: '#9c5e6c' }} />
+            <LogOut className="w-4 h-4" style={{ color: 'var(--accent-dark)' }} />
           </div>
-          <span className="text-[14px] font-semibold" style={{ color: '#9c5e6c' }}>
+          <span className="text-[14px] font-semibold" style={{ color: 'var(--accent-dark)' }}>
             Выйти из аккаунта
           </span>
         </button>

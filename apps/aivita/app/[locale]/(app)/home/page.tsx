@@ -86,7 +86,7 @@ export default async function HomePage({
             <Link
               href={`/${locale}/vitals`}
               className="text-[12px] font-semibold transition-colors hover:opacity-80"
-              style={{ color: '#9c5e6c' }}
+              style={{ color: 'var(--accent-dark)' }}
             >
               Все показатели →
             </Link>
@@ -95,7 +95,7 @@ export default async function HomePage({
             <VitalMiniTile
               icon="❤️" label="Пульс"
               value={getNumericVal(vitals.heart_rate)} unit="bpm"
-              bg="#f0d4dc" color="#9c5e6c"
+              bg='var(--accent-light)' color='var(--accent-dark)'
             />
             <VitalMiniTile
               icon="🩺" label="Давление"
@@ -117,7 +117,7 @@ export default async function HomePage({
             <Link
               href={`/${locale}/vitals`}
               className="mt-3 flex items-center justify-center gap-2 rounded-[12px] py-2.5 text-[13px] font-semibold transition-colors hover:opacity-80"
-              style={{ background: '#f4f3ef', color: '#9c5e6c' }}
+              style={{ background: '#f4f3ef', color: 'var(--accent-dark)' }}
             >
               + Добавить первый показатель
             </Link>

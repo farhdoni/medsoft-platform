@@ -8,7 +8,7 @@ interface PageHeaderProps {
   accentColor?: string;
 }
 
-export function PageHeader({ title, subtitle, accentColor = '#cc8a96' }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, accentColor = 'var(--accent)' }: PageHeaderProps) {
   return (
     <div className="px-4 md:px-6 py-5">
       <div className="flex items-center gap-3">

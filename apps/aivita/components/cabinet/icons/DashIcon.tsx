@@ -17,7 +17,7 @@ const PALETTE = {
   blue: { light: "#cdd9f0", mid: "#8aa1cc", dark: "#5e75a8" },
   purple: { light: "#d6cfee", mid: "#9889c4", dark: "#6e5fa0" },
   lime: { light: "#d8e8b0", mid: "#9ab866", dark: "#688844" },
-  pink: { light: "#f0c8d0", mid: "#cc8a96", dark: "#9c5e6c" },
+  pink: { light: "#f0c8d0", mid: 'var(--accent)', dark: 'var(--accent-dark)' },
   white: { light: "#fefdfa", mid: "#ece8e0", dark: "#bfb8a8" },
   mint: { light: "#c8e0d0", mid: "#80b094", dark: "#548068" },
   orange: { light: "#f5d4b0", mid: "#d8a06a", dark: "#a87238" },

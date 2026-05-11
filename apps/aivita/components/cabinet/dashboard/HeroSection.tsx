@@ -106,7 +106,7 @@ export function HeroSection({ user, metrics }: Props) {
           </div>
           <div className="relative mx-auto mt-3 grid h-[140px] w-[140px] place-items-center">
             <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
-              <circle cx="70" cy="70" r="56" fill="none" stroke="#f0d4dc" strokeWidth="10" />
+              <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
               <circle
                 cx="70"
                 cy="70"
@@ -119,7 +119,7 @@ export function HeroSection({ user, metrics }: Props) {
               />
               <defs>
                 <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#cc8a96" />
+                  <stop offset="0%" stopColor='var(--accent)' />
                   <stop offset="55%" stopColor="var(--accent)" />
                   <stop offset="100%" stopColor="#80b094" />
                 </linearGradient>

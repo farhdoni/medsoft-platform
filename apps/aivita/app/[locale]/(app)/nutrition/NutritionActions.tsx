@@ -121,7 +121,7 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           />
         </div>
 
-        {err && <p className="text-[12px] mb-3" style={{ color: '#9c5e6c' }}>{err}</p>}
+        {err && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{err}</p>}
 
         <button onClick={() => void submit()} disabled={saving || !name.trim() || !calories}
           className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"

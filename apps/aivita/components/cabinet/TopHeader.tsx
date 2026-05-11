@@ -23,7 +23,7 @@ export function TopHeader({ session, locale }: TopHeaderProps) {
         <Link href={`/${locale}/home`} className="flex items-center gap-1.5 group">
           <span
             className="text-xl font-bold transition-opacity group-hover:opacity-80"
-            style={{ color: '#cc8a96' }}
+            style={{ color: 'var(--accent)' }}
           >
             ✦
           </span>

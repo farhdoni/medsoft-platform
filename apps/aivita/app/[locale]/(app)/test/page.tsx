@@ -28,7 +28,7 @@ const SYSTEMS: Array<{
     icon: 'heart',
     softBg: 'bg-bg-soft-pink',
     accentText: 'text-accent-rose',
-    accentHex: '#9c5e6c',
+    accentHex: 'var(--accent-dark)',
   },
   {
     id: 'digestive',
@@ -89,7 +89,7 @@ function scoreColor(n: number) {
   if (n >= 80) return '#548068';
   if (n >= 65) return 'var(--accent)';
   if (n >= 50) return 'var(--hero-from)';
-  return '#cc8a96';
+  return 'var(--accent)';
 }
 
 function relativeDate(iso: string) {

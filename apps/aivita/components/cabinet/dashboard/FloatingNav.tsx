@@ -30,16 +30,14 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
               key={t.id}
               type="button"
               onClick={() => go(t.id)}
-              className={`flex flex-col items-center gap-0.5 rounded-[20px] px-3 py-1.5 transition ${
-                isActive ? "bg-bg-soft-pink" : "hover:bg-bg-app"
-              }`}
+              className="flex flex-col items-center gap-0.5 rounded-[20px] px-3 py-1.5 transition"
+              style={isActive ? { background: 'var(--accent-light)' } : undefined}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon name={t.icon} size={26} />
               <span
-                className={`text-[10px] font-semibold ${
-                  isActive ? "text-accent-rose" : "text-text-secondary"
-                }`}
+                className="text-[10px] font-semibold"
+                style={{ color: isActive ? 'var(--accent-dark)' : undefined }}
               >
                 {t.label}
               </span>
@@ -51,7 +49,8 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
           type="button"
           aria-label="AI ассистент"
           onClick={() => go("chat")}
-          className="ml-1 grid h-12 w-12 place-items-center rounded-full bg-accent-purple-deep text-white shadow-card transition hover:scale-105"
+          className="ml-1 grid h-12 w-12 place-items-center rounded-full text-white shadow-card transition hover:scale-105"
+          style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}
         >
           <Icon name="chat" size={26} />
         </button>

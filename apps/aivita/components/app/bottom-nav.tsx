@@ -41,14 +41,14 @@ export function BottomNav({ locale = 'ru' }: { locale?: string }) {
             href={`/${locale}${item.href}`}
             className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-full transition-all duration-200"
             style={{
-              background: active ? '#f0d4dc' : 'transparent',
+              background: active ? 'var(--accent-light)' : 'transparent',
               minWidth: 64,
             }}
           >
             <Icon3D name={item.icon} size={24} />
             <span
               className="text-[11px] font-semibold leading-none whitespace-nowrap"
-              style={{ color: active ? '#9c5e6c' : '#9a96a8' }}
+              style={{ color: active ? 'var(--accent-dark)' : '#9a96a8' }}
             >
               {item.label}
             </span>

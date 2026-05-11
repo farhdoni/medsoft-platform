@@ -72,7 +72,7 @@ function renderMarkdown(text: string): React.ReactNode {
     if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
       elements.push(
         <div key={li} className="flex gap-1.5 items-baseline">
-          <span className="flex-shrink-0" style={{ color: '#cc8a96' }}>•</span>
+          <span className="flex-shrink-0" style={{ color: 'var(--accent)' }}>•</span>
           <span>{inlineFormat(trimmed.slice(2))}</span>
         </div>
       );
@@ -408,7 +408,7 @@ export default function ChatPage() {
                 className="max-w-[80%] rounded-2xl px-4 py-3"
                 style={
                   msg.role === 'user'
-                    ? { background: '#9c5e6c', color: '#ffffff', borderBottomRightRadius: 4 }
+                    ? { background: 'var(--accent-dark)', color: '#ffffff', borderBottomRightRadius: 4 }
                     : { background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }
                 }
               >
@@ -419,7 +419,7 @@ export default function ChatPage() {
                   {msg.streaming && (
                     <span
                       className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
-                      style={{ background: '#cc8a96' }}
+                      style={{ background: 'var(--accent)' }}
                     />
                   )}
                 </div>
@@ -443,7 +443,7 @@ export default function ChatPage() {
                     onClick={() => sendMessage(qr)}
                     disabled={isLoading}
                     className="text-[12px] px-3 py-1.5 rounded-full transition-opacity hover:opacity-80 disabled:opacity-40"
-                    style={{ background: '#f0d4dc', color: '#9c5e6c', fontWeight: 600 }}
+                    style={{ background: 'var(--accent-light)', color: 'var(--accent-dark)', fontWeight: 600 }}
                   >
                     {qr}
                   </button>
@@ -471,7 +471,7 @@ export default function ChatPage() {
                   <div
                     key={i}
                     className="w-1.5 h-1.5 rounded-full animate-bounce"
-                    style={{ background: '#cc8a96', animationDelay: `${i * 0.15}s` }}
+                    style={{ background: 'var(--accent)', animationDelay: `${i * 0.15}s` }}
                   />
                 ))}
               </div>
@@ -505,7 +505,7 @@ export default function ChatPage() {
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || isLoading}
             className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: '#9c5e6c' }}
+            style={{ background: 'var(--accent-dark)' }}
           >
             <Send className="w-4 h-4 text-white" />
           </button>

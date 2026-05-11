@@ -13,13 +13,13 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { icon: 'family',   softBg: '#f0d4dc', title: 'Мой профиль',           subtitle: 'Возраст, болезни',     href: '/profile' },
+  { icon: 'family',   softBg: 'var(--accent-light)', title: 'Мой профиль',           subtitle: 'Возраст, болезни',     href: '/profile' },
   { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медицинский профиль',   subtitle: 'Аллергии, препараты',  href: '/profile' },
-  { icon: 'heart',    softBg: '#f0d4dc', title: 'Биометрия',             subtitle: 'Показатели здоровья', href: '/vitals' },
+  { icon: 'heart',    softBg: 'var(--accent-light)', title: 'Биометрия',             subtitle: 'Показатели здоровья', href: '/vitals' },
   { icon: 'steps',    softBg: '#d4e8d8', title: 'Гаджеты',               subtitle: 'Трекеры и часы',     href: '/gadgets' },
   { icon: 'chat',     softBg: '#d4e8d8', title: 'AI-чат',                subtitle: 'Помощник по здоровью', href: '/chat' },
   { icon: 'family',   softBg: '#d4dff0', title: 'Семья',                 subtitle: 'Поделиться доступом',  href: '/family' },
-  { icon: 'shield',   softBg: '#f0d4dc', title: 'Конфиденциальность',                                      href: '/settings' },
+  { icon: 'shield',   softBg: 'var(--accent-light)', title: 'Конфиденциальность',                                      href: '/settings' },
   { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',             subtitle: 'Уведомления, язык',   href: '/settings' },
   { icon: 'sparkle',  softBg: '#d4e8d8', title: 'Помощь и поддержка',                                      href: '/settings' },
 ];
@@ -157,7 +157,7 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
               onClick={handleLogout}
               className="w-full py-2 text-[13px] font-semibold rounded-xl transition-colors hover:bg-[#f0d4dc]/30"
               style={{ color: '#9a96a8' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#9c5e6c')}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-dark)')}
               onMouseLeave={e => (e.currentTarget.style.color = '#9a96a8')}
             >
               Выйти из аккаунта
