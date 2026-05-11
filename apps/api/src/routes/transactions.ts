@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '@medsoft/db';
 import { transactions } from '@medsoft/db';
-import { eq, isNull, and, gte, lte } from 'drizzle-orm';
+import { eq, isNull, and, gte, lte, count } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import { createTransactionSchema, updateTransactionSchema, transactionFiltersSchema } from '@medsoft/shared';
 
@@ -23,7 +23,7 @@ router.get('/', zValidator('query', transactionFiltersSchema), async (c) => {
 
   const [rows, total] = await Promise.all([
     db.select().from(transactions).where(and(...conditions)).limit(limit).offset(offset).orderBy(transactions.createdAt),
-    db.$count(transactions, and(...conditions)),
+    db.select({ count: count() }).from(transactions).where(and(...conditions)).then(([r]) => Number(r?.count ?? 0)),
   ]);
 
   return c.json({ data: rows, total: Number(total), page, limit });

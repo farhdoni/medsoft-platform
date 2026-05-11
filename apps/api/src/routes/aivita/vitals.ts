@@ -141,7 +141,7 @@ aivitaVitalsRouter.post(
     const [row] = await db.insert(vitals).values({
       userId,
       type: body.type,
-      value: body.value,
+      value: body.value as { value: number; unit: string } | { systolic: number; diastolic: number } | { hours: number; quality?: 'poor' | 'ok' | 'good' },
       source: body.source,
       recordedAt: body.recordedAt ? new Date(body.recordedAt) : new Date(),
     }).returning();
@@ -180,7 +180,7 @@ aivitaVitalsRouter.post(
       entries.map((e) => ({
         userId,
         type: e.type,
-        value: e.value,
+        value: e.value as { value: number; unit: string } | { systolic: number; diastolic: number } | { hours: number; quality?: 'poor' | 'ok' | 'good' },
         source: e.source,
         recordedAt: e.recordedAt ? new Date(e.recordedAt) : new Date(),
       }))

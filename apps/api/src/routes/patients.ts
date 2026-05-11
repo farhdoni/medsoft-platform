@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
 import { patients } from '@medsoft/db';
-import { eq, isNull, ilike, and, or } from 'drizzle-orm';
+import { eq, isNull, ilike, and, or, count } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import { createPatientSchema, updatePatientSchema, patientFiltersSchema } from '@medsoft/shared';
 
@@ -28,7 +28,7 @@ router.get('/', zValidator('query', patientFiltersSchema), async (c) => {
 
   const [rows, countRow] = await Promise.all([
     db.select().from(patients).where(and(...conditions)).limit(limit).offset(offset).orderBy(patients.createdAt),
-    db.$count(patients, and(...conditions)),
+    db.select({ count: count() }).from(patients).where(and(...conditions)).then(([r]) => Number(r?.count ?? 0)),
   ]);
 
   return c.json({ data: rows, total: Number(countRow), page, limit });

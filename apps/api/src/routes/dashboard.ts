@@ -19,15 +19,15 @@ router.get('/stats', async (c) => {
     activeSosCalls,
     revenueResult,
   ] = await Promise.all([
-    db.$count(patients, isNull(patients.deletedAt)),
-    db.$count(doctors, isNull(doctors.deletedAt)),
-    db.$count(clinics, isNull(clinics.deletedAt)),
-    db.$count(appointments, isNull(appointments.deletedAt)),
-    db.$count(appointments, and(isNull(appointments.deletedAt), gte(appointments.createdAt, thirtyDaysAgo))),
-    db.$count(sosCalls, and(
+    db.select({ count: count() }).from(patients).where(isNull(patients.deletedAt)).then(([r]) => Number(r?.count ?? 0)),
+    db.select({ count: count() }).from(doctors).where(isNull(doctors.deletedAt)).then(([r]) => Number(r?.count ?? 0)),
+    db.select({ count: count() }).from(clinics).where(isNull(clinics.deletedAt)).then(([r]) => Number(r?.count ?? 0)),
+    db.select({ count: count() }).from(appointments).where(isNull(appointments.deletedAt)).then(([r]) => Number(r?.count ?? 0)),
+    db.select({ count: count() }).from(appointments).where(and(isNull(appointments.deletedAt), gte(appointments.createdAt, thirtyDaysAgo))).then(([r]) => Number(r?.count ?? 0)),
+    db.select({ count: count() }).from(sosCalls).where(and(
       isNull(sosCalls.deletedAt),
       eq(sosCalls.status, 'triggered'),
-    )),
+    )).then(([r]) => Number(r?.count ?? 0)),
     db.select({ total: sum(transactions.amountUzs) })
       .from(transactions)
       .where(and(isNull(transactions.deletedAt), eq(transactions.status, 'completed'))),

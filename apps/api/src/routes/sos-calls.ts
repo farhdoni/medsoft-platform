@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '@medsoft/db';
 import { sosCalls } from '@medsoft/db';
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, count } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import { updateSosCallSchema, sosCallFiltersSchema } from '@medsoft/shared';
 
@@ -20,7 +20,7 @@ router.get('/', zValidator('query', sosCallFiltersSchema), async (c) => {
 
   const [rows, total] = await Promise.all([
     db.select().from(sosCalls).where(and(...conditions)).limit(limit).offset(offset).orderBy(sosCalls.createdAt),
-    db.$count(sosCalls, and(...conditions)),
+    db.select({ count: count() }).from(sosCalls).where(and(...conditions)).then(([r]) => Number(r?.count ?? 0)),
   ]);
 
   return c.json({ data: rows, total: Number(total), page, limit });
