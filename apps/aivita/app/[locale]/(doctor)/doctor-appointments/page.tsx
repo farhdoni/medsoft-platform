@@ -102,8 +102,7 @@ export default function DoctorAppointmentsPage() {
           const st = STATUS_STYLE[row.appointment.status] ?? STATUS_STYLE.scheduled;
           return (
             <button key={row.appointment.id} onClick={() => openAppt(row)}
-              className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80"
-              style={{ borderColor: '#e8e4dc' }}>
+              className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80">
               <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
                 style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                 {initials(row.patient.name)}
@@ -148,7 +147,7 @@ export default function DoctorAppointmentsPage() {
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
                 placeholder="Введите заметки по приёму..."
                 className="w-full mt-2 p-3 rounded-xl border text-sm outline-none resize-none"
-                style={{ borderColor: '#e8e4dc', color: '#2a2540' }} />
+                style={{ color: '#2a2540' }} />
             </div>
 
             <div className="mb-5">
@@ -156,7 +155,7 @@ export default function DoctorAppointmentsPage() {
               <input value={diagnosis} onChange={e => setDiagnosis(e.target.value)}
                 placeholder="Введите диагноз..."
                 className="w-full mt-2 p-3 rounded-xl border text-sm outline-none"
-                style={{ borderColor: '#e8e4dc', color: '#2a2540' }} />
+                style={{ color: '#2a2540' }} />
             </div>
 
             <div className="flex gap-3">

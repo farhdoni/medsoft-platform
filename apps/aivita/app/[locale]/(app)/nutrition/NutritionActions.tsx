@@ -82,7 +82,7 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           autoFocus value={name} onChange={e => setName(e.target.value)}
           placeholder="Греческий салат, куриный суп..."
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+          style={{ color: '#2a2540' }}
         />
 
         {/* Meal type */}
@@ -102,7 +102,6 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           value={calories} onChange={e => setCalories(e.target.value)}
           type="number" min="0" placeholder="ккал"
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc' }}
         />
 
         {/* Macros */}
@@ -111,17 +110,14 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           <input value={protein} onChange={e => setProtein(e.target.value)}
             type="number" min="0" placeholder="Белки г"
             className="rounded-[10px] border px-2 py-2 text-[13px] outline-none text-center"
-            style={{ borderColor: '#e8e4dc' }}
           />
           <input value={fat} onChange={e => setFat(e.target.value)}
             type="number" min="0" placeholder="Жиры г"
             className="rounded-[10px] border px-2 py-2 text-[13px] outline-none text-center"
-            style={{ borderColor: '#e8e4dc' }}
           />
           <input value={carbs} onChange={e => setCarbs(e.target.value)}
             type="number" min="0" placeholder="Угл. г"
             className="rounded-[10px] border px-2 py-2 text-[13px] outline-none text-center"
-            style={{ borderColor: '#e8e4dc' }}
           />
         </div>
 

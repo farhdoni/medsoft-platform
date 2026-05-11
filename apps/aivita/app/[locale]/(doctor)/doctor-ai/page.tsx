@@ -118,7 +118,7 @@ export default function DoctorAiPage() {
             if (p) selectPatient(p); else setSelectedPatient(null);
           }}
           className="w-full p-2.5 rounded-xl border text-sm outline-none bg-white"
-          style={{ borderColor: '#e8e4dc', color: selectedPatient ? '#2a2540' : '#9a96a8' }}>
+          style={{ color: selectedPatient ? '#2a2540' : '#9a96a8' }}>
           <option value="">Выбрать пациента для анализа...</option>
           {patients.map(p => (
             <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
@@ -128,7 +128,7 @@ export default function DoctorAiPage() {
 
       {/* Patient summary */}
       {selectedPatient && patientVitals.length > 0 && (
-        <div className="mx-4 mb-3 p-3 rounded-xl bg-white border" style={{ borderColor: '#e8e4dc' }}>
+        <div className="mx-4 mb-3 p-3 rounded-xl bg-white border border-app-border">
           <p className="text-xs font-semibold text-[#9a96a8] mb-2">Показатели пациента</p>
           <div className="flex gap-2 flex-wrap">
             {patientVitals.slice(0, 4).map((v, i) => {
@@ -197,7 +197,7 @@ export default function DoctorAiPage() {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t bg-white" style={{ borderColor: '#e8e4dc' }}>
+      <div className="px-4 py-3 border-t bg-white border-app-border">
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -207,7 +207,7 @@ export default function DoctorAiPage() {
             disabled={!selectedPatient}
             rows={1}
             className="flex-1 p-3 rounded-xl border text-sm outline-none resize-none disabled:opacity-50"
-            style={{ borderColor: '#e8e4dc', color: '#2a2540', maxHeight: 120 }}
+            style={{ color: '#2a2540', maxHeight: 120 }}
           />
           {selectedPatient && (
             <VoiceInput onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)} />

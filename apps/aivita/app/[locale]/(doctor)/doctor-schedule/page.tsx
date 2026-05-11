@@ -103,14 +103,14 @@ export default function DoctorSchedulePage() {
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-[#2a2540]">Расписание</h1>
         <button onClick={() => { setShowSettings(true); setEditDays([...schedule.length ? schedule : DEFAULT_DAYS]); }}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white border" style={{ borderColor: '#e8e4dc' }}>
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-app-border">
           <Icon3D name="settings" size={18} />
         </button>
       </div>
 
       <div className="px-4 pb-4 space-y-4">
         {/* Week header */}
-        <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+        <div className="bg-white rounded-2xl p-4 border border-app-border">
           <p className="text-xs text-[#9a96a8] mb-3 font-medium">Текущая неделя</p>
           <div className="grid grid-cols-7 gap-1">
             {DAYS_RU.map((day, i) => {
@@ -149,7 +149,7 @@ export default function DoctorSchedulePage() {
           const sched = getDaySchedule(selectedDay);
           const appts = getApptForDay(selectedDay);
           return (
-            <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+            <div className="bg-white rounded-2xl p-4 border border-app-border">
               <h2 className="text-sm font-bold text-[#2a2540] mb-3">{DAYS_FULL[selectedDay]}</h2>
               {!sched?.isActive ? (
                 <p className="text-sm text-[#9a96a8]">Выходной день</p>
@@ -198,7 +198,7 @@ export default function DoctorSchedulePage() {
             const cnt = getApptForDay(i).length;
             return (
               <div key={i} className="bg-white rounded-xl p-4 border flex items-center gap-3"
-                style={{ borderColor: '#e8e4dc', opacity: sched?.isActive ? 1 : 0.5 }}>
+                style={{ opacity: sched?.isActive ? 1 : 0.5 }}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{ background: i === todayDow ? 'var(--accent-dark)' : '#f0eefc', color: i === todayDow ? '#fff' : 'var(--accent-dark)' }}>
                   {DAYS_RU[i]}
@@ -252,33 +252,28 @@ export default function DoctorSchedulePage() {
                   <div>
                     <label className="text-xs text-[#9a96a8]">Начало</label>
                     <input type="time" value={d.startTime} onChange={e => updateEditDay(d.dayOfWeek, 'startTime', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none"
-                      style={{ borderColor: '#e8e4dc' }} />
+                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-[#9a96a8]">Конец</label>
                     <input type="time" value={d.endTime} onChange={e => updateEditDay(d.dayOfWeek, 'endTime', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none"
-                      style={{ borderColor: '#e8e4dc' }} />
+                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-[#9a96a8]">Перерыв с</label>
                     <input type="time" value={d.breakStart ?? ''} onChange={e => updateEditDay(d.dayOfWeek, 'breakStart', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none"
-                      style={{ borderColor: '#e8e4dc' }} />
+                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-[#9a96a8]">Перерыв до</label>
                     <input type="time" value={d.breakEnd ?? ''} onChange={e => updateEditDay(d.dayOfWeek, 'breakEnd', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none"
-                      style={{ borderColor: '#e8e4dc' }} />
+                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
                   </div>
                 </div>
                 <div className="mt-3">
                   <label className="text-xs text-[#9a96a8]">Длительность слота</label>
                   <select value={d.slotDurationMinutes} onChange={e => updateEditDay(d.dayOfWeek, 'slotDurationMinutes', +e.target.value)}
-                    className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none"
-                    style={{ borderColor: '#e8e4dc' }}>
+                    className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none">
                     <option value={15}>15 мин</option>
                     <option value={30}>30 мин</option>
                     <option value={45}>45 мин</option>
@@ -290,8 +285,7 @@ export default function DoctorSchedulePage() {
 
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowSettings(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]"
-                style={{ borderColor: '#e8e4dc' }}>Отмена</button>
+                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
               <button onClick={handleSave} disabled={saving}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
                 style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>

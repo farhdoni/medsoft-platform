@@ -74,7 +74,7 @@ export default function DoctorPatientsPage() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Поиск по имени..."
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm bg-white outline-none"
-            style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+            style={{ color: '#2a2540' }}
           />
         </div>
       </div>
@@ -106,8 +106,7 @@ export default function DoctorPatientsPage() {
             <h2 className="text-xs font-bold text-[#9a96a8] uppercase tracking-wide mb-2">Ожидают подтверждения</h2>
             <div className="space-y-2">
               {pending.map(p => (
-                <div key={p.user.id} className="bg-white rounded-2xl p-4 border flex items-center gap-3"
-                  style={{ borderColor: '#e8e4dc' }}>
+                <div key={p.user.id} className="bg-white rounded-2xl p-4 border flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                     style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                     {initials(p.user.name)}
@@ -149,8 +148,7 @@ export default function DoctorPatientsPage() {
           <div className="space-y-3">
             {filtered.map(p => (
               <Link key={p.user.id} href={`/${locale}/doctor-patient/${p.user.id}`}>
-                <div className="bg-white rounded-2xl p-4 border flex items-center gap-3 active:opacity-80"
-                  style={{ borderColor: '#e8e4dc' }}>
+                <div className="bg-white rounded-2xl p-4 border flex items-center gap-3 active:opacity-80">
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
                     style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>

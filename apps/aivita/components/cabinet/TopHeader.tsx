@@ -12,12 +12,11 @@ interface TopHeaderProps {
 export function TopHeader({ session, locale }: TopHeaderProps) {
   return (
     <header
-      className="sticky top-0 z-30 border-b"
+      className="sticky top-0 z-30 border-b border-app-border"
       style={{
         background: 'rgba(244, 243, 239, 0.85)',
         backdropFilter: 'blur(12px)',
-        borderColor: '#e8e4dc',
-      }}
+        }}
     >
       <div className="max-w-[1280px] mx-auto px-6 py-3.5 flex items-center justify-between">
         {/* Logo */}

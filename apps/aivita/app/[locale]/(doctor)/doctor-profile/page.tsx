@@ -51,12 +51,12 @@ function calcExp(dateStr?: string) {
 
 function Section({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border overflow-hidden" style={{ borderColor: '#e8e4dc' }}>
+    <div className="bg-white rounded-2xl border overflow-hidden border-app-border">
       <button onClick={onToggle} className="w-full px-4 py-4 flex items-center justify-between text-left">
         <span className="font-semibold text-[#2a2540] text-sm">{title}</span>
         <span className="text-[#9a96a8] transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
       </button>
-      {open && <div className="px-4 pb-4 border-t" style={{ borderColor: '#e8e4dc' }}><div className="pt-4">{children}</div></div>}
+      {open && <div className="px-4 pb-4 border-t border-app-border"><div className="pt-4">{children}</div></div>}
     </div>
   );
 }
@@ -79,7 +79,7 @@ function EditField({ label, field, value, onChange, type = 'text', options }: {
       <label className="text-[10px] font-semibold text-[#9a96a8] uppercase tracking-wide">{label}</label>
       <select value={value ?? ''} onChange={e => onChange(field, e.target.value)}
         className="w-full mt-1 p-2.5 rounded-xl border text-sm outline-none bg-white"
-        style={{ borderColor: '#e8e4dc', color: '#2a2540' }}>
+        style={{ color: '#2a2540' }}>
         <option value="">Не указано</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -90,7 +90,7 @@ function EditField({ label, field, value, onChange, type = 'text', options }: {
       <label className="text-[10px] font-semibold text-[#9a96a8] uppercase tracking-wide">{label}</label>
       <textarea value={value ?? ''} onChange={e => onChange(field, e.target.value)} rows={3}
         className="w-full mt-1 p-2.5 rounded-xl border text-sm outline-none resize-none"
-        style={{ borderColor: '#e8e4dc', color: '#2a2540' }} />
+        style={{ color: '#2a2540' }} />
     </div>
   );
   return (
@@ -98,7 +98,7 @@ function EditField({ label, field, value, onChange, type = 'text', options }: {
       <label className="text-[10px] font-semibold text-[#9a96a8] uppercase tracking-wide">{label}</label>
       <input type={type} value={value ?? ''} onChange={e => onChange(field, e.target.value)}
         className="w-full mt-1 p-2.5 rounded-xl border text-sm outline-none"
-        style={{ borderColor: '#e8e4dc', color: '#2a2540' }} />
+        style={{ color: '#2a2540' }} />
     </div>
   );
 }
@@ -253,7 +253,7 @@ export default function DoctorProfilePage() {
 
       <div className="px-4 py-4 space-y-3">
         {/* Completion bar */}
-        <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+        <div className="bg-white rounded-2xl p-4 border border-app-border">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-[#2a2540]">Заполненность профиля</span>
             <span className="text-sm font-bold text-[color:var(--accent-dark)]">{completion}%</span>
@@ -359,8 +359,7 @@ export default function DoctorProfilePage() {
               <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addSkill(); }}
                 placeholder="Добавить навык..."
-                className="flex-1 p-2 rounded-xl border text-xs outline-none"
-                style={{ borderColor: '#e8e4dc' }} />
+                className="flex-1 p-2 rounded-xl border text-xs outline-none" />
               <button onClick={addSkill} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
                 style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
@@ -382,8 +381,7 @@ export default function DoctorProfilePage() {
               <input value={newDisease} onChange={e => setNewDisease(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addDisease(); }}
                 placeholder="Добавить болезнь..."
-                className="flex-1 p-2 rounded-xl border text-xs outline-none"
-                style={{ borderColor: '#e8e4dc' }} />
+                className="flex-1 p-2 rounded-xl border text-xs outline-none" />
               <button onClick={addDisease} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
                 style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
@@ -430,11 +428,10 @@ export default function DoctorProfilePage() {
             <div className="flex gap-2">
               <input value={newCert.title} onChange={e => setNewCert(p => ({ ...p, title: e.target.value }))}
                 placeholder="Название сертификата"
-                className="flex-1 p-2 rounded-xl border text-xs outline-none"
-                style={{ borderColor: '#e8e4dc' }} />
+                className="flex-1 p-2 rounded-xl border text-xs outline-none" />
               <input value={newCert.year} onChange={e => setNewCert(p => ({ ...p, year: e.target.value }))}
-                type="number" placeholder="Год" style={{ width: 64, borderColor: '#e8e4dc' }}
-                className="p-2 rounded-xl border text-xs outline-none" />
+                type="number" placeholder="Год" style={{ width: 64 }}
+                className="p-2 rounded-xl border border-app-border text-xs outline-none" />
               <button onClick={addCertificate}
                 className="px-3 py-2 rounded-xl text-xs text-white font-medium" style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
@@ -596,8 +593,7 @@ export default function DoctorProfilePage() {
 
             <div className="flex gap-3 mt-4">
               <button onClick={() => setEditModal(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]"
-                style={{ borderColor: '#e8e4dc' }}>Отмена</button>
+                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
               <button onClick={handleSave} disabled={saving}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
                 style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>

@@ -64,7 +64,7 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
           onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
           placeholder="Например: Алия, Дима..."
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+          style={{ color: '#2a2540' }}
         />
 
         {/* Relation */}
@@ -84,7 +84,7 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
           value={birthDate} onChange={e => setBirthDate(e.target.value)}
           type="date"
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+          style={{ color: '#2a2540' }}
         />
 
         {/* Gender */}

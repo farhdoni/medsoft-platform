@@ -205,7 +205,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
           value={type}
           onChange={(e) => { setType(e.target.value); setValue(''); setSystolic(''); setDiastolic(''); }}
           className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] mb-4 outline-none focus:ring-2"
-          style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+          style={{ color: '#2a2540' }}
         >
           {VITAL_DEFS.map((d) => (
             <option key={d.type} value={d.type}>{d.icon} {d.label}</option>
@@ -221,7 +221,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
                 type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)}
                 placeholder="120" min={def.min} max={def.max}
                 className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-                style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+                style={{ color: '#2a2540' }}
               />
             </div>
             <div className="flex-1">
@@ -230,7 +230,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
                 type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)}
                 placeholder="80" min={40} max={150}
                 className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-                style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+                style={{ color: '#2a2540' }}
               />
             </div>
           </div>
@@ -245,7 +245,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
                 placeholder={`${def.min}–${def.max}`}
                 min={def.min} max={def.max} step={def.step ?? 1}
                 className="flex-1 rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-                style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+                style={{ color: '#2a2540' }}
               />
               <span className="text-[13px]" style={{ color: '#9a96a8' }}>{def.unit}</span>
             </div>
@@ -259,7 +259,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
             type="text" value={note} onChange={(e) => setNote(e.target.value)}
             placeholder="Например: после пробежки"
             className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-            style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+            style={{ color: '#2a2540' }}
           />
         </div>
 
@@ -355,7 +355,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
       {/* History */}
       <section className="mb-6">
         <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ИСТОРИЯ ЗАПИСЕЙ</h2>
-        <div className="rounded-[20px] bg-white border p-3" style={{ borderColor: '#e8e4dc' }}>
+        <div className="rounded-[20px] bg-white border p-3 border-app-border">
           <HistoryList rows={rows} onDelete={handleDelete} />
         </div>
       </section>

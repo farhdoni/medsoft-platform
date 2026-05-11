@@ -119,7 +119,7 @@ export default function DoctorHomePage() {
             { icon: 'plus' as const, label: 'Приёмов сегодня', value: todayAppts.length },
             { icon: 'heart' as const, label: 'Рейтинг', value: stats?.rating ? `★ ${(+stats.rating).toFixed(1)}` : '—' },
           ].map((c, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 border flex flex-col gap-2" style={{ borderColor: '#e8e4dc' }}>
+            <div key={i} className="bg-white rounded-2xl p-4 border flex flex-col gap-2 border-app-border">
               <Icon3D name={c.icon} size={28} />
               <div className="text-2xl font-bold text-[#2a2540]">{c.value}</div>
               <div className="text-xs text-[#9a96a8] leading-tight">{c.label}</div>
@@ -128,7 +128,7 @@ export default function DoctorHomePage() {
         </div>
 
         {/* Week mini-calendar */}
-        <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+        <div className="bg-white rounded-2xl p-4 border border-app-border">
           <h2 className="text-sm font-bold text-[#2a2540] mb-3">Расписание недели</h2>
           <div className="grid grid-cols-7 gap-1">
             {DAYS.map((day, i) => {
@@ -155,7 +155,7 @@ export default function DoctorHomePage() {
 
         {/* Nearest appointment */}
         {upcoming[0] && (
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <h2 className="text-sm font-bold text-[#2a2540] mb-3">Ближайший приём</h2>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
@@ -175,7 +175,7 @@ export default function DoctorHomePage() {
 
         {/* Alerts */}
         {alertNotifs.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <h2 className="text-sm font-bold text-[#2a2540] mb-3">⚠️ Алерты</h2>
             <div className="space-y-2">
               {alertNotifs.slice(0, 3).map(n => (
@@ -197,7 +197,7 @@ export default function DoctorHomePage() {
 
         {/* New requests */}
         {pendingNotifs.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <h2 className="text-sm font-bold text-[#2a2540] mb-3">🆕 Новые запросы ({pendingNotifs.length})</h2>
             <div className="space-y-2">
               {pendingNotifs.slice(0, 2).map(n => (
@@ -218,7 +218,7 @@ export default function DoctorHomePage() {
 
         {/* 2-col: patients + appts */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-[#2a2540]">Пациенты</h2>
               <Link href={`/${locale}/doctor-patients`} className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Все →</Link>
@@ -241,7 +241,7 @@ export default function DoctorHomePage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-[#2a2540]">Приёмы</h2>
               <Link href={`/${locale}/doctor-appointments`} className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Все →</Link>

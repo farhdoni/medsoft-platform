@@ -81,7 +81,7 @@ export default function DoctorChatsPage() {
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         {!showList && selected && (
           <button onClick={() => { setShowList(true); setSelected(null); }}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</button>
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg border-app-border">‹</button>
         )}
         <h1 className="text-xl font-bold text-[#2a2540] flex-1">
           {!showList && selected ? selected.user.name : 'Чаты'}
@@ -104,8 +104,7 @@ export default function DoctorChatsPage() {
           {patients.map(p => {
             return (
               <button key={p.user.id} onClick={() => { setSelected(p); setShowList(false); }}
-                className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80"
-                style={{ borderColor: '#e8e4dc' }}>
+                className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80">
                 <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
                   style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
                   {initials(p.user.name)}
@@ -151,7 +150,7 @@ export default function DoctorChatsPage() {
           </div>
 
           {/* Input */}
-          <div className="px-4 pb-2 border-t bg-white" style={{ borderColor: '#e8e4dc' }}>
+          <div className="px-4 pb-2 border-t bg-white border-app-border">
             <div className="flex items-end gap-2 pt-3">
               <textarea
                 value={input}
@@ -160,7 +159,7 @@ export default function DoctorChatsPage() {
                 placeholder="Написать заметку..."
                 rows={1}
                 className="flex-1 p-3 rounded-xl border text-sm outline-none resize-none"
-                style={{ borderColor: '#e8e4dc', color: '#2a2540', maxHeight: 120 }}
+                style={{ color: '#2a2540', maxHeight: 120 }}
               />
               <VoiceInput onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)} />
               <button onClick={handleSend} disabled={sending || !input.trim()}

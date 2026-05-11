@@ -19,11 +19,10 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
   return (
     <>
       <nav
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center px-2 py-2 rounded-full border"
+        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center px-2 py-2 rounded-full border border-app-border"
         style={{
           background: 'rgba(255,255,255,0.96)',
           backdropFilter: 'blur(16px)',
-          borderColor: '#e8e4dc',
           boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
         }}
         aria-label="Навигация врача"

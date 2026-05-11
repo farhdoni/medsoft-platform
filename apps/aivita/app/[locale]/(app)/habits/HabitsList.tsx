@@ -86,7 +86,7 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
           onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
           placeholder="Например: пить воду, читать..."
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+          style={{ color: '#2a2540' }}
         />
 
         {/* Goal type */}
@@ -105,12 +105,10 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
             <input value={goalValue} onChange={e => setGoalValue(e.target.value)}
               type="number" min="1" placeholder="Кол-во"
               className="w-24 rounded-[10px] border px-3 py-2 text-[14px] outline-none"
-              style={{ borderColor: '#e8e4dc' }}
             />
             <input value={goalUnit} onChange={e => setGoalUnit(e.target.value)}
               placeholder="раз / мин / мл"
               className="flex-1 rounded-[10px] border px-3 py-2 text-[14px] outline-none"
-              style={{ borderColor: '#e8e4dc' }}
             />
           </div>
         )}

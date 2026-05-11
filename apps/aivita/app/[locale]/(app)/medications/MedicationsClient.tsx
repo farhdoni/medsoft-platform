@@ -74,14 +74,12 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
           placeholder="Метформин, Витамин D3..."
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc' }}
         />
 
         <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Дозировка</label>
         <input value={dosage} onChange={e => setDosage(e.target.value)}
           placeholder="500мг, 1 таблетка, 5мл..."
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc' }}
         />
 
         <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Частота приёма</label>
@@ -100,7 +98,6 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
             <input value={customTimes} onChange={e => setCustomTimes(e.target.value)}
               placeholder="08:00, 14:00, 20:00"
               className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-3"
-              style={{ borderColor: '#e8e4dc' }}
             />
           </>
         )}
@@ -119,14 +116,12 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
           placeholder="После еды, запить водой..."
           rows={2}
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-none mb-4"
-          style={{ borderColor: '#e8e4dc' }}
         />
 
         <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Длительность (дней)</label>
         <input value={duration} onChange={e => setDuration(e.target.value)}
           type="number" min="1" placeholder="30 (пусто = постоянно)"
           className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ borderColor: '#e8e4dc' }}
         />
 
         <label className="flex items-center gap-3 mb-5 cursor-pointer">

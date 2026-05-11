@@ -207,7 +207,6 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
                 <div
                   key={device.id}
                   className="rounded-[20px] bg-white border p-4"
-                  style={{ borderColor: '#e8e4dc' }}
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-[28px]">{DEVICE_ICONS[device.type] ?? '📡'}</span>
@@ -254,7 +253,7 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
       {/* Available devices catalog */}
       <section className="mb-6">
         <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ДОСТУПНЫЕ ГАДЖЕТЫ</h2>
-        <div className="rounded-[20px] bg-white border overflow-hidden" style={{ borderColor: '#e8e4dc' }}>
+        <div className="rounded-[20px] bg-white border overflow-hidden border-app-border">
           {catalog.map((device, idx) => {
             const isConnected = connectedTypes.has(device.type);
             const isLast = idx === catalog.length - 1;

@@ -108,7 +108,7 @@ export default function DoctorPatientPage() {
     <div>
       {/* Header */}
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
-        <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg" style={{ borderColor: '#e8e4dc' }}>‹</Link>
+        <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg border-app-border">‹</Link>
         <h1 className="font-bold text-[#2a2540] flex-1 truncate">{patient.user.name}</h1>
         <Link href={`/${locale}/doctor-appointments`}
           className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
@@ -117,7 +117,7 @@ export default function DoctorPatientPage() {
 
       <div className="px-4 pb-4 space-y-4">
         {/* Hero */}
-        <div className="bg-white rounded-2xl p-5 border flex gap-4" style={{ borderColor: '#e8e4dc' }}>
+        <div className="bg-white rounded-2xl p-5 border flex gap-4 border-app-border">
           <div className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl font-bold"
             style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
             {initials(patient.user.name)}
@@ -140,7 +140,7 @@ export default function DoctorPatientPage() {
 
         {/* Latest vitals grid */}
         {vitals.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <h3 className="text-sm font-bold text-[#2a2540] mb-3">Последние показатели</h3>
             <div className="grid grid-cols-3 gap-2">
               {vitals.slice(0, 6).map((v, i) => {
@@ -159,7 +159,7 @@ export default function DoctorPatientPage() {
 
         {/* Medical profile */}
         {patient.profile && (patient.profile.allergies?.length || patient.profile.chronicConditions?.length) ? (
-          <div className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
             <h3 className="text-sm font-bold text-[#2a2540] mb-3">Мед. профиль</h3>
             {patient.profile.allergies && patient.profile.allergies.length > 0 && (
               <div className="mb-2">
@@ -202,7 +202,7 @@ export default function DoctorPatientPage() {
             {timeline.slice(0, 20).map((item, i) => {
               const meta = TYPE_ICONS[item.type] ?? TYPE_ICONS.appointment;
               return (
-                <div key={i} className="bg-white rounded-2xl p-4 border flex gap-3" style={{ borderColor: '#e8e4dc' }}>
+                <div key={i} className="bg-white rounded-2xl p-4 border flex gap-3 border-app-border">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
                     style={{ background: meta.color }}>{meta.icon}</div>
                   <div className="flex-1 min-w-0">
@@ -231,7 +231,7 @@ export default function DoctorPatientPage() {
             {vitals.map((v, i) => {
               const d = getVitalDisplay(v);
               return (
-                <div key={i} className="bg-white rounded-xl p-3 border flex items-center gap-3" style={{ borderColor: '#e8e4dc' }}>
+                <div key={i} className="bg-white rounded-xl p-3 border flex items-center gap-3 border-app-border">
                   <span className="text-xl">{d.icon}</span>
                   <div className="flex-1">
                     <p className="text-xs text-[#9a96a8]">{d.label}</p>
@@ -253,7 +253,7 @@ export default function DoctorPatientPage() {
               <span>+</span> Добавить заметку
             </button>
             {pinnedNotes.map(n => (
-              <div key={n.id} className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc', background: '#fffbf0' }}>
+              <div key={n.id} className="bg-white rounded-2xl p-4 border" style={{ background: '#fffbf0' }}>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs">📌</span>
                   <span className="text-[10px] text-[#9a96a8]">{fmtDate(n.createdAt)}</span>
@@ -262,7 +262,7 @@ export default function DoctorPatientPage() {
               </div>
             ))}
             {otherNotes.map(n => (
-              <div key={n.id} className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+              <div key={n.id} className="bg-white rounded-2xl p-4 border border-app-border">
                 <p className="text-[10px] text-[#9a96a8] mb-1">{fmtDate(n.createdAt)}</p>
                 <p className="text-sm text-[#2a2540]">{n.text}</p>
               </div>
@@ -282,8 +282,7 @@ export default function DoctorPatientPage() {
             { label: '📋 Отчёт', href: `/${locale}/doctor-patient/${patientId}` },
           ].map(btn => (
             <Link key={btn.label} href={btn.href}>
-              <button className="w-full py-3 rounded-xl text-sm font-medium border text-[#2a2540] bg-white"
-                style={{ borderColor: '#e8e4dc' }}>
+              <button className="w-full py-3 rounded-xl text-sm font-medium border text-[#2a2540] bg-white">
                 {btn.label}
               </button>
             </Link>
@@ -302,13 +301,12 @@ export default function DoctorPatientPage() {
               placeholder="Введите заметку..."
               rows={5}
               className="w-full p-3 rounded-xl border text-sm outline-none resize-none"
-              style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
+              style={{ color: '#2a2540' }}
               autoFocus
             />
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowAddNote(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]"
-                style={{ borderColor: '#e8e4dc' }}>Отмена</button>
+                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
               <button onClick={handleAddNote} disabled={savingNote}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
                 style={{ background: 'var(--accent-dark)', opacity: savingNote ? 0.6 : 1 }}>

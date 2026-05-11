@@ -295,7 +295,7 @@ export default function ChatPage() {
             className="fixed top-0 right-0 h-full w-[280px] bg-white shadow-xl z-[999] flex flex-col"
             style={{ animation: 'slideInRight 0.22s ease-out' }}
           >
-            <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: '#e8e4dc' }}>
+            <div className="flex items-center justify-between px-4 py-4 border-b border-app-border">
               <span className="text-[16px] font-bold" style={{ color: '#2a2540' }}>
                 {locale === 'uz' ? 'Menyu' : locale === 'en' ? 'Menu' : 'Меню'}
               </span>
@@ -321,7 +321,7 @@ export default function ChatPage() {
               ))}
             </nav>
 
-            <div className="p-4 border-t" style={{ borderColor: '#e8e4dc' }}>
+            <div className="p-4 border-t border-app-border">
               <div
                 className="flex items-center gap-3 px-4 py-3 rounded-xl"
                 style={{ background: 'var(--accent-bg)' }}

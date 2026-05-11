@@ -133,7 +133,7 @@ export default function DoctorPrescriptionsPage() {
         ) : presc.map(row => {
           const st = STATUS_STYLE[row.prescription.status] ?? STATUS_STYLE.pending;
           return (
-            <div key={row.prescription.id} className="bg-white rounded-2xl p-4 border" style={{ borderColor: '#e8e4dc' }}>
+            <div key={row.prescription.id} className="bg-white rounded-2xl p-4 border border-app-border">
               <div className="flex items-start gap-3">
                 <div className="text-2xl">{TYPE_ICON[row.prescription.type] ?? '📋'}</div>
                 <div className="flex-1 min-w-0">
@@ -180,14 +180,12 @@ export default function DoctorPrescriptionsPage() {
               <label className="text-xs font-semibold text-[#9a96a8]">Шаблоны</label>
               <input value={tmplSearch} onChange={e => setTmplSearch(e.target.value)}
                 placeholder="Поиск по шаблонам..."
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none"
-                style={{ borderColor: '#e8e4dc' }} />
+                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
               {tmplSearch && filteredTemplates.length > 0 && (
-                <div className="mt-1.5 border rounded-xl overflow-hidden" style={{ borderColor: '#e8e4dc' }}>
+                <div className="mt-1.5 border rounded-xl overflow-hidden border-app-border">
                   {filteredTemplates.slice(0, 5).map(t => (
                     <button key={t.id} onClick={() => applyTemplate(t)}
-                      className="w-full px-3 py-2.5 text-left text-sm text-[#2a2540] hover:bg-[#f8f7ff] border-b last:border-b-0"
-                      style={{ borderColor: '#e8e4dc' }}>
+                      className="w-full px-3 py-2.5 text-left text-sm text-[#2a2540] hover:bg-[#f8f7ff] border-b last:border-b-0">
                       {t.title}
                       <span className="text-xs text-[#9a96a8] ml-2">({t.usageCount} исп.)</span>
                     </button>
@@ -201,7 +199,7 @@ export default function DoctorPrescriptionsPage() {
               <label className="text-xs font-semibold text-[#9a96a8]">Пациент *</label>
               <select value={form.patientId} onChange={e => setForm(f => ({ ...f, patientId: e.target.value }))}
                 className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none bg-white"
-                style={{ borderColor: '#e8e4dc', color: form.patientId ? '#2a2540' : '#9a96a8' }}>
+                style={{ color: form.patientId ? '#2a2540' : '#9a96a8' }}>
                 <option value="">Выбрать пациента...</option>
                 {patients.map(p => (
                   <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
@@ -214,8 +212,7 @@ export default function DoctorPrescriptionsPage() {
               <label className="text-xs font-semibold text-[#9a96a8]">Название *</label>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="Название назначения..."
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none"
-                style={{ borderColor: '#e8e4dc' }} />
+                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
             </div>
 
             {/* Details */}
@@ -223,8 +220,7 @@ export default function DoctorPrescriptionsPage() {
               <label className="text-xs font-semibold text-[#9a96a8]">Детали</label>
               <textarea value={form.details} onChange={e => setForm(f => ({ ...f, details: e.target.value }))}
                 rows={2} placeholder="Инструкции, дозировка..."
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none resize-none"
-                style={{ borderColor: '#e8e4dc' }} />
+                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none resize-none" />
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -232,15 +228,13 @@ export default function DoctorPrescriptionsPage() {
                 <label className="text-xs font-semibold text-[#9a96a8]">Частота</label>
                 <input value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
                   placeholder="2 раза в день"
-                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none"
-                  style={{ borderColor: '#e8e4dc' }} />
+                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#9a96a8]">Дней</label>
                 <input type="number" value={form.durationDays} onChange={e => setForm(f => ({ ...f, durationDays: e.target.value }))}
                   placeholder="7"
-                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none"
-                  style={{ borderColor: '#e8e4dc' }} />
+                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
               </div>
             </div>
 
@@ -254,8 +248,7 @@ export default function DoctorPrescriptionsPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setShowCreate(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]"
-                style={{ borderColor: '#e8e4dc' }}>Отмена</button>
+                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
               <button onClick={handleCreate} disabled={saving || !form.title || !form.patientId}
                 className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
                 style={{ background: 'var(--accent-dark)', opacity: saving || !form.title || !form.patientId ? 0.5 : 1 }}>
