@@ -70,13 +70,16 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   const handleLogout = async () => {
-    // POST clears the httpOnly cookie via Set-Cookie header,
-    // then we redirect client-side (avoids Docker internal hostname issue)
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch {
       // ignore network errors — cookie may already be invalid
     }
+    // Fallback: clear cookies client-side (works for non-httpOnly)
+    document.cookie = 'aivita_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'aivita_api=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'aivita_session=; path=/; domain=.aivita.uz; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'aivita_api=; path=/; domain=.aivita.uz; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     window.location.href = `/${locale}/sign-in`;
   };
 
@@ -152,15 +155,15 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
           </div>
 
           {/* Logout */}
-          <div className="p-3" style={{ borderTop: '1px solid #e8e4dc' }}>
+          <div className="border-t border-app-border mt-1 pt-1 p-2">
             <button
               onClick={handleLogout}
-              className="w-full py-2 text-[13px] font-semibold rounded-xl transition-colors hover:bg-[#f0d4dc]/30"
-              style={{ color: '#9a96a8' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-dark)')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#9a96a8')}
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors text-left"
             >
-              Выйти из аккаунта
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm flex-shrink-0">
+                🚪
+              </div>
+              <span className="text-sm font-medium">Выйти</span>
             </button>
           </div>
         </div>
