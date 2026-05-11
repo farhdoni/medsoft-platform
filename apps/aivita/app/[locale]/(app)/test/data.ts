@@ -14,7 +14,7 @@ export interface HealthScoreRecord {
 
 export async function loadTestData() {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const [latestRes, historyRes] = await Promise.all([
     api.healthScore.latest(sessionCookie),

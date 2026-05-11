@@ -23,7 +23,9 @@ export async function apiRequest<T = unknown>(
   };
 
   if (sessionCookie) {
-    headers['Cookie'] = `aivita_session=${sessionCookie}`;
+    // Forward as aivita_api — the API-signed JWT that api.aivita.uz can verify
+    // with its own SESSION_SECRET (avoids SESSION_SECRET mismatch between containers)
+    headers['Cookie'] = `aivita_api=${sessionCookie}`;
   }
 
   try {

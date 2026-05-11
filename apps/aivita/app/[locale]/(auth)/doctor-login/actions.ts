@@ -35,7 +35,7 @@ export async function doctorLoginAction(
   }
 
   const json = await res.json() as {
-    data?: { session: SessionPayload };
+    data?: { session: SessionPayload; apiToken?: string };
     error?: string;
     userId?: string;
   };
@@ -55,6 +55,6 @@ export async function doctorLoginAction(
     return { error: 'not_doctor' };
   }
 
-  await setSession(session);
+  await setSession({ ...session, apiToken: json.data.apiToken });
   redirect(`/${locale}/doctor-home`);
 }

@@ -49,7 +49,7 @@ export default async function MedicationsPage({
 }) {
   const { locale } = await params;
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const [todayRes, statsRes, listRes] = await Promise.allSettled([
     api.medications.today(sessionCookie),

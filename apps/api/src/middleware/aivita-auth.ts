@@ -26,7 +26,11 @@ function getSecret(): Uint8Array {
 }
 
 export const requireAivitaAuth = createMiddleware(async (c, next) => {
-  const token = getCookie(c, 'aivita_session')
+  // aivita_api = API-signed JWT (preferred, avoids SESSION_SECRET mismatch with Next.js)
+  // aivita_session = legacy fallback
+  // X-Aivita-Session = server-side forwarded header
+  const token = getCookie(c, 'aivita_api')
+    ?? getCookie(c, 'aivita_session')
     ?? c.req.header('X-Aivita-Session');
 
   if (!token) return c.json({ error: 'Unauthorized' }, 401);

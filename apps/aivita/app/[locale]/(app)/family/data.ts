@@ -11,7 +11,7 @@ export interface FamilyMember {
 
 export async function loadFamilyData() {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const res = await api.family.list(sessionCookie);
   const members: FamilyMember[] =

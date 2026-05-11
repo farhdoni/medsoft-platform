@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 const SESSION_COOKIE = 'aivita_session';
+const API_COOKIE = 'aivita_api';
 
 // GET /api/auth/logout?locale=ru  — clears cookie then redirects to sign-in
 export async function GET(request: NextRequest) {
@@ -15,30 +16,34 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(new URL(`/${locale}/sign-in`, baseUrl));
 
-  // Clear with domain (matches how it was set)
-  response.cookies.set(SESSION_COOKIE, '', {
+  // Clear both cookies (matches how they were set)
+  const cookieOpts = {
     maxAge: 0,
     path: '/',
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     ...(isProduction ? { domain: '.aivita.uz' } : {}),
-  });
+  };
+  response.cookies.set(SESSION_COOKIE, '', cookieOpts);
+  response.cookies.set(API_COOKIE, '', cookieOpts);
 
   return response;
 }
 
-// POST — clears cookie, client handles redirect
+// POST — clears cookies, client handles redirect
 export async function POST() {
   const isProduction = process.env.NODE_ENV === 'production';
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, '', {
+  const cookieOpts = {
     maxAge: 0,
     path: '/',
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     ...(isProduction ? { domain: '.aivita.uz' } : {}),
-  });
+  };
+  response.cookies.set(SESSION_COOKIE, '', cookieOpts);
+  response.cookies.set(API_COOKIE, '', cookieOpts);
   return response;
 }

@@ -11,7 +11,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 async function fetchPatientContext(sessionCookie: string): Promise<string> {
   if (!sessionCookie) return '';
 
-  const headers = { Cookie: `aivita_session=${sessionCookie}`, 'Content-Type': 'application/json' };
+  const headers = { Cookie: `aivita_api=${sessionCookie}`, 'Content-Type': 'application/json' };
   const opts = { headers, cache: 'no-store' as const };
 
   try {
@@ -213,7 +213,7 @@ export async function POST(req: Request) {
 
   // Fetch patient context from session cookie
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
   const patientContext = await fetchPatientContext(sessionCookie);
 
   // Build system prompt with patient data

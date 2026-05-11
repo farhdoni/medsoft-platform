@@ -29,6 +29,17 @@ async function signMobileToken(payload: SessionPayload): Promise<string> {
     .sign(getSessionSecret());
 }
 
+/** Sign a short-lived API token using THIS server's SESSION_SECRET.
+ *  The Next.js frontend stores this as `aivita_api` cookie and forwards it
+ *  to the API on every server-side request, solving the SESSION_SECRET mismatch. */
+async function signApiToken(payload: SessionPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getSessionSecret());
+}
+
 export const aivitaAuthRouter = new Hono();
 
 // ─── Helper: build session payload returned to Next.js for cookie creation ────
@@ -159,8 +170,9 @@ aivitaAuthRouter.post(
       plan: (user.plan as SessionPayload['plan']) ?? 'free',
     };
 
-    // Return session data — Next.js will create the JWT cookie
-    return c.json({ data: { session } });
+    // Return session data + API token for cookie setup
+    const apiToken = await signApiToken(session);
+    return c.json({ data: { session, apiToken } });
   }
 );
 
@@ -258,8 +270,9 @@ aivitaAuthRouter.post(
       plan: (user.plan as SessionPayload['plan']) ?? 'free',
     };
 
-    // Return session data — Next.js will create the JWT cookie
-    return c.json({ data: { session } });
+    // Return session data + API token for cookie setup
+    const apiToken = await signApiToken(session);
+    return c.json({ data: { session, apiToken } });
   }
 );
 
@@ -428,8 +441,9 @@ aivitaAuthRouter.post('/complete-onboarding', requireAivitaAuth, async (c) => {
   const prev = c.get('aivitaSession');
   const session: SessionPayload = { ...prev, onboardingCompleted: true };
 
-  // Return updated session — Next.js refreshes the cookie
-  return c.json({ data: { session } });
+  // Return updated session + fresh API token
+  const apiToken = await signApiToken(session);
+  return c.json({ data: { session, apiToken } });
 });
 
 // ─── Internal: force verify email (for test accounts, key-protected) ──────────

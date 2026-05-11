@@ -10,7 +10,7 @@ export default async function GadgetsPage({
 }) {
   const { locale } = await params;
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const [catalogRes, connectedRes] = await Promise.allSettled([
     api.devices.catalog(sessionCookie),

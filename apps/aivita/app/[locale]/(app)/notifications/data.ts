@@ -13,7 +13,7 @@ export interface NotificationRecord {
 
 export async function loadNotificationsData() {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const res = await api.notifications.list(sessionCookie);
   const notifications: NotificationRecord[] =

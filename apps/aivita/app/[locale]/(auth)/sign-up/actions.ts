@@ -76,13 +76,13 @@ export async function verifyEmailAction(
     return { error: 'network' };
   }
 
-  const json = await res.json() as { data?: { session: SessionPayload }; error?: string };
+  const json = await res.json() as { data?: { session: SessionPayload; apiToken?: string }; error?: string };
 
   if (!res.ok || !json.data?.session) {
     return { error: 'invalid_code' };
   }
 
-  await setSession(json.data.session);
+  await setSession({ ...json.data.session, apiToken: json.data.apiToken });
 
   const session = json.data.session;
   if (session.role === 'doctor') {

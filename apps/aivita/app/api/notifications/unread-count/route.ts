@@ -6,13 +6,13 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
 export async function GET() {
   const cookieStore = await cookies();
-  const session = cookieStore.get('aivita_session')?.value;
+  const session = cookieStore.get('aivita_api')?.value;
 
   if (!session) return Response.json({ count: 0 });
 
   try {
     const res = await fetch(`${API_BASE}/v1/aivita/notifications`, {
-      headers: { Cookie: `aivita_session=${session}` },
+      headers: { Cookie: `aivita_api=${session}` },
       cache: 'no-store',
     });
 

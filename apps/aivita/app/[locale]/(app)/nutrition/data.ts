@@ -22,7 +22,7 @@ export interface NutritionTotals {
 
 export async function loadNutritionData() {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
   const today = new Date().toISOString().split('T')[0];
 
   const [summaryRes, waterRes] = await Promise.all([

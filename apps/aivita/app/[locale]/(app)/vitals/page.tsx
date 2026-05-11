@@ -11,7 +11,7 @@ export default async function VitalsPage({
 }) {
   const { locale } = await params;
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const [latestRes, listRes] = await Promise.allSettled([
     api.vitals.latest(sessionCookie),

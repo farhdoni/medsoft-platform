@@ -100,7 +100,7 @@ export default async function ProfilePage({
 }) {
   const { locale } = await params;
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const { user, profile, allergies, chronic, history, medications } =
     await getProfileData(sessionCookie);

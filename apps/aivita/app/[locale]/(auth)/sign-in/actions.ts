@@ -11,6 +11,7 @@ type SessionPayload = {
   avatarUrl?: string;
   onboardingCompleted: boolean;
   role?: 'patient' | 'doctor' | 'admin';
+  plan?: 'free' | 'plus' | 'pro';
 };
 
 export type LoginState = { error: string | null };
@@ -35,7 +36,7 @@ export async function loginAction(
   }
 
   const json = await res.json() as {
-    data?: { session: SessionPayload };
+    data?: { session: SessionPayload; apiToken?: string };
     error?: string;
     userId?: string;
   };
@@ -48,7 +49,8 @@ export async function loginAction(
     return { error: 'invalid_credentials' };
   }
 
-  await setSession(json.data.session);
+  // Pass apiToken to setSession so it gets stored as aivita_api cookie
+  await setSession({ ...json.data.session, apiToken: json.data.apiToken });
 
   const { role, onboardingCompleted } = json.data.session;
   if (role === 'doctor') redirect(`/${locale}/doctor-home`);

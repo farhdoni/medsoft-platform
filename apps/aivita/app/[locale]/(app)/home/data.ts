@@ -1,19 +1,19 @@
 import { cookies } from 'next/headers';
 import type { User, DailyMetrics, ActivityPoint, Report } from '@/lib/cabinet-types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://api.aivita.uz';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
 // All aivita API responses are { data: T } — unwrap automatically
 async function authFetch<T>(path: string): Promise<T | null> {
   try {
     const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('aivita_session');
+    const sessionCookie = cookieStore.get('aivita_api');
 
     const r = await fetch(`${API_BASE}${path}`, {
       cache: 'no-store',
       headers: {
         'content-type': 'application/json',
-        ...(sessionCookie ? { Cookie: `aivita_session=${sessionCookie.value}` } : {}),
+        ...(sessionCookie ? { Cookie: `aivita_api=${sessionCookie.value}` } : {}),
       },
     });
 

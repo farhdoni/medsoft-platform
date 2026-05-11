@@ -21,7 +21,7 @@ export interface ReportRecord {
 
 export async function loadReportData() {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   const res = await api.reports.list(sessionCookie);
   const reports: ReportRecord[] =

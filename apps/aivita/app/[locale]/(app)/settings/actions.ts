@@ -11,7 +11,7 @@ export async function signOut(locale: string = 'ru') {
 
 export async function deleteAccount(locale: string = 'ru') {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_session')?.value ?? '';
+  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
   // Soft-delete on API (sets deletedAt)
   await apiRequest('/users', { method: 'DELETE', sessionCookie }).catch(() => null);
