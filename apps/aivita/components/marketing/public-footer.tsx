@@ -48,10 +48,10 @@ export async function PublicFooter() {
           {/* Company */}
           <div className="lp-footer-col">
             <h4>{t('company')}</h4>
-            <a href="#">{t('aboutMedsoft')}</a>
-            <a href="#">{t('partners')}</a>
-            <a href="#">{t('careers')}</a>
-            <a href="#">{t('blog')}</a>
+            <Link href="/ru/privacy">{t('aboutMedsoft')}</Link>
+            <span style={{ opacity: 0.4, cursor: 'default' }}>{t('partners')}</span>
+            <span style={{ opacity: 0.4, cursor: 'default' }}>{t('careers')}</span>
+            <span style={{ opacity: 0.4, cursor: 'default' }}>{t('blog')}</span>
           </div>
 
           {/* Support */}

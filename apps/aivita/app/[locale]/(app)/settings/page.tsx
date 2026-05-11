@@ -22,13 +22,11 @@ type SettingItem = {
 // ─── Row component ────────────────────────────────────────────────────────────
 
 function SettingRow({ item, last }: { item: SettingItem; last: boolean }) {
-  return (
-    <Link
-      href={item.href}
-      className={`flex items-center gap-3 px-4 py-3.5 hover:bg-bg-app transition-colors ${
-        !last ? 'border-b border-border-soft' : ''
-      }`}
-    >
+  const rowClass = `flex items-center gap-3 px-4 py-3.5 transition-colors ${
+    !last ? 'border-b border-border-soft' : ''
+  }`;
+  const inner = (
+    <>
       <div
         className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center"
         style={{ background: item.bg }}
@@ -43,6 +41,14 @@ function SettingRow({ item, last }: { item: SettingItem; last: boolean }) {
         <span className="text-[12px] text-text-muted flex-shrink-0 mr-1">{item.value}</span>
       ) : null}
       <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
+    </>
+  );
+  if (!item.href || item.href === '#') {
+    return <div className={`${rowClass} opacity-60`}>{inner}</div>;
+  }
+  return (
+    <Link href={item.href} className={`${rowClass} hover:bg-bg-app`}>
+      {inner}
     </Link>
   );
 }
@@ -63,7 +69,7 @@ export default async function SettingsPage({
       items: [
         { icon: User,   label: 'Профиль',          sub: 'Имя, дата рождения, пол',   href: `/${locale}/profile`, bg: '#f0d4dc', color: '#9c5e6c' },
         { icon: Heart,  label: 'Мед. профиль',      sub: 'Аллергии, заболевания',     href: `/${locale}/profile`, bg: '#d4e8d8', color: '#548068' },
-        { icon: Target, label: 'Цели здоровья',     sub: 'Шаги, сон, вода',           href: '#',                  bg: '#d4dff0', color: '#5e75a8' },
+        { icon: Target, label: 'Цели здоровья',     sub: 'Шаги, сон, вода',           href: `/${locale}/profile`, bg: '#d4dff0', color: '#5e75a8' },
       ],
     },
     {
@@ -71,7 +77,7 @@ export default async function SettingsPage({
       items: [
         { icon: Globe, label: 'Язык',          sub: localeLabel,                          href: '#', value: localeLabel, bg: '#d4dff0', color: '#5e75a8' },
         { icon: Bell,  label: 'Уведомления',   sub: 'Привычки, напоминания',              href: '#', value: notificationsOn ? 'Вкл' : 'Выкл', bg: '#e0d8f0', color: '#6e5fa0' },
-        { icon: Lock,  label: 'Конфиденциальность', sub: 'Что видит семья, экспорт',     href: '#', bg: '#d4e8d8', color: '#548068' },
+        { icon: Lock,  label: 'Конфиденциальность', sub: 'Что видит семья, экспорт',     href: `/${locale}/privacy`, bg: '#d4e8d8', color: '#548068' },
       ],
     },
     {
@@ -84,7 +90,7 @@ export default async function SettingsPage({
     {
       title: 'Прочее',
       items: [
-        { icon: HelpCircle, label: 'Помощь',          sub: 'FAQ и поддержка',    href: '#', bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: HelpCircle, label: 'Помощь',          sub: 'FAQ и поддержка',    href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
         { icon: Lock,       label: 'О приложении',    sub: 'Aivita v0.1.0',      href: '#', value: 'v0.1.0', bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
