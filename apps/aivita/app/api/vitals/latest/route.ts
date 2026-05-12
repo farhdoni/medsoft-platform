@@ -3,12 +3,24 @@ import { NextResponse } from 'next/server';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
-export async function GET() {
+async function getAuthHeaders(): Promise<Record<string, string>> {
   const store = await cookies();
-  const session = store.get('aivita_api')?.value ?? '';
+  const apiCookie = store.get('aivita_api')?.value;
+  const sessionCookie = store.get('aivita_session')?.value;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiCookie) {
+    headers['Cookie'] = `aivita_api=${apiCookie}`;
+  } else if (sessionCookie) {
+    headers['X-Aivita-Session'] = sessionCookie;
+  }
+  return headers;
+}
+
+export async function GET() {
+  const authHeaders = await getAuthHeaders();
   try {
     const res = await fetch(`${API_BASE}/v1/aivita/vitals/latest`, {
-      headers: { Cookie: `aivita_api=${session}`, 'Content-Type': 'application/json' },
+      headers: authHeaders,
       cache: 'no-store',
     });
     const json = await res.json();
