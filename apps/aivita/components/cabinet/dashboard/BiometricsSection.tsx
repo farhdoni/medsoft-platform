@@ -220,11 +220,20 @@ export function BiometricsSection({ initialLatest, locale }: Props) {
   const [activeDef, setActiveDef] = useState<VitalTileDef | null>(null);
 
   function handleSaved(type: string, displayVal: string) {
-    // Optimistic update — show value immediately
+    // Optimistic update — build correct value shape per vital type
+    let optimisticValue: Record<string, unknown>;
+    if (type === 'blood_pressure') {
+      const [sys, dia] = displayVal.split('/').map(Number);
+      optimisticValue = { systolic: sys, diastolic: dia };
+    } else if (type === 'sleep_hours') {
+      optimisticValue = { hours: parseFloat(displayVal) };
+    } else {
+      optimisticValue = { value: parseFloat(displayVal) };
+    }
     setLatest((prev) => ({
       ...prev,
       [type]: {
-        value: { value: parseFloat(displayVal) },
+        value: optimisticValue,
         recordedAt: new Date().toISOString(),
       },
     }));

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { apiRequest } from '@/lib/api-client';
 
 export function MarkAllReadButton() {
   const [done, setDone] = useState(false);
@@ -9,7 +8,8 @@ export function MarkAllReadButton() {
 
   async function markAll() {
     setLoading(true);
-    await apiRequest('/notifications/read-all', { method: 'POST' }).catch(() => null);
+    // Use Next.js proxy route so httpOnly cookie is forwarded correctly
+    await fetch('/api/notifications', { method: 'POST' }).catch(() => null);
     setDone(true);
     setLoading(false);
   }

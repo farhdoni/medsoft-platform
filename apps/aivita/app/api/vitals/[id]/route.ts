@@ -1,27 +1,14 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { getProxyAuthHeaders } from '@/lib/server-auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const store = await cookies();
-  const apiCookie = store.get('aivita_api')?.value;
-  const sessionCookie = store.get('aivita_session')?.value;
-  const headers: Record<string, string> = {};
-  if (apiCookie) {
-    headers['Cookie'] = `aivita_api=${apiCookie}`;
-  } else if (sessionCookie) {
-    headers['X-Aivita-Session'] = sessionCookie;
-  }
-  return headers;
-}
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authHeaders = await getAuthHeaders();
+  const authHeaders = await getProxyAuthHeaders();
   try {
     const res = await fetch(`${API_BASE}/v1/aivita/vitals/${id}`, {
       method: 'DELETE',

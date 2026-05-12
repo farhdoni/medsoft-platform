@@ -15,6 +15,9 @@ const intlMiddleware = createIntlMiddleware({
 const APP_ROUTES = [
   '/home',
   '/profile',
+  '/vitals',
+  '/gadgets',
+  '/medications',
   '/habits',
   '/nutrition',
   '/chat',

@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { apiRequest } from '@/lib/api-client';
 
 export function GenerateReportButton() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
 
   async function generate() {
     setStatus('loading');
-    const res = await apiRequest('/reports/generate', { method: 'POST' }).catch(() => null);
-    if (res && 'data' in res) {
+    // Use Next.js proxy route so httpOnly cookie is forwarded correctly
+    const res = await fetch('/api/reports', { method: 'POST' }).catch(() => null);
+    if (res && res.ok) {
       setStatus('done');
       // Reload page to show new report
       window.location.reload();

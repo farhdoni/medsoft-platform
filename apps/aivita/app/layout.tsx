@@ -41,7 +41,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className={`${manrope.variable} ${instrumentSerif.variable}`}>
+    <html lang="ru" suppressHydrationWarning className={`${manrope.variable} ${instrumentSerif.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />

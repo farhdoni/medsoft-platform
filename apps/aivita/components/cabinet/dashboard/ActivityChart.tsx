@@ -16,7 +16,7 @@ const CHART_H = 110;
 export function ActivityChart({ data }: { data: ActivityPoint[] }) {
   const [metric, setMetric] = useState<Metric>("Шаги");
   const field = FIELD[metric];
-  const max = Math.max(...data.map((d) => d[field] as number));
+  const max = Math.max(...data.map((d) => d[field] as number)) || 1; // avoid division by zero for new users
 
   return (
     <section className="rounded-card bg-white p-5 shadow-card">

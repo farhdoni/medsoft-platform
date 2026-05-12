@@ -235,7 +235,7 @@ export async function POST(req: Request) {
   try {
     // Sonnet has far better Uzbek language support than Haiku
     stream = await client.messages.stream({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
       messages: messages.slice(-10),

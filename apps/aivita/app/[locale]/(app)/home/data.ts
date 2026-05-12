@@ -126,7 +126,7 @@ export async function loadHomeData(): Promise<{
     apiReports,
     apiVitalsLatest,
   ] = await Promise.all([
-    authFetch<ApiUser>('/v1/aivita/auth/me'),
+    authFetch<ApiUser>('/v1/aivita/users'),
     authFetch<ApiHealthScore>('/v1/aivita/health-score'),
     authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=heart_rate&from=${today}`),
     authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=water_ml&from=${today}`),
