@@ -25,12 +25,13 @@ const PATIENT_MENU_ITEMS: MenuItem[] = [
 ];
 
 const DOCTOR_MENU_ITEMS: MenuItem[] = [
-  { icon: 'doctor',   softBg: 'var(--accent-light)',    title: 'Профиль врача',        subtitle: 'Специализация, данные', href: '/doctor-profile' },
-  { icon: 'calendar', softBg: 'var(--accent-bg-light)', title: 'Расписание',           subtitle: 'Рабочие часы, слоты',   href: '/doctor-schedule' },
-  { icon: 'family',   softBg: '#d4e8d8',                title: 'Мои пациенты',         subtitle: 'Список и карточки',     href: '/doctor-patients' },
-  { icon: 'kit',      softBg: '#d4dff0',                title: 'Приёмы',               subtitle: 'Предстоящие и прошлые', href: '/doctor-appointments' },
-  { icon: 'sparkle',  softBg: '#d4e8d8',                title: 'AI-ассистент',         subtitle: 'Анализ и диагнозы',     href: '/doctor-ai' },
-  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',            subtitle: 'Профиль, уведомления',  href: '/settings' },
+  { icon: 'doctor',   softBg: 'var(--accent-light)',    title: 'Профиль врача',   subtitle: 'Специализация, документы', href: '/doctor-profile' },
+  { icon: 'family',   softBg: '#d4e8d8',                title: 'Мои пациенты',   subtitle: 'Список пациентов',         href: '/doctor-patients' },
+  { icon: 'calendar', softBg: 'var(--accent-bg-light)', title: 'Расписание',     subtitle: 'Приёмы и слоты',           href: '/doctor-schedule' },
+  { icon: 'kit',      softBg: '#d4dff0',                title: 'Приёмы',         subtitle: 'История приёмов',          href: '/doctor-appointments' },
+  { icon: 'sparkle',  softBg: '#d4e8d8',                title: 'AI-ассистент',   subtitle: 'Диагнозы, анализы',        href: '/doctor-ai' },
+  { icon: 'chat',     softBg: '#d4dff0',                title: 'Чаты',           subtitle: 'Сообщения пациентов',      href: '/doctor-chats' },
+  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',      subtitle: 'Уведомления, язык',        href: '/settings' },
 ];
 
 interface ProfileMenuProps {
@@ -79,7 +80,9 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
   const email = session?.email ?? '';
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
-  const items = role === 'doctor' ? DOCTOR_MENU_ITEMS : PATIENT_MENU_ITEMS;
+  // Use explicit role prop; fall back to session.role so any page without explicit role still works
+  const effectiveRole = role ?? (session?.role as 'patient' | 'doctor' | undefined);
+  const items = effectiveRole === 'doctor' ? DOCTOR_MENU_ITEMS : PATIENT_MENU_ITEMS;
 
   const handleLogout = async () => {
     try {
@@ -136,6 +139,36 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
               <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{email}</p>
             </div>
           </div>
+
+          {/* Role switcher */}
+          {effectiveRole === 'doctor' && (
+            <div className="px-2 pt-2 pb-0">
+              <Link
+                href={`/${locale}/home`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold transition-colors mb-1"
+                style={{ background: '#f0faf4', color: '#3a7a5a', border: '1px solid #b8e8c8' }}
+              >
+                <span>🏠</span>
+                <span>Кабинет пациента</span>
+                <span className="ml-auto" style={{ color: '#9a96a8', fontSize: 14 }}>›</span>
+              </Link>
+            </div>
+          )}
+          {session?.role === 'doctor' && effectiveRole !== 'doctor' && (
+            <div className="px-2 pt-2 pb-0">
+              <Link
+                href={`/${locale}/doctor-home`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold transition-colors mb-1"
+                style={{ background: '#f0edf8', color: '#5e40a0', border: '1px solid #d8cff0' }}
+              >
+                <span>🩺</span>
+                <span>Кабинет врача</span>
+                <span className="ml-auto" style={{ color: '#9a96a8', fontSize: 14 }}>›</span>
+              </Link>
+            </div>
+          )}
 
           {/* Menu items */}
           <div className="p-2">
