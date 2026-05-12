@@ -47,12 +47,12 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* SOS — patients only */}
           {role === 'patient' && (
             <button
               onClick={() => setShowSos(true)}
-              className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 active:scale-95 transition-all shadow-sm"
+              className="px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full hover:bg-red-600 active:scale-95 transition-all shadow-sm sm:px-3 sm:py-1.5 sm:text-xs"
               aria-label="SOS Экстренный вызов"
             >
               SOS
@@ -60,16 +60,16 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
           )}
           <button
             aria-label="Поиск"
-            className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-card transition hover:scale-105"
+            className="grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
           >
-            <Icon name="search" size={20} />
+            <Icon name="search" size={18} />
           </button>
           <Link
             href={`/${locale}/notifications`}
             aria-label="Уведомления"
-            className="relative grid h-10 w-10 place-items-center rounded-full bg-white shadow-card transition hover:scale-105"
+            className="relative grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
           >
-            <Icon name="bell" size={20} />
+            <Icon name="bell" size={18} />
             {unread > 0 && (
               <span
                 className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-white text-[10px] font-bold px-1 leading-none"

@@ -88,7 +88,7 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
       <button
         ref={buttonRef}
         onClick={handleToggle}
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold hover:opacity-90 transition-opacity"
+        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold hover:opacity-90 transition-opacity sm:w-10 sm:h-10"
         style={{ background: 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)' }}
         aria-label="Меню профиля"
       >
