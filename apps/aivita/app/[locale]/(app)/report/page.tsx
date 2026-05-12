@@ -3,6 +3,7 @@ import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { Icon } from '@/components/cabinet/icons/Icon';
 import { loadReportData } from './data';
 import { GenerateReportButton } from './GenerateReportButton';
+import { ReportActions } from './ReportActions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,15 +50,18 @@ export default async function ReportPage({
               : 'Сгенерируй сводку для врача за 30 дней'}
           </p>
           {latest ? (
-            <a
-              href={latest.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-chip bg-white/20 px-4 py-2 text-[13px] font-semibold text-white hover:bg-white/30 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Скачать PDF
-            </a>
+            <>
+              <a
+                href={latest.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-chip bg-white/20 px-4 py-2 text-[13px] font-semibold text-white hover:bg-white/30 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Скачать PDF
+              </a>
+              <ReportActions shareToken={latest.shareToken} />
+            </>
           ) : (
             <GenerateReportButton />
           )}

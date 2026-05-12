@@ -23,10 +23,18 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
   useEffect(() => {
     // Only self-fetch if parent did not supply count
     if (unreadCount !== undefined) return;
-    fetch('/api/notifications/unread-count', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.count != null) setSelfUnread(d.count); })
-      .catch(() => {});
+
+    function fetchUnread() {
+      fetch('/api/notifications/unread-count')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.count != null) setSelfUnread(d.count); })
+        .catch(() => {});
+    }
+
+    fetchUnread();
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
   }, [unreadCount]);
 
   const unread = unreadCount ?? selfUnread;

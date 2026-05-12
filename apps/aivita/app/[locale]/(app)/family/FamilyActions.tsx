@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+const PROXY = '/api/proxy';
 
 const RELATION_OPTIONS = [
   { value: 'spouse',  label: 'Супруг/а' },
@@ -28,10 +28,9 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
     if (!name.trim()) { setErr('Введите имя'); return; }
     setSaving(true); setErr('');
     try {
-      const res = await fetch(`${API}/v1/aivita/family`, {
+      const res = await fetch(`${PROXY}/family`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           memberName:      name.trim(),
           memberRelation:  relation,

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+const PROXY = '/api/proxy';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,10 +38,9 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
     if (!title.trim()) { setErr('Введите название'); return; }
     setSaving(true); setErr('');
     try {
-      const res = await fetch(`${API}/v1/aivita/medications`, {
+      const res = await fetch(`${PROXY}/medications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
           dosage: dosage.trim() || null,
@@ -220,10 +219,9 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
   const markStatus = useCallback(async (scheduleId: string, time: string, action: 'take' | 'skip') => {
     setLoading(l => ({ ...l, [`${scheduleId}-${time}`]: true }));
     try {
-      await fetch(`${API}/v1/aivita/medications/${scheduleId}/${action}`, {
+      await fetch(`${PROXY}/medications/${scheduleId}/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ time }),
       });
       // Optimistic update

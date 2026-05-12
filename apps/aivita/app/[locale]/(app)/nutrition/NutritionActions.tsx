@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Camera } from 'lucide-react';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+const PROXY = '/api/proxy';
 
 const MEAL_TYPES = [
   { value: 'breakfast', label: 'Завтрак' },
@@ -33,10 +33,9 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     if (!calories || isNaN(Number(calories))) { setErr('Введите калории'); return; }
     setSaving(true); setErr('');
     try {
-      const res = await fetch(`${API}/v1/aivita/nutrition`, {
+      const res = await fetch(`${PROXY}/nutrition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
           emoji: emoji || '🍽️',

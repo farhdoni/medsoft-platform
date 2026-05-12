@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { LangSetter } from '@/components/LangSetter';
 
 const locales = ['ru', 'uz', 'en'];
 
@@ -16,6 +17,8 @@ export default async function LocaleLayout({
   const messages = await getMessages();
   return (
     <NextIntlClientProvider messages={messages}>
+      {/* Sets document.lang dynamically to match current locale (ru/uz/en) */}
+      <LangSetter lang={locale} />
       {children}
     </NextIntlClientProvider>
   );

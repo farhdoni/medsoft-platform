@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { HealthProfile, Allergy, ChronicCondition, HistoryEntry, Medication } from './types';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+// All API calls go through Next.js proxy (/api/proxy/*) to avoid CORS issues
+const PROXY = '/api/proxy';
 
 // ─── Select options ───────────────────────────────────────────────────────────
 
@@ -26,10 +27,9 @@ function labelOf(opts: { v: string; l: string }[], val?: string | null): string 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 async function apiPut(path: string, body: Record<string, unknown>) {
-  const res = await fetch(`${API}/v1/aivita${path}`, {
+  const res = await fetch(`${PROXY}${path}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${res.status}`);
@@ -37,10 +37,9 @@ async function apiPut(path: string, body: Record<string, unknown>) {
 }
 
 async function apiPost(path: string, body: Record<string, unknown>) {
-  const res = await fetch(`${API}/v1/aivita${path}`, {
+  const res = await fetch(`${PROXY}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${res.status}`);
@@ -48,7 +47,7 @@ async function apiPost(path: string, body: Record<string, unknown>) {
 }
 
 async function apiDelete(path: string) {
-  await fetch(`${API}/v1/aivita${path}`, { method: 'DELETE', credentials: 'include' });
+  await fetch(`${PROXY}${path}`, { method: 'DELETE' });
 }
 
 // ─── InlineField ──────────────────────────────────────────────────────────────

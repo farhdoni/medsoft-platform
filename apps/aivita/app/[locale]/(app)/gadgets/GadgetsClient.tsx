@@ -146,12 +146,11 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
   async function handleConnect(device: DeviceCatalogItem) {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/devices`,
+        '/api/proxy/devices',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ type: device.type, name: device.name }),
+                    body: JSON.stringify({ type: device.type, name: device.name }),
         }
       );
       const json = await res.json();
@@ -164,10 +163,7 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
   async function handleSync(id: string) {
     setSyncing(id);
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/devices/${id}/sync`,
-        { method: 'POST', credentials: 'include' }
-      );
+      await fetch(`/api/proxy/devices/${id}/sync`, { method: 'POST' });
       setConnected((prev) =>
         prev.map((d) => (d.id === id ? { ...d, lastSyncAt: new Date().toISOString() } : d))
       );
@@ -178,10 +174,7 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
 
   async function handleDisconnect(id: string) {
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/devices/${id}`,
-        { method: 'DELETE', credentials: 'include' }
-      );
+      await fetch(`/api/proxy/devices/${id}`, { method: 'DELETE' });
       setConnected((prev) => prev.filter((d) => d.id !== id));
     } catch {}
   }

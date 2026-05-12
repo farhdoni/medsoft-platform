@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+// All API calls go through Next.js proxy (/api/proxy/*) to avoid CORS issues
+const PROXY = '/api/proxy';
 
 export interface HabitWithStatus {
   id: string;
@@ -30,10 +31,9 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
     if (!name.trim()) { setErr('Введите название'); return; }
     setSaving(true); setErr('');
     try {
-      const res = await fetch(`${API}/v1/aivita/habits`, {
+      const res = await fetch(`${PROXY}/habits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
           emoji: emoji || '✅',
@@ -142,8 +142,8 @@ export function HabitsList({ initialHabits, today }: Props) {
     setHabits((prev) => {
       const habit = prev.find((h) => h.id === id);
       if (habit && !habit.done) {
-        fetch(`${API}/v1/aivita/habits/${id}/logs`, {
-          method: 'POST', credentials: 'include',
+        fetch(`${PROXY}/habits/${id}/logs`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date: today, value: '1' }),
         }).catch(() => {});

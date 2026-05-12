@@ -8,8 +8,9 @@ const CABINET_ROUTES = 'home|profile|habits|nutrition|chat|test|family|report|se
 const nextConfig: NextConfig = {
   output: 'standalone',
   transpilePackages: ['@medsoft/shared'],
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+  // TypeScript and ESLint errors must be fixed, not hidden
+  // typescript: { ignoreBuildErrors: true },  // removed — fix errors properly
+  // eslint: { ignoreDuringBuilds: true },      // removed — fix errors properly
   async headers() {
     return [
       {

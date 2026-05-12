@@ -49,7 +49,7 @@ export function HeroSection({ user, metrics }: Props) {
           "linear-gradient(135deg, var(--hero-from) 0%, var(--hero-mid) 45%, var(--hero-to) 100%)",
       }}
     >
-      <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-start">
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[1fr_auto] md:items-start md:gap-8">
         {/* LEFT: greeting + AI input */}
         <div>
           <div className="text-[13px] font-medium opacity-85">
@@ -99,13 +99,24 @@ export function HeroSection({ user, metrics }: Props) {
           </div>
         </div>
 
-        {/* RIGHT: health-index ring card — hidden on mobile to avoid layout overflow */}
-        <div className="hidden rounded-card bg-white/95 p-5 text-text-primary shadow-card md:block md:w-[230px]">
+        {/* RIGHT: health-index ring card — compact on mobile, full on desktop */}
+        <div className="rounded-card bg-white/95 p-4 text-text-primary shadow-card md:p-5 md:w-[230px]">
           <div className="text-center text-[12px] font-medium text-text-secondary">
             Индекс здоровья
           </div>
-          <div className="relative mx-auto mt-3 grid h-[140px] w-[140px] place-items-center">
-            <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
+          <div className="relative mx-auto mt-3 grid h-[100px] w-[100px] place-items-center md:h-[140px] md:w-[140px]">
+            <svg width="100" height="100" viewBox="0 0 140 140" className="-rotate-90 md:hidden absolute inset-0 w-full h-full">
+              <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
+              <circle cx="70" cy="70" r="56" fill="none" stroke="url(#ring-grad-sm)" strokeWidth="10"
+                strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
+              <defs>
+                <linearGradient id="ring-grad-sm" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor='var(--accent)' />
+                  <stop offset="100%" stopColor="#80b094" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90 hidden md:block absolute inset-0 w-full h-full">
               <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
               <circle
                 cx="70"
@@ -126,7 +137,7 @@ export function HeroSection({ user, metrics }: Props) {
               </defs>
             </svg>
             <div className="absolute text-center">
-              <div className="text-[34px] font-extrabold leading-none">
+              <div className="text-[24px] font-extrabold leading-none md:text-[34px]">
                 {metrics.healthIndex.score}
               </div>
               <div className="text-[10px] font-medium text-text-muted">/100</div>

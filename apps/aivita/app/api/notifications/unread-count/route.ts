@@ -1,18 +1,16 @@
-import { cookies } from 'next/headers';
+import { getProxyAuthHeaders, isProxyAuthenticated } from '@/lib/server-auth';
 
 export const runtime = 'nodejs';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
 export async function GET() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('aivita_api')?.value;
-
-  if (!session) return Response.json({ count: 0 });
+  const authHeaders = await getProxyAuthHeaders();
+  if (!isProxyAuthenticated(authHeaders)) return Response.json({ count: 0 });
 
   try {
     const res = await fetch(`${API_BASE}/v1/aivita/notifications`, {
-      headers: { Cookie: `aivita_api=${session}` },
+      headers: authHeaders,
       cache: 'no-store',
     });
 

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { DangerZone } from './danger-zone';
+import { SettingsInteractive } from './SettingsInteractive';
 import { loadSettingsData } from './data';
 import { getSession } from '@/lib/auth/session';
 
@@ -158,11 +159,16 @@ export default async function SettingsPage({
               <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 px-0.5">
                 {section.title}
               </p>
-              <div className="rounded-card bg-white border border-border-soft overflow-hidden">
-                {section.items.map((item, idx) => (
-                  <SettingRow key={item.label} item={item} last={idx === section.items.length - 1} />
-                ))}
-              </div>
+              {section.title === 'Приложение' ? (
+                /* Language + Notifications rendered as interactive client component */
+                <SettingsInteractive locale={locale} localeLabel={localeLabel} notificationsOn={notificationsOn} />
+              ) : (
+                <div className="rounded-card bg-white border border-border-soft overflow-hidden">
+                  {section.items.map((item, idx) => (
+                    <SettingRow key={item.label} item={item} last={idx === section.items.length - 1} />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
 
