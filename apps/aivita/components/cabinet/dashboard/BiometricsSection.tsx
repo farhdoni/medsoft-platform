@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Modal from '@/components/ui/Modal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -114,96 +115,84 @@ function AddModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl z-[9999]">
-        <div className="flex items-center gap-3 mb-5">
-          <span className="text-[28px]">{def.icon}</span>
-          <div>
-            <h2 className="text-[18px] font-bold" style={{ color: '#2a2540' }}>
-              {def.label}
-            </h2>
-            <p className="text-[12px]" style={{ color: '#9a96a8' }}>Введите показатель</p>
-          </div>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`${def.icon} ${def.label}`}
+      footer={
+        <>
+          {error && (
+            <p className="text-xs mb-2 text-center font-semibold text-[#c0474e]">{error}</p>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
+          >
+            {saving ? 'Сохранение...' : '💾 Сохранить'}
+          </button>
+        </>
+      }
+    >
+      <p className="text-xs text-app-t3 mb-4">Введите показатель</p>
 
-        {def.dual ? (
-          <div className="flex gap-3 mb-4">
-            <div className="flex-1">
-              <label className="block text-[12px] font-semibold mb-1.5" style={{ color: '#6a6580' }}>
-                Верхнее (сист.)
-              </label>
-              <input
-                type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)}
-                placeholder="120" min={def.min} max={def.max} autoFocus
-                className="w-full rounded-[12px] border px-3 py-3 text-[16px] text-center font-bold outline-none focus:ring-2"
-                style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
-              />
-            </div>
-            <div className="flex items-center pt-7 text-[20px] font-bold" style={{ color: '#9a96a8' }}>/</div>
-            <div className="flex-1">
-              <label className="block text-[12px] font-semibold mb-1.5" style={{ color: '#6a6580' }}>
-                Нижнее (диаст.)
-              </label>
-              <input
-                type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)}
-                placeholder="80" min={40} max={150}
-                className="w-full rounded-[12px] border px-3 py-3 text-[16px] text-center font-bold outline-none focus:ring-2"
-                style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <label className="block text-[12px] font-semibold mb-1.5" style={{ color: '#6a6580' }}>
-              Значение ({def.unit})
+      {def.dual ? (
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold mb-1.5 text-app-t3">
+              Верхнее (сист.)
             </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number" value={value} onChange={(e) => setValue(e.target.value)}
-                placeholder={`${def.min}–${def.max}`}
-                min={def.min} max={def.max} step={def.step ?? 1} autoFocus
-                className="flex-1 rounded-[12px] border px-3 py-3 text-[20px] text-center font-bold outline-none focus:ring-2"
-                style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
-              />
-              <span className="text-[14px] font-medium flex-shrink-0" style={{ color: '#9a96a8' }}>{def.unit}</span>
-            </div>
+            <input
+              type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)}
+              placeholder="120" min={def.min} max={def.max} autoFocus
+              className="w-full rounded-xl border px-3 py-3 text-lg text-center font-bold outline-none"
+              style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
+            />
           </div>
-        )}
-
-        <div className="mb-5">
-          <label className="block text-[12px] font-semibold mb-1.5" style={{ color: '#6a6580' }}>
-            Заметка (необязательно)
-          </label>
-          <input
-            type="text" value={note} onChange={(e) => setNote(e.target.value)}
-            placeholder="Например: после пробежки"
-            className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-            style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
-          />
+          <div className="flex items-center pt-7 text-xl font-bold text-app-t3">/</div>
+          <div className="flex-1">
+            <label className="block text-xs font-semibold mb-1.5 text-app-t3">
+              Нижнее (диаст.)
+            </label>
+            <input
+              type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)}
+              placeholder="80" min={40} max={150}
+              className="w-full rounded-xl border px-3 py-3 text-lg text-center font-bold outline-none"
+              style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
+            />
+          </div>
         </div>
+      ) : (
+        <div className="mb-4">
+          <label className="block text-xs font-semibold mb-1.5 text-app-t3">
+            Значение ({def.unit})
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number" value={value} onChange={(e) => setValue(e.target.value)}
+              placeholder={`${def.min}–${def.max}`}
+              min={def.min} max={def.max} step={def.step ?? 1} autoFocus
+              className="flex-1 rounded-xl border px-3 py-3 text-xl text-center font-bold outline-none"
+              style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
+            />
+            <span className="text-sm font-medium flex-shrink-0 text-app-t3">{def.unit}</span>
+          </div>
+        </div>
+      )}
 
-        {error && (
-          <p className="text-[12px] mb-3 text-center font-semibold" style={{ color: '#c0474e' }}>{error}</p>
-        )}
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-3.5 rounded-[14px] text-[15px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mb-2"
-          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
-        >
-          {saving ? 'Сохранение...' : '💾 Сохранить'}
-        </button>
-        <button
-          onClick={onClose}
-          className="w-full py-2.5 rounded-[14px] text-[14px] font-semibold transition-colors hover:bg-[#f4f3ef]"
-          style={{ color: '#9a96a8' }}
-        >
-          Отмена
-        </button>
+      <div>
+        <label className="block text-xs font-semibold mb-1.5 text-app-t3">
+          Заметка (необязательно)
+        </label>
+        <input
+          type="text" value={note} onChange={(e) => setNote(e.target.value)}
+          placeholder="Например: после пробежки"
+          className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
+          style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
+        />
       </div>
-    </div>
+    </Modal>
   );
 }
 

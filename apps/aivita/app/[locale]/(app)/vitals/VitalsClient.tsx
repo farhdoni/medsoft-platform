@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { VitalRow, LatestVitals } from './types';
+import Modal from '@/components/ui/Modal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -297,13 +298,13 @@ function HistoryList({ rows, onDelete }: { rows: VitalRow[]; onDelete: (id: stri
 
 // ─── Add Vital Modal ───────────────────────────────────────────────────────────
 
-interface ModalProps {
+interface AddVitalModalProps {
   onClose: () => void;
   onSaved: () => void;
   initialType?: string;
 }
 
-function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
+function AddVitalModal({ onClose, onSaved, initialType }: AddVitalModalProps) {
   const [type, setType] = useState(initialType ?? 'heart_rate');
   const [value, setValue] = useState('');
   const [systolic, setSystolic] = useState('');
@@ -363,94 +364,87 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl z-[9999]">
-        <h2 className="text-[18px] font-bold mb-4" style={{ color: '#2a2540' }}>Добавить показатель</h2>
-
-        {/* Type selector */}
-        <label className="block text-[12px] font-semibold mb-1" style={{ color: '#6a6580' }}>Тип</label>
-        <select
-          value={type}
-          onChange={(e) => { setType(e.target.value); setValue(''); setSystolic(''); setDiastolic(''); }}
-          className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] mb-4 outline-none focus:ring-2"
-          style={{ color: '#2a2540' }}
-        >
-          {VITAL_DEFS.map((d) => (
-            <option key={d.type} value={d.type}>{d.icon} {d.label}</option>
-          ))}
-        </select>
-
-        {/* Value input */}
-        {def.dual ? (
-          <div className="flex gap-2 mb-4">
-            <div className="flex-1">
-              <label className="block text-[12px] font-semibold mb-1" style={{ color: '#6a6580' }}>Верхнее (систолическое)</label>
-              <input
-                type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)}
-                placeholder="120" min={def.min} max={def.max}
-                className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-                style={{ color: '#2a2540' }}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-[12px] font-semibold mb-1" style={{ color: '#6a6580' }}>Нижнее (диастолическое)</label>
-              <input
-                type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)}
-                placeholder="80" min={40} max={150}
-                className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-                style={{ color: '#2a2540' }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <label className="block text-[12px] font-semibold mb-1" style={{ color: '#6a6580' }}>
-              Значение ({def.unit})
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number" value={value} onChange={(e) => setValue(e.target.value)}
-                placeholder={`${def.min}–${def.max}`}
-                min={def.min} max={def.max} step={def.step ?? 1}
-                className="flex-1 rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-                style={{ color: '#2a2540' }}
-              />
-              <span className="text-[13px]" style={{ color: '#9a96a8' }}>{def.unit}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Note */}
-        <div className="mb-4">
-          <label className="block text-[12px] font-semibold mb-1" style={{ color: '#6a6580' }}>Заметка (необязательно)</label>
-          <input
-            type="text" value={note} onChange={(e) => setNote(e.target.value)}
-            placeholder="Например: после пробежки"
-            className="w-full rounded-[12px] border px-3 py-2.5 text-[14px] outline-none focus:ring-2"
-            style={{ color: '#2a2540' }}
-          />
-        </div>
-
-        {error && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{error}</p>}
-
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Добавить показатель"
+      footer={
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 mb-2"
+          className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >
           {saving ? 'Сохранение...' : '💾 Сохранить'}
         </button>
-        <button
-          onClick={onClose}
-          className="w-full py-2.5 rounded-[14px] text-[14px] font-semibold transition-colors hover:bg-[#f4f3ef]"
-          style={{ color: '#9a96a8' }}
-        >
-          Отмена
-        </button>
+      }
+    >
+      {/* Type selector */}
+      <label className="block text-xs font-semibold mb-1 text-app-t3">Тип</label>
+      <select
+        value={type}
+        onChange={(e) => { setType(e.target.value); setValue(''); setSystolic(''); setDiastolic(''); }}
+        className="w-full rounded-xl border px-3 py-2.5 text-sm mb-4 outline-none"
+        style={{ color: '#2a2540' }}
+      >
+        {VITAL_DEFS.map((d) => (
+          <option key={d.type} value={d.type}>{d.icon} {d.label}</option>
+        ))}
+      </select>
+
+      {/* Value input */}
+      {def.dual ? (
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold mb-1 text-app-t3">Верхнее (систолическое)</label>
+            <input
+              type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)}
+              placeholder="120" min={def.min} max={def.max}
+              className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
+              style={{ color: '#2a2540' }}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-semibold mb-1 text-app-t3">Нижнее (диастолическое)</label>
+            <input
+              type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)}
+              placeholder="80" min={40} max={150}
+              className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
+              style={{ color: '#2a2540' }}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <label className="block text-xs font-semibold mb-1 text-app-t3">
+            Значение ({def.unit})
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number" value={value} onChange={(e) => setValue(e.target.value)}
+              placeholder={`${def.min}–${def.max}`}
+              min={def.min} max={def.max} step={def.step ?? 1}
+              className="flex-1 rounded-xl border px-3 py-2.5 text-sm outline-none"
+              style={{ color: '#2a2540' }}
+            />
+            <span className="text-xs text-app-t3">{def.unit}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Note */}
+      <div className="mb-2">
+        <label className="block text-xs font-semibold mb-1 text-app-t3">Заметка (необязательно)</label>
+        <input
+          type="text" value={note} onChange={(e) => setNote(e.target.value)}
+          placeholder="Например: после пробежки"
+          className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none"
+          style={{ color: '#2a2540' }}
+        />
       </div>
-    </div>
+
+      {error && <p className="text-xs mt-2 font-semibold text-[color:var(--accent-dark)]">{error}</p>}
+    </Modal>
   );
 }
 

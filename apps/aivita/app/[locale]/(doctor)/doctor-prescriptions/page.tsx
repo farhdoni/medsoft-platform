@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import Modal from '@/components/ui/Modal';
 
 interface Prescription {
   id: string; type: string; title: string; details?: string;
@@ -156,108 +157,104 @@ export default function DoctorPrescriptionsPage() {
       </div>
 
       {/* Create prescription modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full bg-white rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-[#2a2540] text-lg">Новое назначение</h3>
-              <button onClick={() => setShowCreate(false)} className="text-[#9a96a8] text-xl">✕</button>
-            </div>
+      <Modal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Новое назначение"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowCreate(false)}
+              className="flex-1 py-3 rounded-xl text-sm font-medium border text-app-t3">Отмена</button>
+            <button onClick={handleCreate} disabled={saving || !form.title || !form.patientId}
+              className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
+              style={{ background: 'var(--accent-dark)', opacity: saving || !form.title || !form.patientId ? 0.5 : 1 }}>
+              {saving ? 'Сохранение...' : 'Создать'}
+            </button>
+          </div>
+        }
+      >
+        {/* Type tabs */}
+        <div className="flex gap-2 mb-4">
+          {(['medication', 'test', 'procedure'] as const).map(t => (
+            <button key={t} onClick={() => setForm(f => ({ ...f, type: t, templateId: '' }))}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
+              style={{ background: form.type === t ? 'var(--accent-dark)' : '#f0f0f0', color: form.type === t ? '#fff' : '#9a96a8' }}>
+              {TYPE_ICON[t]} {TYPE_LABEL[t]}
+            </button>
+          ))}
+        </div>
 
-            {/* Type tabs */}
-            <div className="flex gap-2 mb-4">
-              {(['medication', 'test', 'procedure'] as const).map(t => (
-                <button key={t} onClick={() => setForm(f => ({ ...f, type: t, templateId: '' }))}
-                  className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
-                  style={{ background: form.type === t ? 'var(--accent-dark)' : '#f0f0f0', color: form.type === t ? '#fff' : '#9a96a8' }}>
-                  {TYPE_ICON[t]} {TYPE_LABEL[t]}
+        {/* Template search */}
+        <div className="mb-4">
+          <label className="text-xs font-semibold text-app-t3">Шаблоны</label>
+          <input value={tmplSearch} onChange={e => setTmplSearch(e.target.value)}
+            placeholder="Поиск по шаблонам..."
+            className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
+          {tmplSearch && filteredTemplates.length > 0 && (
+            <div className="mt-1.5 border rounded-xl overflow-hidden border-app-border">
+              {filteredTemplates.slice(0, 5).map(t => (
+                <button key={t.id} onClick={() => applyTemplate(t)}
+                  className="w-full px-3 py-2.5 text-left text-sm text-app-t1 hover:bg-[#f8f7ff] border-b last:border-b-0">
+                  {t.title}
+                  <span className="text-xs text-app-t3 ml-2">({t.usageCount} исп.)</span>
                 </button>
               ))}
             </div>
+          )}
+        </div>
 
-            {/* Template search */}
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-[#9a96a8]">Шаблоны</label>
-              <input value={tmplSearch} onChange={e => setTmplSearch(e.target.value)}
-                placeholder="Поиск по шаблонам..."
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
-              {tmplSearch && filteredTemplates.length > 0 && (
-                <div className="mt-1.5 border rounded-xl overflow-hidden border-app-border">
-                  {filteredTemplates.slice(0, 5).map(t => (
-                    <button key={t.id} onClick={() => applyTemplate(t)}
-                      className="w-full px-3 py-2.5 text-left text-sm text-[#2a2540] hover:bg-[#f8f7ff] border-b last:border-b-0">
-                      {t.title}
-                      <span className="text-xs text-[#9a96a8] ml-2">({t.usageCount} исп.)</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* Patient */}
+        <div className="mb-3">
+          <label className="text-xs font-semibold text-app-t3">Пациент *</label>
+          <select value={form.patientId} onChange={e => setForm(f => ({ ...f, patientId: e.target.value }))}
+            className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none bg-white"
+            style={{ color: form.patientId ? '#2a2540' : '#9a96a8' }}>
+            <option value="">Выбрать пациента...</option>
+            {patients.map(p => (
+              <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
+            ))}
+          </select>
+        </div>
 
-            {/* Patient */}
-            <div className="mb-3">
-              <label className="text-xs font-semibold text-[#9a96a8]">Пациент *</label>
-              <select value={form.patientId} onChange={e => setForm(f => ({ ...f, patientId: e.target.value }))}
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none bg-white"
-                style={{ color: form.patientId ? '#2a2540' : '#9a96a8' }}>
-                <option value="">Выбрать пациента...</option>
-                {patients.map(p => (
-                  <option key={p.user.id} value={p.user.id}>{p.user.name}</option>
-                ))}
-              </select>
-            </div>
+        {/* Title */}
+        <div className="mb-3">
+          <label className="text-xs font-semibold text-app-t3">Название *</label>
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            placeholder="Название назначения..."
+            className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
+        </div>
 
-            {/* Title */}
-            <div className="mb-3">
-              <label className="text-xs font-semibold text-[#9a96a8]">Название *</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="Название назначения..."
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
-            </div>
+        {/* Details */}
+        <div className="mb-3">
+          <label className="text-xs font-semibold text-app-t3">Детали</label>
+          <textarea value={form.details} onChange={e => setForm(f => ({ ...f, details: e.target.value }))}
+            rows={2} placeholder="Инструкции, дозировка..."
+            className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none resize-none" />
+        </div>
 
-            {/* Details */}
-            <div className="mb-3">
-              <label className="text-xs font-semibold text-[#9a96a8]">Детали</label>
-              <textarea value={form.details} onChange={e => setForm(f => ({ ...f, details: e.target.value }))}
-                rows={2} placeholder="Инструкции, дозировка..."
-                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none resize-none" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="text-xs font-semibold text-[#9a96a8]">Частота</label>
-                <input value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
-                  placeholder="2 раза в день"
-                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[#9a96a8]">Дней</label>
-                <input type="number" value={form.durationDays} onChange={e => setForm(f => ({ ...f, durationDays: e.target.value }))}
-                  placeholder="7"
-                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
-              </div>
-            </div>
-
-            {/* Save as template */}
-            <label className="flex items-center gap-2 mb-5 cursor-pointer">
-              <input type="checkbox" checked={form.saveAsTemplate}
-                onChange={e => setForm(f => ({ ...f, saveAsTemplate: e.target.checked }))}
-                className="w-4 h-4 rounded" style={{ accentColor: 'var(--accent-dark)' }} />
-              <span className="text-sm text-[#2a2540]">Сохранить как шаблон</span>
-            </label>
-
-            <div className="flex gap-3">
-              <button onClick={() => setShowCreate(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
-              <button onClick={handleCreate} disabled={saving || !form.title || !form.patientId}
-                className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
-                style={{ background: 'var(--accent-dark)', opacity: saving || !form.title || !form.patientId ? 0.5 : 1 }}>
-                {saving ? 'Сохранение...' : 'Создать'}
-              </button>
-            </div>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="text-xs font-semibold text-app-t3">Частота</label>
+            <input value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
+              placeholder="2 раза в день"
+              className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-app-t3">Дней</label>
+            <input type="number" value={form.durationDays} onChange={e => setForm(f => ({ ...f, durationDays: e.target.value }))}
+              placeholder="7"
+              className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
           </div>
         </div>
-      )}
+
+        {/* Save as template */}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={form.saveAsTemplate}
+            onChange={e => setForm(f => ({ ...f, saveAsTemplate: e.target.checked }))}
+            className="w-4 h-4 rounded" style={{ accentColor: 'var(--accent-dark)' }} />
+          <span className="text-sm text-app-t1">Сохранить как шаблон</span>
+        </label>
+      </Modal>
     </div>
   );
 }

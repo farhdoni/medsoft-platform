@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Modal from '@/components/ui/Modal';
 
 // All API calls go through Next.js proxy (/api/proxy/*) to avoid CORS issues
 const PROXY = '/api/proxy';
@@ -61,68 +62,67 @@ function AddHabitModal({ onClose, onAdded }: { onClose: () => void; onAdded: (h:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-      <div className="bg-white rounded-t-[20px] sm:rounded-[20px] w-full sm:max-w-md p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[17px] font-bold" style={{ color: '#2a2540' }}>Новая привычка</h2>
-          <button onClick={onClose} className="text-[20px] text-gray-400 hover:text-gray-600 leading-none">×</button>
-        </div>
-
-        {/* Emoji picker */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: '#9a96a8' }}>Эмодзи</p>
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {EMOJI_OPTIONS.map(e => (
-            <button key={e} onClick={() => setEmoji(e)}
-              className="w-9 h-9 rounded-[10px] text-[18px] flex items-center justify-center transition-all"
-              style={{ background: emoji === e ? 'var(--accent-bg-light)' : '#f4f3ef', border: emoji === e ? '2px solid var(--accent-dark)' : '2px solid transparent' }}
-            >{e}</button>
-          ))}
-        </div>
-
-        {/* Name */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Название *</p>
-        <input
-          autoFocus value={name} onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
-          placeholder="Например: пить воду, читать..."
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ color: '#2a2540' }}
-        />
-
-        {/* Goal type */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Тип цели</p>
-        <div className="flex gap-2 mb-4">
-          {(['binary', 'count'] as const).map(t => (
-            <button key={t} onClick={() => setGoalType(t)}
-              className="flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: goalType === t ? 'var(--accent-dark)' : '#f4f3ef', color: goalType === t ? '#fff' : '#2a2540' }}
-            >{t === 'binary' ? 'Да/Нет' : 'Количество'}</button>
-          ))}
-        </div>
-
-        {goalType === 'count' && (
-          <div className="flex gap-2 mb-4">
-            <input value={goalValue} onChange={e => setGoalValue(e.target.value)}
-              type="number" min="1" placeholder="Кол-во"
-              className="w-24 rounded-[10px] border px-3 py-2 text-[14px] outline-none"
-            />
-            <input value={goalUnit} onChange={e => setGoalUnit(e.target.value)}
-              placeholder="раз / мин / мл"
-              className="flex-1 rounded-[10px] border px-3 py-2 text-[14px] outline-none"
-            />
-          </div>
-        )}
-
-        {err && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{err}</p>}
-
-        <button onClick={() => void submit()} disabled={saving || !name.trim()}
-          className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
-        >
-          {saving ? 'Сохраняем…' : `${emoji} Добавить привычку`}
-        </button>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Новая привычка"
+      footer={
+        <>
+          {err && <p className="text-xs mb-2 font-semibold text-[color:var(--accent-dark)]">{err}</p>}
+          <button onClick={() => void submit()} disabled={saving || !name.trim()}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
+          >
+            {saving ? 'Сохраняем…' : `${emoji} Добавить привычку`}
+          </button>
+        </>
+      }
+    >
+      {/* Emoji picker */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-2 text-app-t3">Эмодзи</p>
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {EMOJI_OPTIONS.map(e => (
+          <button key={e} onClick={() => setEmoji(e)}
+            className="w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all"
+            style={{ background: emoji === e ? 'var(--accent-bg-light)' : '#f4f3ef', border: emoji === e ? '2px solid var(--accent-dark)' : '2px solid transparent' }}
+          >{e}</button>
+        ))}
       </div>
-    </div>
+
+      {/* Name */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 text-app-t3">Название *</p>
+      <input
+        autoFocus value={name} onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
+        placeholder="Например: пить воду, читать..."
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4"
+        style={{ color: '#2a2540' }}
+      />
+
+      {/* Goal type */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 text-app-t3">Тип цели</p>
+      <div className="flex gap-2 mb-4">
+        {(['binary', 'count'] as const).map(t => (
+          <button key={t} onClick={() => setGoalType(t)}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{ background: goalType === t ? 'var(--accent-dark)' : '#f4f3ef', color: goalType === t ? '#fff' : '#2a2540' }}
+          >{t === 'binary' ? 'Да/Нет' : 'Количество'}</button>
+        ))}
+      </div>
+
+      {goalType === 'count' && (
+        <div className="flex gap-2">
+          <input value={goalValue} onChange={e => setGoalValue(e.target.value)}
+            type="number" min="1" placeholder="Кол-во"
+            className="w-24 rounded-xl border px-3 py-2 text-sm outline-none"
+          />
+          <input value={goalUnit} onChange={e => setGoalUnit(e.target.value)}
+            placeholder="раз / мин / мл"
+            className="flex-1 rounded-xl border px-3 py-2 text-sm outline-none"
+          />
+        </div>
+      )}
+    </Modal>
   );
 }
 

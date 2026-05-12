@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import Modal from '@/components/ui/Modal';
 
 interface DoctorProfile {
   id: string; userId: string;
@@ -525,84 +526,80 @@ export default function DoctorProfilePage() {
       </div>
 
       {/* Edit Modal */}
-      {editModal && (
-        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full bg-white rounded-t-3xl p-6 max-h-[88vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-[#2a2540] text-lg">
-                {editModal === 'personal' ? 'Личные данные' :
-                 editModal === 'professional' ? 'Профессиональные данные' :
-                 editModal === 'diploma' ? 'Диплом' :
-                 editModal === 'license' ? 'Лицензия' : 'Место работы'}
-              </h3>
-              <button onClick={() => setEditModal(null)} className="text-[#9a96a8] text-xl">✕</button>
-            </div>
-
-            {editModal === 'personal' && (
-              <>
-                <EditField label="Дата рождения" field="dateOfBirth" value={editData.dateOfBirth} onChange={setField} type="date" />
-                <EditField label="Пол" field="gender" value={editData.gender} onChange={setField} options={['male', 'female']} />
-                <EditField label="Серия паспорта" field="passportSeries" value={editData.passportSeries} onChange={setField} />
-                <EditField label="Номер паспорта" field="passportNumber" value={editData.passportNumber} onChange={setField} />
-                <EditField label="Кем выдан" field="passportIssuedBy" value={editData.passportIssuedBy} onChange={setField} />
-                <EditField label="Дата выдачи" field="passportIssuedAt" value={editData.passportIssuedAt} onChange={setField} type="date" />
-                <EditField label="Срок действия" field="passportExpiresAt" value={editData.passportExpiresAt} onChange={setField} type="date" />
-                <EditField label="Телефон" field="phone" value={editData.phone} onChange={setField} type="tel" />
-                <EditField label="Telegram" field="telegram" value={editData.telegram} onChange={setField} />
-                <EditField label="WhatsApp" field="whatsapp" value={editData.whatsapp} onChange={setField} />
-                <EditField label="Город" field="city" value={editData.city} onChange={setField} />
-              </>
-            )}
-
-            {editModal === 'professional' && (
-              <>
-                <EditField label="Специализация" field="specialization" value={editData.specialization} onChange={setField} options={SPECIALIZATIONS} />
-                <EditField label="Начало стажа" field="experienceStartDate" value={editData.experienceStartDate} onChange={setField} type="date" />
-                <EditField label="Стоимость консультации (сум)" field="consultationPrice" value={editData.consultationPrice} onChange={setField} type="number" />
-                <EditField label="О себе" field="bio" value={editData.bio} onChange={setField} type="textarea" />
-              </>
-            )}
-
-            {editModal === 'diploma' && (
-              <>
-                <EditField label="ВУЗ" field="diplomaUniversity" value={editData.diplomaUniversity} onChange={setField} />
-                <EditField label="Специальность" field="diplomaSpecialty" value={editData.diplomaSpecialty} onChange={setField} />
-                <EditField label="Год выпуска" field="diplomaYear" value={editData.diplomaYear} onChange={setField} type="number" />
-                <EditField label="Номер диплома" field="diplomaNumber" value={editData.diplomaNumber} onChange={setField} />
-              </>
-            )}
-
-            {editModal === 'license' && (
-              <>
-                <EditField label="Номер лицензии" field="licenseNumber" value={editData.licenseNumber} onChange={setField} />
-                <EditField label="Кем выдана" field="licenseIssuedBy" value={editData.licenseIssuedBy} onChange={setField} />
-                <EditField label="Дата выдачи" field="licenseIssuedAt" value={editData.licenseIssuedAt} onChange={setField} type="date" />
-                <EditField label="Действует до" field="licenseExpiresAt" value={editData.licenseExpiresAt} onChange={setField} type="date" />
-              </>
-            )}
-
-            {editModal === 'workplace' && (
-              <>
-                <EditField label="Название клиники" field="clinicName" value={editData.clinicName} onChange={setField} />
-                <EditField label="Адрес" field="clinicAddress" value={editData.clinicAddress} onChange={setField} />
-                <EditField label="Кабинет №" field="cabinetNumber" value={editData.cabinetNumber} onChange={setField} />
-                <EditField label="Телефон клиники" field="clinicPhone" value={editData.clinicPhone} onChange={setField} type="tel" />
-                <EditField label="Сайт клиники" field="clinicWebsite" value={editData.clinicWebsite} onChange={setField} type="url" />
-              </>
-            )}
-
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setEditModal(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
-              <button onClick={handleSave} disabled={saving}
-                className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
-                style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Сохранение...' : 'Сохранить'}
-              </button>
-            </div>
+      <Modal
+        isOpen={!!editModal}
+        onClose={() => setEditModal(null)}
+        title={
+          editModal === 'personal' ? 'Личные данные' :
+          editModal === 'professional' ? 'Профессиональные данные' :
+          editModal === 'diploma' ? 'Диплом' :
+          editModal === 'license' ? 'Лицензия' : 'Место работы'
+        }
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setEditModal(null)}
+              className="flex-1 py-3 rounded-xl text-sm font-medium border text-app-t3">Отмена</button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
+              style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        {editModal === 'personal' && (
+          <>
+            <EditField label="Дата рождения" field="dateOfBirth" value={editData.dateOfBirth} onChange={setField} type="date" />
+            <EditField label="Пол" field="gender" value={editData.gender} onChange={setField} options={['male', 'female']} />
+            <EditField label="Серия паспорта" field="passportSeries" value={editData.passportSeries} onChange={setField} />
+            <EditField label="Номер паспорта" field="passportNumber" value={editData.passportNumber} onChange={setField} />
+            <EditField label="Кем выдан" field="passportIssuedBy" value={editData.passportIssuedBy} onChange={setField} />
+            <EditField label="Дата выдачи" field="passportIssuedAt" value={editData.passportIssuedAt} onChange={setField} type="date" />
+            <EditField label="Срок действия" field="passportExpiresAt" value={editData.passportExpiresAt} onChange={setField} type="date" />
+            <EditField label="Телефон" field="phone" value={editData.phone} onChange={setField} type="tel" />
+            <EditField label="Telegram" field="telegram" value={editData.telegram} onChange={setField} />
+            <EditField label="WhatsApp" field="whatsapp" value={editData.whatsapp} onChange={setField} />
+            <EditField label="Город" field="city" value={editData.city} onChange={setField} />
+          </>
+        )}
+
+        {editModal === 'professional' && (
+          <>
+            <EditField label="Специализация" field="specialization" value={editData.specialization} onChange={setField} options={SPECIALIZATIONS} />
+            <EditField label="Начало стажа" field="experienceStartDate" value={editData.experienceStartDate} onChange={setField} type="date" />
+            <EditField label="Стоимость консультации (сум)" field="consultationPrice" value={editData.consultationPrice} onChange={setField} type="number" />
+            <EditField label="О себе" field="bio" value={editData.bio} onChange={setField} type="textarea" />
+          </>
+        )}
+
+        {editModal === 'diploma' && (
+          <>
+            <EditField label="ВУЗ" field="diplomaUniversity" value={editData.diplomaUniversity} onChange={setField} />
+            <EditField label="Специальность" field="diplomaSpecialty" value={editData.diplomaSpecialty} onChange={setField} />
+            <EditField label="Год выпуска" field="diplomaYear" value={editData.diplomaYear} onChange={setField} type="number" />
+            <EditField label="Номер диплома" field="diplomaNumber" value={editData.diplomaNumber} onChange={setField} />
+          </>
+        )}
+
+        {editModal === 'license' && (
+          <>
+            <EditField label="Номер лицензии" field="licenseNumber" value={editData.licenseNumber} onChange={setField} />
+            <EditField label="Кем выдана" field="licenseIssuedBy" value={editData.licenseIssuedBy} onChange={setField} />
+            <EditField label="Дата выдачи" field="licenseIssuedAt" value={editData.licenseIssuedAt} onChange={setField} type="date" />
+            <EditField label="Действует до" field="licenseExpiresAt" value={editData.licenseExpiresAt} onChange={setField} type="date" />
+          </>
+        )}
+
+        {editModal === 'workplace' && (
+          <>
+            <EditField label="Название клиники" field="clinicName" value={editData.clinicName} onChange={setField} />
+            <EditField label="Адрес" field="clinicAddress" value={editData.clinicAddress} onChange={setField} />
+            <EditField label="Кабинет №" field="cabinetNumber" value={editData.cabinetNumber} onChange={setField} />
+            <EditField label="Телефон клиники" field="clinicPhone" value={editData.clinicPhone} onChange={setField} type="tel" />
+            <EditField label="Сайт клиники" field="clinicWebsite" value={editData.clinicWebsite} onChange={setField} type="url" />
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

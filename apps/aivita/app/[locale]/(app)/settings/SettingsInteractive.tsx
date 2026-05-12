@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Globe, Bell, ChevronRight, X } from 'lucide-react';
+import { Globe, Bell, ChevronRight } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
 
 const LOCALES = [
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
@@ -26,35 +27,27 @@ function LanguageModal({ current, onClose }: { current: string; onClose: () => v
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-      <div className="bg-white rounded-t-[20px] sm:rounded-[20px] w-full sm:max-w-sm p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[17px] font-bold" style={{ color: '#2a2540' }}>Язык интерфейса</h2>
-          <button onClick={onClose} aria-label="Закрыть">
-            <X className="w-5 h-5 text-gray-400" />
+    <Modal isOpen onClose={onClose} title="Язык интерфейса">
+      <div className="space-y-2">
+        {LOCALES.map((loc) => (
+          <button
+            key={loc.code}
+            onClick={() => switchLocale(loc.code)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all"
+            style={{
+              background: current === loc.code ? 'var(--accent-bg-light)' : '#f4f3ef',
+              border: current === loc.code ? '2px solid var(--accent-dark)' : '2px solid transparent',
+            }}
+          >
+            <span className="text-2xl">{loc.flag}</span>
+            <span className="text-sm font-semibold flex-1 text-app-t1">{loc.label}</span>
+            {current === loc.code && (
+              <span className="text-xs font-bold text-[color:var(--accent-dark)]">✓</span>
+            )}
           </button>
-        </div>
-        <div className="space-y-2">
-          {LOCALES.map((loc) => (
-            <button
-              key={loc.code}
-              onClick={() => switchLocale(loc.code)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[12px] text-left transition-all"
-              style={{
-                background: current === loc.code ? 'var(--accent-bg-light)' : '#f4f3ef',
-                border: current === loc.code ? '2px solid var(--accent-dark)' : '2px solid transparent',
-              }}
-            >
-              <span className="text-[24px]">{loc.flag}</span>
-              <span className="text-[15px] font-semibold flex-1" style={{ color: '#2a2540' }}>{loc.label}</span>
-              {current === loc.code && (
-                <span className="text-[12px] font-bold" style={{ color: 'var(--accent-dark)' }}>✓</span>
-              )}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
-    </div>
+    </Modal>
   );
 }
 

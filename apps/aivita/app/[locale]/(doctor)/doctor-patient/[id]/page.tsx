@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import Modal from '@/components/ui/Modal';
 
 interface PatientData {
   user: { id: string; name: string; email: string; avatarUrl?: string };
@@ -347,31 +348,32 @@ export default function DoctorPatientPage() {
       </div>
 
       {/* Add note modal */}
-      {showAddNote && (
-        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full bg-white rounded-t-3xl p-6">
-            <h3 className="font-bold text-[#2a2540] mb-4">Новая заметка</h3>
-            <textarea
-              value={noteText}
-              onChange={e => setNoteText(e.target.value)}
-              placeholder="Введите заметку..."
-              rows={5}
-              className="w-full p-3 rounded-xl border text-sm outline-none resize-none"
-              style={{ color: '#2a2540' }}
-              autoFocus
-            />
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setShowAddNote(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
-              <button onClick={handleAddNote} disabled={savingNote}
-                className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
-                style={{ background: 'var(--accent-dark)', opacity: savingNote ? 0.6 : 1 }}>
-                {savingNote ? 'Сохранение...' : 'Сохранить'}
-              </button>
-            </div>
+      <Modal
+        isOpen={showAddNote}
+        onClose={() => setShowAddNote(false)}
+        title="Новая заметка"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowAddNote(false)}
+              className="flex-1 py-3 rounded-xl text-sm font-medium border text-app-t3">Отмена</button>
+            <button onClick={handleAddNote} disabled={savingNote}
+              className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
+              style={{ background: 'var(--accent-dark)', opacity: savingNote ? 0.6 : 1 }}>
+              {savingNote ? 'Сохранение...' : 'Сохранить'}
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <textarea
+          value={noteText}
+          onChange={e => setNoteText(e.target.value)}
+          placeholder="Введите заметку..."
+          rows={5}
+          className="w-full p-3 rounded-xl border text-sm outline-none resize-none"
+          style={{ color: '#2a2540' }}
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 }

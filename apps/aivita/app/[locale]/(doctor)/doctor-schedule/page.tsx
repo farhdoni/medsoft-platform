@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import Modal from '@/components/ui/Modal';
 
 interface ScheduleDay {
   id?: string;
@@ -221,80 +222,76 @@ export default function DoctorSchedulePage() {
       </div>
 
       {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-[#2a2540] text-lg">Настройки расписания</h3>
-              <button onClick={() => setShowSettings(false)} className="text-[#9a96a8] text-xl">✕</button>
-            </div>
-
-            {/* Working days */}
-            <p className="text-xs font-bold text-[#9a96a8] uppercase tracking-wide mb-3">Рабочие дни</p>
-            <div className="flex gap-2 mb-5">
-              {DAYS_RU.map((day, i) => {
-                const isActive = editDays.find(d => d.dayOfWeek === i)?.isActive ?? false;
-                return (
-                  <button key={day} onClick={() => toggleDay(i)}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors"
-                    style={{ background: isActive ? 'var(--accent-dark)' : '#f0f0f0', color: isActive ? '#fff' : '#9a96a8' }}>
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Per-day settings */}
-            {editDays.filter(d => d.isActive).sort((a, b) => a.dayOfWeek - b.dayOfWeek).map(d => (
-              <div key={d.dayOfWeek} className="mb-4 p-4 rounded-2xl bg-[#f8f7ff]">
-                <p className="text-sm font-bold text-[#2a2540] mb-3">{DAYS_FULL[d.dayOfWeek]}</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-[#9a96a8]">Начало</label>
-                    <input type="time" value={d.startTime} onChange={e => updateEditDay(d.dayOfWeek, 'startTime', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-[#9a96a8]">Конец</label>
-                    <input type="time" value={d.endTime} onChange={e => updateEditDay(d.dayOfWeek, 'endTime', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-[#9a96a8]">Перерыв с</label>
-                    <input type="time" value={d.breakStart ?? ''} onChange={e => updateEditDay(d.dayOfWeek, 'breakStart', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-[#9a96a8]">Перерыв до</label>
-                    <input type="time" value={d.breakEnd ?? ''} onChange={e => updateEditDay(d.dayOfWeek, 'breakEnd', e.target.value)}
-                      className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <label className="text-xs text-[#9a96a8]">Длительность слота</label>
-                  <select value={d.slotDurationMinutes} onChange={e => updateEditDay(d.dayOfWeek, 'slotDurationMinutes', +e.target.value)}
-                    className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none">
-                    <option value={15}>15 мин</option>
-                    <option value={30}>30 мин</option>
-                    <option value={45}>45 мин</option>
-                    <option value={60}>60 мин</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setShowSettings(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
-              <button onClick={handleSave} disabled={saving}
-                className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
-                style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Сохранение...' : 'Сохранить'}
+      <Modal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Настройки расписания"
+        footer={
+          <div className="flex gap-3">
+            <button onClick={() => setShowSettings(false)}
+              className="flex-1 py-3 rounded-xl text-sm font-medium border text-app-t3">Отмена</button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 py-3 rounded-xl text-sm font-medium text-white"
+              style={{ background: 'var(--accent-dark)', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        }
+      >
+        {/* Working days */}
+        <p className="text-xs font-bold text-app-t3 uppercase tracking-wide mb-3">Рабочие дни</p>
+        <div className="flex gap-2 mb-5">
+          {DAYS_RU.map((day, i) => {
+            const isActive = editDays.find(d => d.dayOfWeek === i)?.isActive ?? false;
+            return (
+              <button key={day} onClick={() => toggleDay(i)}
+                className="flex-1 py-2 rounded-xl text-xs font-bold transition-colors"
+                style={{ background: isActive ? 'var(--accent-dark)' : '#f0f0f0', color: isActive ? '#fff' : '#9a96a8' }}>
+                {day}
               </button>
+            );
+          })}
+        </div>
+
+        {/* Per-day settings */}
+        {editDays.filter(d => d.isActive).sort((a, b) => a.dayOfWeek - b.dayOfWeek).map(d => (
+          <div key={d.dayOfWeek} className="mb-4 p-4 rounded-2xl bg-app-bg">
+            <p className="text-sm font-bold text-app-t1 mb-3">{DAYS_FULL[d.dayOfWeek]}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-app-t3">Начало</label>
+                <input type="time" value={d.startTime} onChange={e => updateEditDay(d.dayOfWeek, 'startTime', e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-app-t3">Конец</label>
+                <input type="time" value={d.endTime} onChange={e => updateEditDay(d.dayOfWeek, 'endTime', e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-app-t3">Перерыв с</label>
+                <input type="time" value={d.breakStart ?? ''} onChange={e => updateEditDay(d.dayOfWeek, 'breakStart', e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-app-t3">Перерыв до</label>
+                <input type="time" value={d.breakEnd ?? ''} onChange={e => updateEditDay(d.dayOfWeek, 'breakEnd', e.target.value)}
+                  className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="text-xs text-app-t3">Длительность слота</label>
+              <select value={d.slotDurationMinutes} onChange={e => updateEditDay(d.dayOfWeek, 'slotDurationMinutes', +e.target.value)}
+                className="w-full mt-1 p-2 rounded-lg border text-sm bg-white outline-none">
+                <option value={15}>15 мин</option>
+                <option value={30}>30 мин</option>
+                <option value={45}>45 мин</option>
+                <option value={60}>60 мин</option>
+              </select>
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </Modal>
     </div>
   );
 }

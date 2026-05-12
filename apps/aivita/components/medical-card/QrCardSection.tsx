@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Modal from '@/components/ui/Modal';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
@@ -61,38 +62,38 @@ export default function QrCardSection() {
         </span>
       </button>
 
-      {showQr && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6"
-          onClick={() => setShowQr(false)}>
-          <div className="bg-white rounded-3xl p-8 w-full max-w-sm text-center"
-            onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-[#2a2540] mb-1">МОЯ МЕДКАРТА</h3>
-            <p className="text-xs text-[#9a96a8] mb-5">Покажите врачу для быстрого доступа</p>
-
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrUrl} alt="QR код медкарты" className="mx-auto w-48 h-48 rounded-xl mb-3" />
-
-            <p className="text-xs text-[color:var(--accent-dark)] font-mono mb-2">{card.cardCode}</p>
-            <p className="text-xs text-[#9a96a8] mb-5">{card.url}</p>
-
-            <div className="flex gap-2 mb-3">
+      <Modal
+        isOpen={showQr}
+        onClose={() => setShowQr(false)}
+        title="МОЯ МЕДКАРТА"
+        footer={
+          <div className="space-y-2">
+            <div className="flex gap-2">
               <a href={qrUrl} download={`aivita-card-${card.cardCode}.png`}
-                className="flex-1 py-3 bg-[#f4f3ef] text-[#6a6580] rounded-2xl text-xs font-medium text-center">
+                className="flex-1 py-3 bg-app-bg text-app-t2 rounded-xl text-xs font-medium text-center">
                 📥 Скачать
               </a>
               <button onClick={handleShare}
-                className="flex-1 py-3 bg-[color:var(--accent-dark)] text-white rounded-2xl text-xs font-medium">
+                className="flex-1 py-3 text-white rounded-xl text-xs font-medium"
+                style={{ background: 'var(--accent-dark)' }}>
                 📤 Поделиться
               </button>
             </div>
-
             <button onClick={handleRegenerate} disabled={regenerating}
-              className="w-full py-2.5 border border-[#e8e4dc] text-[#9a96a8] rounded-2xl text-xs">
+              className="w-full py-2.5 border border-app-border text-app-t3 rounded-xl text-xs">
               {regenerating ? 'Обновление...' : '🔄 Сгенерировать новый код'}
             </button>
           </div>
+        }
+      >
+        <div className="text-center">
+          <p className="text-xs text-app-t3 mb-4">Покажите врачу для быстрого доступа</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrUrl} alt="QR код медкарты" className="mx-auto w-48 h-48 rounded-xl mb-3" />
+          <p className="text-xs text-[color:var(--accent-dark)] font-mono mb-1">{card.cardCode}</p>
+          <p className="text-xs text-app-t3">{card.url}</p>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

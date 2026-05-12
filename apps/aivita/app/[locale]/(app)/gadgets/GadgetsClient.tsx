@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Modal from '@/components/ui/Modal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,69 +69,64 @@ function InstructionsModal({
   onConnect: (d: DeviceCatalogItem) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl z-[9999]">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-[32px]">{DEVICE_ICONS[device.type] ?? '📡'}</span>
-          <div>
-            <h2 className="text-[17px] font-bold" style={{ color: '#2a2540' }}>{device.name}</h2>
-            <p className="text-[12px]" style={{ color: '#9a96a8' }}>
-              {device.metrics.map((m) => METRIC_LABELS[m] ?? m).join(' · ')}
-            </p>
-          </div>
-        </div>
-
-        {device.connectMethod === 'oauth' ? (
-          <div>
-            <p className="text-[13px] mb-4" style={{ color: '#6a6580' }}>
-              Подключение через OAuth 2.0. Нажмите кнопку ниже и авторизуйтесь в Google.
-            </p>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`${DEVICE_ICONS[device.type] ?? '📡'} ${device.name}`}
+      footer={
+        <div className="space-y-2">
+          {device.connectMethod === 'oauth' ? (
             <button
               onClick={() => { onConnect(device); onClose(); }}
-              className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white transition-opacity hover:opacity-90 mb-2"
+              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
               style={{ background: '#4285f4' }}
             >
               Войти через Google
             </button>
-          </div>
-        ) : (
-          <div>
-            <p className="text-[13px] font-semibold mb-3" style={{ color: '#2a2540' }}>
-              Как подключить:
-            </p>
-            <ol className="space-y-2 mb-5">
-              {device.instructions.map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  <span
-                    className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-bold text-white"
-                    style={{ background: 'var(--accent-dark)' }}
-                  >
-                    {i + 1}
-                  </span>
-                  <p className="text-[13px]" style={{ color: '#6a6580' }}>{step}</p>
-                </li>
-              ))}
-            </ol>
+          ) : (
             <button
               onClick={() => { onConnect(device); onClose(); }}
-              className="w-full py-3 rounded-[14px] text-[14px] font-bold text-white transition-opacity hover:opacity-90 mb-2"
+              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
             >
               Подключить через Google Fit
             </button>
-          </div>
-        )}
-
-        <button
-          onClick={onClose}
-          className="w-full py-2.5 rounded-[14px] text-[14px] font-semibold transition-colors hover:bg-[#f4f3ef]"
-          style={{ color: '#9a96a8' }}
-        >
-          Отмена
-        </button>
-      </div>
-    </div>
+          )}
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors hover:bg-app-bg text-app-t3"
+          >
+            Отмена
+          </button>
+        </div>
+      }
+    >
+      <p className="text-xs text-app-t3 mb-4">
+        {device.metrics.map((m) => METRIC_LABELS[m] ?? m).join(' · ')}
+      </p>
+      {device.connectMethod === 'oauth' ? (
+        <p className="text-sm text-app-t2">
+          Подключение через OAuth 2.0. Нажмите кнопку ниже и авторизуйтесь в Google.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm font-semibold text-app-t1 mb-3">Как подключить:</p>
+          <ol className="space-y-2">
+            {device.instructions.map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <span
+                  className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white"
+                  style={{ background: 'var(--accent-dark)' }}
+                >
+                  {i + 1}
+                </span>
+                <p className="text-sm text-app-t2">{step}</p>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+    </Modal>
   );
 }
 

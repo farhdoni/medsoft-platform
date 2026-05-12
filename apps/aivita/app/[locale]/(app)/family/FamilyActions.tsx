@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
 
 const PROXY = '/api/proxy';
 
@@ -49,64 +50,63 @@ function AddMemberModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-      <div className="bg-white rounded-t-[20px] sm:rounded-[20px] w-full sm:max-w-md p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[17px] font-bold" style={{ color: '#2a2540' }}>Добавить члена семьи</h2>
-          <button onClick={onClose} className="text-[20px] text-gray-400 hover:text-gray-600 leading-none">×</button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Добавить члена семьи"
+      footer={
+        <>
+          {err && <p className="text-xs mb-2 font-semibold text-[color:var(--accent-dark)]">{err}</p>}
+          <button onClick={() => void submit()} disabled={saving || !name.trim()}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
+          >
+            {saving ? 'Сохраняем…' : '👨‍👩‍👧 Добавить'}
+          </button>
+        </>
+      }
+    >
+      {/* Name */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 text-app-t3">Имя *</p>
+      <input
+        autoFocus value={name} onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
+        placeholder="Например: Алия, Дима..."
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4"
+        style={{ color: '#2a2540' }}
+      />
 
-        {/* Name */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Имя *</p>
-        <input
-          autoFocus value={name} onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') void submit(); }}
-          placeholder="Например: Алия, Дима..."
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ color: '#2a2540' }}
-        />
-
-        {/* Relation */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Степень родства</p>
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {RELATION_OPTIONS.map(r => (
-            <button key={r.value} onClick={() => setRelation(r.value)}
-              className="py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: relation === r.value ? 'var(--accent-dark)' : '#f4f3ef', color: relation === r.value ? '#fff' : '#2a2540' }}
-            >{r.label}</button>
-          ))}
-        </div>
-
-        {/* Birth date */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Дата рождения (необязательно)</p>
-        <input
-          value={birthDate} onChange={e => setBirthDate(e.target.value)}
-          type="date"
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-          style={{ color: '#2a2540' }}
-        />
-
-        {/* Gender */}
-        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Пол (необязательно)</p>
-        <div className="flex gap-2 mb-5">
-          {(['male', 'female', ''] as const).map((g) => (
-            <button key={g} onClick={() => setGender(g)}
-              className="flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: gender === g ? 'var(--accent-dark)' : '#f4f3ef', color: gender === g ? '#fff' : '#2a2540' }}
-            >{g === 'male' ? 'Мужской' : g === 'female' ? 'Женский' : 'Не указан'}</button>
-          ))}
-        </div>
-
-        {err && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{err}</p>}
-
-        <button onClick={() => void submit()} disabled={saving || !name.trim()}
-          className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
-        >
-          {saving ? 'Сохраняем…' : '👨‍👩‍👧 Добавить'}
-        </button>
+      {/* Relation */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 text-app-t3">Степень родства</p>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {RELATION_OPTIONS.map(r => (
+          <button key={r.value} onClick={() => setRelation(r.value)}
+            className="py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{ background: relation === r.value ? 'var(--accent-dark)' : '#f4f3ef', color: relation === r.value ? '#fff' : '#2a2540' }}
+          >{r.label}</button>
+        ))}
       </div>
-    </div>
+
+      {/* Birth date */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 text-app-t3">Дата рождения (необязательно)</p>
+      <input
+        value={birthDate} onChange={e => setBirthDate(e.target.value)}
+        type="date"
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4"
+        style={{ color: '#2a2540' }}
+      />
+
+      {/* Gender */}
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 text-app-t3">Пол (необязательно)</p>
+      <div className="flex gap-2">
+        {(['male', 'female', ''] as const).map((g) => (
+          <button key={g} onClick={() => setGender(g)}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{ background: gender === g ? 'var(--accent-dark)' : '#f4f3ef', color: gender === g ? '#fff' : '#2a2540' }}
+          >{g === 'male' ? 'Мужской' : g === 'female' ? 'Женский' : 'Не указан'}</button>
+        ))}
+      </div>
+    </Modal>
   );
 }
 

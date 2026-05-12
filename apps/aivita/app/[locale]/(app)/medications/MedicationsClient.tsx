@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
+import Modal from '@/components/ui/Modal';
 
 const PROXY = '/api/proxy';
 
@@ -62,85 +63,84 @@ function AddMedModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
-      <div className="bg-white rounded-t-[20px] sm:rounded-[20px] w-full sm:max-w-md p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[17px] font-bold" style={{ color: '#2a2540' }}>💊 Добавить лекарство</h2>
-          <button onClick={onClose} className="text-[20px] text-gray-400 hover:text-gray-600">×</button>
-        </div>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="💊 Добавить лекарство"
+      footer={
+        <>
+          {err && <p className="text-xs mb-2 font-semibold text-[color:var(--accent-dark)]">{err}</p>}
+          <button onClick={() => void submit()} disabled={saving || !title.trim()}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+            style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
+          >{saving ? 'Сохраняем…' : '💊 Добавить лекарство'}</button>
+        </>
+      }
+    >
+      <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-app-t3">Название *</label>
+      <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
+        placeholder="Метформин, Витамин D3..."
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4"
+      />
 
-        <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Название *</label>
-        <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
-          placeholder="Метформин, Витамин D3..."
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-        />
+      <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-app-t3">Дозировка</label>
+      <input value={dosage} onChange={e => setDosage(e.target.value)}
+        placeholder="500мг, 1 таблетка, 5мл..."
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4"
+      />
 
-        <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Дозировка</label>
-        <input value={dosage} onChange={e => setDosage(e.target.value)}
-          placeholder="500мг, 1 таблетка, 5мл..."
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-        />
+      <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-app-t3">Частота приёма</label>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        {FREQ_OPTIONS.map((f, i) => (
+          <button key={f.value} onClick={() => setFreqKey(i)}
+            className="py-2 rounded-xl text-xs font-semibold transition-all"
+            style={{ background: freqKey === i ? 'var(--accent-dark)' : '#f4f3ef', color: freqKey === i ? '#fff' : '#2a2540' }}
+          >{f.label}</button>
+        ))}
+      </div>
 
-        <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Частота приёма</label>
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          {FREQ_OPTIONS.map((f, i) => (
-            <button key={f.value} onClick={() => setFreqKey(i)}
-              className="py-2 rounded-[10px] text-[13px] font-semibold transition-all"
-              style={{ background: freqKey === i ? 'var(--accent-dark)' : '#f4f3ef', color: freqKey === i ? '#fff' : '#2a2540' }}
-            >{f.label}</button>
+      {freq.value === 'другое' && (
+        <>
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-app-t3">Время(я) через запятую</label>
+          <input value={customTimes} onChange={e => setCustomTimes(e.target.value)}
+            placeholder="08:00, 14:00, 20:00"
+            className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-3"
+          />
+        </>
+      )}
+
+      {freq.value !== 'другое' && times.length > 0 && (
+        <div className="flex gap-2 mb-3">
+          {times.map(t => (
+            <span key={t} className="px-3 py-1 rounded-full text-xs font-semibold"
+              style={{ background: 'var(--accent-bg-light)', color: 'var(--accent-dark)' }}>🕐 {t}</span>
           ))}
         </div>
+      )}
 
-        {freq.value === 'другое' && (
-          <>
-            <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Время(я) через запятую</label>
-            <input value={customTimes} onChange={e => setCustomTimes(e.target.value)}
-              placeholder="08:00, 14:00, 20:00"
-              className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-3"
-            />
-          </>
-        )}
+      <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-app-t3">Инструкции</label>
+      <textarea value={instructions} onChange={e => setInstr(e.target.value)}
+        placeholder="После еды, запить водой..."
+        rows={2}
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none resize-none mb-4"
+      />
 
-        {freq.value !== 'другое' && times.length > 0 && (
-          <div className="flex gap-2 mb-3">
-            {times.map(t => (
-              <span key={t} className="px-3 py-1 rounded-full text-[12px] font-semibold"
-                style={{ background: 'var(--accent-bg-light)', color: 'var(--accent-dark)' }}>🕐 {t}</span>
-            ))}
-          </div>
-        )}
+      <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-app-t3">Длительность (дней)</label>
+      <input value={duration} onChange={e => setDuration(e.target.value)}
+        type="number" min="1" placeholder="30 (пусто = постоянно)"
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4"
+      />
 
-        <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Инструкции</label>
-        <textarea value={instructions} onChange={e => setInstr(e.target.value)}
-          placeholder="После еды, запить водой..."
-          rows={2}
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none resize-none mb-4"
-        />
-
-        <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Длительность (дней)</label>
-        <input value={duration} onChange={e => setDuration(e.target.value)}
-          type="number" min="1" placeholder="30 (пусто = постоянно)"
-          className="w-full rounded-[10px] border px-3 py-2.5 text-[14px] outline-none mb-4"
-        />
-
-        <label className="flex items-center gap-3 mb-5 cursor-pointer">
-          <div onClick={() => setReminder(r => !r)}
-            className="w-11 h-6 rounded-full transition-all flex items-center px-1"
-            style={{ background: reminder ? 'var(--accent-dark)' : '#e8e4dc' }}>
-            <div className="w-4 h-4 rounded-full bg-white transition-all"
-              style={{ transform: reminder ? 'translateX(20px)' : 'translateX(0)' }} />
-          </div>
-          <span className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>Напоминания</span>
-        </label>
-
-        {err && <p className="text-[12px] mb-3" style={{ color: 'var(--accent-dark)' }}>{err}</p>}
-
-        <button onClick={() => void submit()} disabled={saving || !title.trim()}
-          className="w-full py-3 rounded-[12px] text-[14px] font-bold text-white disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
-        >{saving ? 'Сохраняем…' : '💊 Добавить лекарство'}</button>
-      </div>
-    </div>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <div onClick={() => setReminder(r => !r)}
+          className="w-11 h-6 rounded-full transition-all flex items-center px-1"
+          style={{ background: reminder ? 'var(--accent-dark)' : '#e8e4dc' }}>
+          <div className="w-4 h-4 rounded-full bg-white transition-all"
+            style={{ transform: reminder ? 'translateX(20px)' : 'translateX(0)' }} />
+        </div>
+        <span className="text-sm font-semibold text-app-t1">Напоминания</span>
+      </label>
+    </Modal>
   );
 }
 
