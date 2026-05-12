@@ -33,7 +33,7 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
 
   return (
     <>
-      <header className="flex items-center justify-between px-7 pt-7 pb-2">
+      <header className="flex items-center justify-between px-4 pt-5 pb-2 sm:px-7 sm:pt-7">
         <div className="flex items-center gap-2">
           <div className="brand-mark text-[20px] font-bold tracking-tight text-app-t1">
             aivita
@@ -58,9 +58,10 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
               SOS
             </button>
           )}
+          {/* Search — скрыта на мобильном, чтобы профиль не уходил за экран */}
           <button
             aria-label="Поиск"
-            className="grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
+            className="hidden sm:grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
           >
             <Icon name="search" size={18} />
           </button>
