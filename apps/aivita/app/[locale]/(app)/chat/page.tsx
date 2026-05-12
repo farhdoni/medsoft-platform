@@ -1,10 +1,16 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
 import VoiceInput from '@/components/voice/VoiceInput';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+
+type MessageAttachment = {
+  name: string;
+  type: string;
+  dataUrl?: string; // base64 preview for images
+};
 
 type Message = {
   id: string;
@@ -13,15 +19,8 @@ type Message = {
   time: string;
   streaming?: boolean;
   quickReplies?: string[];
+  attachment?: MessageAttachment;
 };
-
-type PinnedMessage = {
-  id: string;
-  content: string;
-  pinnedAt: number;
-};
-
-const PINNED_KEY = 'aivita_pinned_messages';
 
 const INITIAL: Record<string, { content: string; quickReplies: string[] }> = {
   ru: {
@@ -50,7 +49,6 @@ function renderMarkdown(text: string): React.ReactNode {
   lines.forEach((line, li) => {
     const trimmed = line.trim();
 
-    // Headings: ## or #
     if (trimmed.startsWith('### ')) {
       elements.push(
         <p key={li} className="text-[13px] font-bold mt-2 mb-0.5" style={{ color: '#2a2540' }}>
@@ -75,8 +73,6 @@ function renderMarkdown(text: string): React.ReactNode {
       );
       return;
     }
-
-    // Bullet lists
     if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
       elements.push(
         <div key={li} className="flex gap-1.5 items-baseline">
@@ -86,21 +82,16 @@ function renderMarkdown(text: string): React.ReactNode {
       );
       return;
     }
-
-    // Empty line / divider
     if (trimmed === '' || trimmed === '---') {
       elements.push(<div key={li} className="h-1.5" />);
       return;
     }
-
-    // Normal paragraph
     elements.push(<p key={li} className="mb-0.5">{inlineFormat(line)}</p>);
   });
 
   return <>{elements}</>;
 }
 
-/** Replace **bold** and *italic* with JSX spans */
 function inlineFormat(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
   const re = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
@@ -109,11 +100,8 @@ function inlineFormat(text: string): React.ReactNode[] {
   let key = 0;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) parts.push(text.slice(last, m.index));
-    if (m[2]) {
-      parts.push(<strong key={key++} style={{ fontWeight: 700 }}>{m[2]}</strong>);
-    } else if (m[3]) {
-      parts.push(<em key={key++}>{m[3]}</em>);
-    }
+    if (m[2]) parts.push(<strong key={key++} style={{ fontWeight: 700 }}>{m[2]}</strong>);
+    else if (m[3]) parts.push(<em key={key++}>{m[3]}</em>);
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
@@ -131,6 +119,13 @@ const NAV_ITEMS = [
   { id: 'settings',   icon: '⚙️', ru: 'Настройки',      uz: 'Sozlamalar', en: 'Settings' },
 ];
 
+/** Format file size */
+function fmtSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function ChatPage() {
   const params = useParams();
   const router = useRouter();
@@ -143,61 +138,38 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showNav, setShowNav] = useState(false);
-  const [pinnedMessages, setPinnedMessages] = useState<PinnedMessage[]>([]);
+
+  // File attachment state
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedPreview, setAttachedPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const didAutoSend = useRef(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load pinned messages from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PINNED_KEY);
-      if (stored) setPinnedMessages(JSON.parse(stored));
-    } catch {}
-  }, []);
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAttachedFile(file);
 
-  function pinMessage(messageId: string, content: string) {
-    try {
-      const stored: PinnedMessage[] = JSON.parse(localStorage.getItem(PINNED_KEY) || '[]');
-      if (stored.find((p) => p.id === messageId)) return; // already pinned
-      const updated = [...stored, { id: messageId, content, pinnedAt: Date.now() }];
-      localStorage.setItem(PINNED_KEY, JSON.stringify(updated));
-      setPinnedMessages(updated);
-    } catch {}
-  }
-
-  function unpinMessage(messageId: string) {
-    try {
-      const updated: PinnedMessage[] = JSON.parse(localStorage.getItem(PINNED_KEY) || '[]')
-        .filter((p: PinnedMessage) => p.id !== messageId);
-      localStorage.setItem(PINNED_KEY, JSON.stringify(updated));
-      setPinnedMessages(updated);
-    } catch {}
-  }
-
-  function isPinned(messageId: string) {
-    return pinnedMessages.some((p) => p.id === messageId);
-  }
-
-  function onTouchStart(messageId: string, content: string) {
-    longPressTimer.current = setTimeout(() => {
-      if (isPinned(messageId)) {
-        unpinMessage(messageId);
-      } else {
-        pinMessage(messageId, content);
-      }
-    }, 500);
-  }
-
-  function onTouchEnd() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setAttachedPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setAttachedPreview(null);
     }
+
+    // Reset input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  // Handle ?q= from home page search — read from window.location (no Suspense needed)
+  function removeAttachment() {
+    setAttachedFile(null);
+    setAttachedPreview(null);
+  }
+
   useEffect(() => {
     if (didAutoSend.current) return;
     const q = new URLSearchParams(window.location.search).get('q');
@@ -213,28 +185,29 @@ export default function ChatPage() {
   }, [messages, isLoading]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isLoading) return;
+    if ((!text.trim() && !attachedFile) || isLoading) return;
+
+    const attachment: MessageAttachment | undefined = attachedFile
+      ? { name: attachedFile.name, type: attachedFile.type, dataUrl: attachedPreview ?? undefined }
+      : undefined;
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: text.trim(),
       time: getTime(),
+      attachment,
     };
 
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput('');
+    setAttachedFile(null);
+    setAttachedPreview(null);
     setIsLoading(true);
 
     const aiId = (Date.now() + 1).toString();
-    const aiMsg: Message = {
-      id: aiId,
-      role: 'assistant',
-      content: '',
-      time: getTime(),
-      streaming: true,
-    };
+    const aiMsg: Message = { id: aiId, role: 'assistant', content: '', time: getTime(), streaming: true };
     setMessages((prev) => [...prev, aiMsg]);
 
     try {
@@ -243,7 +216,12 @@ export default function ChatPage() {
 
       const payload = updatedMessages
         .filter((m) => !m.streaming)
-        .map((m) => ({ role: m.role, content: m.content }));
+        .map((m) => ({
+          role: m.role,
+          content: m.attachment
+            ? `${m.content}${m.content ? '\n' : ''}[Прикреплён файл: ${m.attachment.name}]`
+            : m.content,
+        }));
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -257,7 +235,6 @@ export default function ChatPage() {
       const contentType = res.headers.get('Content-Type') ?? '';
 
       if (contentType.includes('text/event-stream')) {
-        // Streaming SSE response
         const reader = res.body!.getReader();
         const decoder = new TextDecoder();
         let accumulated = '';
@@ -265,11 +242,8 @@ export default function ChatPage() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
+          for (const line of chunk.split('\n')) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6);
               if (data === '[DONE]') break;
@@ -278,11 +252,7 @@ export default function ChatPage() {
                 if (parsed.text) {
                   accumulated += parsed.text;
                   setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === aiId
-                        ? { ...m, content: accumulated, streaming: true }
-                        : m
-                    )
+                    prev.map((m) => m.id === aiId ? { ...m, content: accumulated, streaming: true } : m)
                   );
                 }
               } catch {}
@@ -290,33 +260,21 @@ export default function ChatPage() {
           }
         }
 
-        // Final: mark not streaming, add quick replies
         const quickReplies = getQuickReplies(text);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
-              ? {
-                  ...m,
-                  content: accumulated || 'Произошла ошибка. Попробуй ещё раз.',
-                  streaming: false,
-                  quickReplies: updatedMessages.length < 6 ? quickReplies : undefined,
-                }
+              ? { ...m, content: accumulated || 'Произошла ошибка. Попробуй ещё раз.', streaming: false, quickReplies: updatedMessages.length < 6 ? quickReplies : undefined }
               : m
           )
         );
       } else {
-        // JSON fallback (mock mode)
         const json = await res.json();
         const quickReplies = getQuickReplies(text);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
-              ? {
-                  ...m,
-                  content: json.content ?? 'Ошибка ответа',
-                  streaming: false,
-                  quickReplies: updatedMessages.length < 6 ? quickReplies : undefined,
-                }
+              ? { ...m, content: json.content ?? 'Ошибка ответа', streaming: false, quickReplies: updatedMessages.length < 6 ? quickReplies : undefined }
               : m
           )
         );
@@ -325,30 +283,36 @@ export default function ChatPage() {
       if (err instanceof Error && err.name === 'AbortError') return;
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === aiId
-            ? { ...m, content: 'Не удалось получить ответ. Проверь подключение.', streaming: false }
-            : m
+          m.id === aiId ? { ...m, content: 'Не удалось получить ответ. Проверь подключение.', streaming: false } : m
         )
       );
     } finally {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, attachedFile, attachedPreview]);
 
   const navLabel = (item: typeof NAV_ITEMS[0]) =>
     locale === 'uz' ? item.uz : locale === 'en' ? item.en : item.ru;
 
+  const isImage = (type: string) => type.startsWith('image/');
+
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 56px)' }}>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
 
       {/* Slide-out navigation */}
       {showNav && (
         <>
-          <div
-            className="fixed inset-0 bg-black/20 z-[998]"
-            onClick={() => setShowNav(false)}
-          />
+          <div className="fixed inset-0 bg-black/20 z-[998]" onClick={() => setShowNav(false)} />
           <div
             className="fixed top-0 right-0 h-full w-[280px] bg-white shadow-xl z-[999] flex flex-col"
             style={{ animation: 'slideInRight 0.22s ease-out' }}
@@ -364,7 +328,6 @@ export default function ChatPage() {
                 ✕
               </button>
             </div>
-
             <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
               {NAV_ITEMS.map((item) => (
                 <Link
@@ -378,12 +341,8 @@ export default function ChatPage() {
                 </Link>
               ))}
             </nav>
-
             <div className="p-4 border-t border-app-border">
-              <div
-                className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                style={{ background: 'var(--accent-bg)' }}
-              >
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'var(--accent-bg)' }}>
                 <span className="text-[18px]">💬</span>
                 <span className="text-[13px] font-semibold" style={{ color: 'var(--accent-dark)' }}>
                   {locale === 'uz' ? 'AI-chat (hozir shu yerdasiz)' : locale === 'en' ? 'AI Chat (you are here)' : 'AI-чат (вы здесь)'}
@@ -400,7 +359,6 @@ export default function ChatPage() {
           className="flex items-center gap-2 rounded-2xl px-3 py-2.5"
           style={{ background: 'linear-gradient(135deg, #e0d8f0 0%, #d4e8d8 100%)' }}
         >
-          {/* Back button */}
           <button
             onClick={() => router.push(`/${locale}/home`)}
             className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-white/40 transition-colors flex-shrink-0"
@@ -410,8 +368,6 @@ export default function ChatPage() {
               <path d="M15 18l-6-6 6-6"/>
             </svg>
           </button>
-
-          {/* AI avatar + info */}
           <Icon3D name="doctor" size={36} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -426,8 +382,6 @@ export default function ChatPage() {
             </div>
             <p className="text-[11px] truncate" style={{ color: '#6a6580' }}>Claude AI · aivita health</p>
           </div>
-
-          {/* Menu button */}
           <button
             onClick={() => setShowNav(true)}
             className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-white/40 transition-colors flex-shrink-0"
@@ -449,31 +403,6 @@ export default function ChatPage() {
         }
       `}</style>
 
-      {/* Pinned messages panel */}
-      {pinnedMessages.length > 0 && (
-        <div className="flex-shrink-0 mx-4 md:mx-6 mb-1 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-          <div className="text-[11px] font-semibold text-amber-700 mb-1.5 flex items-center gap-1">
-            📌 {locale === 'uz' ? 'Mahkamlangan' : locale === 'en' ? 'Pinned' : 'Закреплено'} ({pinnedMessages.length})
-          </div>
-          <div className="space-y-1">
-            {pinnedMessages.map((msg) => (
-              <div key={msg.id} className="flex items-center justify-between gap-2">
-                <span className="text-[12px] text-gray-700 truncate flex-1">
-                  {msg.content.slice(0, 100)}{msg.content.length > 100 ? '…' : ''}
-                </span>
-                <button
-                  onClick={() => unpinMessage(msg.id)}
-                  className="text-[11px] text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
-                  aria-label="Открепить"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-2 space-y-3">
         {messages.map((msg) => (
@@ -487,62 +416,55 @@ export default function ChatPage() {
                   <Icon3D name="sparkle" size={20} />
                 </div>
               )}
-
-              {/* AI message — with pin button on hover / long press */}
-              {msg.role === 'assistant' ? (
-                <div
-                  className="relative group max-w-[80%]"
-                  onTouchStart={() => onTouchStart(msg.id, msg.content)}
-                  onTouchEnd={onTouchEnd}
-                  onTouchMove={onTouchEnd}
-                >
-                  <div
-                    className="rounded-2xl px-4 py-3"
-                    style={{ background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }}
-                  >
-                    <div className="text-[14px] leading-relaxed">
-                      {renderMarkdown(msg.content)}
-                      {msg.streaming && (
-                        <span
-                          className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
-                          style={{ background: 'var(--accent)' }}
-                        />
-                      )}
-                    </div>
-                    {!msg.streaming && (
-                      <p className="text-[10px] mt-1" style={{ color: '#9a96a8' }}>
-                        {msg.time}
-                      </p>
+              <div
+                className="max-w-[80%] rounded-2xl px-4 py-3"
+                style={
+                  msg.role === 'user'
+                    ? { background: 'var(--accent-dark)', color: '#ffffff', borderBottomRightRadius: 4 }
+                    : { background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }
+                }
+              >
+                {/* Attachment preview inside bubble */}
+                {msg.attachment && (
+                  <div className="mb-2">
+                    {isImage(msg.attachment.type) && msg.attachment.dataUrl ? (
+                      <img
+                        src={msg.attachment.dataUrl}
+                        alt={msg.attachment.name}
+                        className="max-w-[220px] max-h-[160px] rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                        style={{ background: msg.role === 'user' ? 'rgba(255,255,255,0.15)' : '#f4f3ef' }}
+                      >
+                        <FileText className="w-4 h-4 flex-shrink-0" style={{ color: msg.role === 'user' ? '#fff' : 'var(--accent)' }} />
+                        <span className="text-[12px] font-medium truncate max-w-[160px]">{msg.attachment.name}</span>
+                      </div>
                     )}
                   </div>
+                )}
 
-                  {/* Pin button — visible on hover (desktop) or after long press (mobile) */}
-                  {!msg.streaming && (
-                    <button
-                      onClick={() => isPinned(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id, msg.content)}
-                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white border border-[#e8e4dc] shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                      title={isPinned(msg.id) ? 'Открепить' : 'Закрепить'}
-                    >
-                      {isPinned(msg.id) ? '📍' : '📌'}
-                    </button>
+                <div className="text-[14px] leading-relaxed">
+                  {msg.role === 'assistant'
+                    ? renderMarkdown(msg.content)
+                    : msg.content && <span className="whitespace-pre-wrap">{msg.content}</span>}
+                  {msg.streaming && (
+                    <span
+                      className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
+                      style={{ background: 'var(--accent)' }}
+                    />
                   )}
                 </div>
-              ) : (
-                /* User message — no pin */
-                <div
-                  className="max-w-[80%] rounded-2xl px-4 py-3"
-                  style={{ background: 'var(--accent-dark)', color: '#ffffff', borderBottomRightRadius: 4 }}
-                >
-                  <div className="text-[14px] leading-relaxed">
-                    <span className="whitespace-pre-wrap">{msg.content}</span>
-                  </div>
-                  {!msg.streaming && (
-                    <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'right' }}>
-                      {msg.time}
-                    </p>
-                  )}
-                </div>
-              )}
+                {!msg.streaming && (
+                  <p
+                    className="text-[10px] mt-1"
+                    style={{ color: msg.role === 'user' ? 'rgba(255,255,255,0.6)' : '#9a96a8', textAlign: msg.role === 'user' ? 'right' : 'left' }}
+                  >
+                    {msg.time}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Quick replies */}
@@ -567,23 +489,13 @@ export default function ChatPage() {
         {/* Typing indicator */}
         {isLoading && messages[messages.length - 1]?.content === '' && (
           <div className="flex items-end gap-2">
-            <div
-              className="w-8 h-8 rounded-2xl flex-shrink-0 flex items-center justify-center"
-              style={{ background: '#e0d8f0' }}
-            >
+            <div className="w-8 h-8 rounded-2xl flex-shrink-0 flex items-center justify-center" style={{ background: '#e0d8f0' }}>
               <Icon3D name="sparkle" size={20} />
             </div>
-            <div
-              className="rounded-2xl px-4 py-3"
-              style={{ background: '#ffffff', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }}
-            >
+            <div className="rounded-2xl px-4 py-3" style={{ background: '#ffffff', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }}>
               <div className="flex gap-1 items-center h-4">
                 {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full animate-bounce"
-                    style={{ background: 'var(--accent)', animationDelay: `${i * 0.15}s` }}
-                  />
+                  <div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--accent)', animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             </div>
@@ -597,24 +509,62 @@ export default function ChatPage() {
         className="flex-shrink-0 px-4 md:px-6 py-3"
         style={{ background: 'rgba(244,243,239,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid #e8e4dc' }}
       >
+        {/* Attached file preview chip */}
+        {attachedFile && (
+          <div className="mb-2 flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl flex-1 min-w-0"
+              style={{ background: '#f0edf8', border: '1px solid #ddd6f3' }}
+            >
+              {attachedPreview ? (
+                <img src={attachedPreview} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <FileText className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-semibold truncate" style={{ color: '#2a2540' }}>{attachedFile.name}</p>
+                <p className="text-[10px]" style={{ color: '#9a96a8' }}>{fmtSize(attachedFile.size)}</p>
+              </div>
+            </div>
+            <button
+              onClick={removeAttachment}
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#e8e4dc] transition-colors flex-shrink-0"
+              aria-label="Удалить файл"
+            >
+              <X className="w-3.5 h-3.5 text-[#9a96a8]" />
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2 items-center">
+          {/* Attach file button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
+            style={{ background: attachedFile ? 'var(--accent-light)' : '#f4f3ef', border: '1px solid #e8e4dc' }}
+            aria-label="Прикрепить файл"
+            title="Прикрепить файл"
+          >
+            <Paperclip className="w-4 h-4" style={{ color: attachedFile ? 'var(--accent-dark)' : '#9a96a8' }} />
+          </button>
+
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
-            placeholder={locale === 'uz' ? 'O\'zingizni qanday his qilayotganingizni yozing...' : locale === 'en' ? 'Describe how you feel...' : 'Напишите о самочувствии...'}
+            placeholder={
+              locale === 'uz' ? 'O\'zingizni qanday his qilayotganingizni yozing...'
+              : locale === 'en' ? 'Describe how you feel...'
+              : 'Напишите о самочувствии...'
+            }
             className="flex-1 rounded-2xl px-4 py-3 text-[14px] focus:outline-none"
-            style={{
-              background: '#ffffff',
-              border: '1px solid #e8e4dc',
-              color: '#2a2540',
-            }}
+            style={{ background: '#ffffff', border: '1px solid #e8e4dc', color: '#2a2540' }}
           />
           <VoiceInput onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)} />
           <button
             onClick={() => sendMessage(input)}
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && !attachedFile) || isLoading}
             className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-40"
             style={{ background: 'var(--accent-dark)' }}
           >
@@ -629,31 +579,12 @@ export default function ChatPage() {
 /** Detect language from message text */
 function detectLang(text: string): 'uz' | 'en' | 'ru' {
   const t = text.toLowerCase();
-
-  // Uzbek Cyrillic — common words that don't appear in Russian
-  const uzCyrillic = [
-    'нима','қандай','қилиш','керак','билан','учун','ҳам','бор','йўқ',
-    'маслахат','беролийсан','беринг','айтинг','гапиринг','мумкин',
-    'сизга','сизни','мени','менга','биз','улар','ўзбек','тилида',
-    'уйқу','овқат','оғриқ','томоқ','юрак','босим','стресс','ташвиш',
-    'соғлиқ','касаллик','шифокор','дори','ичиш','овқатланиш',
-    'салом','ассалому','гапир','олайсан','қандай','ёрдам',
-  ];
+  const uzCyrillic = ['нима','қандай','қилиш','керак','билан','учун','ҳам','бор','йўқ','маслахат','беролийсан','беринг','айтинг','гапиринг','мумкин','сизга','сизни','мени','менга','биз','улар','ўзбек','тилида','уйқу','овқат','оғриқ','томоқ','юрак','босим','стресс','ташвиш','соғлиқ','касаллик','шифокор','дори','ичиш','овқатланиш','салом','ассалому','гапир','олайсан','қандай','ёрдам'];
   if (uzCyrillic.some(w => t.includes(w))) return 'uz';
-
-  // Uzbek Latin
-  const uzLatin = [
-    'salom','uyqu','uxla','ovqat','parhez','qanday','gapir','olaysan',
-    'bosh','charchoq','bosim','yurak','tomoq','sog\'liq','kasallik',
-    'shifokor','yordam','nima','kerak','bilan','uchun','ham',
-  ];
+  const uzLatin = ['salom','uyqu','uxla','ovqat','parhez','qanday','gapir','olaysan','bosh','charchoq','bosim','yurak','tomoq','sog\'liq','kasallik','shifokor','yordam','nima','kerak','bilan','uchun','ham'];
   if (uzLatin.some(w => t.includes(w))) return 'uz';
-
-  // English
-  const enWords = ['sleep','food','diet','nutrition','stress','anxiety','health',
-    'hello','how are','can you','exercise','weight','advice','help me'];
+  const enWords = ['sleep','food','diet','nutrition','stress','anxiety','health','hello','how are','can you','exercise','weight','advice','help me'];
   if (enWords.some(w => t.includes(w))) return 'en';
-
   return 'ru';
 }
 
@@ -680,7 +611,6 @@ function getQuickReplies(userMessage: string): string[] {
     return ['Tell me more', 'What tests should I take?', 'When to see a doctor?'];
   }
 
-  // Russian
   if (t.includes('сон') || t.includes('спать')) return ['Как засыпать быстрее?', 'Нормы сна по возрасту', 'Мелатонин — помогает?'];
   if (t.includes('питание') || t.includes('еда')) return ['Лучший завтрак?', 'Можно есть после 18?', 'Как считать калории?'];
   if (t.includes('стресс') || t.includes('тревог')) return ['Техники релаксации', 'Медитация для начинающих', 'Когда идти к психологу?'];
