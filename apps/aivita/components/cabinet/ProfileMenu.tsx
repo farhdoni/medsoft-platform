@@ -12,24 +12,34 @@ interface MenuItem {
   href: string;
 }
 
-const MENU_ITEMS: MenuItem[] = [
-  { icon: 'family',   softBg: 'var(--accent-light)', title: 'Мой профиль',           subtitle: 'Возраст, болезни',     href: '/profile' },
-  { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медицинский профиль',   subtitle: 'Аллергии, препараты',  href: '/profile' },
-  { icon: 'heart',    softBg: 'var(--accent-light)', title: 'Биометрия',             subtitle: 'Показатели здоровья', href: '/vitals' },
-  { icon: 'steps',    softBg: '#d4e8d8', title: 'Гаджеты',               subtitle: 'Трекеры и часы',     href: '/gadgets' },
-  { icon: 'chat',     softBg: '#d4e8d8', title: 'AI-чат',                subtitle: 'Помощник по здоровью', href: '/chat' },
-  { icon: 'family',   softBg: '#d4dff0', title: 'Семья',                 subtitle: 'Поделиться доступом',  href: '/family' },
-  { icon: 'shield',   softBg: 'var(--accent-light)', title: 'Конфиденциальность',                                      href: '/settings' },
-  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',             subtitle: 'Уведомления, язык',   href: '/settings' },
-  { icon: 'sparkle',  softBg: '#d4e8d8', title: 'Помощь и поддержка',                                      href: '/settings' },
+const PATIENT_MENU_ITEMS: MenuItem[] = [
+  { icon: 'family',   softBg: 'var(--accent-light)',    title: 'Мой профиль',          subtitle: 'Возраст, болезни',     href: '/profile' },
+  { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медицинский профиль',  subtitle: 'Аллергии, препараты',  href: '/profile' },
+  { icon: 'heart',    softBg: 'var(--accent-light)',    title: 'Биометрия',            subtitle: 'Показатели здоровья',  href: '/vitals' },
+  { icon: 'steps',    softBg: '#d4e8d8',                title: 'Гаджеты',              subtitle: 'Трекеры и часы',       href: '/gadgets' },
+  { icon: 'chat',     softBg: '#d4e8d8',                title: 'AI-чат',               subtitle: 'Помощник по здоровью', href: '/chat' },
+  { icon: 'family',   softBg: '#d4dff0',                title: 'Семья',                subtitle: 'Поделиться доступом',  href: '/family' },
+  { icon: 'shield',   softBg: 'var(--accent-light)',    title: 'Конфиденциальность',                                     href: '/settings' },
+  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',            subtitle: 'Уведомления, язык',    href: '/settings' },
+  { icon: 'sparkle',  softBg: '#d4e8d8',                title: 'Помощь и поддержка',                                    href: '/settings' },
+];
+
+const DOCTOR_MENU_ITEMS: MenuItem[] = [
+  { icon: 'doctor',   softBg: 'var(--accent-light)',    title: 'Профиль врача',        subtitle: 'Специализация, данные', href: '/doctor-profile' },
+  { icon: 'calendar', softBg: 'var(--accent-bg-light)', title: 'Расписание',           subtitle: 'Рабочие часы, слоты',   href: '/doctor-schedule' },
+  { icon: 'family',   softBg: '#d4e8d8',                title: 'Мои пациенты',         subtitle: 'Список и карточки',     href: '/doctor-patients' },
+  { icon: 'kit',      softBg: '#d4dff0',                title: 'Приёмы',               subtitle: 'Предстоящие и прошлые', href: '/doctor-appointments' },
+  { icon: 'sparkle',  softBg: '#d4e8d8',                title: 'AI-ассистент',         subtitle: 'Анализ и диагнозы',     href: '/doctor-ai' },
+  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',            subtitle: 'Профиль, уведомления',  href: '/settings' },
 ];
 
 interface ProfileMenuProps {
   session?: AivitaSession | null;
   locale?: string;
+  role?: 'patient' | 'doctor';
 }
 
-export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
+export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) {
   const [open, setOpen] = React.useState(false);
   const [pos, setPos] = React.useState({ top: 0, right: 0 });
   const buttonRef = React.useRef<HTMLButtonElement>(null);
@@ -68,6 +78,8 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
   const name = session?.name ?? 'Пользователь';
   const email = session?.email ?? '';
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  const items = role === 'doctor' ? DOCTOR_MENU_ITEMS : PATIENT_MENU_ITEMS;
 
   const handleLogout = async () => {
     try {
@@ -127,7 +139,7 @@ export function ProfileMenu({ session, locale = 'ru' }: ProfileMenuProps) {
 
           {/* Menu items */}
           <div className="p-2">
-            {MENU_ITEMS.map((item, i) => (
+            {items.map((item, i) => (
               <Link
                 key={i}
                 href={`/${locale}${item.href}`}

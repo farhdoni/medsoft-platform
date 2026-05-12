@@ -20,6 +20,7 @@ type Message = {
   streaming?: boolean;
   quickReplies?: string[];
   attachment?: MessageAttachment;
+  pinned?: boolean;
 };
 
 const INITIAL: Record<string, { content: string; quickReplies: string[] }> = {
@@ -138,6 +139,25 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showNav, setShowNav] = useState(false);
+  const [showPinned, setShowPinned] = useState(false);
+
+  // Persist pinned IDs in localStorage
+  const PINS_KEY = `aivita_chat_pins_${locale}`;
+  const getPinnedIds = (): Set<string> => {
+    try { return new Set(JSON.parse(localStorage.getItem(PINS_KEY) ?? '[]')); } catch { return new Set(); }
+  };
+  const savePinnedIds = (ids: Set<string>) => {
+    try { localStorage.setItem(PINS_KEY, JSON.stringify([...ids])); } catch {}
+  };
+
+  const togglePin = (id: string) => {
+    setMessages(prev => {
+      const updated = prev.map(m => m.id === id ? { ...m, pinned: !m.pinned } : m);
+      const ids = new Set(updated.filter(m => m.pinned).map(m => m.id));
+      savePinnedIds(ids);
+      return updated;
+    });
+  };
 
   // File attachment state
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -403,6 +423,44 @@ export default function ChatPage() {
         }
       `}</style>
 
+      {/* Pinned messages panel */}
+      {messages.some(m => m.pinned) && (
+        <div className="flex-shrink-0 px-4 md:px-6 pb-1">
+          <button
+            onClick={() => setShowPinned(v => !v)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-semibold transition-colors hover:bg-[#f4f3ef]"
+            style={{ background: '#fffbec', border: '1px solid #ffe4a0', color: '#8a6000' }}
+          >
+            <span>📌</span>
+            <span>{messages.filter(m => m.pinned).length} закреплённых сообщений</span>
+            <span className="ml-auto">{showPinned ? '▲' : '▼'}</span>
+          </button>
+          {showPinned && (
+            <div className="mt-1 rounded-xl border overflow-hidden" style={{ borderColor: '#ffe4a0' }}>
+              {messages.filter(m => m.pinned).map(m => (
+                <div
+                  key={m.id}
+                  className="flex items-start gap-2 px-3 py-2.5 border-b last:border-0"
+                  style={{ borderColor: '#ffe4a0', background: '#fffdf5' }}
+                >
+                  <span className="text-[14px] flex-shrink-0 mt-0.5">📌</span>
+                  <p className="text-[12px] leading-relaxed flex-1 min-w-0 line-clamp-2" style={{ color: '#2a2540' }}>
+                    {m.content.slice(0, 120)}{m.content.length > 120 ? '…' : ''}
+                  </p>
+                  <button
+                    onClick={() => togglePin(m.id)}
+                    className="text-[11px] flex-shrink-0 px-2 py-1 rounded-lg hover:bg-[#ffe4a0] transition-colors"
+                    style={{ color: '#9a6000' }}
+                  >
+                    открепить
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-2 space-y-3">
         {messages.map((msg) => (
@@ -457,12 +515,24 @@ export default function ChatPage() {
                   )}
                 </div>
                 {!msg.streaming && (
-                  <p
-                    className="text-[10px] mt-1"
-                    style={{ color: msg.role === 'user' ? 'rgba(255,255,255,0.6)' : '#9a96a8', textAlign: msg.role === 'user' ? 'right' : 'left' }}
-                  >
-                    {msg.time}
-                  </p>
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p
+                      className="text-[10px]"
+                      style={{ color: msg.role === 'user' ? 'rgba(255,255,255,0.6)' : '#9a96a8' }}
+                    >
+                      {msg.time}
+                    </p>
+                    {msg.role === 'assistant' && (
+                      <button
+                        onClick={() => togglePin(msg.id)}
+                        className="text-[13px] transition-opacity hover:opacity-80 flex-shrink-0"
+                        title={msg.pinned ? 'Открепить' : 'Закрепить'}
+                        aria-label={msg.pinned ? 'Открепить сообщение' : 'Закрепить сообщение'}
+                      >
+                        {msg.pinned ? '📌' : '🔖'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

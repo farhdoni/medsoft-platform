@@ -80,7 +80,7 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
               </span>
             )}
           </Link>
-          <ProfileMenu session={session} locale={locale} />
+          <ProfileMenu session={session} locale={locale} role={role} />
         </div>
       </header>
 
