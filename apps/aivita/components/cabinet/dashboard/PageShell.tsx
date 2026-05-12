@@ -20,7 +20,7 @@ export async function PageShell({ active, avatarInitial = "F", locale = "ru", ch
     <main className="mx-auto min-h-screen max-w-[1100px] px-4 pb-32 md:px-6 bg-bg-app">
       <div className="mt-6 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_64px_rgba(42,37,64,0.10)]">
         <TopBar avatarInitial={initials} session={session} locale={locale} role={session?.role === 'doctor' ? 'doctor' : 'patient'} />
-        <div className="px-7 py-5">
+        <div className="px-7 py-5 pb-28">
           {children}
         </div>
       </div>
