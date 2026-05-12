@@ -43,7 +43,7 @@ export function HeroSection({ user, metrics }: Props) {
 
   return (
     <section
-      className="relative mx-7 mt-3 overflow-hidden rounded-hero p-8 text-white"
+      className="relative mx-3 mt-3 overflow-hidden rounded-hero p-5 text-white sm:mx-7 sm:p-8"
       style={{
         background:
           "linear-gradient(135deg, var(--hero-from) 0%, var(--hero-mid) 45%, var(--hero-to) 100%)",
@@ -55,7 +55,7 @@ export function HeroSection({ user, metrics }: Props) {
           <div className="text-[13px] font-medium opacity-85">
             {greeting}, {user.name.split(" ")[0]}
           </div>
-          <h1 className="mt-2 max-w-md text-[28px] font-bold leading-[1.15]">
+          <h1 className="mt-2 max-w-md text-[22px] font-bold leading-[1.15] sm:text-[28px]">
             Чем сегодня помочь
             <br />
             твоему здоровью?
@@ -99,8 +99,8 @@ export function HeroSection({ user, metrics }: Props) {
           </div>
         </div>
 
-        {/* RIGHT: health-index ring card */}
-        <div className="rounded-card bg-white/95 p-5 text-text-primary shadow-card md:w-[230px]">
+        {/* RIGHT: health-index ring card — hidden on mobile to avoid layout overflow */}
+        <div className="hidden rounded-card bg-white/95 p-5 text-text-primary shadow-card md:block md:w-[230px]">
           <div className="text-center text-[12px] font-medium text-text-secondary">
             Индекс здоровья
           </div>
