@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import {
   User, Target, Globe, Bell, Lock, ChevronRight,
-  Heart, Users, Cpu, HelpCircle,
+  Heart, Users, Cpu, HelpCircle, Stethoscope, Calendar, FileText, DollarSign, ShieldCheck,
 } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { DangerZone } from './danger-zone';
 import { loadSettingsData } from './data';
+import { getSession } from '@/lib/auth/session';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,8 +63,43 @@ export default async function SettingsPage({
 }) {
   const { locale } = await params;
   const { localeLabel, notificationsOn } = await loadSettingsData();
+  const session = await getSession();
+  const isDoctor = session?.role === 'doctor';
 
-  const SECTIONS: Array<{ title: string; items: SettingItem[] }> = [
+  const DOCTOR_SECTIONS: Array<{ title: string; items: SettingItem[] }> = [
+    {
+      title: 'Аккаунт',
+      items: [
+        { icon: Stethoscope, label: 'Профиль врача',           sub: 'Специализация, фото, клиника',  href: `/${locale}/doctor-profile`, bg: '#dbeeff', color: '#4a7fb5' },
+        { icon: ShieldCheck, label: 'Документы и верификация', sub: 'Диплом, лицензия, сертификаты', href: `/${locale}/doctor-profile`, bg: '#e8f4ec', color: '#2d7a56' },
+      ],
+    },
+    {
+      title: 'Практика',
+      items: [
+        { icon: Calendar,  label: 'Расписание по умолчанию', sub: 'Рабочие дни, часы, слоты',     href: `/${locale}/doctor-schedule`, bg: '#dbeeff', color: '#4a7fb5' },
+        { icon: FileText,  label: 'Шаблоны назначений',      sub: 'Лекарства, анализы, процедуры', href: `/${locale}/doctor-prescriptions`, bg: '#e8f4ec', color: '#2d7a56' },
+        { icon: DollarSign, label: 'Стоимость консультации', sub: 'Настроить цену приёма', href: `/${locale}/doctor-profile`, bg: '#fff3e8', color: '#c07038' },
+      ],
+    },
+    {
+      title: 'Приложение',
+      items: [
+        { icon: Globe, label: 'Язык',              sub: localeLabel,                           href: '#', value: localeLabel, bg: '#d4dff0', color: '#5e75a8' },
+        { icon: Bell,  label: 'Уведомления',       sub: 'Приёмы, чаты, алерты пациентов',     href: '#', value: notificationsOn ? 'Вкл' : 'Выкл', bg: '#dbeeff', color: '#4a7fb5' },
+        { icon: Lock,  label: 'Конфиденциальность', sub: 'Данные пациентов, экспорт',          href: `/${locale}/privacy`, bg: '#e8f4ec', color: '#2d7a56' },
+      ],
+    },
+    {
+      title: 'Прочее',
+      items: [
+        { icon: HelpCircle, label: 'Помощь',       sub: 'FAQ и поддержка',  href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: 'О приложении', sub: 'Aivita v0.1.0',    href: '#', value: 'v0.1.0', bg: '#f4f3ef', color: '#9a96a8' },
+      ],
+    },
+  ];
+
+  const PATIENT_SECTIONS: Array<{ title: string; items: SettingItem[] }> = [
     {
       title: 'Аккаунт',
       items: [
@@ -96,6 +132,8 @@ export default async function SettingsPage({
     },
   ];
 
+  const SECTIONS = isDoctor ? DOCTOR_SECTIONS : PATIENT_SECTIONS;
+
   return (
     <PageShell active="" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-6">
@@ -106,8 +144,11 @@ export default async function SettingsPage({
             НАСТРОЙКИ
           </p>
           <h1 className="text-[22px] font-extrabold text-text-primary">
-            Управление аккаунтом
+            {isDoctor ? 'Кабинет врача' : 'Управление аккаунтом'}
           </h1>
+          {isDoctor && (
+            <p className="text-[13px] text-text-muted mt-1">Профиль, практика, уведомления</p>
+          )}
         </div>
 
         {/* ── Sections ─────────────────────────────────────────────────────── */}

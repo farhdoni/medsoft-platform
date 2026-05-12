@@ -34,6 +34,35 @@ const TYPE_ICONS: Record<string, { icon: string; label: string; color: string }>
   vital:        { icon: '📊', label: 'Показатель', color: '#fff3e8' },
 };
 
+/** Compute 0-100 score from a vital value */
+function computeScore(type: string, value: any): number {
+  switch (type) {
+    case 'heart_rate': { const v = value?.value ?? value; return v >= 60 && v <= 100 ? 100 : v >= 50 && v <= 110 ? 70 : 30; }
+    case 'blood_pressure': { const s = value?.systolic; const d = value?.diastolic; if (!s || !d) return 50; return s < 130 && d < 85 ? 90 : s < 140 && d < 90 ? 60 : 30; }
+    case 'blood_sugar': { const v = value?.value ?? value; return v >= 70 && v <= 100 ? 100 : v >= 60 && v <= 126 ? 70 : 30; }
+    case 'spo2': { const v = value?.value ?? value; return v >= 96 ? 100 : v >= 90 ? 60 : 20; }
+    case 'sleep_hours': { const v = value?.hours ?? value?.value ?? value; return v >= 7 && v <= 9 ? 100 : v >= 6 && v <= 10 ? 70 : 40; }
+    default: return 50;
+  }
+}
+
+function HealthScoreRing({ score, label, color }: { score: number; label: string; color: string }) {
+  const r = 18; const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <svg width={44} height={44} viewBox="0 0 44 44">
+        <circle cx={22} cy={22} r={r} fill="none" stroke="#f0f0f0" strokeWidth={4} />
+        <circle cx={22} cy={22} r={r} fill="none" stroke={color} strokeWidth={4}
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          transform="rotate(-90 22 22)" />
+        <text x={22} y={26} textAnchor="middle" fontSize={9} fontWeight="bold" fill="#2a2540">{score}</text>
+      </svg>
+      <span className="text-[9px] text-[#9a96a8] text-center leading-tight">{label}</span>
+    </div>
+  );
+}
+
 function getVitalDisplay(v: { type: string; value: any }) {
   const val = v.value;
   switch (v.type) {
@@ -137,6 +166,33 @@ export default function DoctorPatientPage() {
             <p className="text-xs text-[#9a96a8] mt-1">{patient.connection.consultationCount} консультаций</p>
           </div>
         </div>
+
+        {/* Health Score rings */}
+        {vitals.length > 0 && (() => {
+          const SCORE_TYPES = [
+            { type: 'heart_rate', label: 'Пульс', color: '#e05a6a' },
+            { type: 'blood_pressure', label: 'Давление', color: '#5e75a8' },
+            { type: 'blood_sugar', label: 'Сахар', color: '#c04080' },
+            { type: 'spo2', label: 'SpO2', color: '#4a7fb5' },
+            { type: 'sleep_hours', label: 'Сон', color: '#548068' },
+          ];
+          const scores = SCORE_TYPES.map(s => ({
+            ...s, score: vitals.find(v => v.type === s.type) ? computeScore(s.type, vitals.find(v => v.type === s.type)!.value) : -1,
+          })).filter(s => s.score >= 0);
+          if (scores.length === 0) return null;
+          const avg = Math.round(scores.reduce((a, s) => a + s.score, 0) / scores.length);
+          return (
+            <div className="bg-white rounded-2xl p-4 border border-app-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-[#2a2540]">Health Score</h3>
+                <span className="text-2xl font-extrabold" style={{ color: avg >= 80 ? '#4caf82' : avg >= 60 ? '#e8a000' : '#f47c5f' }}>{avg}</span>
+              </div>
+              <div className="flex justify-around">
+                {scores.map(s => <HealthScoreRing key={s.type} score={s.score} label={s.label} color={s.color} />)}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Latest vitals grid */}
         {vitals.length > 0 && (

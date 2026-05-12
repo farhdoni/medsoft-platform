@@ -11,6 +11,7 @@ interface Appointment {
 }
 interface PatientInfo { id: string; name: string; avatarUrl?: string; }
 interface ApptRow { appointment: Appointment; patient: PatientInfo; }
+interface Patient { user: { id: string; name: string }; }
 
 function initials(n: string) { return (n ?? '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
 function fmtDate(s: string) { return new Date(s).toLocaleDateString('ru', { day: '2-digit', month: 'short' }); }
@@ -31,6 +32,12 @@ export default function DoctorAppointmentsPage() {
   const [notes, setNotes] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [completing, setCompleting] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createPatients, setCreatePatients] = useState<Patient[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    patientId: '', date: '', time: '', type: 'offline', durationMinutes: 30, reason: '',
+  });
 
   const load = (status: string) => {
     setLoading(true);
@@ -40,6 +47,25 @@ export default function DoctorAppointmentsPage() {
   };
 
   useEffect(() => { load(tab); }, [tab]);
+
+  useEffect(() => {
+    apiRequest<Patient[]>('/doctor/patients?status=active')
+      .then(res => { if ('data' in res) setCreatePatients(res.data ?? []); });
+  }, []);
+
+  const handleCreate = async () => {
+    if (!createForm.patientId || !createForm.date || !createForm.time) return;
+    setCreating(true);
+    const scheduledAt = new Date(`${createForm.date}T${createForm.time}`).toISOString();
+    await apiRequest('/doctor/appointments', {
+      method: 'POST',
+      body: { patientId: createForm.patientId, scheduledAt, type: createForm.type, durationMinutes: createForm.durationMinutes, reason: createForm.reason || undefined },
+    });
+    setCreating(false);
+    setShowCreate(false);
+    setCreateForm({ patientId: '', date: '', time: '', type: 'offline', durationMinutes: 30, reason: '' });
+    load(tab);
+  };
 
   const openAppt = (row: ApptRow) => {
     setSelected(row);
@@ -76,7 +102,12 @@ export default function DoctorAppointmentsPage() {
   return (
     <div>
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3">
-        <h1 className="text-xl font-bold text-[#2a2540] mb-3">Приёмы</h1>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-bold text-[#2a2540]">Приёмы</h1>
+          <button onClick={() => setShowCreate(true)}
+            className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
+            style={{ background: 'var(--accent-dark)' }}>+ Создать</button>
+        </div>
         <div className="flex gap-2">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -118,6 +149,79 @@ export default function DoctorAppointmentsPage() {
           );
         })}
       </div>
+
+      {/* Create appointment modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="w-full bg-white rounded-t-3xl p-6 max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-[#2a2540] text-lg">Новый приём</h3>
+              <button onClick={() => setShowCreate(false)} className="text-[#9a96a8] text-xl">✕</button>
+            </div>
+            {/* Patient */}
+            <div className="mb-3">
+              <label className="text-xs font-semibold text-[#9a96a8]">Пациент *</label>
+              <select value={createForm.patientId} onChange={e => setCreateForm(f => ({ ...f, patientId: e.target.value }))}
+                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none bg-white"
+                style={{ color: createForm.patientId ? '#2a2540' : '#9a96a8' }}>
+                <option value="">Выбрать пациента...</option>
+                {createPatients.map(p => <option key={p.user.id} value={p.user.id}>{p.user.name}</option>)}
+              </select>
+            </div>
+            {/* Date + time */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-xs font-semibold text-[#9a96a8]">Дата *</label>
+                <input type="date" value={createForm.date} onChange={e => setCreateForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9a96a8]">Время *</label>
+                <input type="time" value={createForm.time} onChange={e => setCreateForm(f => ({ ...f, time: e.target.value }))}
+                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
+              </div>
+            </div>
+            {/* Type + duration */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-xs font-semibold text-[#9a96a8]">Формат</label>
+                <select value={createForm.type} onChange={e => setCreateForm(f => ({ ...f, type: e.target.value }))}
+                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none bg-white" style={{ color: '#2a2540' }}>
+                  <option value="offline">🏥 Очно</option>
+                  <option value="online">💻 Онлайн</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#9a96a8]">Длительность</label>
+                <select value={createForm.durationMinutes} onChange={e => setCreateForm(f => ({ ...f, durationMinutes: +e.target.value }))}
+                  className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none bg-white" style={{ color: '#2a2540' }}>
+                  <option value={15}>15 мин</option>
+                  <option value={30}>30 мин</option>
+                  <option value={45}>45 мин</option>
+                  <option value={60}>60 мин</option>
+                  <option value={90}>90 мин</option>
+                </select>
+              </div>
+            </div>
+            {/* Reason */}
+            <div className="mb-5">
+              <label className="text-xs font-semibold text-[#9a96a8]">Причина обращения</label>
+              <input value={createForm.reason} onChange={e => setCreateForm(f => ({ ...f, reason: e.target.value }))}
+                placeholder="Опционально..."
+                className="w-full mt-1.5 p-2.5 rounded-xl border text-sm outline-none" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowCreate(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-medium border text-[#9a96a8]">Отмена</button>
+              <button onClick={handleCreate} disabled={creating || !createForm.patientId || !createForm.date || !createForm.time}
+                className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-opacity"
+                style={{ background: 'var(--accent-dark)', opacity: creating || !createForm.patientId || !createForm.date || !createForm.time ? 0.5 : 1 }}>
+                {creating ? 'Создание...' : '+ Создать приём'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Appointment detail modal */}
       {selected && (

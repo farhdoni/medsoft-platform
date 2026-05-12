@@ -29,6 +29,13 @@ interface Notif {
   isRead: boolean; relatedPatientId?: string;
 }
 
+interface PrescRow {
+  prescription: { id: string; type: string; title: string; status: string; createdAt: string };
+  patient: { id: string; name: string };
+}
+
+interface UserInfo { id: string; name: string; email: string; }
+
 function initials(name: string) {
   return (name ?? '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -44,9 +51,20 @@ export default function DoctorHomePage() {
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [notifs, setNotifs] = useState<Notif[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescRow[]>([]);
   const [docName, setDocName] = useState('Доктор');
   const [docSpec, setDocSpec] = useState('');
+  const [docEmail, setDocEmail] = useState('');
   const [loading, setLoading] = useState(true);
+
+  function getMinutesUntil(isoDate: string) {
+    const diff = Math.round((new Date(isoDate).getTime() - Date.now()) / 60000);
+    if (diff < 0) return null;
+    if (diff === 0) return 'сейчас';
+    if (diff < 60) return `через ${diff} мин`;
+    const h = Math.floor(diff / 60);
+    return `через ${h} ч ${diff % 60 ? `${diff % 60} мин` : ''}`;
+  }
 
   useEffect(() => {
     Promise.all([
@@ -55,8 +73,9 @@ export default function DoctorHomePage() {
       apiRequest<PatientRow[]>('/doctor/patients?status=active'),
       apiRequest<Notif[]>('/doctor/notifications?unread=true'),
       apiRequest<any>('/doctor/profile'),
-      apiRequest<{ name: string }>('/users'),
-    ]).then(([s, u, p, n, pr, usr]) => {
+      apiRequest<UserInfo>('/users'),
+      apiRequest<PrescRow[]>('/doctor/prescriptions?status=active'),
+    ]).then(([s, u, p, n, pr, usr, presc]) => {
       if ('data' in s) setStats(s.data);
       if ('data' in u) setUpcoming(u.data ?? []);
       if ('data' in p) setPatients((p.data ?? []).slice(0, 3));
@@ -64,7 +83,11 @@ export default function DoctorHomePage() {
       if ('data' in pr && pr.data) {
         if (pr.data.specialization) setDocSpec(pr.data.specialization + (pr.data.clinicName ? ` · ${pr.data.clinicName}` : ''));
       }
-      if ('data' in usr && usr.data?.name) setDocName(usr.data.name);
+      if ('data' in usr && usr.data) {
+        if (usr.data.name) setDocName(usr.data.name);
+        if (usr.data.email) setDocEmail(usr.data.email);
+      }
+      if ('data' in presc) setPrescriptions((presc.data ?? []).slice(0, 3));
       setLoading(false);
     });
   }, []);
@@ -98,6 +121,7 @@ export default function DoctorHomePage() {
       {/* TopBar */}
       <TopBar
         avatarInitial={initials(docName)}
+        session={{ name: docName, email: docEmail, role: 'doctor' }}
         locale={locale}
         role="doctor"
         unreadCount={notifs.length}
@@ -164,7 +188,12 @@ export default function DoctorHomePage() {
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-[#2a2540] text-sm">{upcoming[0].patient.name}</p>
-                <p className="text-xs text-[#9a96a8] capitalize">{upcoming[0].appointment.type} · {fmtTime(upcoming[0].appointment.scheduledAt)}</p>
+                <p className="text-xs text-[#9a96a8] capitalize">{upcoming[0].appointment.type === 'offline' ? 'Очно' : 'Онлайн'} · {fmtTime(upcoming[0].appointment.scheduledAt)}</p>
+                {getMinutesUntil(upcoming[0].appointment.scheduledAt) && (
+                  <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--accent-dark)' }}>
+                    {getMinutesUntil(upcoming[0].appointment.scheduledAt)}
+                  </p>
+                )}
               </div>
               <Link href={`/${locale}/doctor-appointments`}
                 className="text-xs font-medium px-3 py-1 rounded-full"
@@ -263,6 +292,63 @@ export default function DoctorHomePage() {
             </div>
           </div>
         </div>
+
+        {/* Latest prescriptions */}
+        {prescriptions.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-[#2a2540]">Последние назначения</h2>
+              <Link href={`/${locale}/doctor-prescriptions`} className="text-xs font-medium" style={{ color: 'var(--accent-dark)' }}>Все →</Link>
+            </div>
+            <div className="space-y-2">
+              {prescriptions.map(row => {
+                const icons: Record<string, string> = { medication: '💊', test: '🧪', procedure: '🩺' };
+                const statusBg: Record<string, string> = { active: '#e8f0ff', pending: '#fff3e8', completed: '#e8f4ec' };
+                const statusColor: Record<string, string> = { active: 'var(--accent-dark)', pending: '#c07038', completed: '#2d7a56' };
+                const statusLabel: Record<string, string> = { active: 'Активно', pending: 'Ожидание', completed: 'Выполнено' };
+                return (
+                  <div key={row.prescription.id} className="flex items-center gap-3">
+                    <span className="text-lg">{icons[row.prescription.type] ?? '📋'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[#2a2540] truncate">{row.prescription.title}</p>
+                      <p className="text-[10px] text-[#9a96a8]">{row.patient.name}</p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: statusBg[row.prescription.status] ?? '#f0f0f0', color: statusColor[row.prescription.status] ?? '#9a96a8' }}>
+                      {statusLabel[row.prescription.status] ?? row.prescription.status}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent chats */}
+        {patients.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 border border-app-border">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-[#2a2540]">Чаты с пациентами</h2>
+              <Link href={`/${locale}/doctor-chats`} className="text-xs font-medium" style={{ color: 'var(--accent-dark)' }}>Все →</Link>
+            </div>
+            <div className="space-y-2">
+              {patients.slice(0, 2).map(p => (
+                <Link key={p.user.id} href={`/${locale}/doctor-chats`}
+                  className="flex items-center gap-3 active:opacity-70">
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                    style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
+                    {initials(p.user.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[#2a2540] truncate">{p.user.name}</p>
+                    <p className="text-[10px] text-[#9a96a8]">{p.connection.consultationCount} консультаций</p>
+                  </div>
+                  <span className="text-[#9a96a8] text-sm">›</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* AI CTA */}
         <Link href={`/${locale}/doctor-ai`}>
