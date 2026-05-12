@@ -15,7 +15,7 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/db/package.json     ./packages/db/
 COPY apps/admin/package.json      ./apps/admin/
 COPY apps/api/package.json        ./apps/api/
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 # Overwrite stubs with full source for what we actually build
 COPY packages/shared ./packages/shared
 COPY apps/admin      ./apps/admin
