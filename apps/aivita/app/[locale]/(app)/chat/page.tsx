@@ -15,6 +15,14 @@ type Message = {
   quickReplies?: string[];
 };
 
+type PinnedMessage = {
+  id: string;
+  content: string;
+  pinnedAt: number;
+};
+
+const PINNED_KEY = 'aivita_pinned_messages';
+
 const INITIAL: Record<string, { content: string; quickReplies: string[] }> = {
   ru: {
     content: 'Привет! Я AI-помощник aivita. Расскажи о своём самочувствии — я помогу разобраться.',
@@ -135,9 +143,59 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showNav, setShowNav] = useState(false);
+  const [pinnedMessages, setPinnedMessages] = useState<PinnedMessage[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const didAutoSend = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load pinned messages from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PINNED_KEY);
+      if (stored) setPinnedMessages(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  function pinMessage(messageId: string, content: string) {
+    try {
+      const stored: PinnedMessage[] = JSON.parse(localStorage.getItem(PINNED_KEY) || '[]');
+      if (stored.find((p) => p.id === messageId)) return; // already pinned
+      const updated = [...stored, { id: messageId, content, pinnedAt: Date.now() }];
+      localStorage.setItem(PINNED_KEY, JSON.stringify(updated));
+      setPinnedMessages(updated);
+    } catch {}
+  }
+
+  function unpinMessage(messageId: string) {
+    try {
+      const updated: PinnedMessage[] = JSON.parse(localStorage.getItem(PINNED_KEY) || '[]')
+        .filter((p: PinnedMessage) => p.id !== messageId);
+      localStorage.setItem(PINNED_KEY, JSON.stringify(updated));
+      setPinnedMessages(updated);
+    } catch {}
+  }
+
+  function isPinned(messageId: string) {
+    return pinnedMessages.some((p) => p.id === messageId);
+  }
+
+  function onTouchStart(messageId: string, content: string) {
+    longPressTimer.current = setTimeout(() => {
+      if (isPinned(messageId)) {
+        unpinMessage(messageId);
+      } else {
+        pinMessage(messageId, content);
+      }
+    }, 500);
+  }
+
+  function onTouchEnd() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
 
   // Handle ?q= from home page search — read from window.location (no Suspense needed)
   useEffect(() => {
@@ -391,6 +449,31 @@ export default function ChatPage() {
         }
       `}</style>
 
+      {/* Pinned messages panel */}
+      {pinnedMessages.length > 0 && (
+        <div className="flex-shrink-0 mx-4 md:mx-6 mb-1 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <div className="text-[11px] font-semibold text-amber-700 mb-1.5 flex items-center gap-1">
+            📌 {locale === 'uz' ? 'Mahkamlangan' : locale === 'en' ? 'Pinned' : 'Закреплено'} ({pinnedMessages.length})
+          </div>
+          <div className="space-y-1">
+            {pinnedMessages.map((msg) => (
+              <div key={msg.id} className="flex items-center justify-between gap-2">
+                <span className="text-[12px] text-gray-700 truncate flex-1">
+                  {msg.content.slice(0, 100)}{msg.content.length > 100 ? '…' : ''}
+                </span>
+                <button
+                  onClick={() => unpinMessage(msg.id)}
+                  className="text-[11px] text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
+                  aria-label="Открепить"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-2 space-y-3">
         {messages.map((msg) => (
@@ -404,34 +487,62 @@ export default function ChatPage() {
                   <Icon3D name="sparkle" size={20} />
                 </div>
               )}
-              <div
-                className="max-w-[80%] rounded-2xl px-4 py-3"
-                style={
-                  msg.role === 'user'
-                    ? { background: 'var(--accent-dark)', color: '#ffffff', borderBottomRightRadius: 4 }
-                    : { background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }
-                }
-              >
-                <div className="text-[14px] leading-relaxed">
-                  {msg.role === 'assistant'
-                    ? renderMarkdown(msg.content)
-                    : <span className="whitespace-pre-wrap">{msg.content}</span>}
-                  {msg.streaming && (
-                    <span
-                      className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
-                      style={{ background: 'var(--accent)' }}
-                    />
+
+              {/* AI message — with pin button on hover / long press */}
+              {msg.role === 'assistant' ? (
+                <div
+                  className="relative group max-w-[80%]"
+                  onTouchStart={() => onTouchStart(msg.id, msg.content)}
+                  onTouchEnd={onTouchEnd}
+                  onTouchMove={onTouchEnd}
+                >
+                  <div
+                    className="rounded-2xl px-4 py-3"
+                    style={{ background: '#ffffff', color: '#2a2540', borderBottomLeftRadius: 4, border: '1px solid #e8e4dc' }}
+                  >
+                    <div className="text-[14px] leading-relaxed">
+                      {renderMarkdown(msg.content)}
+                      {msg.streaming && (
+                        <span
+                          className="inline-block w-0.5 h-4 ml-0.5 animate-pulse align-text-bottom"
+                          style={{ background: 'var(--accent)' }}
+                        />
+                      )}
+                    </div>
+                    {!msg.streaming && (
+                      <p className="text-[10px] mt-1" style={{ color: '#9a96a8' }}>
+                        {msg.time}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Pin button — visible on hover (desktop) or after long press (mobile) */}
+                  {!msg.streaming && (
+                    <button
+                      onClick={() => isPinned(msg.id) ? unpinMessage(msg.id) : pinMessage(msg.id, msg.content)}
+                      className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white border border-[#e8e4dc] shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                      title={isPinned(msg.id) ? 'Открепить' : 'Закрепить'}
+                    >
+                      {isPinned(msg.id) ? '📍' : '📌'}
+                    </button>
                   )}
                 </div>
-                {!msg.streaming && (
-                  <p
-                    className="text-[10px] mt-1"
-                    style={{ color: msg.role === 'user' ? 'rgba(255,255,255,0.6)' : '#9a96a8', textAlign: msg.role === 'user' ? 'right' : 'left' }}
-                  >
-                    {msg.time}
-                  </p>
-                )}
-              </div>
+              ) : (
+                /* User message — no pin */
+                <div
+                  className="max-w-[80%] rounded-2xl px-4 py-3"
+                  style={{ background: 'var(--accent-dark)', color: '#ffffff', borderBottomRightRadius: 4 }}
+                >
+                  <div className="text-[14px] leading-relaxed">
+                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                  </div>
+                  {!msg.streaming && (
+                    <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'right' }}>
+                      {msg.time}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Quick replies */}
