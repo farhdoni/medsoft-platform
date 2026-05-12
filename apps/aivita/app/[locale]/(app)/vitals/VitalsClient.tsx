@@ -177,17 +177,19 @@ function AddVitalModal({ onClose, onSaved, initialType }: ModalProps) {
 
     setSaving(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/vitals`, {
+      const res = await fetch('/api/vitals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ type, value: valuePayload, source: 'manual', note: note || undefined }),
       });
-      if (!res.ok) throw new Error('Ошибка сервера');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message ?? 'Ошибка сервера');
+      }
       onSaved();
       onClose();
-    } catch {
-      setError('Ошибка сохранения, попробуйте ещё раз');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения, попробуйте ещё раз');
     } finally {
       setSaving(false);
     }
@@ -302,17 +304,13 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
 
   function handleSaved() {
     startTransition(() => router.refresh());
-    // Optimistic: reload vitals from API
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/vitals`, {
-      credentials: 'include',
-    })
+    // Reload via Next.js proxy (cookie forwarded server-side)
+    fetch('/api/vitals')
       .then((r) => r.json())
       .then((json) => { if (json.data) setRows(json.data); })
       .catch(() => {});
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/vitals/latest`, {
-      credentials: 'include',
-    })
+    fetch('/api/vitals/latest')
       .then((r) => r.json())
       .then((json) => { if (json.data) setLatest(json.data); })
       .catch(() => {});
@@ -320,10 +318,7 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
 
   function handleDelete(id: string) {
     setRows((prev) => prev.filter((r) => r.id !== id));
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz'}/v1/aivita/vitals/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    }).catch(() => {});
+    fetch(`/api/vitals/${id}`, { method: 'DELETE' }).catch(() => {});
   }
 
   return (
