@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PublicNav } from '@/components/marketing/public-nav';
 import { PublicFooter } from '@/components/marketing/public-footer';
 
@@ -38,7 +39,7 @@ export default function TermsPage() {
           <p>legal@aivita.uz</p>
         </article>
         <div className="mt-12 pt-8 border-t border-[rgba(120,160,200,0.15)]">
-          <a href="/privacy" className="text-sm text-pink-600 hover:text-pink-700">← Политика конфиденциальности</a>
+          <Link href="/privacy" className="text-sm text-pink-600 hover:text-pink-700">← Политика конфиденциальности</Link>
         </div>
       </main>
       <PublicFooter />

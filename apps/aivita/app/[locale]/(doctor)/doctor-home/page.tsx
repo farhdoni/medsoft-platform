@@ -55,6 +55,7 @@ export default function DoctorHomePage() {
   const [docName, setDocName] = useState('Доктор');
   const [docSpec, setDocSpec] = useState('');
   const [docEmail, setDocEmail] = useState('');
+  const [docId, setDocId] = useState('');
   const [loading, setLoading] = useState(true);
 
   function getMinutesUntil(isoDate: string) {
@@ -86,6 +87,7 @@ export default function DoctorHomePage() {
       if ('data' in usr && usr.data) {
         if (usr.data.name) setDocName(usr.data.name);
         if (usr.data.email) setDocEmail(usr.data.email);
+        if (usr.data.id) setDocId(usr.data.id);
       }
       if ('data' in presc) setPrescriptions((presc.data ?? []).slice(0, 3));
       setLoading(false);
@@ -121,7 +123,7 @@ export default function DoctorHomePage() {
       {/* TopBar */}
       <TopBar
         avatarInitial={initials(docName)}
-        session={{ name: docName, email: docEmail, role: 'doctor' }}
+        session={{ userId: docId, name: docName, email: docEmail, role: 'doctor', onboardingCompleted: true }}
         locale={locale}
         role="doctor"
         unreadCount={notifs.length}

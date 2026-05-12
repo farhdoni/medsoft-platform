@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PublicNav } from '@/components/marketing/public-nav';
 import { PublicFooter } from '@/components/marketing/public-footer';
 
@@ -37,7 +38,7 @@ export default function PrivacyPage() {
           <p className="text-xs text-[rgb(var(--text-muted))]">⚠️ Этот документ является шаблоном и требует проверки юристом перед публичным запуском.</p>
         </article>
         <div className="mt-12 pt-8 border-t border-[rgba(120,160,200,0.15)]">
-          <a href="/terms" className="text-sm text-pink-600 hover:text-pink-700">Пользовательское соглашение →</a>
+          <Link href="/terms" className="text-sm text-pink-600 hover:text-pink-700">Пользовательское соглашение →</Link>
         </div>
       </main>
       <PublicFooter />

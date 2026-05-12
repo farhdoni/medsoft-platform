@@ -11,9 +11,9 @@ export async function PublicFooter() {
         <div className="lp-footer-grid">
           {/* Brand column */}
           <div className="lp-footer-brand">
-            <a href="/" className="lp-logo">
+            <Link href="/" className="lp-logo">
               aivita<span className="lp-logo-dot" />uz
-            </a>
+            </Link>
             <p>{t('desc')}</p>
 
             <div className="lp-footer-stores">
