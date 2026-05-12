@@ -30,6 +30,9 @@ export async function GET(req: NextRequest) {
 // POST /api/vitals — save vital
 export async function POST(req: NextRequest) {
   const session = await getSessionCookie();
+  if (!session) {
+    return NextResponse.json({ error: 'Not authenticated', message: 'Сессия истекла, войдите снова' }, { status: 401 });
+  }
   const body = await req.json();
   try {
     const res = await fetch(`${API_BASE}/v1/aivita/vitals`, {
@@ -37,9 +40,18 @@ export async function POST(req: NextRequest) {
       headers: { Cookie: `aivita_api=${session}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    const json = await res.json();
+    const text = await res.text();
+    let json: unknown;
+    try { json = JSON.parse(text); } catch { json = { error: text || 'Empty response' }; }
+    // Forward API error message to client
+    if (!res.ok) {
+      const msg = (json as { message?: string; error?: string })?.message
+        ?? (json as { error?: string })?.error
+        ?? `Ошибка сервера ${res.status}`;
+      return NextResponse.json({ error: msg, message: msg, status: res.status, raw: json }, { status: res.status });
+    }
     return NextResponse.json(json, { status: res.status });
-  } catch {
-    return NextResponse.json({ error: 'Network error' }, { status: 502 });
+  } catch (e) {
+    return NextResponse.json({ error: 'Network error', message: String(e) }, { status: 502 });
   }
 }
