@@ -23,7 +23,7 @@ interface VitalCfg {
   dual?: boolean;
 }
 
-const VITAL_CONFIG: Record<string, VitalCfg> = {
+export const VITAL_CONFIG: Record<string, VitalCfg> = {
   heart_rate:     { title: 'Пульс',        label: 'Удары в минуту',               unit: 'bpm',     norm: '60–100',      icon: '❤️',  bg: 'var(--accent-light)',  color: 'var(--accent-dark)',  min: 30,  max: 250, step: 1 },
   blood_pressure: { title: 'Давление',     label: 'Систол. / Диастол.',            unit: 'mmHg',    norm: '100–130/60–90', icon: '🩺', bg: '#d4dff0',              color: '#5e75a8',             min: 40,  max: 250, dual: true },
   glucose:        { title: 'Сахар',        label: 'Уровень глюкозы',              unit: 'ммоль/л', norm: '3.9–6.1',     icon: '🩸',  bg: 'var(--accent-light)',  color: 'var(--accent-dark)',  min: 1,   max: 30,  step: 0.1 },
@@ -87,7 +87,7 @@ function getDisplayValue(type: string, row: VitalRow): string | null {
 
 // ─── Add Vital Modal ──────────────────────────────────────────────────────────
 
-function AddVitalModal({
+export function AddVitalModal({
   type, cfg, onClose, onSaved,
 }: {
   type: string; cfg: VitalCfg; onClose: () => void; onSaved: (type: string, val: string) => void;

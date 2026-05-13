@@ -6,7 +6,6 @@ import { ActivityChart } from '@/components/cabinet/dashboard/ActivityChart';
 import { ReportCard } from '@/components/cabinet/dashboard/ReportCard';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 import { AiMonitor } from '@/components/cabinet/dashboard/AiMonitor';
-import { HomeVitals } from '@/components/cabinet/dashboard/HomeVitals';
 import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
 
@@ -30,16 +29,11 @@ export default async function HomePage({
       <div className="mt-6 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_64px_rgba(42,37,64,0.10)]">
         <TopBar avatarInitial={user.avatarInitial} session={session} locale={locale} role={session?.role === 'doctor' ? 'doctor' : 'patient'} />
         <HeroSection user={user} metrics={metrics} />
-        <MetricsRow metrics={metrics} />
+        <MetricsRow metrics={metrics} vitalsLatest={vitals} />
 
         {/* ── AI Monitor ──────────────────────────────────────────────────── */}
         <section className="px-4 pt-4 pb-0 sm:px-7">
           <AiMonitor latest={vitals} compact locale={locale} />
-        </section>
-
-        {/* ── Home Vitals ─────────────────────────────────────────────────── */}
-        <section className="px-4 pt-4 pb-0 sm:px-7">
-          <HomeVitals initialLatest={vitals} />
         </section>
 
         <div className="grid gap-4 px-7 py-5 lg:grid-cols-[2fr_1fr]">

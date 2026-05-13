@@ -1,74 +1,349 @@
-"use client";
+'use client';
 
-import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
-import type { DailyMetrics } from "@/lib/cabinet-types";
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import type { DailyMetrics } from '@/lib/cabinet-types';
+import Modal from '@/components/ui/Modal';
+import { VITAL_CONFIG, AddVitalModal } from '@/components/cabinet/dashboard/HomeVitals';
 
-interface Card {
-  icon: IconName;
-  value: string;
-  label: string;
-  meta: string;
-  metaColor: string;
-  bg: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type LatestVitals = Record<string, { value: Record<string, unknown>; recordedAt: string } | null>;
+
+interface Props {
+  metrics: DailyMetrics;
+  vitalsLatest: LatestVitals;
 }
 
-export function MetricsRow({ metrics }: { metrics: DailyMetrics }) {
-  const cards: Card[] = [
-    {
-      icon: "heart",
-      value: String(metrics.heartRate.bpm),
-      label: "Пульс, bpm",
-      meta: `↑ ${metrics.heartRate.deltaWeek}`,
-      metaColor: "text-accent-rose",
-      bg: "bg-bg-soft-pink",
-    },
-    {
-      icon: "drop",
-      value: `${metrics.water.liters} л`,
-      label: `Вода (${Math.round((metrics.water.liters / metrics.water.goalLiters) * 100)}%)`,
-      meta: `${metrics.water.liters}/${metrics.water.goalLiters} цели`,
-      metaColor: "text-accent-purple-deep",
-      bg: "bg-bg-soft-purple",
-    },
-    {
-      icon: "steps",
-      value: `${(metrics.steps.count / 1000).toFixed(1)}K`,
-      label: "Шагов сегодня",
-      meta: `↑ ${metrics.steps.deltaPctWeek}%`,
-      metaColor: "text-accent-mint-deep",
-      bg: "bg-bg-soft-mint",
-    },
-    {
-      icon: "habit",
-      value: `${metrics.habits.completed}/${metrics.habits.total}`,
-      label: "Привычки",
-      meta: `${Math.round((metrics.habits.completed / metrics.habits.total) * 100)}%`,
-      metaColor: "text-text-muted",
-      bg: "bg-bg-soft-blue",
-    },
-  ];
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const LS_KEY = 'aivita_quick_stats';
+const DEFAULT_STATS = ['heart_rate', 'water_ml', 'steps', 'habits'];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const ALL_QUICK_STATS = [
+  { key: 'heart_rate',     icon: '❤️',  label: 'Пульс',       unit: 'bpm'   },
+  { key: 'blood_pressure', icon: '🩺',  label: 'Давление',    unit: 'mmHg'  },
+  { key: 'glucose',        icon: '🍬',  label: 'Сахар',       unit: 'мг/дл' },
+  { key: 'weight',         icon: '⚖️',  label: 'Вес',         unit: 'кг'    },
+  { key: 'spo2',           icon: '🫁',  label: 'SpO2',        unit: '%'     },
+  { key: 'sleep_hours',    icon: '😴',  label: 'Сон',         unit: 'ч'     },
+  { key: 'steps',          icon: '🏃',  label: 'Шаги',        unit: ''      },
+  { key: 'water_ml',       icon: '💧',  label: 'Вода',        unit: 'мл'    },
+  { key: 'temperature',    icon: '🌡️', label: 'Температура', unit: '°C'    },
+  { key: 'habits',         icon: '📋',  label: 'Привычки',    unit: ''      },
+];
+
+const CARD_BG: Record<string, string> = {
+  heart_rate:     '#fdf0f3',
+  blood_pressure: '#f0eef8',
+  glucose:        '#fdf0f3',
+  weight:         '#f4f3ef',
+  spo2:           '#eef8f2',
+  sleep_hours:    '#f0eef8',
+  steps:          '#eef8f2',
+  water_ml:       '#f0eef8',
+  temperature:    '#fdf0f3',
+  habits:         '#eef4fc',
+};
+
+const CARD_COLOR: Record<string, string> = {
+  heart_rate:     'var(--accent)',
+  blood_pressure: '#7b68c8',
+  glucose:        'var(--accent)',
+  weight:         '#6a6580',
+  spo2:           '#3aa86a',
+  sleep_hours:    '#7b68c8',
+  steps:          '#3aa86a',
+  water_ml:       '#7b68c8',
+  temperature:    'var(--accent)',
+  habits:         '#5e88c4',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function isFresh(row: LatestVitals[string]): boolean {
+  if (!row) return false;
+  return Date.now() - new Date(row.recordedAt).getTime() < DAY_MS;
+}
+
+function getCardData(
+  key: string,
+  vitals: LatestVitals,
+  metrics: DailyMetrics,
+): { value: string; meta: string } {
+  const row = vitals[key];
+  const fresh = isFresh(row);
+
+  switch (key) {
+    case 'heart_rate': {
+      const bpm = fresh
+        ? (row!.value as { value?: number }).value
+        : metrics.heartRate.bpm;
+      return { value: bpm != null ? `${bpm}` : '—', meta: 'bpm' };
+    }
+    case 'water_ml': {
+      if (fresh) {
+        const ml = (row!.value as { value?: number }).value;
+        return { value: ml != null ? `${ml}` : '—', meta: 'мл' };
+      }
+      return { value: `${metrics.water.liters}л`, meta: `${metrics.water.liters}/${metrics.water.goalLiters}` };
+    }
+    case 'steps': {
+      const count = fresh
+        ? (row!.value as { value?: number }).value
+        : metrics.steps.count;
+      if (count == null) return { value: '—', meta: 'шагов' };
+      return { value: count >= 1000 ? `${(count / 1000).toFixed(1)}K` : `${count}`, meta: 'шагов' };
+    }
+    case 'habits': {
+      const pct = metrics.habits.total > 0
+        ? Math.round((metrics.habits.completed / metrics.habits.total) * 100)
+        : 0;
+      return { value: `${metrics.habits.completed}/${metrics.habits.total}`, meta: `${pct}%` };
+    }
+    case 'blood_pressure': {
+      if (fresh) {
+        const sys = (row!.value as { systolic?: number }).systolic;
+        const dia = (row!.value as { diastolic?: number }).diastolic;
+        if (sys != null && dia != null) return { value: `${sys}/${dia}`, meta: 'mmHg' };
+      }
+      return { value: '—', meta: 'mmHg' };
+    }
+    case 'sleep_hours': {
+      if (fresh) {
+        const h = (row!.value as { hours?: number; value?: number }).hours
+          ?? (row!.value as { value?: number }).value;
+        if (h != null) return { value: h % 1 === 0 ? `${h}` : h.toFixed(1), meta: 'ч' };
+      }
+      return { value: '—', meta: 'ч' };
+    }
+    default: {
+      if (fresh) {
+        const v = (row!.value as { value?: number }).value;
+        if (v != null) {
+          const cfg = ALL_QUICK_STATS.find(s => s.key === key);
+          const disp = Number.isInteger(v) ? `${v}` : v.toFixed(1);
+          return { value: disp, meta: cfg?.unit ?? '' };
+        }
+      }
+      return { value: '—', meta: ALL_QUICK_STATS.find(s => s.key === key)?.unit ?? '' };
+    }
+  }
+}
+
+function loadConfig(): string[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw) as string[];
+  } catch {}
+  return DEFAULT_STATS;
+}
+
+// ─── Settings Modal ───────────────────────────────────────────────────────────
+
+function QuickStatsSettingsModal({
+  selected,
+  onClose,
+  onChange,
+}: {
+  selected: string[];
+  onClose: () => void;
+  onChange: (keys: string[]) => void;
+}) {
+  const [picks, setPicks] = useState<string[]>(selected);
+
+  function toggle(key: string) {
+    setPicks(prev =>
+      prev.includes(key)
+        ? prev.filter(k => k !== key)
+        : prev.length < 5 ? [...prev, key] : prev,
+    );
+  }
+
+  function handleSave() {
+    const result = picks.length >= 1 ? picks : DEFAULT_STATS;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(result)); } catch {}
+    onChange(result);
+    onClose();
+  }
 
   return (
-    <section className="grid grid-cols-2 gap-3 px-7 pt-4 sm:grid-cols-4">
-      {cards.map((c) => (
-        <div
-          key={c.label}
-          className={`relative flex min-h-[110px] flex-col justify-between rounded-card p-4 ${c.bg}`}
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="⚙️ Быстрые показатели"
+      footer={
+        <button
+          onClick={handleSave}
+          className="w-full py-3 rounded-xl text-sm font-bold text-white"
+          style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >
-          <div className="flex items-start justify-between">
-            <Icon name={c.icon} size={32} />
-            <div className={`text-[10px] font-semibold ${c.metaColor}`}>
-              {c.meta}
-            </div>
-          </div>
-          <div>
-            <div className="text-[22px] font-extrabold leading-none text-text-primary">
-              {c.value}
-            </div>
-            <div className="mt-1 text-[11px] text-text-secondary">{c.label}</div>
-          </div>
-        </div>
-      ))}
+          Сохранить
+        </button>
+      }
+    >
+      <p className="text-xs text-app-t3 mb-4">
+        Выберите от 3 до 5 показателей для быстрого доступа
+        <span className="ml-1 font-semibold">({picks.length}/5)</span>
+      </p>
+      <div className="space-y-2">
+        {ALL_QUICK_STATS.map(s => {
+          const on = picks.includes(s.key);
+          const disabled = !on && picks.length >= 5;
+          return (
+            <button
+              key={s.key}
+              onClick={() => toggle(s.key)}
+              disabled={disabled}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left disabled:opacity-40"
+              style={{
+                background: on ? 'var(--accent-bg-light)' : '#f4f3ef',
+                border: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+              }}
+            >
+              <span className="text-lg w-7 text-center">{s.icon}</span>
+              <span className="flex-1 text-sm font-semibold" style={{ color: '#2a2540' }}>{s.label}</span>
+              <div
+                className="w-11 h-6 rounded-full flex items-center px-1 transition-all flex-shrink-0"
+                style={{ background: on ? 'var(--accent-dark)' : '#d0ccc4' }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full bg-white transition-all"
+                  style={{ transform: on ? 'translateX(20px)' : 'translateX(0)' }}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function MetricsRow({ metrics, vitalsLatest }: Props) {
+  const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'ru';
+
+  const [config, setConfig] = useState<string[]>(DEFAULT_STATS);
+  const [latestOverride, setLatestOverride] = useState<LatestVitals>(vitalsLatest);
+  const [showSettings, setShowSettings] = useState(false);
+  const [activeVital, setActiveVital] = useState<string | null>(null);
+
+  useEffect(() => { setConfig(loadConfig()); }, []);
+
+  function handleCardClick(key: string) {
+    if (key === 'habits') {
+      router.push(`/${locale}/habits`);
+      return;
+    }
+    if (VITAL_CONFIG[key]) {
+      setActiveVital(key);
+    }
+  }
+
+  function handleSaved(type: string, displayVal: string) {
+    let optimisticValue: Record<string, unknown>;
+    if (type === 'blood_pressure') {
+      const [sys, dia] = displayVal.split('/').map(Number);
+      optimisticValue = { systolic: sys, diastolic: dia };
+    } else if (type === 'sleep_hours') {
+      optimisticValue = { hours: parseFloat(displayVal) };
+    } else {
+      optimisticValue = { value: parseFloat(displayVal), unit: VITAL_CONFIG[type]?.unit ?? '' };
+    }
+    setLatestOverride(prev => ({
+      ...prev,
+      [type]: { value: optimisticValue, recordedAt: new Date().toISOString() },
+    }));
+    setActiveVital(null);
+    router.refresh();
+  }
+
+  const shown = config.filter(k => ALL_QUICK_STATS.find(s => s.key === k));
+
+  return (
+    <section className="px-7 pt-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: '#9a96a8' }}>
+          Быстрые показатели
+        </p>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="text-[11px] font-semibold transition-opacity hover:opacity-70 flex items-center gap-1"
+          style={{ color: 'var(--accent)' }}
+        >
+          ⚙️ Настроить
+        </button>
+      </div>
+
+      {/* Cards grid */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {shown.map(key => {
+          const meta = ALL_QUICK_STATS.find(s => s.key === key);
+          if (!meta) return null;
+          const { value, meta: sub } = getCardData(key, latestOverride, metrics);
+          const bg    = CARD_BG[key]    ?? '#f4f3ef';
+          const color = CARD_COLOR[key] ?? '#6a6580';
+          const clickable = key !== 'habits' ? VITAL_CONFIG[key] : true;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handleCardClick(key)}
+              className="relative flex min-h-[110px] flex-col justify-between rounded-card p-4 text-left transition-all active:scale-[0.97] group hover:brightness-95"
+              style={{ background: bg }}
+              aria-label={`Ввести ${meta.label}`}
+            >
+              {/* Edit hint */}
+              {clickable && (
+                <span
+                  className="absolute top-2 right-2 text-[11px] opacity-0 group-hover:opacity-40 transition-opacity"
+                  style={{ color }}
+                >
+                  ✎
+                </span>
+              )}
+
+              {/* Top */}
+              <div className="flex items-start justify-between">
+                <span className="text-[26px] leading-none">{meta.icon}</span>
+                <span className="text-[10px] font-semibold" style={{ color }}>{sub}</span>
+              </div>
+
+              {/* Bottom */}
+              <div>
+                <div className="text-[22px] font-extrabold leading-none" style={{ color: '#2a2540' }}>
+                  {value}
+                </div>
+                <div className="mt-1 text-[11px]" style={{ color: '#6a6580' }}>{meta.label}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Modals */}
+      {showSettings && (
+        <QuickStatsSettingsModal
+          selected={config}
+          onClose={() => setShowSettings(false)}
+          onChange={setConfig}
+        />
+      )}
+      {activeVital && VITAL_CONFIG[activeVital] && (
+        <AddVitalModal
+          type={activeVital}
+          cfg={VITAL_CONFIG[activeVital]}
+          onClose={() => setActiveVital(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </section>
   );
 }
