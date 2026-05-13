@@ -119,6 +119,8 @@ export default function DoctorProfilePage() {
   const [newSkill, setNewSkill] = useState('');
   const [newDisease, setNewDisease] = useState('');
   const [newCert, setNewCert] = useState({ title: '', year: '' });
+  const [skills, setSkills] = useState<string[]>([]);
+  const [diseases, setDiseases] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -126,7 +128,11 @@ export default function DoctorProfilePage() {
       apiRequest<Session>('/users'),
       apiRequest<{ percent: number }>('/doctor/profile/completion'),
     ]).then(([p, u, c]) => {
-      if ('data' in p) setProfile(p.data);
+      if ('data' in p) {
+        setProfile(p.data);
+        setSkills(p.data?.additionalSkills ?? []);
+        setDiseases(p.data?.diseasesTreated ?? []);
+      }
       if ('data' in u) setSession(u.data);
       if ('data' in c) setCompletion(c.data?.percent ?? 0);
       setLoading(false);
@@ -154,32 +160,48 @@ export default function DoctorProfilePage() {
 
   const setField = (field: string, value: any) => setEditData(prev => ({ ...prev, [field]: value }));
 
+  const saveSkills = (updated: string[]) => {
+    fetch('/api/proxy/doctor/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ additionalSkills: updated }),
+    }).catch(() => {});
+  };
+
+  const saveDiseases = (updated: string[]) => {
+    fetch('/api/proxy/doctor/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ diseasesTreated: updated }),
+    }).catch(() => {});
+  };
+
   const addSkill = () => {
     if (!newSkill.trim()) return;
-    const updated = [...(profile?.additionalSkills ?? []), newSkill.trim()];
-    setProfile(p => p ? { ...p, additionalSkills: updated } : p);
-    apiRequest('/doctor/profile', { method: 'PUT', body: { additionalSkills: updated } });
+    const updated = [...skills, newSkill.trim()];
+    setSkills(updated);
     setNewSkill('');
+    saveSkills(updated);
   };
 
   const removeSkill = (i: number) => {
-    const updated = (profile?.additionalSkills ?? []).filter((_, idx) => idx !== i);
-    setProfile(p => p ? { ...p, additionalSkills: updated } : p);
-    apiRequest('/doctor/profile', { method: 'PUT', body: { additionalSkills: updated } });
+    const updated = skills.filter((_, idx) => idx !== i);
+    setSkills(updated);
+    saveSkills(updated);
   };
 
   const addDisease = () => {
     if (!newDisease.trim()) return;
-    const updated = [...(profile?.diseasesTreated ?? []), newDisease.trim()];
-    setProfile(p => p ? { ...p, diseasesTreated: updated } : p);
-    apiRequest('/doctor/profile', { method: 'PUT', body: { diseasesTreated: updated } });
+    const updated = [...diseases, newDisease.trim()];
+    setDiseases(updated);
     setNewDisease('');
+    saveDiseases(updated);
   };
 
   const removeDisease = (i: number) => {
-    const updated = (profile?.diseasesTreated ?? []).filter((_, idx) => idx !== i);
-    setProfile(p => p ? { ...p, diseasesTreated: updated } : p);
-    apiRequest('/doctor/profile', { method: 'PUT', body: { diseasesTreated: updated } });
+    const updated = diseases.filter((_, idx) => idx !== i);
+    setDiseases(updated);
+    saveDiseases(updated);
   };
 
   const addCertificate = async () => {
@@ -348,20 +370,20 @@ export default function DoctorProfilePage() {
           <div className="mt-3">
             <p className="text-[10px] font-semibold text-[#9a96a8] uppercase tracking-wide mb-2">Доп. навыки</p>
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {(profile?.additionalSkills ?? []).map((s, i) => (
+              {skills.map((s, i) => (
                 <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full"
                   style={{ background: 'var(--accent-bg)', color: 'var(--accent-dark)' }}>
                   {s}
-                  <button onClick={() => removeSkill(i)} className="ml-0.5 text-[color:var(--accent-dark)] font-bold">×</button>
+                  <button type="button" onClick={() => removeSkill(i)} className="ml-0.5 text-[color:var(--accent-dark)] font-bold">×</button>
                 </span>
               ))}
             </div>
             <div className="flex gap-2">
               <input value={newSkill} onChange={e => setNewSkill(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') addSkill(); }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
                 placeholder="Добавить навык..."
                 className="flex-1 p-2 rounded-xl border text-xs outline-none" />
-              <button onClick={addSkill} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
+              <button type="button" onClick={addSkill} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
                 style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
           </div>
@@ -370,20 +392,20 @@ export default function DoctorProfilePage() {
           <div className="mt-3">
             <p className="text-[10px] font-semibold text-[#9a96a8] uppercase tracking-wide mb-2">Болезни которые лечит</p>
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {(profile?.diseasesTreated ?? []).map((d, i) => (
+              {diseases.map((d, i) => (
                 <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full"
                   style={{ background: '#e8f4ec', color: '#2d7a56' }}>
                   {d}
-                  <button onClick={() => removeDisease(i)} className="ml-0.5 text-[#2d7a56] font-bold">×</button>
+                  <button type="button" onClick={() => removeDisease(i)} className="ml-0.5 text-[#2d7a56] font-bold">×</button>
                 </span>
               ))}
             </div>
             <div className="flex gap-2">
               <input value={newDisease} onChange={e => setNewDisease(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') addDisease(); }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addDisease(); } }}
                 placeholder="Добавить болезнь..."
                 className="flex-1 p-2 rounded-xl border text-xs outline-none" />
-              <button onClick={addDisease} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
+              <button type="button" onClick={addDisease} className="px-3 py-2 rounded-xl text-xs text-white font-medium"
                 style={{ background: 'var(--accent-dark)' }}>+</button>
             </div>
           </div>
