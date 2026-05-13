@@ -190,6 +190,26 @@ export default function ChatPage() {
     setAttachedPreview(null);
   }
 
+  // Check sessionStorage for photo from camera nav button
+  useEffect(() => {
+    try {
+      const photoData = sessionStorage.getItem('aivita_photo_for_ai');
+      if (photoData) {
+        sessionStorage.removeItem('aivita_photo_for_ai');
+        // Convert base64 dataURL back to File and set as attachment
+        const arr = photoData.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(arr[1] ?? '');
+        const u8arr = new Uint8Array(bstr.length);
+        for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+        const file = new File([u8arr], 'camera-photo.jpg', { type: mime });
+        setAttachedFile(file);
+        setAttachedPreview(photoData);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (didAutoSend.current) return;
     const q = new URLSearchParams(window.location.search).get('q');
