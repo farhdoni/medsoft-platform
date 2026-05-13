@@ -47,6 +47,10 @@
     --accent-light: #f0d4dc;
     --accent-dark: #9c5e6c;
     --accent-bg: #fdf5f7;
+    --accent-bg-light: #fdf5f7;
+    /* aliases used in gradients */
+    --accent-rose: #cc8a96;
+    --accent-rose-light: #f0d4dc;
     --hero-from: #b89dc4;
     --hero-mid: #a890b8;
     --hero-to: #9c83ad;
@@ -61,6 +65,9 @@
     --accent-light: #dbeeff;
     --accent-dark: #4a7fb5;
     --accent-bg: #eef5fc;
+    --accent-bg-light: #eef5fc;
+    --accent-rose: #6BA3D6;
+    --accent-rose-light: #dbeeff;
     --hero-from: #6BA3D6;
     --hero-mid: #89b8e0;
     --hero-to: #4a7fb5;
