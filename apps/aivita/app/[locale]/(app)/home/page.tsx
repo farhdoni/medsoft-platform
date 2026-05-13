@@ -37,20 +37,6 @@ export default async function HomePage({
           <AiMonitor latest={vitals} compact locale={locale} />
         </section>
 
-        {/* ── Biometrics quick panel ──────────────────────────────────────── */}
-        <section className="px-4 pt-4 pb-2 sm:px-7">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[13px] font-bold" style={{ color: '#6a6580' }}>БИОМЕТРИЯ</p>
-            <Link
-              href={`/${locale}/vitals`}
-              className="text-[12px] font-semibold transition-colors hover:opacity-80"
-              style={{ color: 'var(--accent-dark)' }}
-            >
-              Все показатели →
-            </Link>
-          </div>
-          <BiometricsSection initialLatest={vitals} locale={locale} />
-        </section>
 
         <div className="grid gap-4 px-7 py-5 lg:grid-cols-[2fr_1fr]">
           <ActivityChart data={activity} />
