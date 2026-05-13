@@ -106,19 +106,66 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
         {/* Left tabs */}
         {leftTabs.map(renderTab)}
 
-        {/* Center camera button — elevated */}
-        <div className="flex flex-col items-center mx-1 -mt-5">
-          <button
-            type="button"
-            aria-label="Сфотографировать для AI"
-            onClick={openCamera}
-            className="grid h-14 w-14 place-items-center rounded-full text-white shadow-card transition hover:scale-105 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}
-          >
-            <span className="text-[22px]">📷</span>
-          </button>
-          <span className="text-[9px] font-semibold mt-0.5" style={{ color: '#9a96a8' }}>AI фото</span>
-        </div>
+        {/* Center camera button — 3D Clay, elevated */}
+        <button
+          type="button"
+          aria-label="Сделать фото для AI"
+          onClick={openCamera}
+          className="relative -mt-4 mx-1 flex-shrink-0 transition-transform active:scale-95 hover:scale-105"
+          style={{ filter: 'drop-shadow(0 6px 14px rgba(156,94,108,0.45))' }}
+        >
+          <svg width="56" height="52" viewBox="0 0 56 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="cnav-body" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stopColor="var(--hero-from, #c9a0d8)"/>
+                <stop offset="50%"  stopColor="var(--accent,    #9c5e6c)"/>
+                <stop offset="100%" stopColor="var(--accent-dark,#804058)"/>
+              </linearGradient>
+              <linearGradient id="cnav-lens" x1="40%" y1="35%" x2="60%" y2="80%">
+                <stop offset="0%"   stopColor="#e8d0dc"/>
+                <stop offset="50%"  stopColor="var(--accent, #9c5e6c)"/>
+                <stop offset="100%" stopColor="var(--accent-dark, #6a3845)"/>
+              </linearGradient>
+              <radialGradient id="cnav-glare" cx="45%" cy="40%" r="55%">
+                <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.55"/>
+                <stop offset="60%"  stopColor="#ffffff" stopOpacity="0.05"/>
+                <stop offset="100%" stopColor="#000000" stopOpacity="0.08"/>
+              </radialGradient>
+            </defs>
+
+            {/* Camera body */}
+            <rect x="2" y="12" width="52" height="36" rx="10" fill="url(#cnav-body)"/>
+            <rect x="2" y="12" width="52" height="36" rx="10" fill="none" stroke="white" strokeWidth="1.5" strokeOpacity="0.28"/>
+
+            {/* Top shine strip */}
+            <rect x="6" y="15" width="22" height="3.5" rx="1.75" fill="white" opacity="0.18"/>
+
+            {/* Viewfinder bump */}
+            <rect x="17" y="3" width="18" height="11" rx="4.5" fill="var(--accent, #9c5e6c)"/>
+            <rect x="17" y="3" width="18" height="11" rx="4.5" fill="none" stroke="white" strokeWidth="0.8" strokeOpacity="0.25"/>
+            <rect x="20" y="6" width="12" height="5" rx="2" fill="white" opacity="0.12"/>
+
+            {/* Lens outer ring */}
+            <circle cx="28" cy="30" r="11.5" fill="var(--accent-dark, #6a3845)"/>
+            <circle cx="28" cy="30" r="11.5" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.35"/>
+
+            {/* Lens inner */}
+            <circle cx="28" cy="30" r="8.5" fill="url(#cnav-lens)"/>
+            <circle cx="28" cy="30" r="8.5" fill="url(#cnav-glare)"/>
+
+            {/* Lens core highlight */}
+            <circle cx="28" cy="30" r="3.5" fill="white" opacity="0.45"/>
+            {/* Specular dot */}
+            <circle cx="25" cy="27" r="1.4" fill="white" opacity="0.85"/>
+
+            {/* Flash */}
+            <circle cx="44" cy="18" r="3.5" fill="#ffcc66" opacity="0.65"/>
+            <circle cx="44" cy="18" r="2"   fill="white"   opacity="0.45"/>
+
+            {/* Bottom edge shadow strip */}
+            <rect x="6" y="42" width="44" height="3" rx="1.5" fill="black" opacity="0.08"/>
+          </svg>
+        </button>
 
         {/* Right tabs */}
         {rightTabs.map(renderTab)}
