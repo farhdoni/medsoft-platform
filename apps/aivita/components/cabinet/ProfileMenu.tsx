@@ -76,9 +76,12 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
     setOpen(o => !o);
   };
 
-  const name = session?.name ?? 'Пользователь';
+  const name = session?.name?.trim() || 'Пользователь';
   const email = session?.email ?? '';
-  const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+  const words = name.split(/\s+/).filter(Boolean);
+  const initials = words.length >= 2
+    ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
 
   // Use explicit role prop; fall back to session.role so any page without explicit role still works
   const effectiveRole = role ?? (session?.role as 'patient' | 'doctor' | undefined);
@@ -103,8 +106,8 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
       <button
         ref={buttonRef}
         onClick={handleToggle}
-        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold hover:opacity-90 transition-opacity sm:w-10 sm:h-10"
-        style={{ background: 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)' }}
+        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-90 transition-opacity sm:w-10 sm:h-10 select-none"
+        style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
         aria-label="Меню профиля"
       >
         {initials}
@@ -130,7 +133,7 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
           <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid #e8e4dc' }}>
             <div
               className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--accent-rose-light) 0%, var(--accent) 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
             >
               {initials}
             </div>
