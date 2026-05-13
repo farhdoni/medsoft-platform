@@ -107,7 +107,7 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
             autoFocus
             value={val}
             className="text-[13px] rounded-[8px] border px-2 py-1 outline-none bg-white max-w-[180px] flex-1"
-            style={{ borderColor: err ? 'var(--accent-rose-light)' : 'var(--accent)', color: '#2a2540' }}
+            style={{ borderColor: err ? '#e05a6a' : 'var(--accent)', color: '#2a2540' }}
             onChange={e => {
               const v = e.target.value;
               setVal(v);
@@ -136,7 +136,7 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
           autoFocus
           disabled={saving}
           className="text-[13px] rounded-[8px] border px-2 py-1 outline-none text-right max-w-[180px] flex-1 disabled:opacity-50"
-          style={{ borderColor: err ? 'var(--accent-rose-light)' : 'var(--accent)', color: '#2a2540' }}
+          style={{ borderColor: err ? '#e05a6a' : 'var(--accent)', color: '#2a2540' }}
           onChange={e => setVal(e.target.value)}
           onBlur={() => commit(val)}
           onKeyDown={e => {
@@ -152,10 +152,10 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
     <button
       type="button"
       onClick={startEdit}
-      className="w-full flex items-center justify-between py-2.5 border-b border-[#f0ede8] last:border-0 hover:bg-[#f9f8f5] rounded transition-colors text-left group"
+      className="w-full flex items-center justify-between gap-2 py-2.5 border-b border-[#f0ede8] last:border-0 hover:bg-[#f9f8f5] rounded transition-colors text-left group"
     >
-      <span className="text-[12px]" style={{ color: '#9a96a8' }}>{label}</span>
-      <span className="text-[13px] font-semibold" style={{ color: shown ? '#2a2540' : 'var(--accent)' }}>
+      <span className="text-[12px] flex-shrink-0" style={{ color: '#9a96a8' }}>{label}</span>
+      <span className="text-[13px] font-semibold min-w-0 truncate text-right" style={{ color: shown ? '#2a2540' : 'var(--accent)' }}>
         {saving ? '…' : (shown || placeholder)}
       </span>
     </button>
@@ -645,7 +645,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
       )}
 
       {/* ── Two-column grid ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-1">
+      <div className="grid grid-cols-1 gap-3 mb-1">
 
         {/* Personal data */}
         <Card title="Личные данные" icon="👤">
