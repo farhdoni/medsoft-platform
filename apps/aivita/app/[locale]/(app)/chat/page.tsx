@@ -140,6 +140,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   // Persist pinned IDs in localStorage
   const PINS_KEY = `aivita_chat_pins_${locale}`;
@@ -191,6 +192,7 @@ export default function ChatPage() {
     setAttachedFile(null);
     setAttachedPreview(null);
   }
+
 
   // Check sessionStorage for photo from camera nav button
   useEffect(() => {
@@ -456,7 +458,11 @@ export default function ChatPage() {
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+          to   { transform: translateX(0); }
+        }
+        @keyframes attachSlideUp {
+          from { opacity: 0; transform: translateY(12px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)   scale(1); }
         }
       `}</style>
 
@@ -613,7 +619,7 @@ export default function ChatPage() {
 
       {/* Input bar */}
       <div
-        className="flex-shrink-0 px-4 md:px-6 py-3"
+        className="relative flex-shrink-0 px-4 md:px-6 py-3"
         style={{ background: 'rgba(244,243,239,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid #e8e4dc' }}
       >
         {/* Attached file preview */}
@@ -660,38 +666,83 @@ export default function ChatPage() {
           </div>
         )}
 
+        {/* ── Attach drawer ───────────────────────────────────────────────── */}
+        {showAttachMenu && (
+          <div
+            className="mb-3 rounded-2xl overflow-hidden"
+            style={{
+              background: '#fff',
+              boxShadow: '0 -2px 20px rgba(0,0,0,0.10)',
+              animation: 'attachSlideUp 0.22s cubic-bezier(0.34,1.4,0.64,1)',
+            }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-8 h-1 rounded-full" style={{ background: '#e0dcd8' }} />
+            </div>
+
+            <div className="flex justify-around px-4 py-4">
+              {/* Camera */}
+              <button
+                onClick={() => { setShowAttachMenu(false); cameraInputRef.current?.click(); }}
+                className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: '#dbeeff' }}
+                >
+                  <Camera className="w-6 h-6" style={{ color: '#4a7fb5' }} />
+                </div>
+                <span className="text-[11px] font-semibold" style={{ color: '#2a2540' }}>Камера</span>
+              </button>
+
+              {/* Gallery */}
+              <button
+                onClick={() => { setShowAttachMenu(false); galleryInputRef.current?.click(); }}
+                className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: '#d4efe4' }}
+                >
+                  <ImageIcon className="w-6 h-6" style={{ color: '#2e7d5a' }} />
+                </div>
+                <span className="text-[11px] font-semibold" style={{ color: '#2a2540' }}>Галерея</span>
+              </button>
+
+              {/* File */}
+              <button
+                onClick={() => { setShowAttachMenu(false); fileInputRef.current?.click(); }}
+                className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
+              >
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: '#f0d4dc' }}
+                >
+                  <FileText className="w-6 h-6" style={{ color: '#9c5e6c' }} />
+                </div>
+                <span className="text-[11px] font-semibold" style={{ color: '#2a2540' }}>Файл</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2 items-center">
-          {/* Attach file button */}
+          {/* Attach toggle button */}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
-            style={{ background: attachedFile ? 'var(--accent-light)' : '#f4f3ef', border: '1px solid #e8e4dc' }}
-            aria-label="Прикрепить файл"
-            title="Прикрепить файл"
+            onClick={() => setShowAttachMenu(v => !v)}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+            style={{
+              background: showAttachMenu ? 'var(--accent)' : '#f4f3ef',
+              transform: showAttachMenu ? 'rotate(45deg)' : 'rotate(0deg)',
+              transition: 'transform 0.22s ease, background 0.22s ease',
+            }}
+            aria-label="Прикрепить"
           >
-            <Paperclip className="w-4 h-4" style={{ color: attachedFile ? 'var(--accent-dark)' : '#9a96a8' }} />
-          </button>
-
-          {/* Camera button */}
-          <button
-            onClick={() => cameraInputRef.current?.click()}
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
-            style={{ background: '#f4f3ef' }}
-            aria-label="Сделать фото"
-            title="Сделать фото"
-          >
-            <Camera className="w-4 h-4" style={{ color: '#9a96a8' }} />
-          </button>
-
-          {/* Gallery button */}
-          <button
-            onClick={() => galleryInputRef.current?.click()}
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
-            style={{ background: '#f4f3ef' }}
-            aria-label="Выбрать из галереи"
-            title="Выбрать из галереи"
-          >
-            <ImageIcon className="w-4 h-4" style={{ color: '#9a96a8' }} />
+            <Paperclip
+              className="w-4 h-4"
+              style={{ color: showAttachMenu ? '#fff' : '#9a96a8' }}
+            />
           </button>
 
           <input
@@ -704,6 +755,7 @@ export default function ChatPage() {
               : locale === 'en' ? 'Describe how you feel...'
               : 'Напишите о самочувствии...'
             }
+            onFocus={() => setShowAttachMenu(false)}
             className="flex-1 rounded-2xl px-4 py-3 text-[14px] focus:outline-none"
             style={{ background: '#ffffff', border: '1px solid #e8e4dc', color: '#2a2540' }}
           />
