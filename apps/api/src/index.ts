@@ -50,6 +50,7 @@ import { doctorCatalogRouter } from './routes/aivita/doctor/catalog.js';
 import { sosRouter } from './routes/aivita/sos.js';
 import cardRouter from './routes/aivita/card.js';
 import { aivitaMedicationsRouter } from './routes/aivita/medications.js';
+import { aivitaOnboardingRouter } from './routes/aivita/onboarding.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
@@ -81,6 +82,7 @@ app.route('/v1/landing', landingPublicRouter);
 app.route('/v1/aivita-admin/cms', landingAdminRouter);
 // Aivita
 app.route('/v1/aivita/auth', aivitaAuthRouter);
+app.route('/v1/aivita/onboarding', aivitaOnboardingRouter);
 app.route('/v1/aivita-admin', aivitaAdminRouter);
 app.route('/v1/aivita/users', aivitaUsersRouter);
 app.route('/v1/aivita/health-profile', aivitaHealthProfileRouter);

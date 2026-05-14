@@ -51,6 +51,11 @@ export const aivitaUsers = pgTable(
     emailVerified: timestamp('email_verified'),
     phoneVerified: timestamp('phone_verified'),
     onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
+    onboardingStep: integer('onboarding_step').default(0).notNull(),
+    isMinor: boolean('is_minor').default(false).notNull(),
+    parentPhone: text('parent_phone'),
+    parentRelation: text('parent_relation'), // 'мама' | 'папа' | 'опекун'
+    parentConsent: boolean('parent_consent').default(false).notNull(),
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -150,6 +155,16 @@ export const healthProfiles = pgTable(
     smokingStatus: text('smoking_status'), // 'never' | 'former' | 'current'
     alcoholFrequency: text('alcohol_frequency'), // 'never' | 'rare' | 'moderate' | 'frequent'
     exerciseFrequency: text('exercise_frequency'), // 'never' | 'rare' | 'sometimes' | 'often' | 'daily'
+    sleepHoursPerNight: text('sleep_hours_per_night'), // '<6' | '6-7' | '7-8' | '>8'
+    nutritionType: text('nutrition_type'), // 'balanced' | 'vegetarian' | 'vegan' | 'fastfood'
+
+    // Teen-specific fields
+    school: text('school'),
+    grade: text('grade'),
+    visionStatus: text('vision_status'), // 'normal' | 'glasses' | 'unknown'
+    childDiseases: jsonb('child_diseases').$type<string[]>(),
+    vaccinationHistory: jsonb('vaccination_history').$type<Array<{ name: string; status: 'done' | 'not_done' | 'unknown'; date?: string }>>(),
+    screenTime: text('screen_time'), // '<2h' | '2-4h' | '>4h'
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
