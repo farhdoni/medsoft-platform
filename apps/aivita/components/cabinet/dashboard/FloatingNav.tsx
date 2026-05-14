@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
 
@@ -38,31 +38,14 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
   const locale = (params?.locale as string) || "ru";
 
   const [navConfig, setNavConfig] = useState(DEFAULT_NAV);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => { setNavConfig(loadNavConfig()); }, []);
 
   function go(id: string) {
     router.push(`/${locale}/${id}`);
   }
 
-  function openCamera() {
-    fileInputRef.current?.click();
-  }
-
-  function handleCameraFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        sessionStorage.setItem('aivita_photo_for_ai', reader.result as string);
-      } catch {}
-      router.push(`/${locale}/chat?photo=attached`);
-    };
-    reader.readAsDataURL(file);
-    // Reset so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  function openAiChat() {
+    router.push(`/${locale}/ai-chat`);
   }
 
   const leftTabs  = navConfig.left.map(id  => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
@@ -92,27 +75,22 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
 
   return (
     <nav className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 max-w-[calc(100vw-24px)]">
-      {/* Hidden camera file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleCameraFile}
-      />
-
       <div className="flex items-end gap-1 rounded-[28px] bg-white px-2 pb-2 pt-2 shadow-dropdown">
         {/* Left tabs */}
         {leftTabs.map(renderTab)}
 
-        {/* Center camera button — AI Aura Lens, elevated */}
+        {/* Center AI Aura button — navigates to /ai-chat */}
         <button
           type="button"
-          aria-label="AI фото"
-          onClick={openCamera}
+          aria-label="AI Ассистент"
+          onClick={openAiChat}
           className="relative -mt-4 mx-1 flex-shrink-0 transition-transform active:scale-95 hover:scale-105"
         >
+          {/* Pulse ring */}
+          <span
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ animation: 'aura-pulse 2s ease-in-out infinite' }}
+          />
           <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 4px 10px rgba(156,94,108,0.38))' }}>
             <defs>
               <linearGradient id="aura-grad" x1="0%" y1="100%" x2="100%" y2="0%">
