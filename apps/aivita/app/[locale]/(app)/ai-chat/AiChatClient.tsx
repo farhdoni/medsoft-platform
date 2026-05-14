@@ -116,12 +116,13 @@ function TypingIndicator() {
 // ─── WelcomeScreen ────────────────────────────────────────────────────────────
 
 const QUICK_CHIPS = [
-  { icon: '🧬', label: 'AI-чекап',    text: 'Проведи AI-чекап состояния здоровья' },
+  { icon: '🧬', label: 'AI-чекап',    text: '__checkup__' },
   { icon: '💊', label: 'Лекарства',   text: 'Расскажи о моих лекарствах' },
   { icon: '📋', label: 'Мои данные',  text: 'Покажи сводку моих медданных' },
 ];
 
-function WelcomeScreen({ onChip }: { onChip: (text: string) => void }) {
+function WelcomeScreen({ onChip, locale }: { onChip: (text: string) => void; locale: string }) {
+  const router = useRouter();
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 text-center">
       <div
@@ -138,7 +139,7 @@ function WelcomeScreen({ onChip }: { onChip: (text: string) => void }) {
         {QUICK_CHIPS.map(c => (
           <button
             key={c.label}
-            onClick={() => onChip(c.text)}
+            onClick={() => c.text === '__checkup__' ? router.push(`/${locale}/ai-checkup`) : onChip(c.text)}
             className="flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition hover:bg-white active:scale-95"
             style={{ borderColor: '#e8e4dc', color: '#2a2540', background: 'rgba(255,255,255,0.7)' }}
           >
@@ -363,7 +364,7 @@ export function AiChatClient({ locale }: { locale: string }) {
       {/* ── Messages ────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
         {messages.length === 0 && !typing
-          ? <WelcomeScreen onChip={t => void sendMessage(t)} />
+          ? <WelcomeScreen onChip={t => void sendMessage(t)} locale={locale} />
           : (
             <>
               {messages.map(m => (

@@ -28,6 +28,7 @@ const APP_ROUTES = [
   '/notifications',
   '/medical-card',
   '/ai-chat',
+  '/ai-checkup',
   '/install',
   // Doctor cabinet routes
   '/doctor-home',

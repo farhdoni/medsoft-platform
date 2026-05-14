@@ -893,3 +893,55 @@ export const aivitaDeviceTokens = pgTable(
     userIdx: index('device_tokens_user_idx').on(table.userId),
   })
 );
+
+// ─── Health checkups (AI-чекап) ────────────────────────────────────────────────
+
+export type CheckupSystem = {
+  name: string;
+  icon: string;
+  score: number;
+  status: 'green' | 'yellow' | 'red';
+  details: string;
+};
+
+export type CheckupProblem = {
+  severity: 'red' | 'yellow';
+  title: string;
+  description: string;
+  recommendation: string;
+  doctorType?: string;
+};
+
+export type CheckupPlanItem = {
+  day: number;
+  task: string;
+  category: string;
+};
+
+export const healthCheckups = pgTable(
+  'health_checkups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+
+    bioAge:       integer('bio_age'),
+    chronoAge:    integer('chrono_age'),
+    healthScore:  integer('health_score'),   // 0-100
+
+    systems:  jsonb('systems').$type<CheckupSystem[]>(),
+    problems: jsonb('problems').$type<CheckupProblem[]>(),
+    plan:     jsonb('plan').$type<CheckupPlanItem[]>(),
+    summary:  text('summary'),
+
+    // 'pending' | 'done' | 'error'
+    status: text('status').notNull().default('pending'),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx:     index('health_checkups_user_idx').on(table.userId),
+    createdIdx:  index('health_checkups_created_idx').on(table.createdAt),
+  })
+);

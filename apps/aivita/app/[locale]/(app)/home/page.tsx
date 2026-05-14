@@ -55,11 +55,11 @@ export default async function HomePage({
               Быстрая оценка всех ваших показателей за 3 минуты
             </p>
             <Link
-              href={`/${locale}/vitals`}
+              href={`/${locale}/ai-checkup`}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition hover:opacity-90 active:scale-95"
               style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
             >
-              Начать чекап → 3 мин
+              🧬 Начать чекап →
             </Link>
           </div>
         </section>
