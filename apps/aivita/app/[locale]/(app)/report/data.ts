@@ -23,12 +23,24 @@ export async function loadReportData() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
-  const res = await api.reports.list(sessionCookie);
+  const [reportsRes, cardRes] = await Promise.allSettled([
+    api.reports.list(sessionCookie),
+    api.onboarding.medicalCard(sessionCookie),
+  ]);
+
   const reports: ReportRecord[] =
-    'data' in res ? (res.data as ReportRecord[]) : [];
+    reportsRes.status === 'fulfilled' && 'data' in reportsRes.value
+      ? (reportsRes.value.data as ReportRecord[])
+      : [];
+
+  const cardCode: string | null =
+    cardRes.status === 'fulfilled' && 'data' in cardRes.value
+      ? ((cardRes.value.data as { card?: { cardCode?: string } }).card?.cardCode ?? null)
+      : null;
 
   return {
     reports,
     latest: reports[0] ?? null,
+    cardCode,
   };
 }
