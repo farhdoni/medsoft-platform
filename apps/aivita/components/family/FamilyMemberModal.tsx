@@ -15,6 +15,8 @@ export interface FamilyMember {
   memberGender?: string | null;
   phone?: string | null;
   notes?: string | null;
+  inviteStatus?: string | null;
+  memberUserId?: string | null;
 }
 
 interface SearchResult {
@@ -84,7 +86,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
       setCardInput('');
       setSearchResult(null);
       setSearchErr('');
-      setLinkedUserId(null);
+      setMemberUserId(null);
       setNameReadonly(false);
     }
   }, [open, member]);
@@ -96,7 +98,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
     setSearching(true);
     setSearchErr('');
     setSearchResult(null);
-    setLinkedUserId(null);
+    setMemberUserId(null);
     setNameReadonly(false);
     try {
       const res = await fetch(`${PROXY}/family/search?card=${encodeURIComponent(code)}`);
@@ -114,14 +116,14 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
 
   function handleLink() {
     if (!searchResult) return;
-    setLinkedUserId(searchResult.userId);
+    setMemberUserId(searchResult.userId);
     setName(searchResult.name ?? '');
     setNameReadonly(true);
     setSearchErr('');
   }
 
   function handleUnlink() {
-    setLinkedUserId(null);
+    setMemberUserId(null);
     setSearchResult(null);
     setNameReadonly(false);
     setCardInput('');
@@ -140,7 +142,10 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         phone:           phone.trim() || null,
         notes:           notes.trim() || null,
       };
-      if (!isEdit && memberUserId) body.memberUserId = memberUserId;
+
+      // If linking to an Aivita user: create member with pending status (no memberUserId yet)
+      const isLinking = !isEdit && !!memberUserId;
+      if (isLinking) body.inviteStatus = 'pending';
 
       const url = isEdit ? `${PROXY}/family/${member!.id}` : `${PROXY}/family`;
       const method = isEdit ? 'PATCH' : 'POST';
@@ -151,6 +156,17 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('server_error');
+      const json = await res.json() as { data: { id: string } };
+
+      // Send link request to the found user
+      if (isLinking && memberUserId) {
+        await fetch(`${PROXY}/family/link-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toUserId: memberUserId, familyMemberId: json.data.id }),
+        });
+      }
+
       onSaved();
       onClose();
     } catch {

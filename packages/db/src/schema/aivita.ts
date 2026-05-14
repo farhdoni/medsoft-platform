@@ -799,6 +799,39 @@ export const medicalCards = pgTable(
   })
 );
 
+// ─── Family link requests ──────────────────────────────────────────────────────
+
+export const familyLinkRequests = pgTable(
+  'family_link_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    fromUserId: uuid('from_user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    toUserId: uuid('to_user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    familyMemberId: uuid('family_member_id')
+      .notNull()
+      .references(() => familyMembers.id, { onDelete: 'cascade' }),
+    // 'pending' | 'accepted' | 'rejected'
+    status: text('status').notNull().default('pending'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    fromIdx: index('family_link_req_from_idx').on(table.fromUserId),
+    toIdx: index('family_link_req_to_idx').on(table.toUserId),
+    memberIdx: index('family_link_req_member_idx').on(table.familyMemberId),
+  })
+);
+
+export const familyLinkRequestsRelations = relations(familyLinkRequests, ({ one }) => ({
+  from: one(aivitaUsers, { fields: [familyLinkRequests.fromUserId], references: [aivitaUsers.id], relationName: 'link_from' }),
+  to: one(aivitaUsers, { fields: [familyLinkRequests.toUserId], references: [aivitaUsers.id], relationName: 'link_to' }),
+  member: one(familyMembers, { fields: [familyLinkRequests.familyMemberId], references: [familyMembers.id] }),
+}));
+
 // ─── Device tokens (push notifications) ───────────────────────────────────────
 
 export const aivitaDeviceTokens = pgTable(
