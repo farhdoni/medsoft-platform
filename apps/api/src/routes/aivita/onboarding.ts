@@ -8,8 +8,10 @@ import {
   allergies,
   chronicConditions,
   medicalCards,
+  familyMembers,
+  cardClaimRequests,
 } from '@medsoft/db';
-import { eq, like, desc } from 'drizzle-orm';
+import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const aivitaOnboardingRouter = new Hono();
@@ -409,3 +411,55 @@ aivitaOnboardingRouter.get('/medical-card', async (c) => {
     },
   });
 });
+
+// ─── Claim a child card during onboarding ─────────────────────────────────────
+
+aivitaOnboardingRouter.post(
+  '/claim-card',
+  zValidator('json', z.object({ cardNumber: z.string().min(1) })),
+  async (c) => {
+    const userId = c.get('aivitaUserId');
+    const { cardNumber } = c.req.valid('json');
+
+    // Find the child family member by card number
+    const [member] = await db
+      .select({
+        id: familyMembers.id,
+        ownerId: familyMembers.ownerId,
+        memberName: familyMembers.memberName,
+        memberBirthDate: familyMembers.memberBirthDate,
+        migratedToUserId: familyMembers.migratedToUserId,
+      })
+      .from(familyMembers)
+      .where(and(
+        eq(familyMembers.cardNumber!, cardNumber.trim().toUpperCase()),
+        isNull(familyMembers.deletedAt),
+      ))
+      .limit(1);
+
+    if (!member) return c.json({ error: 'not_found' }, 404);
+    if (member.migratedToUserId) return c.json({ error: 'already_migrated' }, 409);
+
+    // Check if claim request already exists
+    const [existing] = await db
+      .select({ id: cardClaimRequests.id })
+      .from(cardClaimRequests)
+      .where(and(
+        eq(cardClaimRequests.fromUserId, userId),
+        eq(cardClaimRequests.familyMemberId, member.id),
+        eq(cardClaimRequests.status, 'pending'),
+      ))
+      .limit(1);
+
+    if (existing) return c.json({ data: { already_sent: true, memberName: member.memberName } });
+
+    const [created] = await db.insert(cardClaimRequests).values({
+      fromUserId: userId,
+      familyMemberId: member.id,
+      parentUserId: member.ownerId,
+      status: 'pending',
+    }).returning();
+
+    return c.json({ data: { id: created.id, memberName: member.memberName, sent: true } }, 201);
+  }
+);

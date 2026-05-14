@@ -158,6 +158,119 @@ function OptionCard({ value, selected, onClick, emoji, label, sub }: {
   );
 }
 
+// ─── Claim Card Block (shown in Step 1 when age 16-17) ───────────────────────
+
+function ClaimCardBlock({ data, onChange }: { data: StepData; onChange: (d: StepData) => void }) {
+  const [cardInput,  setCardInput]  = useState('');
+  const [searching,  setSearching]  = useState(false);
+  const [found,      setFound]      = useState<{ memberName: string; cardNumber: string } | null>(null);
+  const [claimSent,  setClaimSent]  = useState(!!(data.claimSent as boolean));
+  const [claimErr,   setClaimErr]   = useState('');
+
+  async function handleSearch() {
+    const code = cardInput.trim().toUpperCase();
+    if (!code) return;
+    setSearching(true);
+    setClaimErr('');
+    setFound(null);
+    try {
+      const res = await fetch(`/api/proxy/family/search-child-card?card=${encodeURIComponent(code)}`);
+      if (res.status === 404) { setClaimErr('Карта не найдена'); return; }
+      if (res.status === 409) { setClaimErr('Эта карта уже перенесена'); return; }
+      if (!res.ok) { setClaimErr('Ошибка поиска'); return; }
+      const json = await res.json() as { data: { memberName: string; cardNumber: string } };
+      setFound(json.data);
+    } catch {
+      setClaimErr('Ошибка соединения');
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleClaim() {
+    if (!found) return;
+    setSearching(true);
+    try {
+      const res = await fetch('/api/proxy/onboarding/claim-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardNumber: found.cardNumber }),
+      });
+      if (!res.ok) throw new Error('failed');
+      setClaimSent(true);
+      onChange({ ...data, claimSent: true, claimedCardNumber: found.cardNumber });
+    } catch {
+      setClaimErr('Не удалось отправить запрос');
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl p-4 mt-4" style={{ background: '#f0f6ff', border: '1px solid #b8d4f0' }}>
+      <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#4a7fb5' }}>
+        🔄 Есть медкарта AIVITA?
+      </p>
+      <p className="text-[12px] mb-3" style={{ color: '#6a6580' }}>
+        Введи номер, чтобы перенести данные из детской карты
+      </p>
+
+      {claimSent ? (
+        <div className="rounded-xl p-3" style={{ background: '#d4e8d8' }}>
+          <p className="text-[13px] font-semibold" style={{ color: '#2a5a3a' }}>
+            ✅ Запрос отправлен родителю на подтверждение
+          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: '#4a8a5a' }}>
+            Данные перенесутся автоматически после подтверждения
+          </p>
+        </div>
+      ) : found ? (
+        <div className="space-y-2">
+          <div className="rounded-xl p-3" style={{ background: '#fff', border: '1px solid #dbeeff' }}>
+            <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>
+              ✅ Найдена карта на имя {found.memberName}
+            </p>
+            <p className="text-[11px] font-mono mt-0.5" style={{ color: '#9a96a8' }}>{found.cardNumber}</p>
+          </div>
+          <button
+            onClick={() => void handleClaim()}
+            disabled={searching}
+            className="w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+            style={{ background: '#6BA3D6' }}
+          >
+            {searching ? '⏳…' : '📨 Отправить запрос родителю'}
+          </button>
+          <button onClick={() => setFound(null)} className="w-full text-xs py-1" style={{ color: '#9a96a8' }}>
+            Ввести другой номер
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              value={cardInput}
+              onChange={e => { setCardInput(e.target.value.toUpperCase()); setClaimErr(''); }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleSearch(); }}
+              placeholder="AI-2026-XXXXX"
+              className="flex-1 rounded-xl border px-3 py-2 text-sm font-mono outline-none focus:border-[#6BA3D6]"
+              style={{ borderColor: '#b8d4f0', color: '#2a2540' }}
+            />
+            <button
+              onClick={() => void handleSearch()}
+              disabled={searching || !cardInput.trim()}
+              className="px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+              style={{ background: '#6BA3D6' }}
+            >
+              {searching ? '…' : 'Найти'}
+            </button>
+          </div>
+          {claimErr && <p className="text-[12px] font-semibold" style={{ color: '#c0392b' }}>{claimErr}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Step 1: Personal info ────────────────────────────────────────────────────
 
 function Step1({ data, onChange }: { data: StepData; onChange: (d: StepData) => void }) {
@@ -240,6 +353,15 @@ function Step1({ data, onChange }: { data: StepData; onChange: (d: StepData) => 
           style={{ color: '#2a2540' }}
         />
       </div>
+
+      {/* ── Claim child card if age 16-17 ─────────────────────────────────── */}
+      {(() => {
+        const dob = data.dateOfBirth as string | undefined;
+        if (!dob) return null;
+        const age = (Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000);
+        if (age < 16 || age >= 18) return null;
+        return <ClaimCardBlock data={data} onChange={onChange} />;
+      })()}
     </div>
   );
 }

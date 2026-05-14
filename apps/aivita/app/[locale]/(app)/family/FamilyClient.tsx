@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, Plus, Shield, Clock, UserCheck, UserX } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Icon } from '@/components/cabinet/icons/Icon';
 import { FamilyMemberModal, type FamilyMember } from '@/components/family/FamilyMemberModal';
+import { ChildCardModal } from '@/components/family/ChildCardModal';
 
 const PROXY = '/api/proxy';
 
@@ -15,6 +18,17 @@ interface LinkRequest {
   fromName: string | null;
   fromAvatarUrl: string | null;
   familyMemberId: string;
+  createdAt: string;
+}
+
+interface ClaimRequest {
+  id: string;
+  fromUserId: string;
+  fromName: string | null;
+  fromAvatarUrl: string | null;
+  familyMemberId: string;
+  cardNumber: string | null;
+  memberName: string;
   createdAt: string;
 }
 
@@ -47,27 +61,36 @@ const RELATION_EMOJIS: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FamilyClient() {
-  const [members,      setMembers]      = useState<FamilyMember[]>([]);
-  const [requests,     setRequests]     = useState<LinkRequest[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [modalOpen,    setModalOpen]    = useState(false);
-  const [editMember,   setEditMember]   = useState<FamilyMember | null>(null);
-  const [responding,   setResponding]   = useState<string | null>(null); // request id being responded to
+  const params = useParams();
+  const locale = (params?.locale as string) ?? 'ru';
+
+  const [members,       setMembers]       = useState<FamilyMember[]>([]);
+  const [requests,      setRequests]      = useState<LinkRequest[]>([]);
+  const [claimRequests, setClaimRequests] = useState<ClaimRequest[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [modalOpen,     setModalOpen]     = useState(false);
+  const [childModalOpen,setChildModalOpen]= useState(false);
+  const [editMember,    setEditMember]    = useState<FamilyMember | null>(null);
+  const [responding,    setResponding]    = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [membersRes, requestsRes] = await Promise.all([
+      const [membersRes, requestsRes, claimRes] = await Promise.all([
         fetch(`${PROXY}/family`),
         fetch(`${PROXY}/family/link-requests`),
+        fetch(`${PROXY}/family/claim-requests`),
       ]);
-      const membersJson = await membersRes.json() as { data?: FamilyMember[] };
+      const membersJson  = await membersRes.json()  as { data?: FamilyMember[] };
       const requestsJson = await requestsRes.json() as { data?: LinkRequest[] };
+      const claimJson    = await claimRes.json()    as { data?: ClaimRequest[] };
       setMembers(membersJson.data ?? []);
       setRequests(requestsJson.data ?? []);
+      setClaimRequests(claimJson.data ?? []);
     } catch {
       setMembers([]);
       setRequests([]);
+      setClaimRequests([]);
     } finally {
       setLoading(false);
     }
@@ -82,6 +105,22 @@ export function FamilyClient() {
     setResponding(requestId);
     try {
       await fetch(`${PROXY}/family/link-request/${requestId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      await loadData();
+    } catch {
+      // silently ignore
+    } finally {
+      setResponding(null);
+    }
+  }
+
+  async function handleClaimRespond(claimId: string, action: 'approve' | 'reject') {
+    setResponding(claimId);
+    try {
+      await fetch(`${PROXY}/family/claim-request/${claimId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
@@ -113,6 +152,57 @@ export function FamilyClient() {
         </div>
         <div className="flex-shrink-0"><Icon name="family" size={56} /></div>
       </section>
+
+      {/* ── Card claim requests (child wants to migrate) ─────────────────── */}
+      {!loading && claimRequests.length > 0 && (
+        <>
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: '#9a96a8' }}>
+            🔄 Запросы на перенос медкарты
+          </p>
+          <div className="space-y-2 mb-5">
+            {claimRequests.map(req => (
+              <div
+                key={req.id}
+                className="rounded-2xl p-4 flex items-start gap-3"
+                style={{ background: '#f0f6ff', border: '1px solid #b8d4f0' }}
+              >
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-lg overflow-hidden" style={{ background: '#dbeeff' }}>
+                  {req.fromAvatarUrl ? <img src={req.fromAvatarUrl} alt="" className="w-full h-full object-cover" /> : '👤'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>
+                    {req.fromName ?? 'Пользователь Aivita'}
+                  </p>
+                  <p className="text-[12px] mt-0.5" style={{ color: '#4a7fb5' }}>
+                    хочет забрать свою медкарту <span className="font-mono font-bold">{req.cardNumber}</span>
+                    {req.memberName ? ` (${req.memberName})` : ''}
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => void handleClaimRespond(req.id, 'approve')}
+                      disabled={responding === req.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition hover:opacity-80 disabled:opacity-40"
+                      style={{ background: '#d4e8d8', color: '#2a5a3a' }}
+                    >
+                      <UserCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                      {responding === req.id ? '…' : '✅ Подтвердить'}
+                    </button>
+                    <button
+                      onClick={() => void handleClaimRespond(req.id, 'reject')}
+                      disabled={responding === req.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition hover:opacity-80 disabled:opacity-40"
+                      style={{ background: '#fde8e8', color: '#8a3a3a' }}
+                    >
+                      <UserX className="w-3.5 h-3.5" aria-hidden="true" />
+                      Отклонить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ── Incoming link requests ────────────────────────────────────────── */}
       {!loading && requests.length > 0 && (
@@ -188,15 +278,14 @@ export function FamilyClient() {
           <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: '#9a96a8' }}>Члены семьи</p>
           <div className="space-y-2 mb-5">
             {members.map((m, idx) => {
-              const isPending = m.inviteStatus === 'pending';
-              const isRejected = m.inviteStatus === 'rejected';
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => openEdit(m)}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border text-left transition-colors hover:bg-[#faf8f5] active:scale-[0.99]"
-                  style={{ borderColor: isPending ? '#ffe7a0' : '#e8e4dc' }}
-                >
+              const isPending   = m.inviteStatus === 'pending';
+              const isRejected  = m.inviteStatus === 'rejected';
+              const hasCard     = !!(m as FamilyMember & { cardNumber?: string }).cardNumber;
+              const isMigrated  = !!(m as FamilyMember & { migratedToUserId?: string }).migratedToUserId;
+              const cardNumber  = (m as FamilyMember & { cardNumber?: string }).cardNumber;
+
+              const cardInner = (
+                <>
                   <div
                     className="w-11 h-11 rounded-[14px] flex-shrink-0 flex items-center justify-center text-xl"
                     style={{ background: SOFT_BGS[idx % SOFT_BGS.length] }}
@@ -212,26 +301,61 @@ export function FamilyClient() {
                           ? ` · ${calcAge(m.memberBirthDate)} лет`
                           : ''}
                       </p>
+                      {hasCard && !isMigrated && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                          style={{ background: '#dbeeff', color: '#4a7fb5' }}>
+                          📋 Медкарта
+                        </span>
+                      )}
+                      {isMigrated && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                          style={{ background: '#e8e8e8', color: '#6a6a6a' }}>
+                          🔄 Мигрирована
+                        </span>
+                      )}
                       {isPending && (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold"
-                          style={{ background: '#fff3cd', color: '#856404' }}
-                        >
+                        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold"
+                          style={{ background: '#fff3cd', color: '#856404' }}>
                           <Clock className="w-3 h-3" aria-hidden="true" />
                           Ожидает подтверждения
                         </span>
                       )}
                       {isRejected && (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold"
-                          style={{ background: '#fde8e8', color: '#8a3a3a' }}
-                        >
+                        <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold"
+                          style={{ background: '#fde8e8', color: '#8a3a3a' }}>
                           Отклонено
                         </span>
                       )}
                     </div>
+                    {cardNumber && (
+                      <p className="text-[10px] font-mono mt-0.5" style={{ color: '#b0acbc' }}>{cardNumber}</p>
+                    )}
                   </div>
                   <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#9a96a8' }} aria-hidden="true" />
+                </>
+              );
+
+              // Child card members link to the child card page; others open edit modal
+              if (hasCard) {
+                return (
+                  <Link
+                    key={m.id}
+                    href={`/${locale}/family/child/${m.id}`}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border text-left transition-colors hover:bg-[#f0f6ff] active:scale-[0.99]"
+                    style={{ borderColor: '#b8d4f0' }}
+                  >
+                    {cardInner}
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => openEdit(m)}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border text-left transition-colors hover:bg-[#faf8f5] active:scale-[0.99]"
+                  style={{ borderColor: isPending ? '#ffe7a0' : '#e8e4dc' }}
+                >
+                  {cardInner}
                 </button>
               );
             })}
@@ -252,14 +376,23 @@ export function FamilyClient() {
         </div>
       )}
 
-      {/* ── Add button ────────────────────────────────────────────────────── */}
+      {/* ── Add buttons ───────────────────────────────────────────────────── */}
       <button
         onClick={openAdd}
-        className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-white text-[13px] font-semibold border-2 border-dashed transition-colors mb-5 hover:bg-[#faf8f5]"
+        className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-white text-[13px] font-semibold border-2 border-dashed transition-colors mb-3 hover:bg-[#faf8f5]"
         style={{ borderColor: '#e8e4dc', color: 'var(--accent, #9c5e6c)' }}
       >
         <Plus className="w-4 h-4" aria-hidden="true" />
         Добавить члена семьи
+      </button>
+
+      {/* ── Child card button ─────────────────────────────────────────────── */}
+      <button
+        onClick={() => setChildModalOpen(true)}
+        className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-white text-[13px] font-semibold border-2 border-dashed transition-colors mb-5 hover:bg-[#f0f6ff]"
+        style={{ borderColor: '#6BA3D6', color: '#4a7fb5' }}
+      >
+        👶 Открыть медкарту ребёнку
       </button>
 
       {/* ── Privacy note ──────────────────────────────────────────────────── */}
@@ -275,12 +408,18 @@ export function FamilyClient() {
         </div>
       </div>
 
-      {/* ── Modal ─────────────────────────────────────────────────────────── */}
+      {/* ── Modals ────────────────────────────────────────────────────────── */}
       <FamilyMemberModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         member={editMember}
         onSaved={() => void loadData()}
+      />
+
+      <ChildCardModal
+        open={childModalOpen}
+        onClose={() => setChildModalOpen(false)}
+        onSaved={() => { void loadData(); }}
       />
     </>
   );

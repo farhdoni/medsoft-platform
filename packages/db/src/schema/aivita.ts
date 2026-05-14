@@ -507,6 +507,21 @@ export const familyMembers = pgTable(
     phone: text('phone'),
     notes: text('notes'),
 
+    // ── Child medical card fields ───────────────────────────────────────────
+    cardNumber: text('card_number').unique(),
+    heightCm: integer('height_cm'),
+    weightKg: numeric('weight_kg', { precision: 5, scale: 2 }),
+    bloodGroup: text('blood_group'),
+    rhFactor: text('rh_factor'),
+    allergies: jsonb('allergies').$type<string[]>().default([]),
+    chronicDiseases: jsonb('chronic_diseases').$type<string[]>().default([]),
+    childDiseases: jsonb('child_diseases').$type<string[]>().default([]),
+    vaccinations: jsonb('vaccinations').$type<Array<{ name: string; status: string; date?: string }>>().default([]),
+    medications: jsonb('medications').$type<string[]>().default([]),
+    parentNotes: text('parent_notes'),
+    migratedToUserId: uuid('migrated_to_user_id').references(() => aivitaUsers.id, { onDelete: 'set null' }),
+    migratedAt: timestamp('migrated_at'),
+
     permissionLevel: text('permission_level').default('view').notNull(),
 
     inviteStatus: text('invite_status').default('accepted').notNull(),
@@ -831,6 +846,33 @@ export const familyLinkRequestsRelations = relations(familyLinkRequests, ({ one 
   to: one(aivitaUsers, { fields: [familyLinkRequests.toUserId], references: [aivitaUsers.id], relationName: 'link_to' }),
   member: one(familyMembers, { fields: [familyLinkRequests.familyMemberId], references: [familyMembers.id] }),
 }));
+
+// ─── Card claim requests (child migrating to adult account) ───────────────────
+
+export const cardClaimRequests = pgTable(
+  'card_claim_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    fromUserId: uuid('from_user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    familyMemberId: uuid('family_member_id')
+      .notNull()
+      .references(() => familyMembers.id, { onDelete: 'cascade' }),
+    parentUserId: uuid('parent_user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    // 'pending' | 'approved' | 'rejected'
+    status: text('status').notNull().default('pending'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    fromIdx: index('card_claim_req_from_idx').on(table.fromUserId),
+    parentIdx: index('card_claim_req_parent_idx').on(table.parentUserId),
+    memberIdx2: index('card_claim_req_member_idx').on(table.familyMemberId),
+  })
+);
 
 // ─── Device tokens (push notifications) ───────────────────────────────────────
 
