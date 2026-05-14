@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { Send, Paperclip, X, FileText, Image as ImageIcon, Camera } from 'lucide-react';
 import VoiceInput from '@/components/voice/VoiceInput';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -162,7 +162,9 @@ export default function ChatPage() {
   // File attachment state
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [attachedPreview, setAttachedPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef    = useRef<HTMLInputElement>(null);
+  const cameraInputRef  = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -340,11 +342,26 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 56px)' }}>
 
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*,video/*"
         className="hidden"
         onChange={handleFileSelect}
       />
@@ -599,30 +616,47 @@ export default function ChatPage() {
         className="flex-shrink-0 px-4 md:px-6 py-3"
         style={{ background: 'rgba(244,243,239,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid #e8e4dc' }}
       >
-        {/* Attached file preview chip */}
+        {/* Attached file preview */}
         {attachedFile && (
-          <div className="mb-2 flex items-center gap-2">
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl flex-1 min-w-0"
-              style={{ background: '#f0edf8', border: '1px solid #ddd6f3' }}
-            >
-              {attachedPreview ? (
-                <img src={attachedPreview} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-              ) : (
-                <FileText className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-semibold truncate" style={{ color: '#2a2540' }}>{attachedFile.name}</p>
-                <p className="text-[10px]" style={{ color: '#9a96a8' }}>{fmtSize(attachedFile.size)}</p>
+          <div className="mb-2 flex items-start gap-2">
+            {attachedPreview ? (
+              /* Image/video → 64×64 thumbnail with × */
+              <div className="relative flex-shrink-0">
+                <img
+                  src={attachedPreview}
+                  alt=""
+                  className="w-16 h-16 rounded-xl object-cover"
+                  style={{ border: '2px solid #e8e4dc' }}
+                />
+                <button
+                  onClick={removeAttachment}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: '#9c5e6c' }}
+                  aria-label="Удалить фото"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
               </div>
-            </div>
-            <button
-              onClick={removeAttachment}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#e8e4dc] transition-colors flex-shrink-0"
-              aria-label="Удалить файл"
-            >
-              <X className="w-3.5 h-3.5 text-[#9a96a8]" />
-            </button>
+            ) : (
+              /* Non-image → file chip */
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl flex-1 min-w-0"
+                style={{ background: '#f0edf8', border: '1px solid #ddd6f3' }}
+              >
+                <FileText className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold truncate" style={{ color: '#2a2540' }}>{attachedFile.name}</p>
+                  <p className="text-[10px]" style={{ color: '#9a96a8' }}>{fmtSize(attachedFile.size)}</p>
+                </div>
+                <button
+                  onClick={removeAttachment}
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#e8e4dc] transition-colors flex-shrink-0"
+                  aria-label="Удалить файл"
+                >
+                  <X className="w-3.5 h-3.5 text-[#9a96a8]" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -630,12 +664,34 @@ export default function ChatPage() {
           {/* Attach file button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
             style={{ background: attachedFile ? 'var(--accent-light)' : '#f4f3ef', border: '1px solid #e8e4dc' }}
             aria-label="Прикрепить файл"
             title="Прикрепить файл"
           >
             <Paperclip className="w-4 h-4" style={{ color: attachedFile ? 'var(--accent-dark)' : '#9a96a8' }} />
+          </button>
+
+          {/* Camera button */}
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
+            style={{ background: '#f4f3ef' }}
+            aria-label="Сделать фото"
+            title="Сделать фото"
+          >
+            <Camera className="w-4 h-4" style={{ color: '#9a96a8' }} />
+          </button>
+
+          {/* Gallery button */}
+          <button
+            onClick={() => galleryInputRef.current?.click()}
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[#e8e4dc]"
+            style={{ background: '#f4f3ef' }}
+            aria-label="Выбрать из галереи"
+            title="Выбрать из галереи"
+          >
+            <ImageIcon className="w-4 h-4" style={{ color: '#9a96a8' }} />
           </button>
 
           <input
