@@ -1,9 +1,13 @@
 "use client";
 
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Icon } from "@/components/cabinet/icons/Icon";
 import type { Report } from "@/lib/cabinet-types";
 
 export function ReportCard({ report }: { report: Report | null }) {
+  const params = useParams();
+  const locale = (params?.locale as string) ?? 'ru';
   if (!report) {
     return (
       <section className="rounded-card bg-white p-5 shadow-card">
@@ -30,12 +34,12 @@ export function ReportCard({ report }: { report: Report | null }) {
           {report.body}
         </div>
       </div>
-      <a
-        href={report.pdfUrl}
+      <Link
+        href={`/${locale}/report`}
         className="inline-flex w-fit items-center gap-1 rounded-chip border border-border-soft bg-white px-3.5 py-2 text-[12px] font-semibold text-text-primary transition hover:bg-bg-app"
       >
         Скачать PDF →
-      </a>
+      </Link>
     </section>
   );
 }
