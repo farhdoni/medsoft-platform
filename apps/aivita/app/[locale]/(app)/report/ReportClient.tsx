@@ -32,8 +32,12 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareCode = latest?.shareToken ?? null;
-  const shareUrl = shareCode ? `https://aivita.uz/r/${shareCode}` : null;
+  const shareCode = latest?.shareToken ?? latest?.id ?? null;
+  const shareUrl = latest?.shareToken
+    ? `https://aivita.uz/r/${latest.shareToken}`
+    : latest
+    ? `https://aivita.uz/report/${latest.id}`
+    : null;
   const pdfFilename = latest
     ? `AIVITA-Report-${latest.reportNumber}.pdf`
     : 'AIVITA-Report.pdf';
