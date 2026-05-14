@@ -71,16 +71,7 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
   }
 
   return (
-    <>
-      {/* print: скрыть кнопки */}
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          #report-content { padding: 0; }
-        }
-      `}</style>
-
-      <div id="report-content">
+    <div id="report-content">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <section
@@ -117,13 +108,14 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
               <button
                 onClick={handlePDF}
                 disabled={pdfLoading}
+                suppressHydrationWarning
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-80 disabled:opacity-60"
                 style={{ background: 'rgba(255,255,255,0.2)' }}
               >
                 {pdfLoading ? (
                   <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4" aria-hidden="true" />
                 )}
                 {pdfLoading ? 'Генерирую...' : 'Скачать PDF'}
               </button>
@@ -134,17 +126,18 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
                 className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[12px] font-semibold text-white transition hover:opacity-80"
                 style={{ background: 'rgba(255,255,255,0.2)' }}
               >
-                <Printer className="w-3.5 h-3.5" />
+                <Printer className="w-3.5 h-3.5" aria-hidden="true" />
                 Печать
               </button>
 
               {/* Поделиться */}
               <button
                 onClick={handleShare}
+                suppressHydrationWarning
                 className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[12px] font-semibold text-white transition hover:opacity-80"
                 style={{ background: 'rgba(255,255,255,0.2)' }}
               >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5" aria-hidden="true" /> : <Share2 className="w-3.5 h-3.5" aria-hidden="true" />}
                 {copied ? 'Скопировано!' : 'Поделиться'}
               </button>
             </div>
@@ -254,7 +247,6 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
             </p>
           </div>
         )}
-      </div>
-    </>
+    </div>
   );
 }

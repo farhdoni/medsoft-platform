@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@media print {
+  .no-print { display: none !important; }
+  #report-content { padding: 0; }
+  nav, header, footer { display: none !important; }
+}
+
 @layer base {
   :root {
     --bg-base-1: 253 251 252;
