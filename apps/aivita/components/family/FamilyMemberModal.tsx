@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { Search, X, UserCheck } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 
 const PROXY = '/api/proxy';
@@ -14,6 +15,13 @@ export interface FamilyMember {
   memberGender?: string | null;
   phone?: string | null;
   notes?: string | null;
+}
+
+interface SearchResult {
+  userId: string;
+  cardCode: string;
+  name: string | null;
+  avatarUrl: string | null;
 }
 
 // ─── Relation options — 4-column grid ────────────────────────────────────────
@@ -43,6 +51,15 @@ interface Props {
 export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
   const isEdit = !!member;
 
+  // ── Search state (only for add mode) ───────────────────────────────────────
+  const [cardInput,    setCardInput]    = useState('');
+  const [searching,    setSearching]    = useState(false);
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  const [searchErr,    setSearchErr]    = useState('');
+  const [memberUserId, setMemberUserId] = useState<string | null>(null);
+  const [nameReadonly, setNameReadonly] = useState(false);
+
+  // ── Form state ─────────────────────────────────────────────────────────────
   const [name,      setName]      = useState('');
   const [relation,  setRelation]  = useState('child');
   const [birthDate, setBirthDate] = useState('');
@@ -53,7 +70,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
   const [deleting,  setDeleting]  = useState(false);
   const [err,       setErr]       = useState('');
 
-  // Заполняем поля при открытии для редактирования
+  // Заполняем поля при открытии
   useEffect(() => {
     if (open) {
       setName(member?.memberName ?? '');
@@ -63,14 +80,59 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
       setPhone(member?.phone ?? '');
       setNotes(member?.notes ?? '');
       setErr('');
+      // Reset search
+      setCardInput('');
+      setSearchResult(null);
+      setSearchErr('');
+      setLinkedUserId(null);
+      setNameReadonly(false);
     }
   }, [open, member]);
 
+  // ── Search handler ──────────────────────────────────────────────────────────
+  async function handleSearch() {
+    const code = cardInput.trim().toUpperCase();
+    if (!code) return;
+    setSearching(true);
+    setSearchErr('');
+    setSearchResult(null);
+    setLinkedUserId(null);
+    setNameReadonly(false);
+    try {
+      const res = await fetch(`${PROXY}/family/search?card=${encodeURIComponent(code)}`);
+      if (res.status === 404) { setSearchErr('Пользователь с такой медкартой не найден'); return; }
+      if (res.status === 409) { setSearchErr('Это ваша собственная медкарта'); return; }
+      if (!res.ok) { setSearchErr('Ошибка поиска. Попробуйте снова.'); return; }
+      const json = await res.json() as { data: SearchResult };
+      setSearchResult(json.data);
+    } catch {
+      setSearchErr('Ошибка соединения. Попробуйте снова.');
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function handleLink() {
+    if (!searchResult) return;
+    setLinkedUserId(searchResult.userId);
+    setName(searchResult.name ?? '');
+    setNameReadonly(true);
+    setSearchErr('');
+  }
+
+  function handleUnlink() {
+    setLinkedUserId(null);
+    setSearchResult(null);
+    setNameReadonly(false);
+    setCardInput('');
+  }
+
+  // ── Save / Delete ──────────────────────────────────────────────────────────
   async function handleSave() {
     if (!name.trim()) { setErr('Введите имя'); return; }
     setSaving(true); setErr('');
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         memberName:      name.trim(),
         memberRelation:  relation,
         memberBirthDate: birthDate || null,
@@ -78,6 +140,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         phone:           phone.trim() || null,
         notes:           notes.trim() || null,
       };
+      if (!isEdit && memberUserId) body.memberUserId = memberUserId;
 
       const url = isEdit ? `${PROXY}/family/${member!.id}` : `${PROXY}/family`;
       const method = isEdit ? 'PATCH' : 'POST';
@@ -140,19 +203,140 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         </div>
       }
     >
-      {/* Имя */}
+      {/* ── Поиск по медкарте (только добавление) ───────────────────────── */}
+      {!isEdit && (
+        <div className="rounded-2xl p-4 mb-5" style={{ background: '#f4f3ef' }}>
+          <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: '#9a96a8' }}>
+            Поиск по номеру медкарты
+          </p>
+
+          {/* Если пользователь уже привязан — показываем карточку */}
+          {memberUserId && searchResult ? (
+            <div
+              className="flex items-center gap-3 p-3 rounded-xl"
+              style={{ background: '#d4e8d8', border: '1px solid #a8d4b0' }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-base"
+                style={{ background: '#fff' }}
+              >
+                {searchResult.avatarUrl
+                  ? <img src={searchResult.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                  : '👤'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold" style={{ color: '#1a4a2a' }}>
+                  {searchResult.name ?? 'Пользователь Aivita'}
+                </p>
+                <p className="text-[11px] font-mono" style={{ color: '#4a8a5a' }}>
+                  {searchResult.cardCode}
+                </p>
+              </div>
+              <UserCheck className="w-4 h-4 flex-shrink-0" style={{ color: '#2a7040' }} aria-hidden="true" />
+              <button
+                onClick={handleUnlink}
+                className="ml-1 w-6 h-6 rounded-full flex items-center justify-center transition hover:opacity-70"
+                style={{ background: 'rgba(0,0,0,0.08)' }}
+                title="Отвязать"
+              >
+                <X className="w-3 h-3" style={{ color: '#2a7040' }} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  value={cardInput}
+                  onChange={e => { setCardInput(e.target.value.toUpperCase()); setSearchErr(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') void handleSearch(); }}
+                  placeholder="AI-2026-XXXXX"
+                  className="flex-1 rounded-xl border px-3 py-2 text-sm font-mono outline-none focus:border-[#9c5e6c] transition-colors"
+                  style={{ color: '#2a2540', borderColor: '#e0ddd8', background: '#fff' }}
+                />
+                <button
+                  onClick={() => void handleSearch()}
+                  disabled={searching || !cardInput.trim()}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-opacity flex items-center gap-1.5"
+                  style={{ background: 'var(--accent, #9c5e6c)' }}
+                >
+                  {searching
+                    ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    : <Search className="w-4 h-4" aria-hidden="true" />}
+                  Найти
+                </button>
+              </div>
+
+              {/* Ошибка поиска */}
+              {searchErr && (
+                <p className="text-[12px] font-semibold mt-2" style={{ color: '#c0392b' }}>
+                  {searchErr}
+                </p>
+              )}
+
+              {/* Найденный пользователь */}
+              {searchResult && !memberUserId && (
+                <div
+                  className="flex items-center gap-3 mt-3 p-3 rounded-xl"
+                  style={{ background: '#fff', border: '1px solid #e0ddd8' }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-base overflow-hidden"
+                    style={{ background: '#f0d4dc' }}
+                  >
+                    {searchResult.avatarUrl
+                      ? <img src={searchResult.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      : '👤'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>
+                      {searchResult.name ?? 'Пользователь Aivita'}
+                    </p>
+                    <p className="text-[11px] font-mono" style={{ color: '#9a96a8' }}>
+                      {searchResult.cardCode}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleLink}
+                    className="px-3 py-1.5 rounded-lg text-[12px] font-bold text-white transition hover:opacity-80"
+                    style={{ background: 'var(--accent, #9c5e6c)' }}
+                  >
+                    Привязать
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Divider (только если не привязан и не в режиме редактирования) */}
+      {!isEdit && !memberUserId && (
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 h-px" style={{ background: '#e8e4dc' }} />
+          <span className="text-[11px]" style={{ color: '#b0acbc' }}>или введите вручную</span>
+          <div className="flex-1 h-px" style={{ background: '#e8e4dc' }} />
+        </div>
+      )}
+
+      {/* ── Имя ──────────────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Имя *</p>
       <input
-        autoFocus
+        autoFocus={isEdit}
         value={name}
-        onChange={e => setName(e.target.value)}
+        onChange={e => { if (!nameReadonly) setName(e.target.value); }}
         onKeyDown={e => { if (e.key === 'Enter') void handleSave(); }}
         placeholder="Например: Алия, Дима..."
+        readOnly={nameReadonly}
         className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-5 focus:border-[#9c5e6c] transition-colors"
-        style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
+        style={{
+          color: '#2a2540',
+          borderColor: '#e8e4dc',
+          background: nameReadonly ? '#f4f3ef' : '#fff',
+          cursor: nameReadonly ? 'default' : 'text',
+        }}
       />
 
-      {/* Кем приходится — 4-column grid */}
+      {/* ── Кем приходится — 4-column grid ──────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: '#9a96a8' }}>Кем приходится</p>
       <div className="grid grid-cols-4 gap-2 mb-5">
         {RELATIONS.map(r => {
@@ -176,7 +360,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         })}
       </div>
 
-      {/* Дата рождения */}
+      {/* ── Дата рождения ────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Дата рождения (необязательно)</p>
       <input
         value={birthDate}
@@ -186,7 +370,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
       />
 
-      {/* Пол */}
+      {/* ── Пол ──────────────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Пол</p>
       <div className="flex gap-2 mb-5">
         {[
@@ -212,7 +396,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         })}
       </div>
 
-      {/* Телефон */}
+      {/* ── Телефон ──────────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Телефон (необязательно)</p>
       <input
         value={phone}
@@ -223,7 +407,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
         style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
       />
 
-      {/* Заметки */}
+      {/* ── Заметки ──────────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Заметки (необязательно)</p>
       <textarea
         value={notes}
