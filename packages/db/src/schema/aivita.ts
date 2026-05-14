@@ -504,6 +504,8 @@ export const familyMembers = pgTable(
     memberRelation: text('member_relation').notNull(), // 'spouse' | 'child' | 'parent' | ...
     memberBirthDate: date('member_birth_date'),
     memberGender: text('member_gender'),
+    phone: text('phone'),
+    notes: text('notes'),
 
     permissionLevel: text('permission_level').default('view').notNull(),
 

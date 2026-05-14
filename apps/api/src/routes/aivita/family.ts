@@ -24,8 +24,10 @@ aivitaFamilyRouter.post(
   zValidator('json', z.object({
     memberName: z.string().min(1),
     memberRelation: z.string(), // 'spouse' | 'child' | 'parent' | 'sibling' | 'other'
-    memberBirthDate: z.string().optional(),
-    memberGender: z.string().optional(),
+    memberBirthDate: z.string().nullable().optional(),
+    memberGender: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    notes: z.string().nullable().optional(),
     invitePhone: z.string().optional(),
     inviteEmail: z.string().email().optional(),
     permissionLevel: z.enum(['view', 'edit', 'full']).default('view'),
@@ -47,8 +49,10 @@ aivitaFamilyRouter.patch(
   zValidator('json', z.object({
     memberName: z.string().min(1).optional(),
     memberRelation: z.string().optional(),
-    memberBirthDate: z.string().optional(),
-    memberGender: z.string().optional(),
+    memberBirthDate: z.string().nullable().optional(),
+    memberGender: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    notes: z.string().nullable().optional(),
     permissionLevel: z.enum(['view', 'edit', 'full']).optional(),
   })),
   async (c) => {

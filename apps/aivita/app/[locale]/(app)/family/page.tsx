@@ -1,46 +1,102 @@
-import { ChevronRight, Shield } from 'lucide-react';
+'use client';
+
+import { useState, useEffect, useCallback, use } from 'react';
+import { ChevronRight, Plus, Shield } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { Icon } from '@/components/cabinet/icons/Icon';
-import { calcAge } from '@/lib/date-utils';
-import { loadFamilyData } from './data';
-import { FamilyActions } from './FamilyActions';
+import { FamilyMemberModal, type FamilyMember } from '@/components/family/FamilyMemberModal';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+const PROXY = '/api/proxy';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function calcAge(dob: string): number {
+  return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+}
+
+function plural(n: number): string {
+  if (n === 1) return 'участник';
+  if (n >= 2 && n <= 4) return 'участника';
+  return 'участников';
+}
 
 const RELATION_LABELS: Record<string, string> = {
-  spouse: 'Супруг/а', child: 'Ребёнок', parent: 'Родитель',
-  sibling: 'Брат/Сестра', other: 'Другое',
+  wife: 'Жена', husband: 'Муж', son: 'Сын', daughter: 'Дочь',
+  mother: 'Мама', father: 'Папа', brother: 'Брат', sister: 'Сестра',
+  spouse: 'Супруг/а', child: 'Ребёнок', parent: 'Родитель', other: 'Другое',
 };
 
 const SOFT_BGS = [
-  'bg-bg-soft-pink', 'bg-bg-soft-purple', 'bg-bg-soft-mint',
-  'bg-bg-soft-blue', 'bg-bg-soft-sage',
+  '#f0d4dc', '#e8e4f8', '#d4e8d8', '#d4dff0', '#e8f0d4',
 ];
+
+const RELATION_EMOJIS: Record<string, string> = {
+  wife: '👩', husband: '👨', son: '👦', daughter: '👧',
+  mother: '👩‍🦳', father: '👨‍🦳', brother: '🧑', sister: '👩',
+  spouse: '💑', child: '🧒', parent: '🧑‍🦳', other: '👤',
+};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function FamilyPage({
+export default function FamilyPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const { locale } = await params;
-  const { members } = await loadFamilyData();
+  const { locale } = use(params);
+
+  const [members,    setMembers]    = useState<FamilyMember[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [modalOpen,  setModalOpen]  = useState(false);
+  const [editMember, setEditMember] = useState<FamilyMember | null>(null);
+
+  const loadMembers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${PROXY}/family`);
+      const json = await res.json() as { data?: FamilyMember[] };
+      setMembers(json.data ?? []);
+    } catch {
+      setMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadMembers(); }, [loadMembers]);
+
+  function openAdd() {
+    setEditMember(null);
+    setModalOpen(true);
+  }
+
+  function openEdit(m: FamilyMember) {
+    setEditMember(m);
+    setModalOpen(true);
+  }
+
+  function handleSaved() {
+    void loadMembers();
+  }
 
   return (
     <PageShell active="family" locale={locale}>
-      <div className="max-w-[680px] mx-auto pb-6">
+      <div className="max-w-[480px] mx-auto px-4 pb-24">
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <section className="rounded-hero bg-hero-gradient p-6 mb-5 flex items-center gap-5">
+        <section
+          className="rounded-3xl p-6 mb-5 flex items-center gap-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, var(--accent, #9c5e6c) 0%, var(--accent-dark, #7a3d4a) 100%)' }}
+        >
+          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
           <div className="flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-1">СЕМЬЯ</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>СЕМЬЯ</p>
             <p className="text-[22px] font-extrabold text-white leading-tight">
-              {members.length === 0
+              {loading ? '…' : members.length === 0
                 ? 'Пригласи близких'
-                : `${members.length} ${members.length === 1 ? 'участник' : members.length < 5 ? 'участника' : 'участников'}`}
+                : `${members.length} ${plural(members.length)}`}
             </p>
-            <p className="text-[12px] text-white/70 mt-1">
+            <p className="text-[12px] mt-1" style={{ color: 'rgba(255,255,255,0.7)' }}>
               Здоровье близких в одном месте
             </p>
           </div>
@@ -49,69 +105,109 @@ export default async function FamilyPage({
           </div>
         </section>
 
-        {/* ── Members ───────────────────────────────────────────────────────── */}
+        {/* ── Members list ─────────────────────────────────────────────────── */}
         {members.length > 0 && (
           <>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: '#9a96a8' }}>
               Члены семьи
             </p>
             <div className="space-y-2 mb-5">
               {members.map((m, idx) => {
-                const age = m.memberBirthDate ? calcAge(m.memberBirthDate) : null;
+                const age      = m.memberBirthDate ? calcAge(m.memberBirthDate) : null;
                 const relation = RELATION_LABELS[m.memberRelation] ?? m.memberRelation;
-                const initial = m.memberName.charAt(0).toUpperCase();
-                const bg = SOFT_BGS[idx % SOFT_BGS.length];
+                const emoji    = RELATION_EMOJIS[m.memberRelation] ?? '👤';
+                const bg       = SOFT_BGS[idx % SOFT_BGS.length];
+
                 return (
-                  <div
+                  <button
                     key={m.id}
-                    className="flex items-center gap-4 p-4 rounded-card bg-white border border-border-soft hover:bg-bg-app transition-colors cursor-pointer"
+                    onClick={() => openEdit(m)}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border text-left transition-colors hover:bg-[#faf8f5] active:scale-[0.99]"
+                    style={{ borderColor: '#e8e4dc' }}
                   >
-                    <div className={`w-11 h-11 rounded-[14px] flex-shrink-0 flex items-center justify-center text-[18px] font-bold text-text-primary ${bg}`}>
-                      {initial}
+                    <div
+                      className="w-11 h-11 rounded-[14px] flex-shrink-0 flex items-center justify-center text-xl"
+                      style={{ background: bg }}
+                    >
+                      {emoji}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-semibold text-text-primary">{m.memberName}</p>
-                      <p className="text-[11px] text-text-muted mt-0.5">
+                      <p className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>{m.memberName}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: '#9a96a8' }}>
                         {relation}{age !== null ? ` · ${age} лет` : ''}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
-                  </div>
+                    <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#9a96a8' }} />
+                  </button>
                 );
               })}
             </div>
           </>
         )}
 
-        {/* ── Empty state ────────────────────────────────────────────────────── */}
-        {members.length === 0 && (
+        {/* ── Empty state ───────────────────────────────────────────────────── */}
+        {!loading && members.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-center mb-5">
-            <div className="w-20 h-20 rounded-[24px] bg-bg-soft-purple flex items-center justify-center">
+            <div
+              className="w-20 h-20 rounded-[24px] flex items-center justify-center"
+              style={{ background: '#e8e4f8' }}
+            >
               <Icon name="family" size={40} />
             </div>
-            <p className="text-[15px] font-semibold text-text-primary">Семья пока пуста</p>
-            <p className="text-[13px] text-text-muted max-w-[220px] leading-relaxed">
+            <p className="text-[15px] font-semibold" style={{ color: '#2a2540' }}>Семья пока пуста</p>
+            <p className="text-[13px] max-w-[220px] leading-relaxed" style={{ color: '#9a96a8' }}>
               Добавь близких, чтобы следить за их здоровьем в одном месте
             </p>
           </div>
         )}
 
-        {/* ── Add button ─────────────────────────────────────────────────────── */}
-        <FamilyActions />
+        {/* ── Skeleton loading ──────────────────────────────────────────────── */}
+        {loading && (
+          <div className="space-y-2 mb-5">
+            {[1, 2].map(i => (
+              <div key={i} className="h-[70px] rounded-2xl bg-white border animate-pulse" style={{ borderColor: '#e8e4dc' }} />
+            ))}
+          </div>
+        )}
 
-        {/* ── Privacy reminder ───────────────────────────────────────────────── */}
-        <div className="rounded-card bg-bg-soft-pink p-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-[10px] bg-white/60 flex-shrink-0 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-accent-rose" />
+        {/* ── Add button ────────────────────────────────────────────────────── */}
+        <button
+          onClick={openAdd}
+          className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl bg-white text-[13px] font-semibold border-2 border-dashed transition-colors mb-5 hover:bg-[#faf8f5]"
+          style={{ borderColor: '#e8e4dc', color: 'var(--accent, #9c5e6c)' }}
+        >
+          <Plus className="w-4 h-4" />
+          Добавить члена семьи
+        </button>
+
+        {/* ── Privacy reminder ──────────────────────────────────────────────── */}
+        <div
+          className="rounded-2xl p-4 flex items-start gap-3"
+          style={{ background: '#fdf0f3', border: '1px solid #f0d4dc' }}
+        >
+          <div
+            className="w-9 h-9 rounded-[10px] flex-shrink-0 flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.7)' }}
+          >
+            <Shield className="w-4 h-4" style={{ color: '#9c5e6c' }} />
           </div>
           <div className="flex-1">
-            <p className="text-[13px] font-semibold text-text-primary mb-0.5">Что видит семья</p>
-            <p className="text-[11px] text-text-secondary leading-relaxed">
-              Общие метрики (Health Score, шаги). <strong>Не видят:</strong> AI-чат, мед. документы, заметки.
+            <p className="text-[13px] font-semibold mb-0.5" style={{ color: '#2a2540' }}>Что видит семья</p>
+            <p className="text-[11px] leading-relaxed" style={{ color: '#6a6580' }}>
+              Общие метрики (Health Score, шаги).{' '}
+              <strong>Не видят:</strong> AI-чат, мед. документы, заметки.
             </p>
           </div>
         </div>
       </div>
+
+      {/* ── Modal ─────────────────────────────────────────────────────────────── */}
+      <FamilyMemberModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        member={editMember}
+        onSaved={handleSaved}
+      />
     </PageShell>
   );
 }
