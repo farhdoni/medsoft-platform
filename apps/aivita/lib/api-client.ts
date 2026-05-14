@@ -171,6 +171,14 @@ export const api = {
     disconnect: (id: string, cookie: string) =>
       apiRequest(`/devices/${id}`, { method: 'DELETE', sessionCookie: cookie }),
   },
+  onboarding: {
+    status: (cookie: string) =>
+      apiRequest('/onboarding/status', { sessionCookie: cookie }),
+    step: (step: number, data: Record<string, unknown>, cookie: string) =>
+      apiRequest('/onboarding/step', { method: 'POST', body: { step, data }, sessionCookie: cookie }),
+    medicalCard: (cookie: string) =>
+      apiRequest('/onboarding/medical-card', { sessionCookie: cookie }),
+  },
   doctor: {
     profile: (cookie?: string) =>
       apiRequest('/doctor/profile', { sessionCookie: cookie }),

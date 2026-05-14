@@ -88,7 +88,7 @@ export async function verifyEmailAction(
   if (session.role === 'doctor') {
     redirect(`/${locale}/doctor-home`);
   }
-  redirect(session.onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding/welcome`);
+  redirect(session.onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding`);
 }
 
 export async function resendCodeAction(userId: string): Promise<void> {

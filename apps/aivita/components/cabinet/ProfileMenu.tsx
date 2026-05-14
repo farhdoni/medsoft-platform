@@ -14,7 +14,7 @@ interface MenuItem {
 
 const PATIENT_MENU_ITEMS: MenuItem[] = [
   { icon: 'family',   softBg: 'var(--accent-light)',    title: 'Мой профиль',          subtitle: 'Возраст, болезни',     href: '/profile' },
-  { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медицинский профиль',  subtitle: 'Аллергии, препараты',  href: '/profile' },
+  { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медкарта',             subtitle: 'Карточка здоровья',    href: '/medical-card' },
   { icon: 'heart',    softBg: 'var(--accent-light)',    title: 'Биометрия',            subtitle: 'Показатели здоровья',  href: '/vitals' },
   { icon: 'steps',    softBg: '#d4e8d8',                title: 'Гаджеты',              subtitle: 'Трекеры и часы',       href: '/gadgets' },
   { icon: 'chat',     softBg: '#d4e8d8',                title: 'AI-чат',               subtitle: 'Помощник по здоровью', href: '/chat' },
