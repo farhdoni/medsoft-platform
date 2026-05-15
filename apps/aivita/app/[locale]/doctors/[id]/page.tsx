@@ -1,4 +1,5 @@
 import { BookingButton } from '@/components/doctors/BookingButton';
+import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
@@ -205,9 +206,9 @@ export default async function PublicDoctorPage({
         )}
       </div>
 
-      {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 flex justify-center">
-        <div className="max-w-xl w-full px-4 pb-6 pt-3"
+      {/* Sticky CTA — sits above the FloatingNav (bottom-6 + ~72px nav height) */}
+      <div className="fixed bottom-[88px] left-0 right-0 z-30 flex justify-center">
+        <div className="max-w-xl w-full px-4 pb-3 pt-3"
           style={{ background: 'rgba(244,243,239,0.97)', backdropFilter: 'blur(12px)', borderTop: '1px solid #e8e4dc' }}>
           {p.showPrice !== false && p.consultationPrice ? (
             <p className="text-sm text-[#6a6580] mb-3 text-center">
@@ -224,6 +225,7 @@ export default async function PublicDoctorPage({
           </div>
         </div>
       </div>
+      <FloatingNav />
     </div>
   );
 }

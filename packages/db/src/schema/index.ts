@@ -12,3 +12,4 @@ export * from './aivita-doctor';
 export * from './aivita-medications';
 export * from './landing';
 export * from './pharmacy';
+export * from './payments';

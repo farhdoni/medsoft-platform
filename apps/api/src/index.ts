@@ -56,6 +56,14 @@ import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
 import { conversationsRouter } from './routes/aivita/conversations.js';
 import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { startPushReminders } from './jobs/push-reminders.js';
+import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
+import { clickRouter } from './routes/payments/click.js';
+import { paymeRouter } from './routes/payments/payme.js';
+import { uzumRouter } from './routes/payments/uzum.js';
+import { aivitaPaymentsRouter, aivitaPaymentMethodsRouter, aivitaPromoRouter } from './routes/aivita/payments.js';
+import { doctorEarningsRouter } from './routes/aivita/doctor/earnings.js';
+import { adminFinanceRouter } from './routes/admin/finance.js';
+import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 import { adminPharmaciesRouter } from './routes/admin-pharmacies.js';
@@ -130,6 +138,19 @@ app.route('/v1/aivita/uploads', uploadsServeRouter);
 app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
 app.route('/v1/pharmacy', pharmacyRouter);
 app.route('/v1/aivita/pharmacy', aivitaPharmacyRouter);
+// Payment gateways (webhooks + card binding)
+app.route('/v1/payments/click', clickRouter);
+app.route('/v1/payments/payme', paymeRouter);
+app.route('/v1/payments/uzum', uzumRouter);
+// Aivita payments & subscriptions
+app.route('/v1/aivita/payments', aivitaPaymentsRouter);
+app.route('/v1/aivita/payment-methods', aivitaPaymentMethodsRouter);
+app.route('/v1/aivita/promo', aivitaPromoRouter);
+// Doctor earnings
+app.route('/v1/aivita/doctor/earnings', doctorEarningsRouter);
+// Admin finance
+app.route('/v1/admin/finance', adminFinanceRouter);
+app.route('/v1/admin/payouts', adminPayoutsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
@@ -211,6 +232,7 @@ async function main() {
   });
 
   startPushReminders();
+  startSubscriptionRenewal();
 }
 
 main().catch((err) => {

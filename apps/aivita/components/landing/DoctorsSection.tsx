@@ -66,8 +66,8 @@ export default function DoctorsSection({ locale = 'ru' }: { locale?: string }) {
         const items = Array.isArray(j.data) ? j.data : [];
         // Normalize: catalog returns { profile: {...}, name: string, ... }
         const normalized: DoctorCard[] = items.map((item: any) => ({
-          userId: item.profile?.userId ?? item.userId,
-          name: item.name ?? '',
+          userId: item.profile?.userId ?? item.userId ?? item.user?.id,
+          name: item.user?.name ?? item.name ?? '',
           specialization: item.profile?.specialization ?? item.specialization ?? null,
           photoUrl: item.profile?.photoUrl ?? item.photoUrl ?? null,
           rating: item.profile?.rating ?? item.rating ?? 0,

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Search, X, Star } from 'lucide-react';
+import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
@@ -60,7 +61,29 @@ export default function DoctorsCatalogPage() {
     try {
       const res = await fetch(`${API_BASE}/v1/aivita/catalog?${params}`);
       const json = await res.json();
-      setDoctors(json.data ?? []);
+      // API returns [{profile:{…}, user:{name,avatarUrl}}] — normalize to flat Doctor
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw: any[] = json.data ?? [];
+      setDoctors(raw.map(item => ({
+        userId:              item.userId             ?? item.profile?.userId ?? item.user?.id ?? '',
+        name:                item.name               ?? item.user?.name ?? '',
+        avatarUrl:           item.avatarUrl           ?? item.user?.avatarUrl,
+        specialization:      item.specialization      ?? item.profile?.specialization,
+        consultationPrice:   item.consultationPrice   ?? item.profile?.consultationPrice,
+        rating:              item.rating              ?? item.profile?.rating,
+        ratingCount:         item.ratingCount         ?? item.profile?.ratingCount,
+        totalPatients:       item.totalPatients       ?? item.profile?.totalPatients,
+        bio:                 item.bio                 ?? item.profile?.bio,
+        city:                item.city                ?? item.profile?.city,
+        clinicName:          item.clinicName          ?? item.profile?.clinicName,
+        clinicAddress:       item.clinicAddress       ?? item.profile?.clinicAddress,
+        showPrice:           item.showPrice           ?? item.profile?.showPrice,
+        showRating:          item.showRating          ?? item.profile?.showRating,
+        photoUrl:            item.photoUrl            ?? item.profile?.photoUrl,
+        experienceStartDate: item.experienceStartDate ?? item.profile?.experienceStartDate,
+        additionalSkills:    item.additionalSkills    ?? item.profile?.additionalSkills,
+        verificationStatus:  item.verificationStatus  ?? item.profile?.verificationStatus,
+      })));
     } catch {
       setDoctors([]);
     } finally {
@@ -140,7 +163,7 @@ export default function DoctorsCatalogPage() {
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="max-w-[480px] mx-auto px-4 pb-10 pt-3">
+      <div className="max-w-[480px] mx-auto px-4 pb-28 pt-3">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-10 h-10 border-[3px] rounded-full animate-spin"
@@ -242,6 +265,8 @@ export default function DoctorsCatalogPage() {
           </div>
         )}
       </div>
+
+      <FloatingNav />
     </div>
   );
 }

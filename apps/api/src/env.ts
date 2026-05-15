@@ -29,6 +29,15 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
   SESSION_SECRET: z.string().min(32),
   AIVITA_URL: z.string().default('https://aivita.uz'),
+  // ─── Payment providers ───────────────────────────────────────────────────────
+  CLICK_MERCHANT_ID: z.string().optional(),
+  CLICK_SERVICE_ID: z.string().optional(),
+  CLICK_SECRET_KEY: z.string().optional(),
+  PAYME_MERCHANT_ID: z.string().optional(),
+  PAYME_SECRET_KEY: z.string().optional(),
+  UZUM_MERCHANT_ID: z.string().optional(),
+  UZUM_SECRET_KEY: z.string().optional(),
+  UZUM_API_URL: z.string().default('https://api.uzum.uz/payment'),
 });
 
 function getRequired(parsed: z.infer<typeof envSchema>) {
