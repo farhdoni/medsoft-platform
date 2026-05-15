@@ -77,16 +77,26 @@ function AudioPlayer({ url, duration }: { url: string; duration?: number }) {
 
 // ─── Special Message Cards ────────────────────────────────────────────────────
 
-function PrescriptionCard({ meta }: { meta: Record<string, unknown> }) {
+function PrescriptionCard({ meta, locale }: { meta: Record<string, unknown>; locale: string }) {
+  const drug = String(meta.drug ?? '');
   return (
     <div className="rounded-xl overflow-hidden min-w-[220px] max-w-[280px]"
       style={{ background: 'linear-gradient(135deg,#f0d4dc,#e0d8f0)', borderLeft: '4px solid #9c5e6c' }}>
       <div className="px-3 py-2.5">
         <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9c5e6c' }}>💊 Назначение</p>
-        <p className="text-sm font-semibold text-[#2a2540]">{String(meta.drug ?? '—')}</p>
+        <p className="text-sm font-semibold text-[#2a2540]">{drug || '—'}</p>
         <p className="text-xs text-[#6a6580] mt-0.5">{String(meta.dosage ?? '')} · {String(meta.frequency ?? '')}</p>
         {!!meta.duration && <p className="text-xs text-[#9a96a8] mt-0.5">Курс: {String(meta.duration)}</p>}
       </div>
+      {drug && (
+        <a
+          href={`/${locale}/pharmacy/search?drug=${encodeURIComponent(drug)}`}
+          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white"
+          style={{ background: '#2E8B57' }}
+        >
+          🏪 Купить в аптеке
+        </a>
+      )}
     </div>
   );
 }
@@ -487,7 +497,7 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
 
                 {/* Prescription card */}
                 {msg.type === 'prescription' && msg.metadata && (
-                  <PrescriptionCard meta={msg.metadata} />
+                  <PrescriptionCard meta={msg.metadata} locale={locale} />
                 )}
 
                 {/* Referral card */}

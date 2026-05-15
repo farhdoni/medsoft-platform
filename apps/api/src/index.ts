@@ -58,6 +58,9 @@ import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
+import { adminPharmaciesRouter } from './routes/admin-pharmacies.js';
+import { pharmacyRouter } from './routes/pharmacy.js';
+import { aivitaPharmacyRouter } from './routes/aivita/pharmacy.js';
 
 const app = new Hono();
 
@@ -123,6 +126,10 @@ app.route('/v1/aivita/symptoms', symptomsRouter);
 app.route('/v1/aivita/conversations', conversationsRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
+// Pharmacy partner system
+app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
+app.route('/v1/pharmacy', pharmacyRouter);
+app.route('/v1/aivita/pharmacy', aivitaPharmacyRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
