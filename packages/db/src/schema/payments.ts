@@ -126,3 +126,12 @@ export const doctorPayoutSettings = pgTable('doctor_payout_settings', {
   ownerName: varchar('owner_name', { length: 100 }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ─── 9. platform_settings ─────────────────────────────────────────────────────
+
+export const platformSettings = pgTable('platform_settings', {
+  id: serial('id').primaryKey(),
+  key: varchar('key', { length: 100 }).notNull().unique(),
+  value: text('value'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

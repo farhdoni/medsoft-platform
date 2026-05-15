@@ -64,6 +64,7 @@ import { aivitaPaymentsRouter, aivitaPaymentMethodsRouter, aivitaPromoRouter } f
 import { doctorEarningsRouter } from './routes/aivita/doctor/earnings.js';
 import { doctorDashboardStatsRouter } from './routes/aivita/doctor/dashboard-stats.js';
 import { adminFinanceRouter } from './routes/admin/finance.js';
+import { platformSettingsRouter } from './routes/admin/platform-settings.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
@@ -155,6 +156,7 @@ app.route('/v1/aivita/doctor/dashboard-stats', doctorDashboardStatsRouter);
 // Admin finance
 app.route('/v1/admin/finance', adminFinanceRouter);
 app.route('/v1/admin/payouts', adminPayoutsRouter);
+app.route('/v1/admin/settings/platform', platformSettingsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
