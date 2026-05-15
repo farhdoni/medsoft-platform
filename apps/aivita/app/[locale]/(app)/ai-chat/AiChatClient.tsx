@@ -6,18 +6,9 @@ import {
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Send, Paperclip, Camera, Image, Mic, MicOff, X, Play, Pause } from 'lucide-react';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
+import { AiDocumentModal, type ParsedMedical } from '@/components/medical/AiDocumentModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ParsedMedical {
-  allergies?: string[];
-  chronicDiseases?: string[];
-  medications?: { name: string; dosage?: string; frequency?: string }[];
-  vaccinations?: { name: string; date?: string }[];
-  surgeries?: { name: string; date?: string }[];
-  diagnoses?: { name: string; date?: string; doctor?: string }[];
-  labResults?: { testName: string; value?: string; unit?: string; referenceRange?: string; status?: string; date?: string }[];
-}
 
 type AttachKind = 'photo' | 'file' | 'audio';
 
@@ -41,6 +32,7 @@ interface Message {
   text: string;
   attachments?: MsgAttachment[];
   ts: Date;
+  medicalData?: ParsedMedical;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -194,6 +186,9 @@ export function AiChatClient({ locale }: { locale: string }) {
   // ── Audio playback ──────────────────────────────────────────────────────────
   const [playingId, setPlayingId] = useState<string | null>(null);
 
+  // ── Medical document modal ──────────────────────────────────────────────────
+  const [medModal, setMedModal] = useState<ParsedMedical | null>(null);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -301,18 +296,28 @@ export function AiChatClient({ locale }: { locale: string }) {
     try {
       const res = await fetch('/api/proxy/medical/parse-document', { method: 'POST', body: fd });
       const j = await res.json() as { data: ParsedMedical };
-      const data = j.data;
-      const parts: string[] = [];
-      if (data.allergies?.length) parts.push(`${data.allergies.length} аллерги${data.allergies.length === 1 ? 'ю' : 'и'}`);
-      if (data.labResults?.length) parts.push(`${data.labResults.length} лаб. результат${data.labResults.length === 1 ? '' : 'а'}`);
-      if (data.diagnoses?.length) parts.push(`${data.diagnoses.length} диагноз`);
-      if (data.chronicDiseases?.length) parts.push(`${data.chronicDiseases.length} хрон. заболевание`);
-      const total = (data.allergies?.length ?? 0) + (data.labResults?.length ?? 0) + (data.diagnoses?.length ?? 0) + (data.chronicDiseases?.length ?? 0);
+      const parsed = j.data;
+      const total =
+        (parsed.allergies?.length ?? 0) +
+        (parsed.chronicDiseases?.length ?? 0) +
+        (parsed.medications?.length ?? 0) +
+        (parsed.labResults?.length ?? 0) +
+        (parsed.diagnoses?.length ?? 0) +
+        (parsed.vaccinations?.length ?? 0) +
+        (parsed.surgeries?.length ?? 0);
       if (total > 0) {
+        const parts = [
+          parsed.allergies?.length ? `${parsed.allergies.length} аллергий` : '',
+          parsed.chronicDiseases?.length ? `${parsed.chronicDiseases.length} заболеваний` : '',
+          parsed.medications?.length ? `${parsed.medications.length} препаратов` : '',
+          parsed.labResults?.length ? `${parsed.labResults.length} лаб. результатов` : '',
+          parsed.diagnoses?.length ? `${parsed.diagnoses.length} диагнозов` : '',
+        ].filter(Boolean);
         setMessages(prev => [...prev, {
-          id: uid(), role: 'assistant',
-          text: `📋 Я нашёл в документе медицинскую информацию: ${parts.filter(Boolean).join(', ')}.\n\nЧтобы добавить данные в медкарту, перейдите в раздел «Медкарта» и прикрепите документ там.`,
+          id: uid(), role: 'assistant' as const,
+          text: `📋 Я нашёл в документе: ${parts.join(', ')}. Добавить в вашу медкарту?`,
           ts: new Date(),
+          medicalData: parsed,
         }]);
       }
     } catch {
@@ -464,6 +469,15 @@ export function AiChatClient({ locale }: { locale: string }) {
                         }
                       >
                         <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                        {m.medicalData && (
+                          <button
+                            onClick={() => setMedModal(m.medicalData!)}
+                            className="mt-2 w-full rounded-xl py-2 text-[13px] font-semibold transition hover:opacity-90 active:scale-95"
+                            style={{ background: '#e0d8f0', color: '#6a3a8a' }}
+                          >
+                            Добавить в профиль
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -649,6 +663,14 @@ export function AiChatClient({ locale }: { locale: string }) {
           40%            { transform: translateY(-6px); }
         }
       `}</style>
+
+      {/* ── Medical document modal ──────────────────────────────────────────── */}
+      {medModal && (
+        <AiDocumentModal
+          data={medModal}
+          onClose={() => setMedModal(null)}
+        />
+      )}
     </div>
   );
 }

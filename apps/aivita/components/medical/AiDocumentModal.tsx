@@ -5,13 +5,13 @@ import { X } from 'lucide-react';
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
 export interface ParsedMedical {
-  allergies: string[];
-  chronicDiseases: string[];
-  medications: { name: string; dosage?: string; frequency?: string }[];
-  vaccinations: { name: string; date?: string }[];
-  surgeries: { name: string; date?: string }[];
-  diagnoses: { name: string; date?: string; doctor?: string }[];
-  labResults: {
+  allergies?: string[];
+  chronicDiseases?: string[];
+  medications?: { name: string; dosage?: string; frequency?: string }[];
+  vaccinations?: { name: string; date?: string }[];
+  surgeries?: { name: string; date?: string }[];
+  diagnoses?: { name: string; date?: string; doctor?: string }[];
+  labResults?: {
     testName: string; value?: string; unit?: string;
     referenceRange?: string; status?: string; date?: string;
   }[];
@@ -68,14 +68,22 @@ function CheckItem({
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export function AiDocumentModal({ data, onClose, onApplied }: Props) {
+  const allergies = data.allergies ?? [];
+  const chronicDiseases = data.chronicDiseases ?? [];
+  const medications = data.medications ?? [];
+  const labResults = data.labResults ?? [];
+  const vaccinations = data.vaccinations ?? [];
+  const surgeries = data.surgeries ?? [];
+  const diagnoses = data.diagnoses ?? [];
+
   const [selAllergies, setSelAllergies] = React.useState(() =>
-    new Set<number>(data.allergies.map((_, i) => i)));
+    new Set<number>(allergies.map((_, i) => i)));
   const [selChronic, setSelChronic] = React.useState(() =>
-    new Set<number>(data.chronicDiseases.map((_, i) => i)));
+    new Set<number>(chronicDiseases.map((_, i) => i)));
   const [selMeds, setSelMeds] = React.useState(() =>
-    new Set<number>(data.medications.map((_, i) => i)));
+    new Set<number>(medications.map((_, i) => i)));
   const [selLabs, setSelLabs] = React.useState(() =>
-    new Set<number>(data.labResults.map((_, i) => i)));
+    new Set<number>(labResults.map((_, i) => i)));
   const [applying, setApplying] = React.useState(false);
 
   function toggle(
@@ -92,18 +100,17 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
 
   const totalSelected = selAllergies.size + selChronic.size + selMeds.size + selLabs.size;
   const hasAnything =
-    data.allergies.length + data.chronicDiseases.length + data.medications.length +
-    data.labResults.length + data.vaccinations.length + data.surgeries.length +
-    data.diagnoses.length > 0;
+    allergies.length + chronicDiseases.length + medications.length +
+    labResults.length + vaccinations.length + surgeries.length + diagnoses.length > 0;
 
   async function handleApply() {
     setApplying(true);
     try {
       const payload = {
-        allergies: [...selAllergies].map(i => data.allergies[i]).filter(Boolean),
-        chronicDiseases: [...selChronic].map(i => data.chronicDiseases[i]).filter(Boolean),
-        medications: [...selMeds].map(i => data.medications[i]).filter(Boolean),
-        labResults: [...selLabs].map(i => data.labResults[i]).filter(Boolean),
+        allergies: [...selAllergies].map(i => allergies[i]).filter(Boolean),
+        chronicDiseases: [...selChronic].map(i => chronicDiseases[i]).filter(Boolean),
+        medications: [...selMeds].map(i => medications[i]).filter(Boolean),
+        labResults: [...selLabs].map(i => labResults[i]).filter(Boolean),
       };
       await fetch('/api/proxy/medical/apply', {
         method: 'POST',
@@ -151,9 +158,9 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
           ) : (
             <>
               {/* Allergies */}
-              {data.allergies.length > 0 && (
-                <CategoryBlock title={`Аллергии (${data.allergies.length})`}>
-                  {data.allergies.map((a, i) => (
+              {allergies.length > 0 && (
+                <CategoryBlock title={`Аллергии (${allergies.length})`}>
+                  {allergies.map((a, i) => (
                     <CheckItem
                       key={i} label={a}
                       checked={selAllergies.has(i)}
@@ -164,9 +171,9 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
               )}
 
               {/* Chronic */}
-              {data.chronicDiseases.length > 0 && (
-                <CategoryBlock title={`Хронические заболевания (${data.chronicDiseases.length})`}>
-                  {data.chronicDiseases.map((c, i) => (
+              {chronicDiseases.length > 0 && (
+                <CategoryBlock title={`Хронические заболевания (${chronicDiseases.length})`}>
+                  {chronicDiseases.map((c, i) => (
                     <CheckItem
                       key={i} label={c}
                       checked={selChronic.has(i)}
@@ -177,9 +184,9 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
               )}
 
               {/* Medications */}
-              {data.medications.length > 0 && (
-                <CategoryBlock title={`Препараты (${data.medications.length})`}>
-                  {data.medications.map((m, i) => (
+              {medications.length > 0 && (
+                <CategoryBlock title={`Препараты (${medications.length})`}>
+                  {medications.map((m, i) => (
                     <CheckItem
                       key={i}
                       label={[m.name, m.dosage, m.frequency].filter(Boolean).join(' — ')}
@@ -191,8 +198,8 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
               )}
 
               {/* Lab Results */}
-              {data.labResults.length > 0 && (
-                <CategoryBlock title={`Лабораторные результаты (${data.labResults.length})`}>
+              {labResults.length > 0 && (
+                <CategoryBlock title={`Лабораторные результаты (${labResults.length})`}>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                       <thead>
@@ -205,7 +212,7 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.labResults.map((lr, i) => {
+                        {labResults.map((lr, i) => {
                           const isAbn = lr.status === 'abnormal' || lr.status === 'critical';
                           const isNorm = lr.status === 'normal';
                           return (
@@ -251,16 +258,16 @@ export function AiDocumentModal({ data, onClose, onApplied }: Props) {
               )}
 
               {/* Info-only note */}
-              {(data.vaccinations.length > 0 || data.surgeries.length > 0 || data.diagnoses.length > 0) && (
+              {(vaccinations.length > 0 || surgeries.length > 0 || diagnoses.length > 0) && (
                 <div style={{
                   marginTop: 8, padding: '8px 12px', borderRadius: 8,
                   background: '#f5f3ef', fontSize: 11, color: '#9a96a8', lineHeight: 1.5,
                 }}>
                   <strong>Также найдено (информационно):</strong>{' '}
                   {[
-                    data.vaccinations.length ? `${data.vaccinations.length} прививок` : '',
-                    data.surgeries.length ? `${data.surgeries.length} операций` : '',
-                    data.diagnoses.length ? `${data.diagnoses.length} диагнозов` : '',
+                    vaccinations.length ? `${vaccinations.length} прививок` : '',
+                    surgeries.length ? `${surgeries.length} операций` : '',
+                    diagnoses.length ? `${diagnoses.length} диагнозов` : '',
                   ].filter(Boolean).join(', ')}
                 </div>
               )}
