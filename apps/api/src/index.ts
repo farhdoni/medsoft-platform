@@ -69,6 +69,7 @@ import { landingPublicRouter, landingAdminRouter } from './routes/landing-conten
 import { adminPharmaciesRouter } from './routes/admin-pharmacies.js';
 import { pharmacyRouter } from './routes/pharmacy.js';
 import { aivitaPharmacyRouter } from './routes/aivita/pharmacy.js';
+import { medicalRouter } from './routes/aivita/medical.js';
 
 const app = new Hono();
 
@@ -138,6 +139,7 @@ app.route('/v1/aivita/uploads', uploadsServeRouter);
 app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
 app.route('/v1/pharmacy', pharmacyRouter);
 app.route('/v1/aivita/pharmacy', aivitaPharmacyRouter);
+app.route('/v1/aivita/medical', medicalRouter);
 // Payment gateways (webhooks + card binding)
 app.route('/v1/payments/click', clickRouter);
 app.route('/v1/payments/payme', paymeRouter);

@@ -1,7 +1,59 @@
 'use client';
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { MedicalCardData } from './page';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface LabResult {
+  id: string;
+  testName: string;
+  value: string | null;
+  unit: string | null;
+  referenceRange: string | null;
+  status: string | null;
+  category: string | null;
+  labName: string | null;
+  doctorName: string | null;
+  testedAt: string | null;
+  documentUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface ParsedLabResult {
+  testName: string;
+  value?: string;
+  unit?: string;
+  referenceRange?: string;
+  status?: string;
+  date?: string;
+}
+
+interface ParsedMedication {
+  name: string;
+  dosage?: string;
+  frequency?: string;
+}
+
+interface ParsedMedical {
+  allergies: string[];
+  chronicDiseases: string[];
+  medications: ParsedMedication[];
+  vaccinations: { name: string; date?: string }[];
+  surgeries: { name: string; date?: string }[];
+  diagnoses: { name: string; date?: string; doctor?: string }[];
+  labResults: ParsedLabResult[];
+}
+
+interface SelectedItems {
+  allergies: string[];
+  chronicDiseases: string[];
+  medications: ParsedMedication[];
+  labResults: ParsedLabResult[];
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,7 +105,6 @@ const SLEEP_LABELS: Record<string, string> = {
 // ─── QR Code (simple data URL via canvas) ────────────────────────────────────
 
 function QrPlaceholder({ code }: { code: string }) {
-  // Simple visual placeholder — real QR would use a library
   return (
     <div
       className="flex flex-col items-center justify-center gap-1 rounded-2xl p-3"
@@ -75,13 +126,29 @@ function QrPlaceholder({ code }: { code: string }) {
   );
 }
 
+// ─── AttachButton ─────────────────────────────────────────────────────────────
+
+function AttachButton({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Прикрепить документ"
+      className="flex items-center justify-center w-8 h-8 rounded-lg text-sm flex-shrink-0"
+      style={{ background: '#e0d8f0', color: '#6a5a8e' }}
+    >
+      📎
+    </button>
+  );
+}
+
 // ─── Section accordion ────────────────────────────────────────────────────────
 
 function Section({
-  icon, title, children, defaultOpen = false, badge,
+  icon, title, children, defaultOpen = false, badge, onAttach,
 }: {
   icon: string; title: string; children: React.ReactNode;
-  defaultOpen?: boolean; badge?: string;
+  defaultOpen?: boolean; badge?: string; onAttach?: () => void;
 }) {
   const [open, setOpen] = React.useState(defaultOpen);
 
@@ -103,6 +170,9 @@ function Section({
           >
             {badge}
           </span>
+        )}
+        {onAttach && (
+          <AttachButton onClick={e => { e.stopPropagation(); onAttach(); }} />
         )}
         <span style={{ color: '#9a96a8', fontSize: 16, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>›</span>
       </button>
@@ -136,9 +206,332 @@ function Tag({ label, color = '#f0d4dc', textColor = '#9c5e6c' }: { label: strin
   );
 }
 
+// ─── LabResultCard ────────────────────────────────────────────────────────────
+
+function LabResultCard({ result }: { result: LabResult }) {
+  const isAbnormal = result.status === 'abnormal' || result.status === 'critical';
+  const borderColor = result.status === 'normal' ? '#4caf50' : result.status === 'borderline' ? '#ff9800' : '#f44336';
+  return (
+    <div
+      className="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
+      style={{ background: isAbnormal ? '#fde8e8' : '#f4faf4', borderLeft: `4px solid ${borderColor}` }}
+    >
+      <div>
+        <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>{result.testName}</p>
+        {result.labName && <p className="text-[10px]" style={{ color: '#9a96a8' }}>{result.labName}</p>}
+        {result.testedAt && <p className="text-[10px]" style={{ color: '#9a96a8' }}>{result.testedAt}</p>}
+      </div>
+      <div className="text-right">
+        <p className="text-[14px] font-bold" style={{ color: isAbnormal ? '#b03030' : '#2a7040' }}>
+          {result.value} {result.unit}
+        </p>
+        {result.referenceRange && (
+          <p className="text-[10px]" style={{ color: '#9a96a8' }}>норма: {result.referenceRange}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── SuggestionsModal ─────────────────────────────────────────────────────────
+
+function SuggestionsModal({
+  suggestions,
+  selected,
+  setSelected,
+  applying,
+  onApply,
+  onClose,
+}: {
+  suggestions: ParsedMedical;
+  selected: SelectedItems;
+  setSelected: React.Dispatch<React.SetStateAction<SelectedItems>>;
+  applying: boolean;
+  onApply: () => void;
+  onClose: () => void;
+}) {
+  function toggleAllergy(a: string) {
+    setSelected(s => ({
+      ...s,
+      allergies: s.allergies.includes(a) ? s.allergies.filter(x => x !== a) : [...s.allergies, a],
+    }));
+  }
+  function toggleDisease(d: string) {
+    setSelected(s => ({
+      ...s,
+      chronicDiseases: s.chronicDiseases.includes(d) ? s.chronicDiseases.filter(x => x !== d) : [...s.chronicDiseases, d],
+    }));
+  }
+  function toggleMed(m: ParsedMedication) {
+    setSelected(s => {
+      const exists = s.medications.some(x => x.name === m.name);
+      return {
+        ...s,
+        medications: exists ? s.medications.filter(x => x.name !== m.name) : [...s.medications, m],
+      };
+    });
+  }
+  function toggleLab(lr: ParsedLabResult) {
+    setSelected(s => {
+      const idx = s.labResults.findIndex(x => x.testName === lr.testName && x.date === lr.date);
+      return {
+        ...s,
+        labResults: idx >= 0 ? s.labResults.filter((_, i) => i !== idx) : [...s.labResults, lr],
+      };
+    });
+  }
+
+  const content = (
+    <div
+      className="fixed inset-0 flex items-end justify-center z-[200]"
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-[480px] rounded-t-3xl flex flex-col"
+        style={{ background: '#fff', maxHeight: '90vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
+          <p className="text-[16px] font-bold" style={{ color: '#2a2540' }}>🤖 Найдено в документе</p>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ background: '#f4f3ef', color: '#6a6580' }}
+          >
+            ✕
+          </button>
+        </div>
+        <p className="text-[12px] px-5 pb-3 flex-shrink-0" style={{ color: '#9a96a8' }}>
+          Отметьте данные, которые хотите добавить в медкарту
+        </p>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-5 pb-4 flex flex-col gap-4">
+
+          {/* Allergies */}
+          {suggestions.allergies.length > 0 && (
+            <div>
+              <p className="text-[13px] font-semibold mb-2" style={{ color: '#2a2540' }}>⚠️ Аллергии</p>
+              <div className="flex flex-col gap-1.5">
+                {suggestions.allergies.map(a => (
+                  <label key={a} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selected.allergies.includes(a)}
+                      onChange={() => toggleAllergy(a)}
+                      className="w-4 h-4 accent-[#9c5e6c]"
+                    />
+                    <span className="text-[13px]" style={{ color: '#2a2540' }}>{a}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chronic diseases */}
+          {suggestions.chronicDiseases.length > 0 && (
+            <div>
+              <p className="text-[13px] font-semibold mb-2" style={{ color: '#2a2540' }}>🏥 Хронические заболевания</p>
+              <div className="flex flex-col gap-1.5">
+                {suggestions.chronicDiseases.map(d => (
+                  <label key={d} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selected.chronicDiseases.includes(d)}
+                      onChange={() => toggleDisease(d)}
+                      className="w-4 h-4 accent-[#9c5e6c]"
+                    />
+                    <span className="text-[13px]" style={{ color: '#2a2540' }}>{d}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Medications */}
+          {suggestions.medications.length > 0 && (
+            <div>
+              <p className="text-[13px] font-semibold mb-2" style={{ color: '#2a2540' }}>💊 Препараты</p>
+              <div className="flex flex-col gap-1.5">
+                {suggestions.medications.map(m => (
+                  <label key={m.name} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selected.medications.some(x => x.name === m.name)}
+                      onChange={() => toggleMed(m)}
+                      className="w-4 h-4 accent-[#9c5e6c]"
+                    />
+                    <span className="text-[13px]" style={{ color: '#2a2540' }}>
+                      {m.name}
+                      {m.dosage && <span style={{ color: '#9a96a8' }}> — {m.dosage}</span>}
+                      {m.frequency && <span style={{ color: '#9a96a8' }}>, {m.frequency}</span>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lab results */}
+          {suggestions.labResults.length > 0 && (
+            <div>
+              <p className="text-[13px] font-semibold mb-2" style={{ color: '#2a2540' }}>🧪 Лабораторные результаты</p>
+              <div className="flex flex-col gap-2">
+                {suggestions.labResults.map((lr, i) => {
+                  const isChecked = selected.labResults.some(x => x.testName === lr.testName && x.date === lr.date);
+                  const isAbnormal = lr.status === 'abnormal' || lr.status === 'critical';
+                  return (
+                    <label key={i} className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleLab(lr)}
+                        className="w-4 h-4 mt-0.5 accent-[#9c5e6c]"
+                      />
+                      <div
+                        className="flex-1 rounded-lg px-3 py-2 flex items-center justify-between"
+                        style={{
+                          background: isAbnormal ? '#fde8e8' : '#f4faf4',
+                          borderLeft: `3px solid ${isAbnormal ? '#f44336' : '#4caf50'}`,
+                        }}
+                      >
+                        <div>
+                          <p className="text-[12px] font-semibold" style={{ color: '#2a2540' }}>{lr.testName}</p>
+                          {lr.date && <p className="text-[10px]" style={{ color: '#9a96a8' }}>{lr.date}</p>}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[13px] font-bold" style={{ color: isAbnormal ? '#b03030' : '#2a7040' }}>
+                            {lr.value} {lr.unit}
+                          </p>
+                          {lr.referenceRange && (
+                            <p className="text-[10px]" style={{ color: '#9a96a8' }}>норма: {lr.referenceRange}</p>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Nothing found */}
+          {suggestions.allergies.length === 0 &&
+           suggestions.chronicDiseases.length === 0 &&
+           suggestions.medications.length === 0 &&
+           suggestions.labResults.length === 0 && (
+            <p className="text-[13px] text-center py-8" style={{ color: '#9a96a8' }}>
+              В документе не найдено медицинских данных для добавления
+            </p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 flex gap-3 flex-shrink-0 border-t" style={{ borderColor: '#f0ece4' }}>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-2xl text-[14px] font-semibold"
+            style={{ background: '#f4f3ef', color: '#2a2540' }}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onApply}
+            disabled={applying}
+            className="flex-1 py-3 rounded-2xl text-[14px] font-semibold text-white disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg, var(--accent, #9c5e6c) 0%, var(--accent-dark, #7a3d4a) 100%)' }}
+          >
+            {applying ? 'Добавляю…' : 'Добавить в карту'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MedicalCardClient({ data, locale }: { data: MedicalCardData | null; locale: string }) {
+  const router = useRouter();
+
+  // Lab results state
+  const [labResults, setLabResults] = React.useState<LabResult[]>([]);
+  const [labLoading, setLabLoading] = React.useState(true);
+
+  // Document parsing state
+  const [parsing, setParsing] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState<ParsedMedical | null>(null);
+  const [showSuggestionsModal, setShowSuggestionsModal] = React.useState(false);
+  const [selected, setSelected] = React.useState<SelectedItems>({
+    allergies: [], chronicDiseases: [], medications: [], labResults: [],
+  });
+  const [applying, setApplying] = React.useState(false);
+  const [applySuccess, setApplySuccess] = React.useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Fetch lab results on mount
+  React.useEffect(() => {
+    fetch('/api/proxy/medical/lab-results')
+      .then(r => r.json())
+      .then((j: { data?: LabResult[] }) => setLabResults(j.data ?? []))
+      .catch(() => {})
+      .finally(() => setLabLoading(false));
+  }, []);
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParsing(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/proxy/medical/parse-document', { method: 'POST', body: fd });
+      const j = await res.json() as { data: ParsedMedical };
+      setSuggestions(j.data);
+      // Pre-select all
+      setSelected({
+        allergies:       j.data.allergies ?? [],
+        chronicDiseases: j.data.chronicDiseases ?? [],
+        medications:     j.data.medications ?? [],
+        labResults:      j.data.labResults ?? [],
+      });
+      setShowSuggestionsModal(true);
+    } catch {
+      // ignore
+    } finally {
+      setParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleApply() {
+    setApplying(true);
+    try {
+      await fetch('/api/proxy/medical/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(selected),
+      });
+      setShowSuggestionsModal(false);
+      setSuggestions(null);
+      setApplySuccess('Данные добавлены в профиль!');
+      setTimeout(() => setApplySuccess(''), 3000);
+      router.refresh();
+      // Refresh lab results
+      fetch('/api/proxy/medical/lab-results')
+        .then(r => r.json())
+        .then((j: { data?: LabResult[] }) => setLabResults(j.data ?? []))
+        .catch(() => {});
+    } catch {
+      // ignore
+    } finally {
+      setApplying(false);
+    }
+  }
+
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -173,6 +566,28 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
+
+      {/* ── Parsing toast ── */}
+      {parsing && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl flex items-center gap-2 shadow-lg"
+          style={{ background: '#2a2540', color: 'white', maxWidth: 320 }}
+        >
+          <span className="animate-spin text-lg">⏳</span>
+          <span className="text-[13px] font-semibold">🤖 Анализирую документ…</span>
+        </div>
+      )}
+
+      {/* ── Success toast ── */}
+      {applySuccess && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl flex items-center gap-2 shadow-lg"
+          style={{ background: '#2a7040', color: 'white', maxWidth: 320 }}
+        >
+          <span>✅</span>
+          <span className="text-[13px] font-semibold">{applySuccess}</span>
+        </div>
+      )}
 
       {/* ── Hero card ── */}
       <div
@@ -247,6 +662,15 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         </Link>
       )}
 
+      {/* ── Hidden file input ── */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf,.txt,.doc,.docx"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       {/* ── Sections ── */}
 
       {/* 1. Personal */}
@@ -269,7 +693,12 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
       </Section>
 
       {/* 3. Allergies */}
-      <Section icon="⚠️" title="Аллергии" badge={allergies.length > 0 ? String(allergies.length) : undefined}>
+      <Section
+        icon="⚠️"
+        title="Аллергии"
+        badge={allergies.length > 0 ? String(allergies.length) : undefined}
+        onAttach={() => fileInputRef.current?.click()}
+      >
         {allergies.length === 0 ? (
           <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Аллергии не указаны</p>
         ) : (
@@ -281,8 +710,33 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         )}
       </Section>
 
-      {/* 4. Chronic conditions */}
-      <Section icon="🏥" title="Хронические заболевания" badge={chronicConditions.length > 0 ? String(chronicConditions.length) : undefined}>
+      {/* 4. Lab Results */}
+      <Section
+        icon="🧪"
+        title="Лабораторные исследования"
+        badge={labResults.length > 0 ? String(labResults.length) : undefined}
+        onAttach={() => fileInputRef.current?.click()}
+      >
+        {labLoading ? (
+          <div className="py-2 animate-pulse h-8 bg-gray-100 rounded" />
+        ) : labResults.length === 0 ? (
+          <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Результаты не добавлены</p>
+        ) : (
+          <div className="mt-2 flex flex-col gap-2">
+            {labResults.map(lr => (
+              <LabResultCard key={lr.id} result={lr} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* 5. Chronic conditions */}
+      <Section
+        icon="🏥"
+        title="Хронические заболевания"
+        badge={chronicConditions.length > 0 ? String(chronicConditions.length) : undefined}
+        onAttach={() => fileInputRef.current?.click()}
+      >
         {chronicConditions.length === 0 ? (
           <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Хронические заболевания не указаны</p>
         ) : (
@@ -294,7 +748,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         )}
       </Section>
 
-      {/* 5. Lifestyle */}
+      {/* 6. Lifestyle */}
       {!isMinor && (
         <Section icon="🏃" title="Образ жизни">
           <Row label="Курение" value={lifestyle.smoking ? (SMOKING_LABELS[lifestyle.smoking] ?? lifestyle.smoking) : '—'} />
@@ -306,7 +760,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         </Section>
       )}
 
-      {/* 6. Emergency contact */}
+      {/* 7. Emergency contact */}
       <Section icon="🆘" title="Экстренный контакт">
         {!emergency.name && !emergency.phone ? (
           <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Экстренный контакт не указан</p>
@@ -319,7 +773,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         )}
       </Section>
 
-      {/* 7. Doctor / clinic */}
+      {/* 8. Doctor / clinic */}
       <Section icon="🩺" title="Лечащий врач">
         {!doctor.name && !doctor.clinic ? (
           <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Лечащий врач не указан</p>
@@ -332,7 +786,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         )}
       </Section>
 
-      {/* 8. Insurance */}
+      {/* 9. Insurance */}
       <Section icon="🛡️" title="Страховка">
         {!insurance.company ? (
           <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Страховой полис не указан</p>
@@ -346,7 +800,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         )}
       </Section>
 
-      {/* 9–11. Teen sections */}
+      {/* 10–12. Teen sections */}
       {isMinor && teen && (
         <>
           <Section icon="🏫" title="Школа">
@@ -398,7 +852,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         </>
       )}
 
-      {/* 12. Card info */}
+      {/* 13. Card info */}
       {card && (
         <Section icon="📋" title="Информация о карте">
           <Row label="Номер карты" value={card.cardCode} />
@@ -425,6 +879,18 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           ✏️ Редактировать
         </Link>
       </div>
+
+      {/* ── Suggestions Modal (portal) ── */}
+      {showSuggestionsModal && suggestions && (
+        <SuggestionsModal
+          suggestions={suggestions}
+          selected={selected}
+          setSelected={setSelected}
+          applying={applying}
+          onApply={() => void handleApply()}
+          onClose={() => { setShowSuggestionsModal(false); setSuggestions(null); }}
+        />
+      )}
     </div>
   );
 }

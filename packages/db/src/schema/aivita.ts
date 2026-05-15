@@ -988,3 +988,31 @@ export const outbreakSnapshots = pgTable(
     calcIdx:          index('outbreak_snapshots_calc_idx').on(table.calculatedAt),
   })
 );
+
+// ─── Lab Results ───────────────────────────────────────────────────────────────
+
+export const labResults = pgTable(
+  'lab_results',
+  {
+    id:             uuid('id').primaryKey().defaultRandom(),
+    userId:         uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    testName:       text('test_name').notNull(),
+    value:          text('value'),
+    unit:           text('unit'),
+    referenceRange: text('reference_range'),
+    status:         text('status').default('normal'),   // normal | abnormal | critical | borderline
+    category:       text('category').default('other'),  // blood | urine | hormone | biochem | other
+    labName:        text('lab_name'),
+    doctorName:     text('doctor_name'),
+    testedAt:       date('tested_at'),
+    documentUrl:    text('document_url'),
+    notes:          text('notes'),
+    createdAt:      timestamp('created_at').defaultNow().notNull(),
+    updatedAt:      timestamp('updated_at').defaultNow().notNull(),
+    deletedAt:      timestamp('deleted_at'),
+  },
+  (table) => ({
+    userIdx:     index('lab_results_user_idx').on(table.userId),
+    testedAtIdx: index('lab_results_tested_at_idx').on(table.userId, table.testedAt),
+  })
+);

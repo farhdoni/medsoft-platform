@@ -19,17 +19,29 @@ async function handler(
 
   const authHeaders = await getProxyAuthHeaders();
 
-  let body: string | undefined;
   const method = req.method;
+  const contentType = req.headers.get('content-type') ?? '';
+  const isMultipart = contentType.includes('multipart/form-data');
+
+  // For multipart, pass FormData directly (don't set Content-Type — browser sets boundary)
+  // For other non-GET methods, pass text body
+  let fetchBody: FormData | string | undefined;
+  const fetchHeaders: Record<string, string> = { ...authHeaders };
   if (method !== 'GET' && method !== 'DELETE' && method !== 'HEAD') {
-    body = await req.text();
+    if (isMultipart) {
+      fetchBody = await req.formData();
+      // Remove Content-Type so fetch can set it with the correct boundary
+      delete fetchHeaders['Content-Type'];
+    } else {
+      fetchBody = await req.text();
+    }
   }
 
   try {
     const res = await fetch(url, {
       method,
-      headers: authHeaders,
-      body,
+      headers: fetchHeaders,
+      body: fetchBody,
       cache: 'no-store',
     });
 

@@ -9,6 +9,16 @@ import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface ParsedMedical {
+  allergies?: string[];
+  chronicDiseases?: string[];
+  medications?: { name: string; dosage?: string; frequency?: string }[];
+  vaccinations?: { name: string; date?: string }[];
+  surgeries?: { name: string; date?: string }[];
+  diagnoses?: { name: string; date?: string; doctor?: string }[];
+  labResults?: { testName: string; value?: string; unit?: string; referenceRange?: string; status?: string; date?: string }[];
+}
+
 type AttachKind = 'photo' | 'file' | 'audio';
 
 interface AttachPhoto { kind: 'photo'; file: File; dataUrl: string; id: string }
@@ -283,6 +293,33 @@ export function AiChatClient({ locale }: { locale: string }) {
     else void startRecording();
   }
 
+  // ── Medical document parsing ────────────────────────────────────────────────
+
+  async function tryParseDocument(file: File) {
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/proxy/medical/parse-document', { method: 'POST', body: fd });
+      const j = await res.json() as { data: ParsedMedical };
+      const data = j.data;
+      const parts: string[] = [];
+      if (data.allergies?.length) parts.push(`${data.allergies.length} аллерги${data.allergies.length === 1 ? 'ю' : 'и'}`);
+      if (data.labResults?.length) parts.push(`${data.labResults.length} лаб. результат${data.labResults.length === 1 ? '' : 'а'}`);
+      if (data.diagnoses?.length) parts.push(`${data.diagnoses.length} диагноз`);
+      if (data.chronicDiseases?.length) parts.push(`${data.chronicDiseases.length} хрон. заболевание`);
+      const total = (data.allergies?.length ?? 0) + (data.labResults?.length ?? 0) + (data.diagnoses?.length ?? 0) + (data.chronicDiseases?.length ?? 0);
+      if (total > 0) {
+        setMessages(prev => [...prev, {
+          id: uid(), role: 'assistant',
+          text: `📋 Я нашёл в документе медицинскую информацию: ${parts.filter(Boolean).join(', ')}.\n\nЧтобы добавить данные в медкарту, перейдите в раздел «Медкарта» и прикрепите документ там.`,
+          ts: new Date(),
+        }]);
+      }
+    } catch {
+      // ignore — non-critical
+    }
+  }
+
   // ── Send ───────────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(async (overrideText?: string) => {
@@ -294,6 +331,14 @@ export function AiChatClient({ locale }: { locale: string }) {
       if (a.kind === 'audio') return { kind: 'audio' as const, url: a.url, duration: a.duration };
       return { kind: 'file' as const, name: a.file.name, size: a.file.size };
     });
+
+    // Capture files that may need medical parsing before clearing state
+    const filesToParse = attachments
+      .filter((a): a is AttachPhoto | AttachFile =>
+        a.kind === 'photo' || a.kind === 'file'
+      )
+      .map(a => a.file)
+      .filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
 
     const userMsg: Message = {
       id: uid(), role: 'user', text: msgText,
@@ -317,7 +362,12 @@ export function AiChatClient({ locale }: { locale: string }) {
       text: '🤖 AI-ассистент скоро будет доступен.',
       ts: new Date(),
     }]);
-  }, [text, attachments]);
+
+    // Attempt medical parsing for image/PDF attachments (non-blocking)
+    for (const file of filesToParse) {
+      void tryParseDocument(file);
+    }
+  }, [text, attachments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
