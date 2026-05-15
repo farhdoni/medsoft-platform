@@ -128,11 +128,18 @@ export default async function PublicDoctorPage({
               💰 Консультация: <span className="font-bold text-[#2a2540]">{p.consultationPrice.toLocaleString()} сум</span>
             </p>
           )}
-          <a href={`/${locale}/chat`}
-            className="block w-full py-3 text-white text-sm font-semibold rounded-2xl text-center"
-            style={{ background: 'var(--accent-dark)' }}>
-            Записаться на приём
-          </a>
+          <div className="flex gap-2">
+            <a href={`/${locale}/chat`}
+              className="flex-1 py-3 text-white text-sm font-semibold rounded-2xl text-center"
+              style={{ background: 'var(--accent-dark)' }}>
+              Записаться на приём
+            </a>
+            <a href={`/${locale}/chats/start?doctorId=${id}`}
+              className="flex-1 py-3 text-sm font-semibold rounded-2xl text-center border-2"
+              style={{ color: '#6BA3D6', borderColor: '#6BA3D6', background: '#fff' }}>
+              💬 Написать
+            </a>
+          </div>
         </div>
 
         {/* Bio */}

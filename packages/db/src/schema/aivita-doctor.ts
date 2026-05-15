@@ -410,3 +410,54 @@ export const aivitaSubscriptions = pgTable(
     activeIdx: index('aivita_subscriptions_active_idx').on(table.isActive, table.expiresAt),
   })
 );
+
+// ─── Doctor ↔ Patient Conversations ───────────────────────────────────────────
+
+export const doctorConversations = pgTable(
+  'doctor_conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    patientId: uuid('patient_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    doctorId: uuid('doctor_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    status: text('status').notNull().default('active'), // active | closed | archived
+    lastMessageAt: timestamp('last_message_at').defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    patientIdx:  index('conv_patient_idx').on(table.patientId),
+    doctorIdx:   index('conv_doctor_idx').on(table.doctorId),
+    uniquePair:  unique('conv_unique_pair').on(table.patientId, table.doctorId),
+  })
+);
+
+export const doctorMessages = pgTable(
+  'doctor_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => doctorConversations.id, { onDelete: 'cascade' }),
+    senderId: uuid('sender_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    senderRole: text('sender_role').notNull(), // patient | doctor
+    // text | image | audio | file | prescription | referral
+    type: text('type').notNull().default('text'),
+    content: text('content'),
+    attachmentUrl:  text('attachment_url'),
+    attachmentName: text('attachment_name'),
+    attachmentMime: text('attachment_mime'),
+    // prescription: {drug, dosage, frequency, duration}
+    // referral:     {labName, tests[]}
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    isRead: boolean('is_read').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    convCreatedIdx: index('msg_conv_created_idx').on(table.conversationId, table.createdAt),
+  })
+);

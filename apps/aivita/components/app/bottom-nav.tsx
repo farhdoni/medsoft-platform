@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'home',   label: 'Главная',  href: '/home',      icon: 'home'   },
   { id: 'test',   label: 'Тест',     href: '/test',      icon: 'test'   },
   { id: 'habits', label: 'Привычки', href: '/habits',    icon: 'book'   },
-  { id: 'food',   label: 'Питание',  href: '/nutrition', icon: 'food'   },
+  { id: 'chats',  label: 'Чаты',     href: '/chats',     icon: 'chat'   },
   { id: 'family', label: 'Семья',    href: '/family',    icon: 'family' },
 ];
 

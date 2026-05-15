@@ -1,8 +1,11 @@
 'use client';
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+
+const PROXY = '/api/proxy';
 
 const NAV_ITEMS = [
   { id: 'home',     label: 'Dashboard',   href: '/doctor-home',     icon: 'home'     as const },
@@ -15,6 +18,22 @@ const NAV_ITEMS = [
 export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
   const pathname = usePathname();
   const isActive = (href: string) => !!pathname?.includes(href);
+  const [chatUnread, setChatUnread] = useState(0);
+
+  useEffect(() => {
+    function fetchUnread() {
+      fetch(`${PROXY}/conversations`)
+        .then(r => r.json())
+        .then(j => {
+          const total = (j.data ?? []).reduce((s: number, c: { unreadCount: number }) => s + (c.unreadCount ?? 0), 0);
+          setChatUnread(total);
+        })
+        .catch(() => {});
+    }
+    fetchUnread();
+    const t = setInterval(fetchUnread, 30000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div className="sticky bottom-0 w-full z-40 flex justify-center pb-4 pt-2 pointer-events-none">
@@ -39,7 +58,15 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
                 minWidth: 54,
               }}
             >
-              <Icon3D name={item.icon} size={24} />
+                  <div className="relative">
+                <Icon3D name={item.icon} size={24} />
+                {item.id === 'chats' && chatUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center"
+                    style={{ background: 'var(--accent-dark)' }}>
+                    {chatUnread > 9 ? '9+' : chatUnread}
+                  </span>
+                )}
+              </div>
               <span
                 className="text-[10px] font-semibold leading-none whitespace-nowrap"
                 style={{ color: active ? 'var(--accent-dark)' : '#9a96a8' }}

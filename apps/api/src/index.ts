@@ -53,6 +53,8 @@ import { aivitaMedicationsRouter } from './routes/aivita/medications.js';
 import { aivitaOnboardingRouter } from './routes/aivita/onboarding.js';
 import { aivitaCheckupRouter } from './routes/aivita/checkup.js';
 import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
+import { conversationsRouter } from './routes/aivita/conversations.js';
+import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
@@ -118,6 +120,9 @@ app.route('/v1/aivita/medications', aivitaMedicationsRouter);
 app.route('/v1/aivita/checkup', aivitaCheckupRouter);
 app.route('/v1/aivita/outbreak', outbreakRouter);
 app.route('/v1/aivita/symptoms', symptomsRouter);
+app.route('/v1/aivita/conversations', conversationsRouter);
+app.route('/v1/aivita/upload', uploadRouter);
+app.route('/v1/aivita/uploads', uploadsServeRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
