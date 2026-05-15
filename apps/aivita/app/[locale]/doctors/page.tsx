@@ -181,85 +181,83 @@ export default function DoctorsCatalogPage() {
             {doctors.map(doc => {
               const exp = calcExp(doc.experienceStartDate);
               const isVerified = doc.verificationStatus === 'verified';
+              const profileUrl = `/${locale}/doctors/${doc.userId}`;
+              const chatUrl    = `/${locale}/chats/start?doctorId=${doc.userId}`;
               return (
-                <Link key={doc.userId} href={`/${locale}/doctors/${doc.userId}`}>
-                  <div className="bg-white rounded-2xl p-4 border border-[#e8e4dc] active:opacity-80 transition-opacity cursor-pointer">
-                    <div className="flex gap-3">
-                      {/* Avatar */}
-                      <div className="flex-shrink-0">
-                        {doc.photoUrl || doc.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={doc.photoUrl ?? doc.avatarUrl} alt={doc.name ?? ''}
-                            className="w-14 h-14 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                            style={{ background: 'linear-gradient(135deg, #6BA3D6, #3a6fa0)' }}>
-                            {initials(doc.name)}
-                          </div>
+                <div key={doc.userId}
+                  onClick={() => router.push(profileUrl)}
+                  className="bg-white rounded-2xl p-4 border border-[#e8e4dc] active:opacity-80 transition-opacity cursor-pointer"
+                >
+                  <div className="flex gap-3">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      {doc.photoUrl || doc.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={doc.photoUrl ?? doc.avatarUrl} alt={doc.name ?? ''}
+                          className="w-14 h-14 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                          style={{ background: 'linear-gradient(135deg, #6BA3D6, #3a6fa0)' }}>
+                          {initials(doc.name)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-[14px] text-[#2a2540] truncate">Dr. {doc.name}</p>
+                          <p className="text-sm text-[#6a6580] truncate">{doc.specialization ?? 'Специалист'}</p>
+                        </div>
+                        {isVerified && (
+                          <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: '#d4dff0', color: '#4A7FB5' }}>
+                            ✅ Верифицирован
+                          </span>
                         )}
                       </div>
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-bold text-[14px] text-[#2a2540] truncate">
-                              Dr. {doc.name}
-                            </p>
-                            <p className="text-sm text-[#6a6580] truncate">{doc.specialization ?? 'Специалист'}</p>
-                          </div>
-                          {isVerified && (
-                            <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                              style={{ background: '#d4dff0', color: '#4A7FB5' }}>
-                              ✅ Верифицирован
-                            </span>
-                          )}
-                        </div>
+                      {/* Stats row */}
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                        {doc.showRating !== false && doc.rating ? (
+                          <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#2a2540' }}>
+                            <Star className="w-3 h-3 fill-[#fbbf24] text-[#fbbf24]" />
+                            {doc.rating}
+                            <span className="text-[#9a96a8] font-normal">({doc.ratingCount})</span>
+                          </span>
+                        ) : null}
+                        {exp !== null && <span className="text-xs text-[#9a96a8]">{exp} лет опыта</span>}
+                        {doc.city && <span className="text-xs text-[#9a96a8]">📍 {doc.city}</span>}
+                      </div>
 
-                        {/* Stats row */}
-                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          {doc.showRating !== false && doc.rating ? (
-                            <span className="flex items-center gap-1 text-xs font-semibold"
-                              style={{ color: '#2a2540' }}>
-                              <Star className="w-3 h-3 fill-[#fbbf24] text-[#fbbf24]" />
-                              {doc.rating}
-                              <span className="text-[#9a96a8] font-normal">({doc.ratingCount})</span>
-                            </span>
-                          ) : null}
-                          {exp !== null && (
-                            <span className="text-xs text-[#9a96a8]">{exp} лет опыта</span>
-                          )}
-                          {doc.city && (
-                            <span className="text-xs text-[#9a96a8]">📍 {doc.city}</span>
-                          )}
-                        </div>
+                      {doc.clinicName && (
+                        <p className="text-[11px] text-[#9a96a8] mt-0.5 truncate">{doc.clinicName}</p>
+                      )}
 
-                        {doc.clinicName && (
-                          <p className="text-[11px] text-[#9a96a8] mt-0.5 truncate">{doc.clinicName}</p>
-                        )}
-
-                        {/* Price + CTA */}
-                        <div className="flex items-center justify-between mt-2.5 gap-2">
-                          {doc.showPrice !== false && doc.consultationPrice ? (
-                            <p className="text-[12px] font-bold" style={{ color: '#9c5e6c' }}>
-                              от {doc.consultationPrice.toLocaleString()} сум
-                            </p>
-                          ) : <div />}
-                          <div className="flex gap-1.5">
-                            <span className="text-[11px] font-semibold px-3 py-1 rounded-full text-white"
-                              style={{ background: 'var(--accent-dark, #9c5e6c)' }}>
-                              Записаться
-                            </span>
-                            <span className="text-[11px] font-semibold px-3 py-1 rounded-full border"
-                              style={{ color: '#6BA3D6', borderColor: '#6BA3D6' }}>
-                              💬
-                            </span>
-                          </div>
+                      {/* Price + CTA */}
+                      <div className="flex items-center justify-between mt-3 gap-2">
+                        {doc.showPrice !== false && doc.consultationPrice ? (
+                          <p className="text-[12px] font-bold" style={{ color: '#9c5e6c' }}>
+                            от {doc.consultationPrice.toLocaleString()} сум
+                          </p>
+                        ) : <div />}
+                        <div className="flex gap-1.5">
+                          <Link href={profileUrl} onClick={e => e.stopPropagation()}
+                            className="text-[11px] font-semibold px-3 py-1.5 rounded-full text-white"
+                            style={{ background: 'var(--accent-dark, #9c5e6c)' }}>
+                            Записаться
+                          </Link>
+                          <Link href={chatUrl} onClick={e => e.stopPropagation()}
+                            className="text-[11px] font-semibold px-3 py-1.5 rounded-full border"
+                            style={{ color: '#6BA3D6', borderColor: '#6BA3D6', background: '#fff' }}>
+                            💬 Написать
+                          </Link>
                         </div>
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

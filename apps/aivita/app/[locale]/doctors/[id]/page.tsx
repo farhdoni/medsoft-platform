@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BookingButton } from '@/components/doctors/BookingButton';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 
@@ -70,7 +71,7 @@ export default async function PublicDoctorPage({
         <div className="text-center">
           <div className="text-5xl mb-4">👤</div>
           <h1 className="text-xl font-bold text-[#2a2540] mb-2">Врач не найден</h1>
-          <a href={`/${locale}/doctors`} className="text-sm text-[color:var(--accent-dark)] underline">← Каталог врачей</a>
+          <Link href={`/${locale}/doctors`} className="text-sm text-[color:var(--accent-dark)] underline">← Каталог врачей</Link>
         </div>
       </div>
     );
@@ -88,7 +89,7 @@ export default async function PublicDoctorPage({
     <div className="min-h-screen bg-[#f4f3ef]">
       {/* Header */}
       <div className="p-6 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
-        <a href={`/${locale}/doctors`} className="text-white/70 text-sm mb-4 block">← Каталог врачей</a>
+        <Link href={`/${locale}/doctors`} className="text-white/70 text-sm mb-4 block">← Каталог врачей</Link>
         <div className="flex items-center gap-4">
           {p.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -217,11 +218,11 @@ export default async function PublicDoctorPage({
           ) : null}
           <div className="flex gap-2">
             <BookingButton doctorId={id} doctorName={data.name} locale={locale} />
-            <a href={`/${locale}/chats/start?doctorId=${id}`}
+            <Link href={`/${locale}/chats/start?doctorId=${id}`}
               className="flex-1 py-3 text-sm font-semibold rounded-2xl text-center border-2"
               style={{ color: '#6BA3D6', borderColor: '#6BA3D6', background: '#fff' }}>
               💬 Написать
-            </a>
+            </Link>
           </div>
         </div>
       </div>
