@@ -3,19 +3,9 @@ import { db } from '@medsoft/db';
 import {
   payments, subscriptions, subscriptionPlans, aivitaUsers, promoCodes,
 } from '@medsoft/db';
-import { eq, and, gte, lte, desc, sql, count, sum } from 'drizzle-orm';
-import { auth } from '../auth.js';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 
 export const adminFinanceRouter = new Hono();
-
-// Simple admin auth check
-adminFinanceRouter.use('*', async (c, next) => {
-  const token = c.req.header('Cookie') ?? '';
-  if (!token.includes('access_token') && !c.req.header('authorization')) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
-  await next();
-});
 
 function dateRangeFilter(period: string) {
   const now = new Date();

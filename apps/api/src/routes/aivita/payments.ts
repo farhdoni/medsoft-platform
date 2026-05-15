@@ -3,7 +3,7 @@ import { db } from '@medsoft/db';
 import {
   payments, subscriptions, subscriptionPlans, userPaymentMethods, promoCodes, aivitaUsers,
 } from '@medsoft/db';
-import { eq, and, desc, gte, lte, gt } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { clickCardCharge } from '../../lib/click.js';
 import { paymeCardCharge } from '../../lib/payme.js';

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '@medsoft/db';
 import { payments, doctorPayouts, doctorPayoutSettings } from '@medsoft/db';
-import { eq, and, gte, lte, desc, sum, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../../middleware/aivita-auth.js';
 
 export const doctorEarningsRouter = new Hono();
