@@ -6,6 +6,7 @@ import { ActivityChart } from '@/components/cabinet/dashboard/ActivityChart';
 import { ReportCard } from '@/components/cabinet/dashboard/ReportCard';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 import { AiMonitor } from '@/components/cabinet/dashboard/AiMonitor';
+import { DoctorsHomeBlock } from '@/components/doctors/DoctorsHomeBlock';
 import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
 
@@ -40,6 +41,11 @@ export default async function HomePage({
           <ActivityChart data={activity} />
           <ReportCard report={report} />
         </div>
+
+        {/* ── Врачи AIVITA ────────────────────────────────────────────────── */}
+        <section className="px-4 pb-4 sm:px-7">
+          <DoctorsHomeBlock locale={locale} />
+        </section>
 
         {/* ── AI Checkup CTA ──────────────────────────────────────────────── */}
         <section className="px-4 pb-6 sm:px-7">

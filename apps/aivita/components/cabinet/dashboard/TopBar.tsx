@@ -66,13 +66,14 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
               SOS
             </button>
           )}
-          {/* Search — скрыта на мобильном, чтобы профиль не уходил за экран */}
-          <button
-            aria-label="Поиск"
-            className="hidden sm:grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
+          {/* Search → каталог врачей */}
+          <Link
+            href={`/${locale}/doctors`}
+            aria-label="Найти врача"
+            className="grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
           >
             <Icon name="search" size={18} />
-          </button>
+          </Link>
           <Link
             href={`/${locale}/notifications`}
             aria-label="Уведомления"
