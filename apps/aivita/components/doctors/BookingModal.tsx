@@ -227,17 +227,15 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
           </button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 pb-8">
+        {/* ── Scrollable content — NO CTA buttons here ───────────────────── */}
+        <div className="flex-1 overflow-y-auto px-5 pb-3 min-h-0">
 
-          {/* ── DONE ────────────────────────────────────────────────────── */}
+          {/* DONE */}
           {step === 'done' && booked && (
-            <div className="text-center py-8">
-              <div className="text-6xl mb-4">🎉</div>
-              <p className="text-[16px] font-bold text-[#2a2540] mb-2">
-                Запись подтверждена!
-              </p>
-              <div className="rounded-2xl px-5 py-4 mb-6 text-left" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
+            <div className="text-center py-6">
+              <div className="text-6xl mb-3">🎉</div>
+              <p className="text-[16px] font-bold text-[#2a2540] mb-2">Запись подтверждена!</p>
+              <div className="rounded-2xl px-5 py-4 text-left" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
                 <p className="text-xs text-[#9a96a8] mb-0.5">Врач</p>
                 <p className="font-bold text-[#2a2540] mb-3">Dr. {doctorName}</p>
                 <p className="text-xs text-[#9a96a8] mb-0.5">Дата и время</p>
@@ -245,21 +243,13 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
                   {booked.date.getDate()} {MONTHS[booked.date.getMonth()]}, {booked.time}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full py-3 rounded-2xl text-white font-bold text-sm"
-                style={{ background: '#9c5e6c' }}
-              >
-                Понятно
-              </button>
             </div>
           )}
 
-          {/* ── CONFIRM ─────────────────────────────────────────────────── */}
+          {/* CONFIRM */}
           {step === 'confirm' && selectedDate && selectedTime && (
             <div>
-              <div className="rounded-2xl p-5 mb-5" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
+              <div className="rounded-2xl p-5" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
                 <p className="text-xs text-[#9a96a8] mb-1">Врач</p>
                 <p className="font-bold text-[#2a2540] mb-3">Dr. {doctorName}</p>
                 <p className="text-xs text-[#9a96a8] mb-1">Дата</p>
@@ -274,71 +264,48 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
                   <p className="text-sm text-[#2a2540]">🏥 Очный приём</p>
                 </div>
               </div>
-
-              {error && (
-                <p className="text-red-500 text-sm mb-3 text-center">{error}</p>
-              )}
-
-              <button
-                type="button"
-                onClick={handleBook}
-                disabled={booking}
-                className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60"
-                style={{ background: '#9c5e6c' }}
-              >
-                {booking ? '⏳ Записываю...' : '✅ Подтвердить запись'}
-              </button>
+              {error && <p className="text-red-500 text-sm mt-3 text-center">{error}</p>}
             </div>
           )}
 
-          {/* ── PICK ────────────────────────────────────────────────────── */}
+          {/* PICK */}
           {step === 'pick' && (
             <>
               {loadingSchedule ? (
                 <div className="flex justify-center py-12">
-                  <div
-                    className="w-9 h-9 border-[3px] rounded-full animate-spin"
-                    style={{ borderColor: '#9c5e6c', borderTopColor: 'transparent' }}
-                  />
+                  <div className="w-9 h-9 border-[3px] rounded-full animate-spin"
+                    style={{ borderColor: '#9c5e6c', borderTopColor: 'transparent' }} />
                 </div>
               ) : (
                 <>
                   {/* Date horizontal scroll */}
-                  <div className="mb-5">
+                  <div className="mb-4">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-[#9a96a8] mb-2.5">
                       Выберите дату
                     </p>
-                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                       {dates.map(date => {
-                        const ourDay     = jsDayToOurDay(date.getDay());
+                        const ourDay      = jsDayToOurDay(date.getDay());
                         const hasSchedule = schedule.some(s => s.dayOfWeek === ourDay);
-                        const isSelected  = selectedDate?.toDateString() === date.toDateString();
+                        const isSel       = selectedDate?.toDateString() === date.toDateString();
                         const isToday     = date.toDateString() === new Date().toDateString();
                         return (
                           <button
                             key={date.toISOString()}
                             type="button"
-                            onClick={() => {
-                              if (hasSchedule) {
-                                setSelectedDate(date);
-                                setSelectedTime(null);
-                              }
-                            }}
+                            onClick={() => { if (hasSchedule) { setSelectedDate(date); setSelectedTime(null); } }}
                             disabled={!hasSchedule}
-                            className="flex-shrink-0 flex flex-col items-center px-3.5 py-2.5 rounded-2xl border transition-all min-w-[58px] disabled:opacity-35"
-                            style={isSelected
+                            className="flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-2xl border transition-all min-w-[52px] disabled:opacity-35"
+                            style={isSel
                               ? { background: '#9c5e6c', borderColor: '#9c5e6c', color: '#fff' }
                               : { background: '#fff', borderColor: '#e8e4dc', color: '#2a2540' }
                             }
                           >
                             <span className="text-[10px] font-bold">{DAY_NAMES_SHORT[ourDay]}</span>
-                            <span className="text-[18px] font-extrabold leading-tight">{date.getDate()}</span>
+                            <span className="text-[17px] font-extrabold leading-tight">{date.getDate()}</span>
                             <span className="text-[9px]" style={{ opacity: 0.7 }}>{MONTHS[date.getMonth()]}</span>
-                            {isToday && !isSelected && (
-                              <span
-                                className="w-1.5 h-1.5 rounded-full mt-0.5"
-                                style={{ background: '#9c5e6c' }}
-                              />
+                            {isToday && !isSel && (
+                              <span className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: '#9c5e6c' }} />
                             )}
                           </button>
                         );
@@ -346,70 +313,81 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
                     </div>
                   </div>
 
-                  {/* Time slots grid */}
-                  {selectedDate && (
-                    <div className="mb-4">
+                  {/* Time slots */}
+                  {selectedDate ? (
+                    <div>
                       <p className="text-[11px] font-bold uppercase tracking-widest text-[#9a96a8] mb-2.5">
                         Доступное время
                       </p>
                       {slots.length === 0 ? (
-                        <div className="text-center py-6 rounded-2xl" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
-                          <p className="text-sm text-[#9a96a8]">Нет свободных слотов на этот день</p>
+                        <div className="text-center py-5 rounded-2xl" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
+                          <p className="text-sm text-[#9a96a8]">Нет свободных слотов</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-4 gap-2">
                           {slots.map(({ time, busy }) => {
-                            const isSelected = selectedTime === time;
+                            const isSel = selectedTime === time;
                             return (
-                              <button
-                                key={time}
-                                type="button"
+                              <button key={time} type="button"
                                 onClick={() => { if (!busy) setSelectedTime(time); }}
                                 disabled={busy}
                                 className="py-2.5 rounded-xl text-sm font-semibold border transition-all"
                                 style={
-                                  isSelected
-                                    ? { background: '#9c5e6c', borderColor: '#9c5e6c', color: '#fff' }
-                                    : busy
-                                      ? { background: '#f4f3ef', borderColor: '#e8e4dc', color: '#c0bcc8' }
-                                      : { background: '#fff', borderColor: '#9c5e6c', color: '#9c5e6c' }
+                                  isSel  ? { background: '#9c5e6c', borderColor: '#9c5e6c', color: '#fff' }
+                                  : busy ? { background: '#f4f3ef', borderColor: '#e8e4dc', color: '#c0bcc8' }
+                                         : { background: '#fff', borderColor: '#9c5e6c', color: '#9c5e6c' }
                                 }
                               >
-                                {busy ? <span className="line-through opacity-50">{time}</span> : time}
+                                {busy ? <span className="line-through opacity-40">{time}</span> : time}
                               </button>
                             );
                           })}
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {!selectedDate && (
-                    <div
-                      className="rounded-2xl p-5 text-center"
-                      style={{ background: '#fff', border: '1px solid #e8e4dc' }}
-                    >
+                  ) : (
+                    <div className="rounded-2xl p-5 text-center" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
                       <p className="text-3xl mb-2">👆</p>
                       <p className="text-sm font-semibold text-[#2a2540] mb-1">Выберите удобный день</p>
                       <p className="text-xs text-[#9a96a8]">Слоты загрузятся автоматически</p>
                     </div>
-                  )}
-
-                  {selectedDate && selectedTime && (
-                    <button
-                      type="button"
-                      onClick={() => setStep('confirm')}
-                      className="w-full py-3.5 rounded-2xl text-white font-bold text-sm mt-2"
-                      style={{ background: '#9c5e6c' }}
-                    >
-                      Продолжить →
-                    </button>
                   )}
                 </>
               )}
             </>
           )}
         </div>
+
+        {/* ── Sticky footer CTA — always visible, never in scroll zone ───── */}
+        {step === 'pick' && selectedDate && selectedTime && (
+          <div className="flex-shrink-0 px-5 pt-3 pb-5" style={{ borderTop: '1px solid #e8e4dc', background: '#f4f3ef' }}>
+            <button type="button" onClick={() => setStep('confirm')}
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm"
+              style={{ background: '#9c5e6c' }}>
+              Продолжить →
+            </button>
+          </div>
+        )}
+
+        {step === 'confirm' && (
+          <div className="flex-shrink-0 px-5 pt-3 pb-5" style={{ borderTop: '1px solid #e8e4dc', background: '#f4f3ef' }}>
+            <button type="button" onClick={handleBook} disabled={booking}
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60"
+              style={{ background: '#9c5e6c' }}>
+              {booking ? '⏳ Записываю...' : '✅ Подтвердить запись'}
+            </button>
+          </div>
+        )}
+
+        {step === 'done' && (
+          <div className="flex-shrink-0 px-5 pt-3 pb-5" style={{ borderTop: '1px solid #e8e4dc', background: '#f4f3ef' }}>
+            <button type="button" onClick={onClose}
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm"
+              style={{ background: '#9c5e6c' }}>
+              Понятно
+            </button>
+          </div>
+        )}
       </div>
     </div>,
     document.body,
