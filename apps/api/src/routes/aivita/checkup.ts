@@ -9,6 +9,7 @@ import {
 } from '@medsoft/db';
 import { eq, desc, and, gte, isNull } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { autoReport, inferDiseaseCategory } from './outbreak.js';
 
 export const aivitaCheckupRouter = new Hono();
 
@@ -133,7 +134,7 @@ async function callClaude(userContext: string): Promise<CheckupResult | null> {
 
 // ─── Build user context string from DB data ────────────────────────────────────
 
-async function buildUserContext(userId: string): Promise<{ context: string; chronoAge: number }> {
+async function buildUserContext(userId: string): Promise<{ context: string; chronoAge: number; city: string }> {
   const [profile, meds, allergyList, chronic, recentVitals] = await Promise.all([
     db.query.healthProfiles.findFirst({ where: eq(healthProfiles.userId, userId) }),
     db.select().from(medications)
@@ -204,7 +205,7 @@ async function buildUserContext(userId: string): Promise<{ context: string; chro
     chronic.length ? chronic.map(c => c.name).join(', ') : 'нет',
   ];
 
-  return { context: lines.join('\n'), chronoAge };
+  return { context: lines.join('\n'), chronoAge, city: (profile as { city?: string } | undefined)?.city ?? 'Ташкент' };
 }
 
 // ─── POST /run ─────────────────────────────────────────────────────────────────
@@ -219,7 +220,7 @@ aivitaCheckupRouter.post('/run', async (c) => {
   }).returning();
 
   try {
-    const { context, chronoAge } = await buildUserContext(userId);
+    const { context, chronoAge, city } = await buildUserContext(userId);
 
     // Try Claude first, fall back to mock
     const result: CheckupResult = (await callClaude(context)) ?? buildMock(chronoAge);
@@ -237,6 +238,22 @@ aivitaCheckupRouter.post('/run', async (c) => {
       })
       .where(eq(healthCheckups.id, pending.id))
       .returning();
+
+    // ── Auto-report symptoms to outbreak monitoring ──────────────────────────
+    if (result.problems?.length) {
+      for (const prob of result.problems) {
+        if (prob.severity === 'red' || prob.severity === 'yellow') {
+          void autoReport({
+            userId,
+            city,
+            symptomType: 'headache', // generic — AI will infer exact type
+            diseaseCategory: inferDiseaseCategory(prob.title, prob.description),
+            severity: prob.severity === 'red' ? 'severe' : 'moderate',
+            source: 'checkup',
+          });
+        }
+      }
+    }
 
     return c.json({ data: done }, 201);
   } catch {

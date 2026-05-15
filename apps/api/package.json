@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file .env src/index.ts",
     "build": "echo 'No compile step — tsx runs TS directly'",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"

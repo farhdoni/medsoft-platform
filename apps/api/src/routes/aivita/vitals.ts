@@ -6,6 +6,8 @@ import { vitals } from '@medsoft/db';
 import { eq, and, desc, asc, gte, lte } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { analyzeHealthChange } from '../../lib/health-monitor.js';
+import { autoReport } from './outbreak.js';
+import { healthProfiles } from '@medsoft/db';
 
 export const aivitaVitalsRouter = new Hono();
 
@@ -159,6 +161,25 @@ aivitaVitalsRouter.post(
     } else if (typeof v.value === 'number') {
       const analysis = analyzeHealthChange(body.type, v.value);
       if (analysis.level !== 'none') aiRecommendation = analysis;
+    }
+
+    // ── Auto-report fever to outbreak monitoring ─────────────────────────────
+    if (body.type === 'temperature') {
+      const tempVal = typeof (body.value as Record<string,unknown>).value === 'number'
+        ? (body.value as { value: number }).value
+        : null;
+      if (tempVal != null && tempVal > 37.5) {
+        const profile = await db.query.healthProfiles.findFirst({ where: eq(healthProfiles.userId, userId) });
+        void autoReport({
+          userId,
+          city:            (profile as { city?: string } | undefined)?.city ?? 'Ташкент',
+          symptomType:     'fever',
+          temperature:     tempVal,
+          diseaseCategory: tempVal > 39 ? 'flu' : 'orvi',
+          severity:        tempVal > 39 ? 'severe' : tempVal > 38 ? 'moderate' : 'mild',
+          source:          'vitals',
+        });
+      }
     }
 
     return c.json({ data: row, aiRecommendation }, 201);

@@ -6,6 +6,8 @@ dist/
 .env
 .env.*
 !.env.example
+docker-compose.local.yml
+local-dev.ps1
 *.tsbuildinfo
 .DS_Store
 Thumbs.db

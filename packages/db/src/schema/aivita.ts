@@ -945,3 +945,46 @@ export const healthCheckups = pgTable(
     createdIdx:  index('health_checkups_created_idx').on(table.createdAt),
   })
 );
+
+// ─── Symptom reports (outbreak monitoring) ─────────────────────────────────────
+
+export const symptomReports = pgTable(
+  'symptom_reports',
+  {
+    id:               uuid('id').primaryKey().defaultRandom(),
+    userId:           uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'set null' }),
+    city:             text('city').notNull(),
+    symptomType:      text('symptom_type').notNull(), // fever|cough|diarrhea|rash|headache|vomiting|sore_throat
+    temperature:      numeric('temperature', { precision: 4, scale: 1 }),
+    diseaseCategory:  text('disease_category'),       // orvi|measles|hepatitis|intestinal|flu|other
+    severity:         text('severity'),               // mild|moderate|severe
+    source:           text('source').notNull().default('manual'), // checkup|vitals|manual|ai_chat
+    reportedAt:       timestamp('reported_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    cityIdx:          index('symptom_reports_city_idx').on(table.city),
+    categoryIdx:      index('symptom_reports_category_idx').on(table.diseaseCategory),
+    reportedAtIdx:    index('symptom_reports_reported_at_idx').on(table.reportedAt),
+    cityDateIdx:      index('symptom_reports_city_date_idx').on(table.city, table.diseaseCategory, table.reportedAt),
+  })
+);
+
+// ─── Outbreak snapshots (aggregated cache) ─────────────────────────────────────
+
+export const outbreakSnapshots = pgTable(
+  'outbreak_snapshots',
+  {
+    id:               uuid('id').primaryKey().defaultRandom(),
+    city:             text('city').notNull(),
+    diseaseCategory:  text('disease_category').notNull(),
+    activeCases:      integer('active_cases').notNull().default(0),
+    recovered:        integer('recovered').notNull().default(0),
+    hospitalized:     integer('hospitalized').notNull().default(0),
+    trend:            text('trend').notNull().default('stable'), // rising|stable|falling
+    calculatedAt:     timestamp('calculated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    cityIdx:          index('outbreak_snapshots_city_idx').on(table.city),
+    calcIdx:          index('outbreak_snapshots_calc_idx').on(table.calculatedAt),
+  })
+);

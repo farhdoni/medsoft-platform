@@ -12,9 +12,13 @@ interface Props {
 /** Wraps inner cabinet pages with the shared TopBar + FloatingNav chrome. */
 export async function PageShell({ active, avatarInitial = "F", locale = "ru", children }: Props) {
   const session = await getSession();
-  const initials = session?.name
-    ? session.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
-    : avatarInitial.toUpperCase();
+  const rawName = session?.name?.trim() || '';
+  const words = rawName.split(/\s+/).filter(Boolean);
+  const initials = rawName
+    ? words.length >= 2
+      ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+      : rawName.slice(0, 2).toUpperCase()
+    : avatarInitial.slice(0, 2).toUpperCase();
 
   return (
     <main className="mx-auto min-h-screen max-w-[1100px] px-4 pb-32 md:px-6 bg-bg-app">

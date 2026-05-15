@@ -52,6 +52,7 @@ import cardRouter from './routes/aivita/card.js';
 import { aivitaMedicationsRouter } from './routes/aivita/medications.js';
 import { aivitaOnboardingRouter } from './routes/aivita/onboarding.js';
 import { aivitaCheckupRouter } from './routes/aivita/checkup.js';
+import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
@@ -115,6 +116,8 @@ app.route('/v1/aivita/sos', sosRouter);
 app.route('/v1/aivita/card', cardRouter);
 app.route('/v1/aivita/medications', aivitaMedicationsRouter);
 app.route('/v1/aivita/checkup', aivitaCheckupRouter);
+app.route('/v1/aivita/outbreak', outbreakRouter);
+app.route('/v1/aivita/symptoms', symptomsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
