@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import { TopBar } from '@/components/cabinet/dashboard/TopBar';
+import { EarningsBlock } from '@/components/doctors/EarningsBlock';
 
 interface DoctorStats {
   totalConsultations: number;
@@ -136,6 +137,9 @@ export default function DoctorHomePage() {
           <h1 className="text-xl font-bold mt-0.5">Dr. {docName.split(' ')[0]}</h1>
           {docSpec && <p className="text-white/80 text-xs mt-1">{docSpec}</p>}
         </div>
+
+        {/* ── Earnings & consultations monitoring ── */}
+        <EarningsBlock locale={locale} />
 
         {/* 4 stat cards */}
         <div className="grid grid-cols-2 gap-3">

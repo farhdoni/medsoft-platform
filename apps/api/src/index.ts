@@ -62,6 +62,7 @@ import { paymeRouter } from './routes/payments/payme.js';
 import { uzumRouter } from './routes/payments/uzum.js';
 import { aivitaPaymentsRouter, aivitaPaymentMethodsRouter, aivitaPromoRouter } from './routes/aivita/payments.js';
 import { doctorEarningsRouter } from './routes/aivita/doctor/earnings.js';
+import { doctorDashboardStatsRouter } from './routes/aivita/doctor/dashboard-stats.js';
 import { adminFinanceRouter } from './routes/admin/finance.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
@@ -150,6 +151,7 @@ app.route('/v1/aivita/payment-methods', aivitaPaymentMethodsRouter);
 app.route('/v1/aivita/promo', aivitaPromoRouter);
 // Doctor earnings
 app.route('/v1/aivita/doctor/earnings', doctorEarningsRouter);
+app.route('/v1/aivita/doctor/dashboard-stats', doctorDashboardStatsRouter);
 // Admin finance
 app.route('/v1/admin/finance', adminFinanceRouter);
 app.route('/v1/admin/payouts', adminPayoutsRouter);
