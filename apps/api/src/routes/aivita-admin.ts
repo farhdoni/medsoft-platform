@@ -15,6 +15,11 @@ import {
   chatMessages,
   healthScores,
   auditLogs,
+  doctorProfiles,
+  subscriptionPlans,
+  subscriptions,
+  payments,
+  platformSettings,
 } from '@medsoft/db';
 import {
   eq, ilike, or, and, isNull, desc, asc, gte, lte, lt, gte as sqlGte,
@@ -520,6 +525,276 @@ router.post('/users/:id/verify-email', async (c) => {
   await auditLog(adminId, 'force_verify_email', 'aivita_user', id, {}, c.req);
 
   return c.json({ data: { verified: true, userId: id } });
+});
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AIVITA DOCTORS MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /v1/aivita-admin/aivita-doctors — list all aivita doctors
+router.get('/aivita-doctors', async (c) => {
+  const { page = '1', limit = '25', search = '', status = '' } = c.req.query();
+  const offset = (Number(page) - 1) * Number(limit);
+
+  const conds = [];
+  if (search) conds.push(ilike(aivitaUsers.name, `%${search}%`));
+  if (status) conds.push(eq(doctorProfiles.verificationStatus, status));
+
+  const rows = await db
+    .select({
+      userId: doctorProfiles.userId,
+      name: aivitaUsers.name,
+      email: aivitaUsers.email,
+      phone: aivitaUsers.phone,
+      specialization: doctorProfiles.specialization,
+      city: doctorProfiles.city,
+      verificationStatus: doctorProfiles.verificationStatus,
+      diplomaVerified: doctorProfiles.diplomaVerified,
+      licenseVerified: doctorProfiles.licenseVerified,
+      showInCatalog: doctorProfiles.showInCatalog,
+      isActive: doctorProfiles.isActive,
+      rating: doctorProfiles.rating,
+      totalConsultations: doctorProfiles.totalConsultations,
+      consultationPrice: doctorProfiles.consultationPrice,
+      createdAt: doctorProfiles.createdAt,
+      verifiedAt: doctorProfiles.verifiedAt,
+      rejectionReason: doctorProfiles.rejectionReason,
+    })
+    .from(doctorProfiles)
+    .innerJoin(aivitaUsers, eq(doctorProfiles.userId, aivitaUsers.id))
+    .where(conds.length > 0 ? and(...conds) : undefined)
+    .orderBy(desc(doctorProfiles.createdAt))
+    .limit(Number(limit))
+    .offset(offset);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(doctorProfiles)
+    .innerJoin(aivitaUsers, eq(doctorProfiles.userId, aivitaUsers.id))
+    .where(conds.length > 0 ? and(...conds) : undefined);
+
+  return c.json({ data: rows, total, page: Number(page), limit: Number(limit) });
+});
+
+// GET /v1/aivita-admin/aivita-doctors/:id — single doctor full profile
+router.get('/aivita-doctors/:id', async (c) => {
+  const { id } = c.req.param();
+
+  const [row] = await db
+    .select({
+      profile: doctorProfiles,
+      name: aivitaUsers.name,
+      email: aivitaUsers.email,
+      phone: aivitaUsers.phone,
+      avatarUrl: aivitaUsers.avatarUrl,
+    })
+    .from(doctorProfiles)
+    .innerJoin(aivitaUsers, eq(doctorProfiles.userId, aivitaUsers.id))
+    .where(eq(doctorProfiles.userId, id))
+    .limit(1);
+
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json({ data: row });
+});
+
+// PATCH /v1/aivita-admin/aivita-doctors/:id/verify — approve or reject
+router.patch('/aivita-doctors/:id/verify', async (c) => {
+  const adminId = c.get('adminId') as string;
+  const { id } = c.req.param();
+  const { action, reason } = await c.req.json() as { action: 'approve' | 'reject'; reason?: string };
+
+  if (!['approve', 'reject'].includes(action)) {
+    return c.json({ error: 'action must be approve or reject' }, 400);
+  }
+
+  const verificationStatus = action === 'approve' ? 'verified' : 'rejected';
+  const now = new Date();
+
+  await db.update(doctorProfiles)
+    .set({
+      verificationStatus,
+      verifiedAt: action === 'approve' ? now : null,
+      verifiedBy: action === 'approve' ? adminId : null,
+      rejectionReason: action === 'reject' ? (reason ?? 'Отклонено администратором') : null,
+      updatedAt: now,
+    })
+    .where(eq(doctorProfiles.userId, id));
+
+  await auditLog(adminId, `doctor_${action}`, 'doctor_profile', id, { reason }, c.req);
+
+  return c.json({ data: { verificationStatus, userId: id } });
+});
+
+// PATCH /v1/aivita-admin/aivita-doctors/:id/catalog — toggle showInCatalog / isActive
+router.patch('/aivita-doctors/:id/catalog', async (c) => {
+  const adminId = c.get('adminId') as string;
+  const { id } = c.req.param();
+  const body = await c.req.json() as { showInCatalog?: boolean; isActive?: boolean };
+
+  await db.update(doctorProfiles)
+    .set({ ...body, updatedAt: new Date() })
+    .where(eq(doctorProfiles.userId, id));
+
+  await auditLog(adminId, 'doctor_catalog_update', 'doctor_profile', id, body as Record<string, unknown>, c.req);
+
+  return c.json({ data: { updated: true } });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BILLING — subscription plans & subscriptions
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /v1/aivita-admin/billing/plans
+router.get('/billing/plans', async (c) => {
+  const plans = await db.select().from(subscriptionPlans).orderBy(asc(subscriptionPlans.price));
+  return c.json({ data: plans });
+});
+
+// POST /v1/aivita-admin/billing/plans
+router.post('/billing/plans', async (c) => {
+  const adminId = c.get('adminId') as string;
+  const body = await c.req.json() as {
+    name: string; slug: string; price: number; period: string;
+    targetRole: string; features?: string[];
+  };
+
+  const [plan] = await db.insert(subscriptionPlans).values({
+    name: body.name,
+    slug: body.slug,
+    price: body.price,
+    period: body.period,
+    targetRole: body.targetRole,
+    features: body.features ?? [],
+    isActive: true,
+  }).returning();
+
+  await auditLog(adminId, 'billing_plan_create', 'subscription_plan', String(plan.id), body as Record<string, unknown>, c.req);
+  return c.json({ data: plan });
+});
+
+// PATCH /v1/aivita-admin/billing/plans/:id
+router.patch('/billing/plans/:id', async (c) => {
+  const adminId = c.get('adminId') as string;
+  const id = Number(c.req.param('id'));
+  const body = await c.req.json() as Partial<{ name: string; price: number; period: string; features: string[]; isActive: boolean }>;
+
+  const [updated] = await db.update(subscriptionPlans)
+    .set(body)
+    .where(eq(subscriptionPlans.id, id))
+    .returning();
+
+  await auditLog(adminId, 'billing_plan_update', 'subscription_plan', String(id), body as Record<string, unknown>, c.req);
+  return c.json({ data: updated });
+});
+
+// GET /v1/aivita-admin/billing/subscriptions
+router.get('/billing/subscriptions', async (c) => {
+  const { page = '1', status = '' } = c.req.query();
+  const offset = (Number(page) - 1) * 25;
+
+  const conds = [];
+  if (status) conds.push(eq(subscriptions.status, status));
+
+  const rows = await db
+    .select({
+      id: subscriptions.id,
+      userId: subscriptions.userId,
+      userName: aivitaUsers.name,
+      userEmail: aivitaUsers.email,
+      planId: subscriptions.planId,
+      planName: subscriptionPlans.name,
+      planPrice: subscriptionPlans.price,
+      status: subscriptions.status,
+      startedAt: subscriptions.startedAt,
+      expiresAt: subscriptions.expiresAt,
+      autoRenew: subscriptions.autoRenew,
+    })
+    .from(subscriptions)
+    .innerJoin(aivitaUsers, eq(subscriptions.userId, aivitaUsers.id))
+    .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+    .where(conds.length > 0 ? and(...conds) : undefined)
+    .orderBy(desc(subscriptions.startedAt))
+    .limit(25)
+    .offset(offset);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(subscriptions)
+    .where(conds.length > 0 ? and(...conds) : undefined);
+
+  return c.json({ data: rows, total });
+});
+
+// GET /v1/aivita-admin/billing/stats — revenue overview
+router.get('/billing/stats', async (c) => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [totalRow] = await db
+    .select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` })
+    .from(payments)
+    .where(and(eq(payments.status, 'completed')));
+
+  const [monthRow] = await db
+    .select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` })
+    .from(payments)
+    .where(and(eq(payments.status, 'completed'), gte(payments.createdAt, monthStart)));
+
+  const [activeSubs] = await db
+    .select({ cnt: count() })
+    .from(subscriptions)
+    .where(eq(subscriptions.status, 'active'));
+
+  return c.json({
+    data: {
+      totalRevenue: Number(totalRow.total),
+      monthRevenue: Number(monthRow.total),
+      activeSubscriptions: activeSubs.cnt,
+    },
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HOME SETTINGS — app home page configuration
+// ══════════════════════════════════════════════════════════════════════════════
+
+const HOME_DEFAULTS: Record<string, string> = {
+  aivita_home_show_doctors: 'true',
+  aivita_home_show_ai_checkup: 'true',
+  aivita_home_announcement_text: '',
+  aivita_home_announcement_active: 'false',
+  aivita_home_announcement_color: '#6BA3D6',
+  aivita_home_hero_greeting_ru: 'Добро пожаловать',
+  aivita_home_hero_greeting_uz: 'Xush kelibsiz',
+  aivita_doctor_home_hero_sub_ru: 'Ваш AI-кабинет врача',
+  aivita_doctor_home_hero_sub_uz: 'Shifokor AI kabinetingiz',
+  aivita_home_maintenance: 'false',
+  aivita_home_maintenance_msg: 'Проводятся технические работы',
+};
+
+// GET /v1/aivita-admin/home-settings
+router.get('/home-settings', async (c) => {
+  const rows = await db.select().from(platformSettings)
+    .where(sql`${platformSettings.key} LIKE 'aivita_%'`);
+  const map: Record<string, string> = { ...HOME_DEFAULTS };
+  for (const r of rows) if (r.key) map[r.key] = r.value ?? '';
+  return c.json({ data: map });
+});
+
+// PUT /v1/aivita-admin/home-settings
+router.put('/home-settings', async (c) => {
+  const adminId = c.get('adminId') as string;
+  const body = await c.req.json() as Record<string, string>;
+
+  for (const [key, value] of Object.entries(body)) {
+    if (!key.startsWith('aivita_')) continue;
+    await db.insert(platformSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: platformSettings.key, set: { value, updatedAt: new Date() } });
+  }
+  await auditLog(adminId, 'home_settings_update', 'platform_settings', null, body as Record<string, unknown>, c.req);
+  return c.json({ success: true });
 });
 
 export { router as aivitaAdminRouter };

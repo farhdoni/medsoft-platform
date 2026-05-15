@@ -138,6 +138,25 @@ export default function DoctorHomePage() {
           {docSpec && <p className="text-white/80 text-xs mt-1">{docSpec}</p>}
         </div>
 
+        {/* AI CTA */}
+        <Link href={`/${locale}/doctor-ai`} className="block">
+          <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
+            <div className="flex items-center gap-3 mb-3">
+              <Icon3D name="sparkle" size={28} />
+              <div>
+                <h3 className="font-bold text-base">AI-ассистент врача</h3>
+                <p className="text-white/70 text-xs">Анализ пациентов, диагнозы, анализы</p>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {['Анализ данных', 'Предложить диагноз', 'Рекомендовать анализы'].map(btn => (
+                <span key={btn} className="text-xs px-3 py-1.5 rounded-full font-medium"
+                  style={{ background: 'rgba(255,255,255,0.2)' }}>{btn}</span>
+              ))}
+            </div>
+          </div>
+        </Link>
+
         {/* ── Earnings & consultations monitoring ── */}
         <EarningsBlock locale={locale} />
 
@@ -356,24 +375,6 @@ export default function DoctorHomePage() {
           </div>
         )}
 
-        {/* AI CTA */}
-        <Link href={`/${locale}/doctor-ai`} className="mt-1 block">
-          <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <Icon3D name="sparkle" size={28} />
-              <div>
-                <h3 className="font-bold text-base">AI-ассистент врача</h3>
-                <p className="text-white/70 text-xs">Анализ пациентов, диагнозы, анализы</p>
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {['Анализ данных', 'Предложить диагноз', 'Рекомендовать анализы'].map(btn => (
-                <span key={btn} className="text-xs px-3 py-1.5 rounded-full font-medium"
-                  style={{ background: 'rgba(255,255,255,0.2)' }}>{btn}</span>
-              ))}
-            </div>
-          </div>
-        </Link>
       </div>
     </div>
   );

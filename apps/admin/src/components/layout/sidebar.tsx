@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
-  Server, Globe, Banknote,
+  Server, Globe, Banknote, UserCheck, Wallet, Settings2,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -16,16 +16,20 @@ import { api } from '@/lib/api';
 type AdminMe = { id: string; email: string; fullName: string; role: string; isActive: boolean };
 
 const baseNavItems = [
-  { href: '/dashboard', label: 'Дашборд', icon: LayoutDashboard },
-  { href: '/patients', label: 'Пациенты aivita', icon: Users },
-  { href: '/doctors', label: 'Врачи', icon: Stethoscope },
-  { href: '/clinics', label: 'Клиники', icon: Building2 },
-  { href: '/appointments', label: 'Приёмы', icon: Calendar },
-  { href: '/transactions', label: 'Транзакции', icon: CreditCard },
-  { href: '/finance', label: 'Финансы', icon: Banknote },
-  { href: '/sos-calls', label: 'SOS вызовы', icon: AlertTriangle },
-  { href: '/monitoring', label: 'Мониторинг', icon: Server },
-  { href: '/cms', label: 'CMS лендинга', icon: Globe },
+  { href: '/dashboard', label: 'Дашборд', icon: LayoutDashboard, section: null },
+  { href: '/patients', label: 'Пациенты', icon: Users, section: null },
+  { href: '/doctors', label: 'Врачи', icon: Stethoscope, section: null },
+  { href: '/clinics', label: 'Клиники', icon: Building2, section: null },
+  { href: '/appointments', label: 'Приёмы', icon: Calendar, section: null },
+  { href: '/transactions', label: 'Транзакции', icon: CreditCard, section: null },
+  { href: '/finance', label: 'Финансы', icon: Banknote, section: null },
+  { href: '/sos-calls', label: 'SOS вызовы', icon: AlertTriangle, section: null },
+  { href: '/monitoring', label: 'Мониторинг', icon: Server, section: null },
+  { href: '/cms', label: 'CMS лендинга', icon: Globe, section: null },
+  // ── AIVITA ──
+  { href: '/aivita/doctors', label: 'Врачи AIVITA', icon: UserCheck, section: 'aivita' },
+  { href: '/aivita/billing', label: 'Биллинг', icon: Wallet, section: 'aivita' },
+  { href: '/aivita/home-settings', label: 'Главная страница', icon: Settings2, section: 'aivita' },
 ];
 
 export function Sidebar() {
@@ -42,7 +46,7 @@ export function Sidebar() {
 
   const navItems = [
     ...baseNavItems,
-    ...(me?.role === 'superadmin' ? [{ href: '/admins', label: 'Админы', icon: Shield }] : []),
+    ...(me?.role === 'superadmin' ? [{ href: '/admins', label: 'Админы', icon: Shield, section: null as null }] : []),
   ];
 
   async function handleLogout() {
@@ -58,21 +62,33 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              pathname === href || pathname.startsWith(href + '/')
-                ? 'bg-white/10 text-white'
-                : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white'
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-        ))}
+        {navItems.map(({ href, label, icon: Icon, section }, idx) => {
+          const prevSection = idx > 0 ? navItems[idx - 1].section : null;
+          const showSectionLabel = section && section !== prevSection;
+          return (
+            <div key={href}>
+              {showSectionLabel && (
+                <div className="px-3 pt-4 pb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">
+                    AIVITA
+                  </span>
+                </div>
+              )}
+              <Link
+                href={href}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  pathname === href || (pathname?.startsWith(href + '/') ?? false)
+                    ? 'bg-white/10 text-white'
+                    : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            </div>
+          );
+        })}
       </nav>
 
       <div className="p-3 border-t border-white/10 space-y-1">
