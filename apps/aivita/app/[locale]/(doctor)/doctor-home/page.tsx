@@ -129,7 +129,7 @@ export default function DoctorHomePage() {
         unreadCount={notifs.length}
       />
 
-      <div className="px-4 pb-4 space-y-4">
+      <div className="px-4 pb-4 space-y-5">
         {/* Hero */}
         <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
           <p className="text-white/70 text-sm">{greeting}</p>
@@ -248,7 +248,7 @@ export default function DoctorHomePage() {
         )}
 
         {/* 2-col: patients + appts */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mt-1">
           <div className="bg-white rounded-2xl p-4 border border-app-border">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-[#2a2540]">Пациенты</h2>
@@ -353,7 +353,7 @@ export default function DoctorHomePage() {
         )}
 
         {/* AI CTA */}
-        <Link href={`/${locale}/doctor-ai`}>
+        <Link href={`/${locale}/doctor-ai`} className="mt-1 block">
           <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
             <div className="flex items-center gap-3 mb-3">
               <Icon3D name="sparkle" size={28} />
