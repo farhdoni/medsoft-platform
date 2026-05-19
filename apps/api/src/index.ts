@@ -68,6 +68,7 @@ import { platformSettingsRouter } from './routes/admin/platform-settings.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
+import { landingApiRouter } from './routes/landing-api.js';
 import { adminPharmaciesRouter } from './routes/admin-pharmacies.js';
 import { pharmacyRouter } from './routes/pharmacy.js';
 import { aivitaPharmacyRouter } from './routes/aivita/pharmacy.js';
@@ -95,6 +96,8 @@ app.route('/v1/admins', adminsRouter);
 app.route('/v1/dashboard', dashboardRouter);
 // Monitoring (admin-only)
 app.route('/v1/admin/monitoring', adminMonitoringRouter);
+// Landing public API (aivita.uz/api/*)
+app.route('/api', landingApiRouter);
 // Landing CMS — public read + admin write
 app.route('/v1/landing', landingPublicRouter);
 app.route('/v1/aivita-admin/cms', landingAdminRouter);
