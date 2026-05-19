@@ -4,8 +4,8 @@
  * POST /api/waitlist        — add to waitlist
  */
 import { Hono } from 'hono';
-import { db, landingWaitlist, landingConfig } from '@medsoft/db';
-import { eq } from 'drizzle-orm';
+import { db, landingWaitlist, landingConfig, aivitaUsers, healthProfiles } from '@medsoft/db';
+import { eq, isNull, and, count, sql } from 'drizzle-orm';
 import { redis } from '../lib/redis.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,6 +27,9 @@ const DEFAULT_CONFIG = {
   yandex_metrika_id: '',
   gtm_id: '',
   cookie_text: 'Мы используем cookies для улучшения сервиса',
+  contact_email: 'info@aivita.uz',
+  contact_phone: '+998 XX XXX XX XX',
+  contact_address: 'Ташкент, Узбекистан',
 };
 
 export const landingApiRouter = new Hono();
@@ -51,6 +54,38 @@ landingApiRouter.get('/landing-config', async (c) => {
 
   return c.json(payload, 200, {
     'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  });
+});
+
+landingApiRouter.get('/stats/public', async (c) => {
+  try {
+    const cached = await redis.get('landing:stats:public');
+    if (cached) {
+      return c.json(JSON.parse(cached), 200, {
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
+      });
+    }
+  } catch { /* non-fatal */ }
+
+  let payload = { usersCount: 0, doctorsCount: 0, regionsCount: 0, foundedYear: 2026 };
+  try {
+    const [users, doctors, regions] = await Promise.all([
+      db.select({ total: count() }).from(aivitaUsers).where(isNull(aivitaUsers.deletedAt)),
+      db.select({ total: count() }).from(aivitaUsers).where(and(isNull(aivitaUsers.deletedAt), eq(aivitaUsers.role, 'doctor'))),
+      db.select({ total: sql<number>`COUNT(DISTINCT ${healthProfiles.city})` }).from(healthProfiles),
+    ]);
+    payload = {
+      usersCount: Number(users[0]?.total ?? 0),
+      doctorsCount: Number(doctors[0]?.total ?? 0),
+      regionsCount: Number(regions[0]?.total ?? 0),
+      foundedYear: 2026,
+    };
+  } catch { /* use defaults */ }
+
+  try { await redis.setex('landing:stats:public', 1800, JSON.stringify(payload)); } catch { /* non-fatal */ }
+
+  return c.json(payload, 200, {
+    'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
   });
 });
 

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>О нас — aivita</title>
+<meta name="description" content="О нас — aivita, цифровая медицинская платформа Узбекистана">
+<meta property="og:title" content="О нас — aivita">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aivita.uz/about.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#c87d8a;
+  --accent2:#8b6aae;
+  --dark:#1a1824;
+  --bg:#faf9f7;
+  --muted:#9a96a8;
+  --card:#ffffff;
+  --border:#e8e5f0;
+  --text:#2d2a38;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+/* Topnav */
+.topnav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(250,249,247,0.94);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-size:22px;font-weight:800;text-decoration:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lang-switcher{display:flex;gap:4px}
+.lang-btn{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;
+  color:var(--muted);transition:all .18s;
+}
+.lang-btn.active,.lang-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-back{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 15px;border-radius:8px;
+  background:var(--dark);color:#fff;
+  text-decoration:none;font-size:13px;font-weight:500;
+  transition:opacity .18s;white-space:nowrap;
+}
+.btn-back:hover{opacity:.85}
+
+/* Hero */
+.hero{
+  text-align:center;padding:72px 24px 56px;
+  max-width:800px;margin:0 auto;
+}
+.hero h1{
+  font-size:clamp(32px,6vw,60px);font-weight:800;line-height:1.1;
+  margin-bottom:20px;
+  background:linear-gradient(135deg,var(--dark) 0%,var(--accent2) 55%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{font-size:clamp(15px,2vw,19px);color:var(--muted);max-width:580px;margin:0 auto;line-height:1.7}
+
+/* Stats row */
+.stats-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:16px;max-width:900px;margin:0 auto 72px;padding:0 24px;
+}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:28px 20px;text-align:center;
+  box-shadow:0 2px 12px rgba(139,106,174,.06);
+  transition:transform .2s,box-shadow .2s;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(139,106,174,.12)}
+.stat-value{
+  font-size:36px;font-weight:800;line-height:1;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.stat-label{font-size:13px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+
+/* Sections */
+.section{max-width:900px;margin:0 auto 72px;padding:0 24px}
+.section-title{font-size:clamp(22px,4vw,32px);font-weight:700;margin-bottom:24px;color:var(--dark)}
+.section-body{font-size:16px;color:var(--text);line-height:1.85;max-width:680px}
+
+/* Values grid */
+.values-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.value-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px}
+.value-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+.value-icon.v1{background:rgba(200,125,138,.12)}
+.value-icon.v2{background:rgba(139,106,174,.12)}
+.value-icon.v3{background:rgba(200,125,138,.08)}
+.value-icon.v4{background:rgba(139,106,174,.08)}
+.value-card h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
+.value-card p{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* Contact */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.contact-item{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px}
+.contact-item-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.contact-item-value{font-size:15px;font-weight:500;color:var(--dark)}
+.contact-item-value a{color:var(--accent);text-decoration:none}
+.contact-item-value a:hover{text-decoration:underline}
+
+/* Social links */
+.social-links{display:flex;gap:10px;flex-wrap:wrap}
+.social-link{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:8px;
+  border:1px solid var(--border);background:var(--card);
+  text-decoration:none;font-size:13px;color:var(--dark);
+  transition:all .18s;
+}
+.social-link:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:28px 24px;margin-top:40px}
+.footer-inner{
+  max-width:900px;margin:0 auto;
+  display:flex;flex-wrap:wrap;gap:20px;
+  align-items:center;justify-content:space-between;
+}
+.footer-brand{
+  font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.footer-copy{font-size:12px;color:var(--muted);margin-top:4px}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .18s}
+.footer-links a:hover{color:var(--accent)}
+
+@media(max-width:560px){
+  .topnav{flex-wrap:wrap;gap:10px}
+  .nav-right{gap:8px}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="logo">aivita</a>
+  <div class="nav-right">
+    <div class="lang-switcher">
+      <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">RU</button>
+      <button class="lang-btn" data-lang="uz" onclick="setLang('uz')">UZ</button>
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+    <a href="/" class="btn-back" data-i18n="nav_back">← Главная</a>
+  </div>
+</nav>
+
+<main>
+  <div class="hero">
+    <h1 data-i18n="hero_title">Мы создаём медицину будущего</h1>
+    <p data-i18n="hero_subtitle">aivita — цифровая экосистема здоровья, которая объединяет пациентов и врачей Узбекистана</p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="val-users">100+</div>
+      <div class="stat-label" id="lbl-users">Пользователей</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="val-doctors">10+</div>
+      <div class="stat-label" id="lbl-doctors">Врачей</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="val-regions">5+</div>
+      <div class="stat-label" id="lbl-regions">Регионов</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="val-founded">2026</div>
+      <div class="stat-label" id="lbl-founded">Год основания</div>
+    </div>
+  </div>
+
+  <section class="section">
+    <h2 class="section-title" data-i18n="mission_title">Наша миссия</h2>
+    <p class="section-body" id="mission-text">Сделать качественную медицинскую помощь доступной каждому жителю Узбекистана — независимо от места проживания и финансового положения. Мы создаём технологии, которые соединяют людей с лучшими врачами страны.</p>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title" data-i18n="values_title">Наши ценности</h2>
+    <div class="values-grid" id="values-grid"></div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title" data-i18n="contact_title">Контакты</h2>
+    <div class="contact-grid">
+      <div class="contact-item">
+        <div class="contact-item-label" id="lbl-email">Email</div>
+        <div class="contact-item-value" id="val-email"><a href="mailto:info@aivita.uz">info@aivita.uz</a></div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-item-label" id="lbl-phone">Телефон</div>
+        <div class="contact-item-value" id="val-phone">+998 XX XXX XX XX</div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-item-label" id="lbl-address">Адрес</div>
+        <div class="contact-item-value" id="val-address">Ташкент, Узбекистан</div>
+      </div>
+    </div>
+    <div class="social-links" id="social-links"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">aivita</div>
+      <div class="footer-copy" data-i18n="footer_copy">© 2026 aivita. Все права защищены.</div>
+    </div>
+    <div class="footer-links">
+      <a href="/" data-i18n="footer_home">Главная</a>
+      <a href="/about.html" data-i18n="footer_about">О нас</a>
+      <a href="/privacy.html" data-i18n="footer_privacy">Политика</a>
+      <a href="/terms.html" data-i18n="footer_terms">Оферта</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const LANG_KEY = 'aivita_lang';
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+
+const I18N = {
+  ru: {
+    title: 'О нас — aivita',
+    nav_back: '← Главная',
+    hero_title: 'Мы создаём медицину будущего',
+    hero_subtitle: 'aivita — цифровая экосистема здоровья, которая объединяет пациентов и врачей Узбекистана',
+    stat_users: 'Пользователей',
+    stat_doctors: 'Врачей',
+    stat_regions: 'Регионов',
+    stat_founded: 'Год основания',
+    mission_title: 'Наша миссия',
+    mission_text: 'Сделать качественную медицинскую помощь доступной каждому жителю Узбекистана — независимо от места проживания и финансового положения. Мы создаём технологии, которые соединяют людей с лучшими врачами страны.',
+    values_title: 'Наши ценности',
+    values: [
+      { icon: '🌍', title: 'Доступность', text: 'Медицина без барьеров — для каждого жителя Узбекистана.' },
+      { icon: '🔒', title: 'Доверие', text: 'Безопасность данных и прозрачность на первом месте.' },
+      { icon: '🚀', title: 'Инновации', text: 'Передовые технологии на службе здоровья каждого.' },
+      { icon: '❤️', title: 'Забота', text: 'Человечный подход в каждом взаимодействии.' },
+    ],
+    contact_title: 'Контакты',
+    contact_email: 'Email',
+    contact_phone: 'Телефон',
+    contact_address: 'Адрес',
+    footer_copy: '© 2026 aivita. Все права защищены.',
+    footer_home: 'Главная',
+    footer_about: 'О нас',
+    footer_privacy: 'Политика',
+    footer_terms: 'Оферта',
+  },
+  uz: {
+    title: "Biz haqimizda — aivita",
+    nav_back: '← Bosh sahifa',
+    hero_title: "Biz kelajak tibbiyotini yaratmoqdamiz",
+    hero_subtitle: "aivita — O'zbekiston bemorlar va shifokorlarini birlashtiruvchi raqamli sog'liq ekotizimi",
+    stat_users: 'Foydalanuvchilar',
+    stat_doctors: 'Shifokorlar',
+    stat_regions: 'Hududlar',
+    stat_founded: 'Tashkil etilgan',
+    mission_title: 'Bizning missiyamiz',
+    mission_text: "O'zbekistonning har bir fuqarosiga yashaydigan joyidan va moliyaviy ahvolidan qat'i nazar sifatli tibbiy yordam ko'rsatishni ta'minlash. Biz odamlarni mamlakat eng yaxshi shifokorlariga bog'laydigan texnologiyalar yaratmoqdamiz.",
+    values_title: 'Bizning qadriyatlarimiz',
+    values: [
+      { icon: '🌍', title: 'Qulaylik', text: "To'siqlarsiz tibbiyot — O'zbekistonning har bir fuqarosi uchun." },
+      { icon: '🔒', title: 'Ishonch', text: "Ma'lumotlar xavfsizligi va shaffoflik birinchi o'rinda." },
+      { icon: '🚀', title: 'Innovatsiya', text: "Har kimning sog'ligi xizmatidagi ilg'or texnologiyalar." },
+      { icon: '❤️', title: "G'amxo'rlik", text: 'Har bir muloqotda insoniy yondashuv.' },
+    ],
+    contact_title: 'Aloqa',
+    contact_email: 'Email',
+    contact_phone: 'Telefon',
+    contact_address: 'Manzil',
+    footer_copy: '© 2026 aivita. Barcha huquqlar himoyalangan.',
+    footer_home: 'Bosh sahifa',
+    footer_about: 'Biz haqimizda',
+    footer_privacy: 'Maxfiylik siyosati',
+    footer_terms: 'Oferta',
+  },
+  en: {
+    title: 'About Us — aivita',
+    nav_back: '← Home',
+    hero_title: 'We are building the medicine of the future',
+    hero_subtitle: 'aivita is a digital health ecosystem connecting patients and doctors across Uzbekistan',
+    stat_users: 'Users',
+    stat_doctors: 'Doctors',
+    stat_regions: 'Regions',
+    stat_founded: 'Founded',
+    mission_title: 'Our Mission',
+    mission_text: 'To make quality healthcare accessible to every resident of Uzbekistan — regardless of their location or financial situation. We build technology that connects people with the best doctors in the country.',
+    values_title: 'Our Values',
+    values: [
+      { icon: '🌍', title: 'Accessibility', text: 'Healthcare without barriers — for every resident of Uzbekistan.' },
+      { icon: '🔒', title: 'Trust', text: 'Data security and transparency come first.' },
+      { icon: '🚀', title: 'Innovation', text: 'Cutting-edge technology in the service of health.' },
+      { icon: '❤️', title: 'Care', text: 'A human approach in every interaction.' },
+    ],
+    contact_title: 'Contact',
+    contact_email: 'Email',
+    contact_phone: 'Phone',
+    contact_address: 'Address',
+    footer_copy: '© 2026 aivita. All rights reserved.',
+    footer_home: 'Home',
+    footer_about: 'About',
+    footer_privacy: 'Privacy',
+    footer_terms: 'Terms',
+  },
+};
+
+let cfgMission = null;
+
+function t(key) {
+  const tr = I18N[lang] || I18N.ru;
+  return tr[key] !== undefined ? tr[key] : (I18N.ru[key] || key);
+}
+
+function fmtStat(n, isYear) {
+  if (isYear) return String(n);
+  if (!n || n <= 0) return '—';
+  return (n >= 1000 ? n.toLocaleString('en-US') : String(n)) + '+';
+}
+
+function render() {
+  document.title = t('title');
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (key) el.textContent = t(key);
+  });
+
+  document.getElementById('lbl-users').textContent = t('stat_users');
+  document.getElementById('lbl-doctors').textContent = t('stat_doctors');
+  document.getElementById('lbl-regions').textContent = t('stat_regions');
+  document.getElementById('lbl-founded').textContent = t('stat_founded');
+
+  const missionEl = document.getElementById('mission-text');
+  if (missionEl) {
+    missionEl.textContent = (cfgMission && lang === 'ru') ? cfgMission : t('mission_text');
+  }
+
+  const tr = I18N[lang] || I18N.ru;
+  const valuesEl = document.getElementById('values-grid');
+  if (valuesEl && tr.values) {
+    valuesEl.innerHTML = tr.values.map((v, i) =>
+      `<div class="value-card"><div class="value-icon v${i+1}">${v.icon}</div><h3>${v.title}</h3><p>${v.text}</p></div>`
+    ).join('');
+  }
+}
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem(LANG_KEY, l);
+  render();
+}
+
+fetch('/api/landing-config')
+  .then(r => r.json())
+  .then(data => {
+    if (data.contact_email) {
+      document.getElementById('val-email').innerHTML = `<a href="mailto:${data.contact_email}">${data.contact_email}</a>`;
+    }
+    if (data.contact_phone) document.getElementById('val-phone').textContent = data.contact_phone;
+    if (data.contact_address) document.getElementById('val-address').textContent = data.contact_address;
+    if (data.about_mission) { cfgMission = data.about_mission; render(); }
+    const sl = data.social_links || {};
+    const socialEl = document.getElementById('social-links');
+    if (socialEl) {
+      const links = [
+        { key: 'telegram', label: 'Telegram' },
+        { key: 'instagram', label: 'Instagram' },
+        { key: 'youtube', label: 'YouTube' },
+        { key: 'facebook', label: 'Facebook' },
+        { key: 'whatsapp', label: 'WhatsApp' },
+      ];
+      socialEl.innerHTML = links
+        .filter(l => sl[l.key])
+        .map(l => `<a href="${sl[l.key]}" class="social-link" target="_blank" rel="noopener">${l.label}</a>`)
+        .join('');
+    }
+  })
+  .catch(() => {});
+
+fetch('/api/stats/public')
+  .then(r => r.json())
+  .then(data => {
+    if (data.usersCount !== undefined) document.getElementById('val-users').textContent = fmtStat(data.usersCount);
+    if (data.doctorsCount !== undefined) document.getElementById('val-doctors').textContent = fmtStat(data.doctorsCount);
+    if (data.regionsCount !== undefined) document.getElementById('val-regions').textContent = fmtStat(data.regionsCount);
+    if (data.foundedYear !== undefined) document.getElementById('val-founded').textContent = fmtStat(data.foundedYear, true);
+  })
+  .catch(() => {});
+
+render();
+</script>
+</body>
+</html>

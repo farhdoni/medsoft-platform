@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Публичная оферта — aivita</title>
+<meta name="description" content="Публичная оферта aivita — условия использования платформы">
+<meta property="og:title" content="Публичная оферта — aivita">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aivita.uz/terms.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#c87d8a;
+  --accent2:#8b6aae;
+  --dark:#1a1824;
+  --bg:#faf9f7;
+  --muted:#9a96a8;
+  --card:#ffffff;
+  --border:#e8e5f0;
+  --text:#2d2a38;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+.topnav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(250,249,247,0.94);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-size:22px;font-weight:800;text-decoration:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lang-switcher{display:flex;gap:4px}
+.lang-btn{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;
+  color:var(--muted);transition:all .18s;
+}
+.lang-btn.active,.lang-btn:hover{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
+.btn-back{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 15px;border-radius:8px;
+  background:var(--dark);color:#fff;
+  text-decoration:none;font-size:13px;font-weight:500;
+  transition:opacity .18s;white-space:nowrap;
+}
+.btn-back:hover{opacity:.85}
+
+.hero{
+  text-align:center;padding:60px 24px 48px;
+  max-width:760px;margin:0 auto;
+}
+.hero h1{
+  font-size:clamp(28px,5vw,48px);font-weight:800;line-height:1.15;
+  margin-bottom:16px;
+  background:linear-gradient(135deg,var(--dark) 0%,var(--accent2) 55%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-meta{font-size:14px;color:var(--muted)}
+
+.policy-wrap{max-width:800px;margin:0 auto;padding:0 24px 80px}
+.policy-section{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:28px 32px;margin-bottom:16px;
+}
+.policy-section-title{
+  font-size:17px;font-weight:700;color:var(--dark);
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.policy-section-title::before{
+  content:'';display:block;width:4px;height:20px;border-radius:2px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  flex-shrink:0;
+}
+.policy-section-body{font-size:15px;color:var(--text);line-height:1.8}
+.policy-section-body p{margin-bottom:10px}
+.policy-section-body p:last-child{margin-bottom:0}
+.policy-section-body ul{padding-left:20px;margin-top:8px}
+.policy-section-body li{margin-bottom:6px}
+
+footer{border-top:1px solid var(--border);padding:28px 24px}
+.footer-inner{
+  max-width:800px;margin:0 auto;
+  display:flex;flex-wrap:wrap;gap:20px;
+  align-items:center;justify-content:space-between;
+}
+.footer-brand{
+  font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.footer-copy{font-size:12px;color:var(--muted);margin-top:4px}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .18s}
+.footer-links a:hover{color:var(--accent)}
+
+@media(max-width:560px){
+  .topnav{flex-wrap:wrap;gap:10px}
+  .policy-section{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="logo">aivita</a>
+  <div class="nav-right">
+    <div class="lang-switcher">
+      <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">RU</button>
+      <button class="lang-btn" data-lang="uz" onclick="setLang('uz')">UZ</button>
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+    <a href="/" class="btn-back" data-i18n="nav_back">← Главная</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1 data-i18n="page_title">Публичная оферта</h1>
+  <div class="hero-meta" data-i18n="effective_date">Действует с 19 мая 2026 г.</div>
+</div>
+
+<div class="policy-wrap" id="policy-sections"></div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">aivita</div>
+      <div class="footer-copy" data-i18n="footer_copy">© 2026 aivita. Все права защищены.</div>
+    </div>
+    <div class="footer-links">
+      <a href="/" data-i18n="footer_home">Главная</a>
+      <a href="/about.html" data-i18n="footer_about">О нас</a>
+      <a href="/privacy.html" data-i18n="footer_privacy">Политика</a>
+      <a href="/terms.html" data-i18n="footer_terms">Оферта</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const LANG_KEY = 'aivita_lang';
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+
+const I18N = {
+  ru: {
+    page_title: 'Публичная оферта',
+    nav_back: '← Главная',
+    effective_date: 'Действует с 19 мая 2026 г.',
+    footer_copy: '© 2026 aivita. Все права защищены.',
+    footer_home: 'Главная',
+    footer_about: 'О нас',
+    footer_privacy: 'Политика',
+    footer_terms: 'Оферта',
+    sections: [
+      {
+        title: '1. Предмет оферты',
+        body: '<p>Настоящий документ является публичной офертой ООО «aivita» (далее — «Компания») и определяет условия предоставления доступа к цифровой медицинской платформе aivita, включая веб-сайт aivita.uz и мобильное приложение.</p><p>Платформа предоставляет пользователям доступ к сервисам: электронная медицинская карта, AI-ассистент здоровья, онлайн-консультации с врачами, мониторинг показателей здоровья, а также иным сопутствующим услугам.</p>'
+      },
+      {
+        title: '2. Порядок принятия оферты (акцепт)',
+        body: '<p>Акцептом настоящей оферты является совершение пользователем любого из следующих действий:</p><ul><li>Регистрация аккаунта на платформе aivita.</li><li>Нажатие кнопки «Согласен» или аналогичной при использовании сервиса.</li><li>Фактическое использование платформы после ознакомления с условиями.</li></ul><p>С момента акцепта между пользователем и Компанией заключается договор на условиях настоящей оферты. Договор считается заключённым в электронной форме и имеет юридическую силу без подписания на бумаге.</p>'
+      },
+      {
+        title: '3. Регистрация и аккаунт',
+        body: '<p>Для использования платформы необходимо создать аккаунт, указав корректные персональные данные. Пользователь обязан:</p><ul><li>Предоставлять достоверную информацию при регистрации и обновлять её при изменении.</li><li>Хранить данные для входа в тайне и не передавать их третьим лицам.</li><li>Незамедлительно сообщать Компании о несанкционированном доступе к аккаунту.</li><li>Не создавать несколько аккаунтов для одного физического лица.</li></ul><p>Компания вправе заблокировать или удалить аккаунт при нарушении условий оферты.</p>'
+      },
+      {
+        title: '4. Права и обязанности пользователя',
+        body: '<p><strong>Пользователь вправе:</strong></p><ul><li>Использовать все доступные функции платформы в соответствии с выбранным тарифом.</li><li>Получать техническую поддержку через встроенные каналы связи.</li><li>Удалить аккаунт в любой момент.</li><li>Обращаться с жалобами и предложениями.</li></ul><p><strong>Пользователь обязан:</strong></p><ul><li>Не использовать платформу в противоправных целях.</li><li>Не нарушать права третьих лиц и врачей.</li><li>Не распространять медицинские заключения, полученные через платформу, без согласия врача.</li><li>Не пытаться получить несанкционированный доступ к системам платформы.</li></ul>'
+      },
+      {
+        title: '5. Права и обязанности Компании',
+        body: '<p><strong>Компания вправе:</strong></p><ul><li>Изменять функциональность платформы, добавлять и удалять сервисы.</li><li>Устанавливать ограничения на использование отдельных функций.</li><li>Временно приостанавливать работу платформы для технического обслуживания.</li><li>Блокировать пользователей, нарушающих условия оферты.</li></ul><p><strong>Компания обязана:</strong></p><ul><li>Обеспечивать работоспособность платформы в соответствии с заявленными параметрами.</li><li>Защищать персональные данные пользователей согласно Политике конфиденциальности.</li><li>Уведомлять пользователей об изменении условий оферты.</li><li>Рассматривать обоснованные жалобы пользователей в разумные сроки.</li></ul>'
+      },
+      {
+        title: '6. Платные услуги и подписка',
+        body: '<p>Часть функций платформы доступна только по платной подписке (тарифы Plus и Pro). Условия подписки:</p><ul><li>Стоимость и состав тарифов публикуются на сайте aivita.uz и могут изменяться.</li><li>Подписка оформляется на месячной или годовой основе с автоматическим продлением.</li><li>Оплата производится через платёжные системы Click, Payme или Uzum.</li><li>Пользователь может отменить автопродление в настройках аккаунта до даты следующего списания.</li></ul>'
+      },
+      {
+        title: '7. Возврат средств',
+        body: '<p>Возврат оплаченных средств возможен в следующих случаях:</p><ul><li>В течение 3 дней с момента оплаты, если пользователь не воспользовался платными функциями.</li><li>При технических сбоях, препятствующих использованию оплаченных услуг по вине Компании.</li><li>В иных случаях, предусмотренных законодательством Республики Узбекистан о защите прав потребителей.</li></ul><p>Для оформления возврата обратитесь по адресу: <strong>info@aivita.uz</strong>. Возврат осуществляется на карту, с которой была произведена оплата, в течение 10 рабочих дней.</p>'
+      },
+      {
+        title: '8. Ответственность сторон',
+        body: '<p>Компания не несёт ответственности за:</p><ul><li>Медицинские решения, принятые пользователем самостоятельно на основе информации платформы — AI-ассистент не заменяет врача.</li><li>Действия врачей-партнёров, зарегистрированных на платформе как независимые специалисты.</li><li>Недоступность платформы в случае форс-мажора, сбоев у интернет-провайдеров или третьих сервисов.</li><li>Ущерб, причинённый в результате несанкционированного доступа к аккаунту пользователя по вине самого пользователя.</li></ul><p>Совокупная ответственность Компании по договору ограничена суммой платежей, уплаченных пользователем за последние 3 месяца.</p>'
+      },
+      {
+        title: '9. Интеллектуальная собственность',
+        body: '<p>Все материалы платформы — программный код, дизайн, логотипы, текстовый контент, алгоритмы AI — являются собственностью Компании или используются на законных основаниях.</p><p>Пользователю предоставляется неисключительная, непередаваемая лицензия на использование платформы исключительно в личных некоммерческих целях. Запрещается:</p><ul><li>Копировать, воспроизводить или распространять материалы платформы без письменного разрешения.</li><li>Декомпилировать, дизассемблировать или иным образом получать исходный код.</li><li>Создавать производные продукты на основе платформы.</li></ul>'
+      },
+      {
+        title: '10. Конфиденциальность',
+        body: '<p>Обработка персональных данных пользователей осуществляется в соответствии с <a href="/privacy.html" style="color:var(--accent)">Политикой конфиденциальности</a>, которая является неотъемлемой частью настоящей оферты.</p><p>Медицинские данные, передаваемые врачу в ходе консультации, являются врачебной тайной и не могут быть раскрыты третьим лицам без согласия пользователя, за исключением случаев, предусмотренных законодательством.</p>'
+      },
+      {
+        title: '11. Изменение условий оферты',
+        body: '<p>Компания вправе в одностороннем порядке изменять условия настоящей оферты. Пользователи уведомляются об изменениях:</p><ul><li>Публикацией актуальной версии на сайте aivita.uz с указанием даты вступления в силу.</li><li>Уведомлением в мобильном приложении.</li><li>Email-уведомлением при существенных изменениях.</li></ul><p>Изменения вступают в силу через 7 дней после публикации. Продолжение использования платформы означает согласие с изменёнными условиями. Если пользователь не согласен, он вправе расторгнуть договор, удалив аккаунт.</p>'
+      },
+      {
+        title: '12. Контактная информация',
+        body: '<p>По вопросам, связанным с настоящей офертой, обращайтесь:</p><ul><li><strong>Email:</strong> info@aivita.uz</li><li><strong>Адрес:</strong> Ташкент, Узбекистан</li></ul><p>Применимое право: законодательство Республики Узбекистан. Все споры разрешаются в судах по месту нахождения Компании, если стороны не договорились об ином.</p>'
+      },
+    ],
+  },
+  uz: {
+    page_title: 'Ommaviy oferta',
+    nav_back: '← Bosh sahifa',
+    effective_date: '2026 yil 19 maydan kuchga kiradi.',
+    footer_copy: '© 2026 aivita. Barcha huquqlar himoyalangan.',
+    footer_home: 'Bosh sahifa',
+    footer_about: 'Biz haqimizda',
+    footer_privacy: 'Maxfiylik siyosati',
+    footer_terms: 'Oferta',
+    sections: [
+      {
+        title: '1. Ofertaning predmeti',
+        body: "<p>Ushbu hujjat «aivita» MChJ (keyingi o'rinlarda — «Kompaniya») ning ommaviy ofertasi bo'lib, aivita.uz veb-sayti va mobil ilova orqali mavjud bo'lgan raqamli tibbiy platforma aivita'ga kirish shartlarini belgilaydi.</p><p>Platforma foydalanuvchilarga quyidagi xizmatlarni taqdim etadi: elektron tibbiy karta, AI sog'liq assistenti, shifokorlar bilan onlayn konsultatsiyalar, sog'liq ko'rsatkichlarini monitoring qilish va boshqa tegishli xizmatlar.</p>"
+      },
+      {
+        title: '2. Ofertani qabul qilish tartibi (aksept)',
+        body: "<p>Ushbu ofertani aksept qilish foydalanuvchining quyidagi harakatlaridan birini bajarishidir:</p><ul><li>aivita platformasida hisob qaydnomasini ro'yxatdan o'tkazish.</li><li>Xizmatdan foydalanishda «Roziman» tugmasini bosish.</li><li>Shartlar bilan tanishgandan so'ng platformadan haqiqatda foydalanish.</li></ul><p>Aksept lahzasidan boshlab foydalanuvchi va Kompaniya o'rtasida ushbu oferta shartlari asosida shartnoma tuziladi.</p>"
+      },
+      {
+        title: '3. Ro\'yxatdan o\'tish va hisob qaydnomasi',
+        body: "<p>Platformadan foydalanish uchun to'g'ri shaxsiy ma'lumotlarni ko'rsatgan holda hisob qaydnomasini yaratish kerak. Foydalanuvchi majburdir:</p><ul><li>Ro'yxatdan o'tishda ishonchli ma'lumot berish va uni o'zgarganda yangilash.</li><li>Kirish ma'lumotlarini sir saqlash va uchinchi shaxslarga bermaslik.</li><li>Hisobga ruxsatsiz kirish haqida Kompaniyani darhol xabardor qilish.</li><li>Bir jismoniy shaxs uchun bir nechta hisob qaydnomasi yaratmaslik.</li></ul>"
+      },
+      {
+        title: '4. Foydalanuvchining huquq va majburiyatlari',
+        body: "<p><strong>Foydalanuvchi haqqi bor:</strong></p><ul><li>Tanlangan tarifga muvofiq platformaning barcha mavjud funksiyalaridan foydalanish.</li><li>O'rnatilgan aloqa kanallari orqali texnik yordam olish.</li><li>Istalgan vaqtda hisobni o'chirish.</li></ul><p><strong>Foydalanuvchi majburdir:</strong></p><ul><li>Platformadan noqonuniy maqsadlarda foydalanmaslik.</li><li>Uchinchi shaxslar va shifokorlarning huquqlarini buzmaslik.</li><li>Platformaga ruxsatsiz kirish urinishlarini amalga oshirmaslik.</li></ul>"
+      },
+      {
+        title: '5. Kompaniyaning huquq va majburiyatlari',
+        body: "<p><strong>Kompaniya haqqi bor:</strong></p><ul><li>Platforma funksionalligini o'zgartirish, xizmatlarni qo'shish va olib tashlash.</li><li>Texnik xizmat ko'rsatish uchun platformani vaqtincha to'xtatish.</li><li>Oferta shartlarini buzgan foydalanuvchilarni bloklash.</li></ul><p><strong>Kompaniya majburdir:</strong></p><ul><li>Platformaning e'lon qilingan parametrlarga muvofiq ishlashini ta'minlash.</li><li>Maxfiylik siyosatiga muvofiq foydalanuvchilarning shaxsiy ma'lumotlarini himoya qilish.</li><li>Foydalanuvchilarni oferta shartlarining o'zgarishi haqida xabardor qilish.</li></ul>"
+      },
+      {
+        title: '6. Pullik xizmatlar va obuna',
+        body: "<p>Platformaning bir qismi funksiyalari faqat pullik obuna asosida (Plus va Pro tariflari) mavjud. Obuna shartlari:</p><ul><li>Tariflarning narxi va tarkibi aivita.uz saytida e'lon qilinadi.</li><li>Obuna avtomatik yangilash bilan oylik yoki yillik asosda rasmiylashtiriladi.</li><li>To'lov Click, Payme yoki Uzum to'lov tizimlari orqali amalga oshiriladi.</li><li>Foydalanuvchi keyingi to'lov sanasigacha hisob sozlamalarida avtomatik yangilashni bekor qilishi mumkin.</li></ul>"
+      },
+      {
+        title: '7. Mablag\'larni qaytarish',
+        body: "<p>To'langan mablag'larni qaytarish quyidagi hollarda mumkin:</p><ul><li>To'lovdan keyin 3 kun ichida, agar foydalanuvchi pullik funksiyalardan foydalanmagan bo'lsa.</li><li>Kompaniyaning aybi bilan to'langan xizmatlardan foydalanishga to'sqinlik qiladigan texnik nosozliklar yuz berganda.</li><li>O'zbekiston Respublikasining iste'molchilar huquqlarini himoya qilish qonunchiligi bilan ko'zda tutilgan boshqa hollarda.</li></ul>"
+      },
+      {
+        title: '8. Tomonlarning mas\'uliyati',
+        body: "<p>Kompaniya quyidagular uchun mas'ul emas:</p><ul><li>Foydalanuvchi tomonidan platforma ma'lumotlari asosida mustaqil qabul qilingan tibbiy qarorlar — AI-assistent shifokorni almashtirmaydi.</li><li>Mustaqil mutaxassislar sifatida platformada ro'yxatdan o'tgan hamkor shifokorlarning harakatlari.</li><li>Fors-major, internet-provayderlar yoki uchinchi tomon xizmatlaridagi nosozliklar tufayli platforma ishlamasligi.</li></ul>"
+      },
+      {
+        title: '9. Intellektual mulk',
+        body: "<p>Platforma materiallari — dasturiy kod, dizayn, logotiplar, matnli kontent, AI algoritmlari — Kompaniyaning mulki yoki qonuniy asosda foydalaniladi.</p><p>Foydalanuvchiga faqat shaxsiy, tijorat bo'lmagan maqsadlarda platformadan foydalanish uchun eksklyuziv bo'lmagan, topshirib bo'lmaydigan litsenziya beriladi. Quyidagilar taqiqlanadi:</p><ul><li>Yozma ruxsatsiz platforma materiallarini nusxalash, takrorlash yoki tarqatish.</li><li>Manba kodini qoralash, montaj qilish yoki boshqacha yo'l bilan olish.</li></ul>"
+      },
+      {
+        title: '10. Maxfiylik',
+        body: "<p>Foydalanuvchilarning shaxsiy ma'lumotlarini qayta ishlash ushbu ofertaning ajralmas qismi bo'lgan <a href=\"/privacy.html\" style=\"color:var(--accent)\">Maxfiylik siyosati</a>ga muvofiq amalga oshiriladi.</p><p>Konsultatsiya davomida shifokorga uzatiladigan tibbiy ma'lumotlar tibbiy sir bo'lib, qonunchilik bilan ko'zda tutilgan hollar bundan mustasno, foydalanuvchining roziligisiz uchinchi shaxslarga oshkor etilishi mumkin emas.</p>"
+      },
+      {
+        title: '11. Oferta shartlarini o\'zgartirish',
+        body: "<p>Kompaniya ushbu oferta shartlarini bir tomonlama tartibda o'zgartirish huquqiga ega. Foydalanuvchilar o'zgarishlar haqida xabardor qilinadi:</p><ul><li>Kuchga kirish sanasi ko'rsatilgan holda aivita.uz saytida dolzarb versiyani e'lon qilish orqali.</li><li>Mobil ilovada bildirishnoma orqali.</li></ul><p>O'zgartirishlar e'lon qilinganidan keyin 7 kun o'tgach kuchga kiradi. Platformadan foydalanishni davom ettirish o'zgartirilgan shartlar bilan rozilikni anglatadi.</p>"
+      },
+      {
+        title: '12. Bog\'lanish ma\'lumotlari',
+        body: "<p>Ushbu oferta bilan bog'liq savollar bo'yicha murojaat qiling:</p><ul><li><strong>Email:</strong> info@aivita.uz</li><li><strong>Manzil:</strong> Toshkent, O'zbekiston</li></ul><p>Qo'llaniladigan qonunchilik: O'zbekiston Respublikasi qonunchiligiga. Barcha nizolar Kompaniya joylashgan joyning sudlari orqali hal etiladi.</p>"
+      },
+    ],
+  },
+  en: {
+    page_title: 'Public Offer Agreement',
+    nav_back: '← Home',
+    effective_date: 'Effective May 19, 2026.',
+    footer_copy: '© 2026 aivita. All rights reserved.',
+    footer_home: 'Home',
+    footer_about: 'About',
+    footer_privacy: 'Privacy',
+    footer_terms: 'Terms',
+    sections: [
+      {
+        title: '1. Subject Matter',
+        body: '<p>This document constitutes a public offer from aivita LLC (the "Company") and governs the terms of access to the aivita digital health platform, available at aivita.uz and via the mobile application.</p><p>The platform provides users with access to: electronic health records, AI health assistant, online consultations with doctors, health monitoring, and related services.</p>'
+      },
+      {
+        title: '2. Acceptance of the Offer',
+        body: '<p>Acceptance of this offer is effected by any of the following actions:</p><ul><li>Registering an account on the aivita platform.</li><li>Clicking "I Agree" or a similar button when using the service.</li><li>Actually using the platform after reviewing these terms.</li></ul><p>From the moment of acceptance, an agreement is concluded between the user and the Company on the terms of this offer in electronic form.</p>'
+      },
+      {
+        title: '3. Registration and Account',
+        body: '<p>To use the platform, you must create an account with accurate personal information. The user undertakes to:</p><ul><li>Provide truthful information upon registration and update it when it changes.</li><li>Keep login credentials confidential and not share them with third parties.</li><li>Immediately notify the Company of any unauthorised access to the account.</li><li>Not create multiple accounts for a single individual.</li></ul>'
+      },
+      {
+        title: '4. User Rights and Obligations',
+        body: '<p><strong>The user is entitled to:</strong></p><ul><li>Use all available platform features in accordance with the chosen plan.</li><li>Receive technical support via built-in communication channels.</li><li>Delete the account at any time.</li></ul><p><strong>The user undertakes to:</strong></p><ul><li>Not use the platform for unlawful purposes.</li><li>Not infringe the rights of third parties or doctors.</li><li>Not attempt to gain unauthorised access to platform systems.</li></ul>'
+      },
+      {
+        title: '5. Company Rights and Obligations',
+        body: '<p><strong>The Company is entitled to:</strong></p><ul><li>Modify platform functionality, add and remove services.</li><li>Temporarily suspend the platform for maintenance.</li><li>Block users who violate the terms of the offer.</li></ul><p><strong>The Company undertakes to:</strong></p><ul><li>Ensure platform availability in line with stated parameters.</li><li>Protect user personal data in accordance with the Privacy Policy.</li><li>Notify users of changes to the offer terms.</li></ul>'
+      },
+      {
+        title: '6. Paid Services and Subscription',
+        body: '<p>Certain platform features are available only under a paid subscription (Plus and Pro plans). Subscription terms:</p><ul><li>Pricing and plan details are published on aivita.uz and are subject to change.</li><li>Subscriptions are billed monthly or annually with automatic renewal.</li><li>Payment is made via Click, Payme, or Uzum payment systems.</li><li>Users may cancel automatic renewal in account settings before the next billing date.</li></ul>'
+      },
+      {
+        title: '7. Refunds',
+        body: '<p>A refund may be granted in the following cases:</p><ul><li>Within 3 days of payment, if the user has not used any paid features.</li><li>In the event of technical failures preventing use of paid services due to the Company\'s fault.</li><li>In other cases provided for by Uzbekistan consumer protection legislation.</li></ul><p>To request a refund, contact: <strong>info@aivita.uz</strong>. Refunds are issued to the original payment card within 10 business days.</p>'
+      },
+      {
+        title: '8. Liability',
+        body: '<p>The Company is not liable for:</p><ul><li>Medical decisions made independently by the user based on platform information — the AI assistant is not a substitute for a doctor.</li><li>Actions of partner doctors registered on the platform as independent specialists.</li><li>Platform unavailability due to force majeure, ISP outages, or third-party service failures.</li><li>Damage caused by unauthorised access to the user\'s account through the user\'s own fault.</li></ul><p>The Company\'s total liability under the agreement is limited to payments made by the user over the preceding 3 months.</p>'
+      },
+      {
+        title: '9. Intellectual Property',
+        body: '<p>All platform materials — software code, design, logos, text content, AI algorithms — are the property of the Company or are used on lawful grounds.</p><p>The user is granted a non-exclusive, non-transferable licence to use the platform solely for personal, non-commercial purposes. The following are prohibited:</p><ul><li>Copying, reproducing or distributing platform materials without written permission.</li><li>Decompiling, disassembling or otherwise obtaining the source code.</li><li>Creating derivative products based on the platform.</li></ul>'
+      },
+      {
+        title: '10. Privacy',
+        body: '<p>The processing of users\' personal data is governed by the <a href="/privacy.html" style="color:var(--accent)">Privacy Policy</a>, which forms an integral part of this offer.</p><p>Medical data shared with a doctor during a consultation constitutes medical confidentiality and may not be disclosed to third parties without the user\'s consent, except as required by law.</p>'
+      },
+      {
+        title: '11. Amendments to the Offer',
+        body: '<p>The Company reserves the right to unilaterally amend this offer. Users are notified of changes by:</p><ul><li>Publishing the updated version on aivita.uz with the effective date.</li><li>In-app notification.</li><li>Email notification for material changes.</li></ul><p>Amendments take effect 7 days after publication. Continued use of the platform constitutes acceptance of the amended terms.</p>'
+      },
+      {
+        title: '12. Contact Information',
+        body: '<p>For all queries relating to this offer, please contact:</p><ul><li><strong>Email:</strong> info@aivita.uz</li><li><strong>Address:</strong> Tashkent, Uzbekistan</li></ul><p>Governing law: the Republic of Uzbekistan. All disputes shall be resolved in the courts at the Company\'s registered location.</p>'
+      },
+    ],
+  },
+};
+
+function t(key) {
+  const tr = I18N[lang] || I18N.ru;
+  return tr[key] !== undefined ? tr[key] : (I18N.ru[key] || key);
+}
+
+function renderSections() {
+  const tr = I18N[lang] || I18N.ru;
+  const wrap = document.getElementById('policy-sections');
+  if (!wrap || !tr.sections) return;
+  wrap.innerHTML = tr.sections.map(s =>
+    `<div class="policy-section">
+      <div class="policy-section-title">${s.title}</div>
+      <div class="policy-section-body">${s.body}</div>
+    </div>`
+  ).join('');
+}
+
+function render() {
+  document.title = t('page_title') + ' — aivita';
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (key) el.textContent = t(key);
+  });
+  renderSections();
+}
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem(LANG_KEY, l);
+  render();
+}
+
+fetch('/api/landing-config').catch(() => {});
+
+render();
+</script>
+</body>
+</html>
