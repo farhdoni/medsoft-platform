@@ -233,6 +233,8 @@ footer{border-top:1px solid var(--border);padding:28px 24px;margin-top:40px}
 </footer>
 
 <script>
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+const APP_URL  = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://app.aivita.uz';
 const LANG_KEY = 'aivita_lang';
 let lang = localStorage.getItem(LANG_KEY) || 'ru';
 
@@ -371,7 +373,7 @@ function setLang(l) {
   render();
 }
 
-fetch('/api/landing-config')
+fetch(API_BASE + '/api/landing-config')
   .then(r => r.json())
   .then(data => {
     if (data.contact_email) {
@@ -398,7 +400,7 @@ fetch('/api/landing-config')
   })
   .catch(() => {});
 
-fetch('/api/stats/public')
+fetch(API_BASE + '/api/stats/public')
   .then(r => r.json())
   .then(data => {
     if (data.usersCount !== undefined) document.getElementById('val-users').textContent = fmtStat(data.usersCount);

@@ -23,6 +23,7 @@ const DEFAULT_CONFIG = {
     youtube: 'https://youtube.com/@aivita_uz',
   },
   app_links: { appstore: '', googleplay: '' },
+  app_url: 'https://app.aivita.uz',
   waitlist_enabled: true,
   yandex_metrika_id: '',
   gtm_id: '',

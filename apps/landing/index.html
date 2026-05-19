@@ -1341,7 +1341,7 @@ h1 .gradient {
         <button data-lang="en">English <span class="code">EN</span></button>
       </div>
     </div>
-    <button class="account-btn" aria-label="Личный кабинет" onclick="window.location.hash='#login'">
+    <button class="account-btn" aria-label="Личный кабинет" id="loginBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/>
         <path d="M4 21c1-5 5-7 8-7s7 2 8 7"/>
@@ -1463,10 +1463,10 @@ h1 .gradient {
   <div class="footer-brand">aivita</div>
   <div class="footer-links">
     <a href="/about.html" data-i18n="footer.about">О нас</a>
-    <a href="#" data-i18n="footer.pricing">Тарифы</a>
-    <a href="#" data-i18n="footer.doctors">Врачам</a>
-    <a href="#" data-i18n="footer.partners">Партнёрам</a>
-    <a href="#" data-i18n="footer.contact">Контакты</a>
+    <a href="#" id="footerPricing" data-i18n="footer.pricing">Тарифы</a>
+    <a href="#" id="footerDoctors" data-i18n="footer.doctors">Врачам</a>
+    <a href="#partners" data-i18n="footer.partners">Партнёрам</a>
+    <a href="/about.html#contacts" data-i18n="footer.contact">Контакты</a>
     <a href="/privacy.html" data-i18n="footer.policy">Политика</a>
     <a href="/terms.html" data-i18n="footer.terms">Оферта</a>
   </div>
@@ -1531,6 +1531,10 @@ h1 .gradient {
 </div>
 
 <script>
+// ===== Dev/Prod URLs =====
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+const APP_URL  = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://app.aivita.uz';
+
 // ===== i18n =====
 const I18N = {
   ru: {
@@ -1833,6 +1837,9 @@ function closeModal() {
 }
 
 document.getElementById('ctaOpenModal')?.addEventListener('click', openModal);
+document.getElementById('loginBtn')?.addEventListener('click', () => {
+  window.location.href = APP_URL + '/ru/sign-in';
+});
 document.getElementById('waitModalClose')?.addEventListener('click', closeModal);
 waitModal?.addEventListener('click', (e) => { if (e.target === waitModal) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && waitModal.classList.contains('open')) closeModal(); });
@@ -1855,7 +1862,7 @@ waitForm?.addEventListener('submit', async (e) => {
   waitStatus.textContent = (I18N[payload.locale]?.['wait.sending'] || 'Отправляем…');
 
   try {
-    const r = await fetch('/api/waitlist', {
+    const r = await fetch(API_BASE + '/api/waitlist', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
@@ -1976,10 +1983,23 @@ function applyConfig(cfg) {
     if (cfg.app_links.googleplay && dlBtns[1]) dlBtns[1].setAttribute('onclick', `window.open('${cfg.app_links.googleplay}','_blank')`);
   }
 
+  // App URL — update login + footer links
+  const appUrl = cfg.app_url || APP_URL;
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.onclick = () => { window.location.href = appUrl + '/ru/sign-in'; };
+  const fp = document.getElementById('footerPricing');
+  if (fp) fp.href = appUrl + '/ru/pricing';
+  const fd = document.getElementById('footerDoctors');
+  if (fd) fd.href = appUrl + '/ru/doctor-settings/partnership';
+
   // Wait-list toggle
   if (cfg.waitlist_enabled === false) {
     const cta = document.getElementById('ctaOpenModal');
-    if (cta) cta.style.display = 'none';
+    if (cta) {
+      const newCta = cta.cloneNode(true);
+      cta.parentNode?.replaceChild(newCta, cta);
+      newCta.addEventListener('click', () => { window.location.href = appUrl + '/ru/sign-up'; });
+    }
   }
 
   // Cookie banner override
@@ -2003,7 +2023,7 @@ function applyConfig(cfg) {
 
 async function loadConfig() {
   try {
-    const r = await fetch('/api/landing-config', { cache: 'no-store' });
+    const r = await fetch(API_BASE + '/api/landing-config', { cache: 'no-store' });
     if (r.ok) {
       const cfg = await r.json();
       applyConfig(cfg);
@@ -2018,6 +2038,20 @@ if (document.readyState === 'loading') {
 } else {
   loadConfig();
 }
+
+// ===== Public stats (real numbers from DB) =====
+(async function loadStats() {
+  try {
+    const r = await fetch(API_BASE + '/api/stats/public');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.doctorsCount > 0) {
+      const val = d.doctorsCount + '+';
+      ['ru', 'uz', 'en'].forEach(l => { if (I18N[l]) I18N[l]['find.doctor.s'] = val; });
+      applyLang(document.documentElement.lang || 'ru');
+    }
+  } catch { /* silent — page works with inline defaults */ }
+})();
 </script>
 
 </body>
