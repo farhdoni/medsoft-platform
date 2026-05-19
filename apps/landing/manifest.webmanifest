@@ -1,21 +1,13 @@
 {
-  "name": "MedSoft",
-  "short_name": "MedSoft",
-  "description": "Экосистема заботы о здоровье",
+  "name": "Aivita",
+  "short_name": "Aivita",
+  "description": "AI-платформа здоровья для Узбекистана",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#040c14",
-  "theme_color": "#00d4c8",
+  "background_color": "#faf9f7",
+  "theme_color": "#c87d8a",
+  "lang": "ru",
   "icons": [
-    {
-      "src": "/assets/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/assets/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/assets/aivita-face-v3.png", "sizes": "400x400", "type": "image/png", "purpose": "any maskable" }
   ]
 }

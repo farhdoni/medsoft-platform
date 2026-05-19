@@ -2,229 +2,2019 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MedSoft — Медицина, которая всегда с вами</title>
-<meta name="description" content="MedSoft — экосистема заботы о здоровье: профилактика, лечение, реабилитация. Платформа следующего поколения.">
-<meta property="og:title" content="MedSoft — Медицина, которая всегда с вами">
-<meta property="og:description" content="Экосистема заботы о здоровье. Скоро запуск.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://aivita.uz">
-<meta property="og:image" content="https://aivita.uz/assets/og-image.png">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://aivita.uz/assets/og-image.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-<link rel="manifest" href="/manifest.webmanifest">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIVITA — AI-платформа здоровья для Узбекистана</title>
+<meta name="description" content="Aivita — твой персональный AI-ассистент здоровья. Медкарта, чекап, врачи и забота о семье в одном приложении." />
+<meta name="theme-color" content="#c87d8a" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" type="image/png" href="/assets/aivita-face-v3.png" />
+<link rel="apple-touch-icon" href="/assets/aivita-face-v3.png" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="AIVITA — AI-платформа здоровья" />
+<meta property="og:description" content="Твой персональный AI-ассистент здоровья. Медкарта, чекап, врачи — в одном приложении." />
+<meta property="og:image" content="https://aivita.uz/assets/aivita-robot-cutout.png" />
+<meta property="og:url" content="https://aivita.uz/" />
+<meta property="og:site_name" content="aivita.uz" />
+<meta property="og:locale" content="ru_RU" />
+<meta property="og:locale:alternate" content="uz_UZ" />
+<meta property="og:locale:alternate" content="en_US" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="AIVITA — AI-платформа здоровья" />
+<meta name="twitter:description" content="Твой персональный AI-ассистент здоровья." />
+<meta name="twitter:image" content="https://aivita.uz/assets/aivita-robot-cutout.png" />
+
+<!-- ===== Google Tag Manager (replace GTM-XXXXXXX with real ID) ===== -->
+<script>
+window.__gtmId = "GTM-XXXXXXX";  // replace with real ID, e.g. GTM-A1B2C3
+if (window.__gtmId && window.__gtmId !== "GTM-XXXXXXX") {
+  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',window.__gtmId);
+}
+</script>
+<!-- End GTM -->
+
+<!-- ===== Yandex Metrika (replace YOUR_COUNTER_ID with real ID) ===== -->
+<script type="text/javascript">
+(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+window.__ymCounterId = "YOUR_COUNTER_ID";   // replace before deploy
+if (window.__ymCounterId && window.__ymCounterId !== "YOUR_COUNTER_ID") {
+  ym(window.__ymCounterId, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true });
+}
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/YOUR_COUNTER_ID" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- End Yandex Metrika -->
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#040c14;
-  --cyan:#00d4c8;
-  --green:#00e676;
-  --text:#e8f4f8;
-  --text2:#8ab0c0;
-  --border:rgba(0,212,200,0.15);
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #faf9f7;
+  --dark: #1a1824;
+  --accent: #c87d8a;
+  --accent2: #8b6aae;
+  --mint: #6bc4a6;
+  --blue: #6ba3d6;
+  --text: #2a2540;
+  --muted: #9a96a8;
 }
-html,body{height:100%}
-body{
-  font-family:'DM Sans',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+/* ===== TOP NAV ===== */
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: rgba(250, 249, 247, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(42,37,64,.05);
 }
-.grid{
-  position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(0,212,200,0.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,212,200,0.05) 1px,transparent 1px);
-  background-size:60px 60px;
-  mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 40%,transparent 100%);
-  -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 40%,transparent 100%);
+.topnav .logo {
+  font-size: 22px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -.5px;
+  cursor: pointer;
 }
-.glow{
-  position:absolute;width:600px;height:600px;border-radius:50%;
-  background:radial-gradient(circle,rgba(0,212,200,0.12) 0%,transparent 70%);
-  top:50%;left:50%;transform:translate(-50%,-50%);
-  animation:pulse 4s ease-in-out infinite;
-  pointer-events:none;
+.topnav .right { display: flex; align-items: center; gap: 14px; }
+.lang-switch {
+  position: relative;
 }
-.glow2{
-  position:absolute;width:400px;height:400px;border-radius:50%;
-  background:radial-gradient(circle,rgba(0,230,118,0.08) 0%,transparent 70%);
-  top:30%;right:10%;
-  animation:pulse 6s ease-in-out infinite reverse;
-  pointer-events:none;
+.lang-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(42,37,64,.1);
+  border-radius: 50px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition: all .25s;
+  letter-spacing: .5px;
 }
-@keyframes pulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.7}
-  50%{transform:translate(-50%,-50%) scale(1.1);opacity:1}
+.lang-trigger:hover { background: rgba(255,255,255,.95); }
+.lang-trigger svg { width: 14px; height: 14px; }
+.lang-trigger .caret { font-size: 9px; opacity: .55; transition: transform .25s; }
+.lang-switch.open .lang-trigger .caret { transform: rotate(180deg); }
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(42,37,64,.08);
+  border-radius: 14px;
+  padding: 6px;
+  min-width: 132px;
+  box-shadow: 0 18px 40px rgba(42,37,64,.12), 0 4px 10px rgba(42,37,64,.05);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
 }
-.content{
-  position:relative;z-index:2;
-  text-align:center;padding:24px;
-  max-width:640px;
-  animation:fadeIn 1.2s ease-out;
+.lang-switch.open .lang-menu { display: flex; }
+.lang-menu button {
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text);
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: background .2s;
 }
-@keyframes fadeIn{
-  from{opacity:0;transform:translateY(20px)}
-  to{opacity:1;transform:translateY(0)}
+.lang-menu button:hover { background: rgba(200,125,138,.08); }
+.lang-menu button .code { font-size: 11px; color: var(--muted); letter-spacing: .5px; }
+.lang-menu button.active { background: rgba(200,125,138,.15); color: var(--accent); }
+.lang-menu button.active .code { color: var(--accent); }
+.account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 50px;
+  border: 1px solid rgba(42,37,64,.1);
+  background: rgba(255,255,255,.7);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all .3s;
 }
-.logo-icon{
-  width:80px;height:80px;
-  margin:0 auto 24px;
-  display:flex;align-items:center;justify-content:center;
+.account-btn:hover {
+  background: var(--dark);
+  color: #fff;
+  border-color: var(--dark);
+  transform: translateY(-1px);
 }
-.logo-icon svg{
-  width:80px;height:80px;
-  filter:drop-shadow(0 0 20px rgba(0,212,200,0.5));
+.account-btn svg { width: 18px; height: 18px; }
+@media (max-width: 640px) {
+  .topnav { padding: 12px 16px; }
+  .topnav .logo { font-size: 18px; }
+  .account-btn span { display: none; }
+  .account-btn { padding: 9px 11px; }
+  .lang-trigger { padding: 8px 11px; font-size: 11px; }
 }
-.badge{
-  display:inline-flex;align-items:center;gap:8px;
-  background:rgba(0,212,200,0.1);
-  border:1px solid var(--border);
-  padding:6px 16px;border-radius:50px;
-  font-size:13px;color:var(--cyan);
-  margin-bottom:32px;
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 24px 80px;
+  position: relative;
+  overflow: hidden;
 }
-.badge::before{
-  content:'';width:8px;height:8px;border-radius:50%;
-  background:var(--green);
-  box-shadow:0 0 8px var(--green);
-  animation:blink 2s ease-in-out infinite;
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 32px;
+  align-items: center;
+  max-width: 1280px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
 }
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-h1{
-  font-family:'Exo 2',sans-serif;
-  font-size:clamp(48px,8vw,88px);
-  font-weight:800;line-height:1;
-  margin-bottom:20px;
-  background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--green) 100%);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
-  letter-spacing:-0.02em;
+@media (max-width: 920px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    text-align: center;
+  }
+  .hero-grid .hero-content { order: 1; }
+  .hero-grid .hero-character { order: 2; }
+  .hero .hero-cta { justify-content: center; }
 }
-.tagline{
-  font-size:clamp(18px,2.5vw,24px);
-  color:var(--text);
-  margin-bottom:12px;
-  font-weight:500;
+
+/* Animated blobs */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: .35;
+  animation: float 8s ease-in-out infinite;
 }
-.subtitle{
-  font-size:16px;
-  color:var(--text2);
-  margin-bottom:40px;
-  line-height:1.6;
+.blob-1 { width: 500px; height: 500px; background: var(--accent); top: -10%; right: -10%; animation-delay: 0s; }
+.blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: -5%; left: -8%; animation-delay: 2s; }
+.blob-3 { width: 300px; height: 300px; background: var(--mint); top: 30%; left: 50%; animation-delay: 4s; }
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(.95); }
 }
-.counter{
-  display:flex;justify-content:center;gap:16px;
-  flex-wrap:wrap;margin-bottom:40px;
+
+.hero-content { position: relative; z-index: 2; max-width: 560px; }
+.hero-content .hero-cta { display: flex; }
+@media (min-width: 921px) {
+  .hero-content { text-align: left; }
+  .hero-content .hero-pill,
+  .hero-content h1,
+  .hero-content .hero-sub { text-align: left; }
 }
-.unit{
-  background:rgba(0,212,200,0.05);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:16px 20px;
-  min-width:88px;
-  backdrop-filter:blur(10px);
+
+/* ===== ROBOT CHARACTER ===== */
+.hero-character {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 880px;
+  animation: fadeUp .9s ease .4s both;
 }
-.unit .num{
-  font-family:'Exo 2',sans-serif;
-  font-size:32px;font-weight:700;
-  color:var(--cyan);line-height:1;
-  margin-bottom:6px;
+.robot-stage {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  aspect-ratio: 4 / 7;
 }
-.unit .lbl{
-  font-size:11px;color:var(--text2);
-  text-transform:uppercase;
-  letter-spacing:0.15em;
+.robot-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  animation: robot-bob 5s ease-in-out infinite;
+  filter: drop-shadow(0 24px 40px rgba(139, 106, 174, .22));
 }
-.foot{
-  display:flex;align-items:center;justify-content:center;gap:20px;
-  color:var(--text2);font-size:13px;
-  flex-wrap:wrap;
+@keyframes robot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
-.foot a{color:var(--cyan);text-decoration:none}
-.foot a:hover{text-decoration:underline}
-.dot{width:3px;height:3px;background:var(--text2);border-radius:50%}
+.robot-aura {
+  position: absolute;
+  inset: -10% -8% -5% -8%;
+  background: radial-gradient(ellipse at center, rgba(200,125,138,.18), rgba(139,106,174,.10) 45%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+/* Floating ecosystem cards */
+.eco-card {
+  position: absolute;
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.6);
+  border-radius: 18px;
+  padding: 12px 16px;
+  box-shadow: 0 14px 36px rgba(42, 37, 64, .12), 0 2px 6px rgba(42, 37, 64, .04);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  z-index: 3;
+}
+.eco-card .ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.eco-card .lab { font-size: 11px; color: var(--muted); font-weight: 500; }
+.eco-card .val { font-size: 14px; font-weight: 800; }
+
+.eco-card.c1 { top: 6%; left: -6%; animation: float-card 6s ease-in-out infinite; }
+.eco-card.c1 .ic { background: rgba(200,125,138,.16); color: var(--accent); }
+.eco-card.c2 { top: 22%; right: -8%; animation: float-card 7s ease-in-out infinite -1.5s; }
+.eco-card.c2 .ic { background: rgba(139,106,174,.16); color: var(--accent2); }
+.eco-card.c3 { bottom: 22%; left: -10%; animation: float-card 6.5s ease-in-out infinite -3s; }
+.eco-card.c3 .ic { background: rgba(107,196,166,.18); color: var(--mint); }
+.eco-card.c4 { bottom: 6%; right: -4%; animation: float-card 7.5s ease-in-out infinite -2s; }
+.eco-card.c4 .ic { background: rgba(107,163,214,.18); color: var(--blue); }
+
+@keyframes float-card {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-14px) rotate(1deg); }
+}
+
+@media (max-width: 920px) {
+  .hero-character { min-height: 680px; }
+  .robot-stage { max-width: 680px; }
+  .eco-card { font-size: 11px; padding: 9px 12px; }
+  .eco-card .ic { width: 30px; height: 30px; font-size: 15px; }
+  .eco-card.c1 { left: 2%; }
+  .eco-card.c2 { right: 0; }
+  .eco-card.c3 { left: 0; }
+  .eco-card.c4 { right: 4%; }
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 50px;
+  background: rgba(200,125,138,.1);
+  border: 1px solid rgba(200,125,138,.2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 28px;
+  animation: fadeUp .8s ease;
+}
+.hero-pill .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse-dot 1.5s infinite; }
+@keyframes pulse-dot { 0%,100%{box-shadow:0 0 0 0 rgba(200,125,138,.4)} 50%{box-shadow:0 0 0 8px rgba(200,125,138,0)} }
+
+h1 {
+  font-size: clamp(42px, 8vw, 68px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin-bottom: 20px;
+  animation: fadeUp .8s ease .1s both;
+}
+h1 .gradient {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-sub {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 36px;
+  animation: fadeUp .8s ease .2s both;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeUp .8s ease .3s both;
+}
+.btn {
+  padding: 16px 36px;
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-main {
+  background: var(--dark);
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(26,24,36,.2);
+}
+.btn-main:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(26,24,36,.3); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid rgba(42,37,64,.12);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== SCROLL INDICATOR ===== */
+.scroll-hint {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  animation: bounce 2s infinite;
+}
+.scroll-line { width: 1px; height: 32px; background: linear-gradient(to bottom, var(--muted), transparent); }
+@keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(8px)} }
+
+/* ===== SECTIONS ===== */
+.section {
+  padding: 100px 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.section-header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+.section-tag {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+
+/* ===== FEATURES (Horizontal scroll on mobile, grid on desktop) ===== */
+.features-track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .features-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 14px;
+    padding-bottom: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .features-track::-webkit-scrollbar { display: none; }
+  .feat { min-width: 280px; scroll-snap-align: start; }
+}
+
+.feat {
+  padding: 32px 24px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(42,37,64,.06);
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.feat:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(42,37,64,.07);
+}
+.feat::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  opacity: 0;
+  transition: opacity .3s;
+}
+.feat:hover::after { opacity: 1; }
+.feat:nth-child(1)::after { background: var(--accent); }
+.feat:nth-child(2)::after { background: var(--accent2); }
+.feat:nth-child(3)::after { background: var(--mint); }
+.feat:nth-child(4)::after { background: var(--blue); }
+.feat:nth-child(5)::after { background: #f0a050; }
+.feat:nth-child(6)::after { background: var(--accent); }
+
+.feat-emoji {
+  font-size: 36px;
+  margin-bottom: 16px;
+  display: block;
+}
+.feat h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.feat p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ===== AI ASSISTANT BLOCK ===== */
+.ai-block {
+  margin: 0 24px;
+  max-width: 952px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 56px 40px;
+  border-radius: 32px;
+  background: var(--dark);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+.ai-block::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,125,138,.15), transparent 70%);
+}
+.ai-block::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: -80px;
+  width: 250px; height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(107,196,166,.1), transparent 70%);
+}
+.ai-block .content { position: relative; z-index: 2; }
+.ai-block h2 {
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 900;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+.ai-block h2 span { color: var(--accent); }
+.ai-block p {
+  font-size: 16px;
+  color: rgba(255,255,255,.6);
+  max-width: 500px;
+  margin: 0 auto 32px;
+  line-height: 1.6;
+}
+.ai-chips {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.ai-chip {
+  padding: 12px 22px;
+  border-radius: 50px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,.8);
+  transition: all .3s;
+  cursor: pointer;
+}
+.ai-chip:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); transform: translateY(-2px); }
+.ai-chip .em { margin-right: 6px; }
+
+/* ===== FIND BLOCK ===== */
+.find-section {
+  padding: 100px 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+.find-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 48px;
+}
+@media (max-width: 640px) { .find-grid { grid-template-columns: repeat(2, 1fr); } }
+.find-card {
+  padding: 28px 16px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(42,37,64,.05);
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  cursor: pointer;
+}
+.find-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 16px 40px rgba(42,37,64,.06); }
+.find-card .emoji { font-size: 32px; margin-bottom: 12px; display: block; }
+.find-card h3 { font-size: 15px; font-weight: 700; }
+.find-card p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ===== DOCTOR BLOCK (bottom, dark) ===== */
+.doctor-section {
+  margin: 0 24px 40px;
+  max-width: 952px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 56px 40px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, #1e3a5f, #2a5080);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.doctor-section::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(107,163,214,.15);
+}
+.doctor-section .content { position: relative; z-index: 2; }
+.doctor-section .tag {
+  display: inline-flex;
+  padding: 6px 16px;
+  border-radius: 50px;
+  background: rgba(107,163,214,.2);
+  border: 1px solid rgba(107,163,214,.3);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 20px;
+}
+.doctor-section h2 {
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 900;
+  margin-bottom: 12px;
+  letter-spacing: -.5px;
+}
+.doctor-section > .content > p {
+  font-size: 15px;
+  color: rgba(255,255,255,.6);
+  max-width: 500px;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+.doctor-perks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+@media (max-width: 640px) { .doctor-perks { grid-template-columns: 1fr; } }
+.doctor-perk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all .3s;
+}
+.doctor-perk:hover { background: rgba(255,255,255,.1); }
+.doctor-perk .ic {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(107,163,214,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.doctor-cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-doctor {
+  padding: 14px 32px;
+  border-radius: 50px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .3s;
+  box-shadow: 0 8px 24px rgba(107,163,214,.3);
+}
+.btn-doctor:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(107,163,214,.4); }
+.btn-doctor-ghost {
+  padding: 14px 32px;
+  border-radius: 50px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.8);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .3s;
+}
+.btn-doctor-ghost:hover { border-color: rgba(255,255,255,.4); }
+
+/* ===== DOWNLOAD ===== */
+.download-section {
+  padding: 80px 24px;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.download-section h2 {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  letter-spacing: -.5px;
+}
+.download-section p {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.dl-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.dl-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: var(--dark);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .3s;
+}
+.dl-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,24,36,.2); }
+.dl-btn .ic { font-size: 24px; }
+.dl-btn .tx { text-align: left; }
+.dl-btn .sm { font-size: 10px; opacity: .6; }
+.dl-btn .lg { font-size: 15px; font-weight: 700; }
+
+/* ===== FOOTER ===== */
+.footer {
+  padding: 32px 24px;
+  text-align: center;
+  border-top: 1px solid rgba(42,37,64,.06);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.footer-brand {
+  font-size: 20px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.footer-links {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.footer-links a {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color .2s;
+}
+.footer-links a:hover { color: var(--accent); }
+
+/* Footer social icons */
+.footer-socials {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 0 0 16px;
+}
+.footer-socials a {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(42,37,64,.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+  text-decoration: none;
+}
+.footer-socials a:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(42,37,64,.10);
+  color: #fff;
+}
+.footer-socials a svg { width: 18px; height: 18px; display: block; }
+.footer-socials a.tg:hover   { background: #229ED9; border-color: #229ED9; }
+.footer-socials a.wa:hover   { background: #25D366; border-color: #25D366; }
+.footer-socials a.ig:hover   { background: linear-gradient(135deg,#F58529,#DD2A7B,#8134AF); border-color: transparent; }
+.footer-socials a.fb:hover   { background: #1877F2; border-color: #1877F2; }
+.footer-socials a.yt:hover   { background: #FF0000; border-color: #FF0000; }
+
+.footer-copy { font-size: 11px; color: #ccc; }
+
+/* ===== COOKIE CONSENT ===== */
+.cookie-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 120%);
+  z-index: 150;
+  max-width: 760px;
+  width: calc(100% - 32px);
+  padding: 14px 18px 14px 22px;
+  background: rgba(26, 24, 36, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 20px 60px rgba(26,24,36,.4);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  opacity: 0;
+  transition: opacity .35s cubic-bezier(.4,0,.2,1), transform .45s cubic-bezier(.4,0,.2,1);
+}
+.cookie-banner.show { opacity: 1; transform: translate(-50%, 0); }
+.cookie-banner__text { flex: 1; font-size: 13px; color: rgba(255,255,255,.85); line-height: 1.45; }
+.cookie-banner__accept {
+  flex-shrink: 0;
+  padding: 10px 22px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .25s;
+}
+.cookie-banner__accept:hover { background: #b86a78; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(200,125,138,.4); }
+@media (max-width: 540px) {
+  .cookie-banner { flex-direction: column; gap: 10px; padding: 16px; text-align: center; }
+  .cookie-banner__accept { width: 100%; padding: 12px; }
+}
+
+/* ===== BACK TO TOP ===== */
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(42,37,64,.08);
+  box-shadow: 0 8px 22px rgba(26,24,36,.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(20px) scale(.85);
+  pointer-events: none;
+  transition: opacity .3s, transform .3s cubic-bezier(.4,0,.2,1), box-shadow .25s;
+  z-index: 140;
+  padding: 0;
+}
+.back-to-top.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.back-to-top:hover {
+  box-shadow: 0 14px 30px rgba(26,24,36,.16);
+  transform: translateY(-3px) scale(1);
+  color: var(--accent);
+}
+.back-to-top svg { width: 18px; height: 18px; }
+@media (max-width: 540px) {
+  .back-to-top { right: 16px; bottom: 90px; } /* keep clear of cookie banner */
+}
+
+/* ===== WAITLIST MODAL ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 24, 36, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.modal-backdrop.open { display: flex; opacity: 1; }
+.modal {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 24px;
+  padding: 36px 32px 32px;
+  position: relative;
+  box-shadow: 0 30px 80px rgba(26,24,36,.35);
+  transform: translateY(20px) scale(.97);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all .2s;
+}
+.modal-close:hover { background: rgba(200,125,138,.1); color: var(--accent); }
+.modal h3 {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -.5px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.modal p {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+.modal-form { display: flex; flex-direction: column; gap: 12px; }
+.modal-input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(42,37,64,.1);
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  transition: all .2s;
+}
+.modal-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+}
+.modal-submit {
+  width: 100%;
+  padding: 16px 24px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 8px 24px rgba(200,125,138,.3);
+  transition: all .25s;
+  margin-top: 6px;
+}
+.modal-submit:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(200,125,138,.42); }
+.modal-submit:disabled { opacity: .55; cursor: progress; transform: none; }
+.modal-status {
+  font-size: 13px;
+  text-align: center;
+  margin-top: 12px;
+  min-height: 18px;
+}
+.modal-status.success { color: var(--mint); }
+.modal-status.error { color: #d04848; }
+.modal-foot {
+  font-size: 11px;
+  text-align: center;
+  color: var(--muted);
+  margin-top: 14px;
+}
+
+/* ===== MANAGE — pre-footer CTA section ===== */
+.manage-section {
+  max-width: 1080px;
+  margin: 60px auto 40px;
+  padding: 0 24px;
+}
+.manage-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 32px;
+  padding: 64px 56px;
+  background: linear-gradient(135deg, #1a1824 0%, #2a2540 55%, #3a2840 100%);
+  color: #fff;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 30px 80px rgba(26,24,36,.25);
+}
+.manage-card::before,
+.manage-card::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: .35;
+  z-index: 0;
+}
+.manage-card::before {
+  width: 320px; height: 320px;
+  top: -120px; right: -80px;
+  background: var(--accent);
+}
+.manage-card::after {
+  width: 280px; height: 280px;
+  bottom: -120px; left: -60px;
+  background: var(--accent2);
+}
+.manage-inner { position: relative; z-index: 1; }
+.manage-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  border-radius: 50px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.85);
+  margin-bottom: 24px;
+}
+.manage-tag::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 12px var(--mint);
+}
+.manage-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 880px;
+  margin: 0 auto 28px;
+}
+.manage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 50px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,.95);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all .3s;
+}
+.manage-pill:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.22);
+  transform: translateY(-2px);
+}
+.manage-pill .em { font-size: 18px; }
+.manage-sub {
+  font-size: clamp(15px, 1.5vw, 17px);
+  color: rgba(255,255,255,.7);
+  max-width: 620px;
+  margin: 0 auto 32px;
+  line-height: 1.6;
+}
+.manage-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 36px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 14px 40px rgba(200,125,138,.32);
+  transition: all .35s cubic-bezier(.4,0,.2,1);
+}
+.manage-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 50px rgba(200,125,138,.45);
+}
+.manage-cta .arrow {
+  display: inline-flex;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: transform .3s;
+}
+.manage-cta:hover .arrow { transform: translateX(4px); }
+@media (max-width: 640px) {
+  .manage-card { padding: 44px 24px; }
+  .manage-pill { padding: 10px 16px; font-size: 13px; }
+}
+
+/* ===== INTRO 2 — AI assistant greeting bubble ===== */
+.intro2 {
+  max-width: 880px;
+  margin: 40px auto 60px;
+  padding: 0 24px;
+}
+.intro2-card {
+  position: relative;
+  background: linear-gradient(135deg, #fdeef0 0%, #f1e6fb 55%, #e7f7f0 100%);
+  border-radius: 32px;
+  padding: 56px 56px 56px 64px;
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  border: 1px solid rgba(255,255,255,.6);
+  box-shadow: 0 20px 60px rgba(139,106,174,.12), inset 0 1px 0 rgba(255,255,255,.7);
+  overflow: hidden;
+}
+.intro2-card::before {
+  content: '';
+  position: absolute;
+  top: -120px; right: -120px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,125,138,.22), transparent 70%);
+}
+.intro2-card::after {
+  content: '';
+  position: absolute;
+  bottom: -100px; left: -100px;
+  width: 280px; height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(107,196,166,.18), transparent 70%);
+}
+.intro2-avatar {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  position: relative;
+  z-index: 1;
+}
+.intro2-avatar .face {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 12px 28px rgba(200,125,138,.32);
+  position: relative;
+  z-index: 2;
+}
+.intro2-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 38%;
+  display: block;
+}
+.intro2-avatar .pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+.intro2-avatar .pulse-ring.r2 { animation-delay: .8s; border-color: var(--accent2); }
+.intro2-avatar .pulse-ring.r3 { animation-delay: 1.6s; border-color: var(--mint); }
+@keyframes pulse-ring {
+  0%   { transform: scale(.95); opacity: .7; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+.intro2-text { position: relative; z-index: 1; }
+.intro2-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 50px;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(200,125,138,.25);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.intro2-tag::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 0 0 rgba(107,196,166,.4);
+  animation: pulse-dot 1.5s infinite;
+}
+.intro2-title {
+  font-size: clamp(24px, 3.4vw, 34px);
+  font-weight: 900;
+  letter-spacing: -.8px;
+  line-height: 1.15;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.intro2-sub {
+  font-size: clamp(15px, 1.4vw, 17px);
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 540px;
+}
+@media (max-width: 720px) {
+  .intro2-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 36px 24px;
+    gap: 18px;
+  }
+  .intro2-avatar { width: 72px; height: 72px; font-size: 32px; }
+  .intro2-sub { margin: 0 auto; }
+}
+
+/* ===== ROBOT SHOWCASE (intro to doctor block) ===== */
+.robot-showcase {
+  max-width: 1280px;
+  margin: 80px auto 40px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  position: relative;
+  z-index: 2;
+}
+.robot-showcase img {
+  max-width: 1260px;
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 30px 40px rgba(139, 106, 174, .25));
+  animation: robot-bob 6s ease-in-out infinite;
+}
+@media (max-width: 640px) {
+  .robot-showcase img { max-width: 100%; }
+  .robot-showcase { margin: 40px auto 20px; padding: 12px 16px; }
+}
+
+/* ===== INTERSECTION OBSERVER ANIMATIONS ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: all .7s cubic-bezier(.4,0,.2,1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-d1 { transition-delay: .1s; }
+.reveal-d2 { transition-delay: .2s; }
+.reveal-d3 { transition-delay: .3s; }
+.reveal-d4 { transition-delay: .4s; }
+.reveal-d5 { transition-delay: .5s; }
 </style>
 </head>
 <body>
-<div class="grid"></div>
-<div class="glow"></div>
-<div class="glow2"></div>
+<!-- GTM noscript fallback (replace GTM-XXXXXXX with real ID) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
-<div class="content">
-  <div class="logo-icon">
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#00d4c8"/>
-          <stop offset="100%" stop-color="#00e676"/>
-        </linearGradient>
-      </defs>
-      <path d="M40 20 L60 20 L60 40 L80 40 L80 60 L60 60 L60 80 L40 80 L40 60 L20 60 L20 40 L40 40 Z"
-            stroke="url(#g1)" stroke-width="3" fill="rgba(0,212,200,0.05)"/>
-      <circle cx="50" cy="50" r="4" fill="#00e676"/>
-    </svg>
+<!-- ===== TOP NAV ===== -->
+<header class="topnav">
+  <div class="logo">aivita</div>
+  <div class="right">
+    <div class="lang-switch" id="langSwitch">
+      <button class="lang-trigger" id="langTrigger" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18"/>
+          <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/>
+        </svg>
+        <span id="langCurrent">RU</span>
+        <span class="caret">▼</span>
+      </button>
+      <div class="lang-menu" role="menu">
+        <button data-lang="ru" class="active">Русский <span class="code">RU</span></button>
+        <button data-lang="uz">O'zbekcha <span class="code">UZ</span></button>
+        <button data-lang="en">English <span class="code">EN</span></button>
+      </div>
+    </div>
+    <button class="account-btn" aria-label="Личный кабинет" onclick="window.location.hash='#login'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 21c1-5 5-7 8-7s7 2 8 7"/>
+      </svg>
+      <span data-i18n="nav.login">Войти</span>
+    </button>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="hero-grid">
+    <div class="hero-content">
+      <div class="hero-pill"><span class="pulse"></span> <span data-i18n="hero.pill">AI-платформа здоровья</span></div>
+      <h1 data-i18n-html="hero.h1">Давай <span class="gradient">знакомиться!</span></h1>
+      <p class="hero-sub" data-i18n="hero.sub">Медкарта, AI-чекап и забота о всей семье — в одном приложении</p>
+    </div>
+
+    <div class="hero-character">
+      <div class="robot-stage">
+        <div class="robot-aura"></div>
+
+        <img class="robot-svg" src="assets/aivita-robot-hero.png" alt="AIVITA — робот-доктор в национальной одежде" />
+
+        <!-- Floating ecosystem cards -->
+        <div class="eco-card c1">
+          <div class="ic">📋</div>
+          <div><div class="lab" data-i18n="eco.medcard.lab">Медкарта</div><div class="val" data-i18n="eco.medcard.val">QR готов</div></div>
+        </div>
+        <div class="eco-card c2">
+          <div class="ic">🧬</div>
+          <div><div class="lab" data-i18n="eco.checkup.lab">AI-чекап</div><div class="val">72 / 100</div></div>
+        </div>
+        <div class="eco-card c3">
+          <div class="ic">❤️</div>
+          <div><div class="lab" data-i18n="eco.pulse.lab">Пульс</div><div class="val">72 bpm</div></div>
+        </div>
+        <div class="eco-card c4">
+          <div class="ic">👨‍👩‍👧</div>
+          <div><div class="lab" data-i18n="eco.family.lab">Семья</div><div class="val" data-i18n="eco.family.val">3 человека</div></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="badge">Запуск платформы совсем скоро</div>
+  <div class="scroll-hint">
+    <span data-i18n="hero.scroll">листайте</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
 
-  <h1>MedSoft</h1>
+<!-- ===== INTRO 2 — AI greeting bubble ===== -->
+<section class="intro2 reveal">
+  <div class="intro2-card">
+    <div class="intro2-avatar">
+      <span class="pulse-ring"></span>
+      <span class="pulse-ring r2"></span>
+      <span class="pulse-ring r3"></span>
+      <div class="face">
+        <img src="assets/aivita-face-v3.png" alt="Aivita" />
+      </div>
+    </div>
+    <div class="intro2-text">
+      <div class="intro2-tag" data-i18n="intro2.tag">AI ассистент</div>
+      <h2 class="intro2-title" data-i18n="intro2.title">Я твой AI ассистент здоровья!</h2>
+      <p class="intro2-sub" data-i18n="intro2.sub">Буду следить за твоим здоровьем, улучшать его и делать совершеннее!</p>
+    </div>
+  </div>
+</section>
 
-  <div class="tagline">Медицина, которая всегда с вами</div>
-  <div class="subtitle">
-    Экосистема заботы о здоровье: профилактика, лечение, реабилитация.<br>
-    Цифровой двойник пациента · ИИ-маршрутизация · SOS-алгоритм
+<!-- ===== FIND ===== -->
+<section class="find-section">
+  <div class="section-header reveal">
+    <div class="section-tag" data-i18n="find.tag">Не выходя из дома</div>
+    <div class="section-title" data-i18n="find.title">Найду специалиста и хорошую клинику</div>
   </div>
 
-  <div class="counter" id="cd">
-    <div class="unit"><div class="num" id="d">00</div><div class="lbl">Дней</div></div>
-    <div class="unit"><div class="num" id="h">00</div><div class="lbl">Часов</div></div>
-    <div class="unit"><div class="num" id="m">00</div><div class="lbl">Минут</div></div>
-    <div class="unit"><div class="num" id="s">00</div><div class="lbl">Секунд</div></div>
+  <div class="find-grid">
+    <div class="find-card reveal reveal-d1"><span class="emoji">👨‍⚕️</span><h3 data-i18n="find.doctor.t">Врач</h3><p data-i18n="find.doctor.s">250+ специалистов</p></div>
+    <div class="find-card reveal reveal-d2"><span class="emoji">🏥</span><h3 data-i18n="find.clinic.t">Клиника</h3><p data-i18n="find.clinic.s">Рядом с вами</p></div>
+    <div class="find-card reveal reveal-d3"><span class="emoji">💪</span><h3 data-i18n="find.trainer.t">Тренер</h3><p data-i18n="find.trainer.s">Фитнес и здоровье</p></div>
+    <div class="find-card reveal reveal-d1"><span class="emoji">✨</span><h3 data-i18n="find.cosmetic.t">Косметолог</h3><p data-i18n="find.cosmetic.s">Уход и красота</p></div>
+    <div class="find-card reveal reveal-d2"><span class="emoji">🏋️</span><h3 data-i18n="find.gym.t">Фитнес-зал</h3><p data-i18n="find.gym.s">Занятия рядом</p></div>
+    <div class="find-card reveal reveal-d3"><span class="emoji">🧘</span><h3 data-i18n="find.wellness.t">Wellness</h3><p data-i18n="find.wellness.s">Массаж и SPA</p></div>
   </div>
+</section>
 
-  <div class="foot">
-    <span>© 2026 MedSoft</span>
-    <span class="dot"></span>
-    <span>Узбекистан</span>
-    <span class="dot"></span>
-    <a href="mailto:hello@aivita.uz">hello@aivita.uz</a>
-    <span class="dot"></span>
-    <a href="/about.html">О нас</a>
-    <span class="dot"></span>
-    <a href="/privacy.html">Политика</a>
-    <span class="dot"></span>
-    <a href="/terms.html">Оферта</a>
+<!-- ===== ROBOT SHOWCASE (intro to doctor block) ===== -->
+<div class="robot-showcase reveal">
+  <img src="assets/aivita-robot-cutout.png" alt="AIVITA — AI-доктор" />
+</div>
+
+<!-- ===== MANAGE — call to action ===== -->
+<section class="manage-section reveal">
+  <div class="manage-card">
+    <div class="manage-inner">
+      <div class="manage-tag" data-i18n="manage.tag">Управляй своим здоровьем</div>
+      <div class="manage-list">
+        <span class="manage-pill"><span class="em">🥗</span><span data-i18n="manage.p1">Правильное питание</span></span>
+        <span class="manage-pill"><span class="em">💊</span><span data-i18n="manage.p2">Лекарства вовремя</span></span>
+        <span class="manage-pill"><span class="em">📅</span><span data-i18n="manage.p3">Запись к врачу</span></span>
+        <span class="manage-pill"><span class="em">🏃</span><span data-i18n="manage.p4">Спортивная жизнь</span></span>
+      </div>
+      <p class="manage-sub" data-i18n="manage.sub">Всем этим вы можете управлять через мобильное приложение или персональный кабинет.</p>
+      <button class="manage-cta" id="ctaOpenModal" data-i18n-html="manage.cta">
+        Заведи свою медицинскую карту <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="footer-brand">aivita</div>
+  <div class="footer-links">
+    <a href="#" data-i18n="footer.about">О нас</a>
+    <a href="#" data-i18n="footer.pricing">Тарифы</a>
+    <a href="#" data-i18n="footer.doctors">Врачам</a>
+    <a href="#" data-i18n="footer.partners">Партнёрам</a>
+    <a href="#" data-i18n="footer.contact">Контакты</a>
+    <a href="#" data-i18n="footer.policy">Политика</a>
+  </div>
+  <div class="footer-socials">
+    <a class="tg" href="https://t.me/aivita_uz" target="_blank" rel="noopener" aria-label="Telegram">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21.94 4.55 18.7 19.94c-.24 1.07-.88 1.34-1.78.83l-4.92-3.62-2.37 2.28c-.26.26-.48.48-.99.48l.35-5 9.1-8.22c.4-.35-.08-.55-.62-.2L6.21 12.6 1.36 11.08c-1.06-.33-1.08-1.06.22-1.57L20.57 3.4c.88-.33 1.65.2 1.37 1.15z"/>
+      </svg>
+    </a>
+    <a class="wa" href="https://wa.me/998000000000" target="_blank" rel="noopener" aria-label="WhatsApp">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.21 8.21 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.25 8.24zm4.52-6.17c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.98-.15.17-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.55-1.33-.76-1.82-.2-.48-.41-.41-.55-.42l-.47-.01c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07s.89 2.4 1.01 2.57c.12.17 1.74 2.66 4.22 3.73.59.25 1.05.41 1.41.52.59.19 1.13.16 1.56.1.47-.07 1.47-.6 1.68-1.18.2-.58.2-1.08.14-1.18-.06-.1-.23-.16-.48-.28z"/>
+      </svg>
+    </a>
+    <a class="ig" href="https://instagram.com/aivita.uz" target="_blank" rel="noopener" aria-label="Instagram">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.81.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.81-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.81-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.81.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.83 5.83 0 0 0-2.13 1.38A5.83 5.83 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.73 1.46 1.38 2.13.67.65 1.34 1.07 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.83 5.83 0 0 0 2.13-1.38c.65-.67 1.07-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.83 5.83 0 0 0-1.38-2.13A5.83 5.83 0 0 0 19.86.63C19.1.33 18.22.13 16.95.07 15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.17 6.17 0 0 0 12 5.84zM12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm6.41-11.85a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44z"/>
+      </svg>
+    </a>
+    <a class="fb" href="https://facebook.com/aivita.uz" target="_blank" rel="noopener" aria-label="Facebook">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05v-2.66c0-3.02 1.79-4.7 4.53-4.7 1.31 0 2.69.24 2.69.24v2.97h-1.52c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/>
+      </svg>
+    </a>
+    <a class="yt" href="https://youtube.com/@aivita_uz" target="_blank" rel="noopener" aria-label="YouTube">
+      <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M23.5 6.5a3 3 0 0 0-2.11-2.13C19.5 4 12 4 12 4s-7.5 0-9.39.37A3 3 0 0 0 .5 6.5C.14 8.4.14 12 .14 12s0 3.6.36 5.5a3 3 0 0 0 2.11 2.13C4.5 20 12 20 12 20s7.5 0 9.39-.37a3 3 0 0 0 2.11-2.13c.36-1.9.36-5.5.36-5.5s0-3.6-.36-5.5zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/>
+      </svg>
+    </a>
+  </div>
+  <div class="footer-copy" data-i18n="footer.copy">© 2026 AIVITA.UZ — AI-платформа здоровья для Узбекистана</div>
+</footer>
+
+<!-- ===== BACK TO TOP ===== -->
+<button class="back-to-top" id="backToTop" aria-label="Наверх">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19V5M5 12l7-7 7 7"/>
+  </svg>
+</button>
+
+<!-- ===== COOKIE CONSENT ===== -->
+<div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite">
+  <div class="cookie-banner__text" data-i18n="cookie.text">Мы используем cookies для улучшения сервиса</div>
+  <button class="cookie-banner__accept" id="cookieAccept" data-i18n="cookie.accept">Принять</button>
+</div>
+
+<!-- ===== WAITLIST MODAL ===== -->
+<div class="modal-backdrop" id="waitModal" role="dialog" aria-modal="true" aria-labelledby="waitModalTitle">
+  <div class="modal">
+    <button class="modal-close" id="waitModalClose" aria-label="Закрыть">✕</button>
+    <h3 id="waitModalTitle" data-i18n="wait.title">Заведи свою медкарту</h3>
+    <p data-i18n="wait.sub">Оставь email — пришлём приглашение и доступ к приложению.</p>
+    <form class="modal-form" id="waitForm">
+      <input class="modal-input" type="text" name="name" placeholder="Имя" data-i18n-attr="placeholder|wait.name" required minlength="2" />
+      <input class="modal-input" type="email" name="email" placeholder="Email" data-i18n-attr="placeholder|wait.email" required />
+      <input class="modal-input" type="tel" name="phone" placeholder="Телефон (необязательно)" data-i18n-attr="placeholder|wait.phone" />
+      <button type="submit" class="modal-submit" data-i18n="wait.submit">Записаться в wait-list</button>
+      <div class="modal-status" id="waitStatus" aria-live="polite"></div>
+      <div class="modal-foot" data-i18n="wait.foot">Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности.</div>
+    </form>
   </div>
 </div>
 
 <script>
-const KEY='medsoft_launch';
-let launch=localStorage.getItem(KEY);
-if(!launch){
-  launch=Date.now()+90*24*60*60*1000;
-  localStorage.setItem(KEY,launch);
+// ===== i18n =====
+const I18N = {
+  ru: {
+    "nav.login": "Войти",
+    "hero.pill": "AI-платформа здоровья",
+    "hero.h1": "Давай <span class=\"gradient\">знакомиться!</span>",
+    "hero.sub": "Медкарта, AI-чекап и забота о всей семье — в одном приложении",
+    "hero.scroll": "листайте",
+    "intro2.tag": "AI ассистент",
+    "intro2.title": "Я твой AI ассистент здоровья!",
+    "intro2.sub": "Буду следить за твоим здоровьем, улучшать его и делать совершеннее!",
+    "manage.tag": "Управляй своим здоровьем",
+    "manage.p1": "Правильное питание",
+    "manage.p2": "Лекарства вовремя",
+    "manage.p3": "Запись к врачу",
+    "manage.p4": "Спортивная жизнь",
+    "manage.sub": "Всем этим вы можете управлять через мобильное приложение или персональный кабинет.",
+    "manage.cta": "Заведи свою медицинскую карту <span class=\"arrow\">→</span>",
+    "wait.title": "Заведи свою медкарту",
+    "wait.sub": "Оставь email — пришлём приглашение и доступ к приложению.",
+    "wait.name": "Имя",
+    "wait.email": "Email",
+    "wait.phone": "Телефон (необязательно)",
+    "wait.submit": "Записаться в wait-list",
+    "wait.foot": "Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности.",
+    "wait.sending": "Отправляем…",
+    "wait.success": "Спасибо! Мы свяжемся с вами.",
+    "wait.error": "Что-то пошло не так. Попробуйте ещё раз.",
+    "cookie.text": "Мы используем cookies для улучшения сервиса",
+    "cookie.accept": "Принять",
+    "eco.medcard.lab": "Медкарта", "eco.medcard.val": "QR готов",
+    "eco.checkup.lab": "AI-чекап",
+    "eco.pulse.lab": "Пульс",
+    "eco.family.lab": "Семья", "eco.family.val": "3 человека",
+    "features.tag": "Возможности",
+    "features.title": "Всё, что нужно — уже здесь",
+    "feat.medcard.title": "Медкарта",
+    "feat.medcard.text": "Электронная карта для вас и всей семьи. QR-код для врача.",
+    "feat.checkup.title": "AI-чекап",
+    "feat.checkup.text": "Проверка 5 систем за минуту. Биологический возраст и план на 30 дней.",
+    "feat.chat.title": "Чат с врачом",
+    "feat.chat.text": "Назначения, рецепты и консультации — прямо в приложении.",
+    "feat.bio.title": "Биометрия",
+    "feat.bio.text": "Пульс, давление, сон, сахар — всё под контролем каждый день.",
+    "feat.map.title": "Карта вспышек",
+    "feat.map.text": "Мониторинг заболеваний рядом с вами. Данные в реальном времени.",
+    "feat.family.title": "Семья",
+    "feat.family.text": "Детские медкарты, прививки, здоровье близких — в одном месте.",
+    "ai.title": "Ваш личный <span>AI-ассистент</span>",
+    "ai.sub": "Задайте вопрос о здоровье, отправьте фото анализов или голосовое — AI поможет разобраться. Для вас и вашей семьи.",
+    "ai.chip1": "AI-чекап", "ai.chip2": "Фото анализов", "ai.chip3": "Голосовой вопрос", "ai.chip4": "Совместимость лекарств",
+    "find.tag": "Не выходя из дома",
+    "find.title": "Найду специалиста и хорошую клинику",
+    "find.doctor.t": "Врач", "find.doctor.s": "250+ специалистов",
+    "find.clinic.t": "Клиника", "find.clinic.s": "Рядом с вами",
+    "find.trainer.t": "Тренер", "find.trainer.s": "Фитнес и здоровье",
+    "find.cosmetic.t": "Косметолог", "find.cosmetic.s": "Уход и красота",
+    "find.gym.t": "Фитнес-зал", "find.gym.s": "Занятия рядом",
+    "find.wellness.t": "Wellness", "find.wellness.s": "Массаж и SPA",
+    "doctor.tag": "🩺 Врачам",
+    "doctor.h2": "Зарабатывайте с AIVITA",
+    "doctor.p": "Присоединяйтесь к платформе. Пациенты найдут вас, а AI поможет с диагностикой.",
+    "doctor.perk1": "Пациенты из каталога",
+    "doctor.perk2": "Чат с назначениями",
+    "doctor.perk3": "AI-ассистент врача",
+    "doctor.perk4": "Выплаты каждую пятницу",
+    "doctor.btn1": "Стать врачом AIVITA →",
+    "doctor.btn2": "Подробнее",
+    "dl.title": "Скачайте AIVITA",
+    "dl.sub": "Бесплатно для iOS и Android",
+    "dl.appstore.small": "Скачать в", "dl.gplay.small": "Доступно в",
+    "footer.about": "О нас", "footer.pricing": "Тарифы", "footer.doctors": "Врачам",
+    "footer.partners": "Партнёрам", "footer.contact": "Контакты", "footer.policy": "Политика",
+    "footer.copy": "© 2026 AIVITA.UZ — AI-платформа здоровья для Узбекистана"
+  },
+  uz: {
+    "nav.login": "Kirish",
+    "hero.pill": "AI sog'liq platformasi",
+    "hero.h1": "Keling, <span class=\"gradient\">tanishamiz!</span>",
+    "hero.sub": "Tibbiy karta, AI-tekshiruv va butun oila g'amxo'rligi — bitta ilovada",
+    "hero.scroll": "aylantiring",
+    "intro2.tag": "AI yordamchi",
+    "intro2.title": "Men sening AI sog'liq yordamchingman!",
+    "intro2.sub": "Sening sog'lig'ingni kuzataman, yaxshilayman va mukammalroq qilaman!",
+    "manage.tag": "Sog'lig'ingni boshqar",
+    "manage.p1": "To'g'ri ovqatlanish",
+    "manage.p2": "Dorilarni o'z vaqtida",
+    "manage.p3": "Shifokorga yozilish",
+    "manage.p4": "Sport hayoti",
+    "manage.sub": "Bularning barchasini mobil ilova yoki shaxsiy kabinet orqali boshqarishingiz mumkin.",
+    "manage.cta": "O'z tibbiy kartangni yarat <span class=\"arrow\">→</span>",
+    "wait.title": "Tibbiy kartangni yarat",
+    "wait.sub": "Email qoldiring — taklif va ilovaga kirish yuboramiz.",
+    "wait.name": "Ism",
+    "wait.email": "Email",
+    "wait.phone": "Telefon (ixtiyoriy)",
+    "wait.submit": "Wait-list'ga yozilish",
+    "wait.foot": "Tugmani bosib, maxfiylik siyosatiga rozilik bildirasiz.",
+    "wait.sending": "Yuborilmoqda…",
+    "wait.success": "Rahmat! Tez orada bog'lanamiz.",
+    "wait.error": "Xatolik yuz berdi. Qayta urinib ko'ring.",
+    "cookie.text": "Biz xizmatni yaxshilash uchun cookies'dan foydalanamiz",
+    "cookie.accept": "Qabul qilaman",
+    "eco.medcard.lab": "Tibbiy karta", "eco.medcard.val": "QR tayyor",
+    "eco.checkup.lab": "AI-tekshiruv",
+    "eco.pulse.lab": "Puls",
+    "eco.family.lab": "Oila", "eco.family.val": "3 kishi",
+    "features.tag": "Imkoniyatlar",
+    "features.title": "Hammasi bu yerda",
+    "feat.medcard.title": "Tibbiy karta",
+    "feat.medcard.text": "Siz va oilangiz uchun elektron karta. Shifokor uchun QR-kod.",
+    "feat.checkup.title": "AI-tekshiruv",
+    "feat.checkup.text": "5 tizimni bir daqiqada tekshirish. Biologik yosh va 30 kunlik reja.",
+    "feat.chat.title": "Shifokor bilan chat",
+    "feat.chat.text": "Tayinlovlar, retseptlar va konsultatsiyalar — to'g'ridan-to'g'ri ilovada.",
+    "feat.bio.title": "Biometriya",
+    "feat.bio.text": "Puls, bosim, uyqu, qand — har kuni nazoratda.",
+    "feat.map.title": "Kasalliklar xaritasi",
+    "feat.map.text": "Yaqin atrofdagi kasalliklarni real vaqt rejimida kuzatish.",
+    "feat.family.title": "Oila",
+    "feat.family.text": "Bolalar kartasi, emlash, yaqinlar sog'lig'i — bir joyda.",
+    "ai.title": "Sizning shaxsiy <span>AI-yordamchingiz</span>",
+    "ai.sub": "Sog'liq haqida savol bering, tahlil rasmini yoki ovozni yuboring — AI yordam beradi. Sizga va oilangizga.",
+    "ai.chip1": "AI-tekshiruv", "ai.chip2": "Tahlil rasmi", "ai.chip3": "Ovozli savol", "ai.chip4": "Dorilar mosligi",
+    "find.tag": "Uydan chiqmasdan",
+    "find.title": "Mutaxassis va yaxshi klinikani topaman",
+    "find.doctor.t": "Shifokor", "find.doctor.s": "250+ mutaxassis",
+    "find.clinic.t": "Klinika", "find.clinic.s": "Sizga yaqin",
+    "find.trainer.t": "Murabbiy", "find.trainer.s": "Fitnes va sog'liq",
+    "find.cosmetic.t": "Kosmetolog", "find.cosmetic.s": "Parvarish va go'zallik",
+    "find.gym.t": "Fitnes-zal", "find.gym.s": "Yaqin atrofda",
+    "find.wellness.t": "Wellness", "find.wellness.s": "Massaj va SPA",
+    "doctor.tag": "🩺 Shifokorlarga",
+    "doctor.h2": "AIVITA bilan daromad oling",
+    "doctor.p": "Platformaga qo'shiling. Bemorlar sizni topadi, AI esa diagnostikada yordam beradi.",
+    "doctor.perk1": "Katalogdan bemorlar",
+    "doctor.perk2": "Tayinlovlar bilan chat",
+    "doctor.perk3": "AI shifokor yordamchisi",
+    "doctor.perk4": "Har juma to'lovlar",
+    "doctor.btn1": "AIVITA shifokori bo'lish →",
+    "doctor.btn2": "Batafsil",
+    "dl.title": "AIVITA-ni yuklab oling",
+    "dl.sub": "iOS va Android uchun bepul",
+    "dl.appstore.small": "Yuklab olish", "dl.gplay.small": "Mavjud",
+    "footer.about": "Biz haqimizda", "footer.pricing": "Tariflar", "footer.doctors": "Shifokorlarga",
+    "footer.partners": "Hamkorlarga", "footer.contact": "Aloqa", "footer.policy": "Maxfiylik",
+    "footer.copy": "© 2026 AIVITA.UZ — O'zbekiston uchun AI sog'liq platformasi"
+  },
+  en: {
+    "nav.login": "Sign in",
+    "hero.pill": "AI health platform",
+    "hero.h1": "Let's <span class=\"gradient\">get acquainted!</span>",
+    "hero.sub": "Medical record, AI checkup and care for the whole family — in one app",
+    "hero.scroll": "scroll",
+    "intro2.tag": "AI assistant",
+    "intro2.title": "I'm your AI health assistant!",
+    "intro2.sub": "I'll watch over your health, improve it and make it more perfect!",
+    "manage.tag": "Take charge of your health",
+    "manage.p1": "Healthy nutrition",
+    "manage.p2": "Medication on time",
+    "manage.p3": "Doctor appointments",
+    "manage.p4": "Active lifestyle",
+    "manage.sub": "Manage all of this through the mobile app or your personal account.",
+    "manage.cta": "Start your medical record <span class=\"arrow\">→</span>",
+    "wait.title": "Start your medical record",
+    "wait.sub": "Leave your email — we'll send an invite and app access.",
+    "wait.name": "Name",
+    "wait.email": "Email",
+    "wait.phone": "Phone (optional)",
+    "wait.submit": "Join wait-list",
+    "wait.foot": "By clicking, you agree to the privacy policy.",
+    "wait.sending": "Sending…",
+    "wait.success": "Thank you! We'll be in touch.",
+    "wait.error": "Something went wrong. Please try again.",
+    "cookie.text": "We use cookies to improve the service",
+    "cookie.accept": "Accept",
+    "eco.medcard.lab": "Medical card", "eco.medcard.val": "QR ready",
+    "eco.checkup.lab": "AI checkup",
+    "eco.pulse.lab": "Pulse",
+    "eco.family.lab": "Family", "eco.family.val": "3 members",
+    "features.tag": "Features",
+    "features.title": "Everything you need — already here",
+    "feat.medcard.title": "Medical card",
+    "feat.medcard.text": "Digital record for you and your family. QR code for the doctor.",
+    "feat.checkup.title": "AI checkup",
+    "feat.checkup.text": "5 systems checked in a minute. Biological age and a 30-day plan.",
+    "feat.chat.title": "Doctor chat",
+    "feat.chat.text": "Prescriptions and consultations — right inside the app.",
+    "feat.bio.title": "Biometrics",
+    "feat.bio.text": "Pulse, pressure, sleep, glucose — tracked every day.",
+    "feat.map.title": "Outbreak map",
+    "feat.map.text": "Real-time monitoring of diseases near you.",
+    "feat.family.title": "Family",
+    "feat.family.text": "Kids' records, vaccinations, family health — all in one place.",
+    "ai.title": "Your personal <span>AI assistant</span>",
+    "ai.sub": "Ask a health question, send a photo of lab results or a voice note — AI will help. For you and your family.",
+    "ai.chip1": "AI checkup", "ai.chip2": "Lab photo", "ai.chip3": "Voice question", "ai.chip4": "Drug interactions",
+    "find.tag": "Without leaving home",
+    "find.title": "I'll find a specialist and a good clinic",
+    "find.doctor.t": "Doctor", "find.doctor.s": "250+ specialists",
+    "find.clinic.t": "Clinic", "find.clinic.s": "Near you",
+    "find.trainer.t": "Trainer", "find.trainer.s": "Fitness & wellness",
+    "find.cosmetic.t": "Cosmetologist", "find.cosmetic.s": "Beauty & care",
+    "find.gym.t": "Gym", "find.gym.s": "Classes nearby",
+    "find.wellness.t": "Wellness", "find.wellness.s": "Massage & SPA",
+    "doctor.tag": "🩺 For doctors",
+    "doctor.h2": "Earn with AIVITA",
+    "doctor.p": "Join the platform. Patients find you, AI helps with diagnostics.",
+    "doctor.perk1": "Patients from catalog",
+    "doctor.perk2": "Prescription chat",
+    "doctor.perk3": "AI doctor assistant",
+    "doctor.perk4": "Weekly Friday payouts",
+    "doctor.btn1": "Become an AIVITA doctor →",
+    "doctor.btn2": "Learn more",
+    "dl.title": "Download AIVITA",
+    "dl.sub": "Free for iOS and Android",
+    "dl.appstore.small": "Download on", "dl.gplay.small": "Get it on",
+    "footer.about": "About", "footer.pricing": "Pricing", "footer.doctors": "For doctors",
+    "footer.partners": "Partners", "footer.contact": "Contact", "footer.policy": "Privacy",
+    "footer.copy": "© 2026 AIVITA.UZ — AI health platform for Uzbekistan"
+  }
+};
+
+function applyLang(lang) {
+  if (!I18N[lang]) lang = 'ru';
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (I18N[lang][k] !== undefined) el.textContent = I18N[lang][k];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const k = el.getAttribute('data-i18n-html');
+    if (I18N[lang][k] !== undefined) el.innerHTML = I18N[lang][k];
+  });
+  document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+    const v = el.getAttribute('data-i18n-attr');
+    if (!v || !v.includes('|')) return;
+    const [attr, k] = v.split('|');
+    if (I18N[lang][k] !== undefined) el.setAttribute(attr, I18N[lang][k]);
+  });
+  document.querySelectorAll('#langSwitch .lang-menu button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  const cur = document.getElementById('langCurrent');
+  if (cur) cur.textContent = lang.toUpperCase();
+  try { localStorage.setItem('aivita-lang', lang); } catch (e) {}
 }
-launch=Number(launch);
-function tick(){
-  const now=Date.now();
-  let diff=Math.max(0,launch-now);
-  const d=Math.floor(diff/86400000); diff-=d*86400000;
-  const h=Math.floor(diff/3600000);  diff-=h*3600000;
-  const m=Math.floor(diff/60000);    diff-=m*60000;
-  const s=Math.floor(diff/1000);
-  document.getElementById('d').textContent=String(d).padStart(2,'0');
-  document.getElementById('h').textContent=String(h).padStart(2,'0');
-  document.getElementById('m').textContent=String(m).padStart(2,'0');
-  document.getElementById('s').textContent=String(s).padStart(2,'0');
+
+const langWrap = document.getElementById('langSwitch');
+const langTrigger = document.getElementById('langTrigger');
+langTrigger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  langWrap.classList.toggle('open');
+  langTrigger.setAttribute('aria-expanded', langWrap.classList.contains('open'));
+});
+document.querySelectorAll('#langSwitch .lang-menu button').forEach(b => {
+  b.addEventListener('click', () => {
+    applyLang(b.dataset.lang);
+    langWrap.classList.remove('open');
+    langTrigger.setAttribute('aria-expanded', 'false');
+  });
+});
+document.addEventListener('click', (e) => {
+  if (!langWrap.contains(e.target)) {
+    langWrap.classList.remove('open');
+    langTrigger.setAttribute('aria-expanded', 'false');
+  }
+});
+applyLang((function(){ try { return localStorage.getItem('aivita-lang'); } catch(e){ return null; } })() || 'ru');
+
+// Intersection Observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===== Waitlist modal =====
+const waitModal = document.getElementById('waitModal');
+const waitForm = document.getElementById('waitForm');
+const waitStatus = document.getElementById('waitStatus');
+
+function openModal() {
+  waitModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => waitForm.querySelector('input[name="name"]')?.focus(), 200);
 }
-tick();setInterval(tick,1000);
+function closeModal() {
+  waitModal.classList.remove('open');
+  document.body.style.overflow = '';
+  waitStatus.textContent = '';
+  waitStatus.className = 'modal-status';
+}
+
+document.getElementById('ctaOpenModal')?.addEventListener('click', openModal);
+document.getElementById('waitModalClose')?.addEventListener('click', closeModal);
+waitModal?.addEventListener('click', (e) => { if (e.target === waitModal) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && waitModal.classList.contains('open')) closeModal(); });
+
+waitForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const submitBtn = waitForm.querySelector('button[type="submit"]');
+  const fd = new FormData(waitForm);
+  const payload = {
+    name: String(fd.get('name') || '').trim(),
+    email: String(fd.get('email') || '').trim(),
+    phone: String(fd.get('phone') || '').trim(),
+    locale: document.documentElement.lang || 'ru',
+    source: 'landing-cta',
+  };
+  if (!payload.email || !payload.name) return;
+
+  submitBtn.disabled = true;
+  waitStatus.className = 'modal-status';
+  waitStatus.textContent = (I18N[payload.locale]?.['wait.sending'] || 'Отправляем…');
+
+  try {
+    const r = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error('http ' + r.status);
+    waitStatus.classList.add('success');
+    waitStatus.textContent = (I18N[payload.locale]?.['wait.success'] || 'Спасибо! Мы свяжемся с вами.');
+    waitForm.reset();
+    setTimeout(closeModal, 2200);
+  } catch (err) {
+    waitStatus.classList.add('error');
+    waitStatus.textContent = (I18N[payload.locale]?.['wait.error'] || 'Что-то пошло не так. Попробуйте ещё раз.');
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+// ===== Cookie consent =====
+(function () {
+  const banner = document.getElementById('cookieBanner');
+  const acceptBtn = document.getElementById('cookieAccept');
+  if (!banner) return;
+  let accepted = false;
+  try { accepted = localStorage.getItem('aivita-cookie-ok') === '1'; } catch (e) {}
+  if (!accepted) {
+    setTimeout(() => banner.classList.add('show'), 600);
+  }
+  acceptBtn?.addEventListener('click', () => {
+    try { localStorage.setItem('aivita-cookie-ok', '1'); } catch (e) {}
+    banner.classList.remove('show');
+  });
+})();
+
+// ===== Back to top =====
+(function () {
+  const btn = document.getElementById('backToTop');
+  if (!btn) return;
+  const onScroll = () => btn.classList.toggle('show', window.scrollY > 400);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+
+// ===== Admin-driven config loader =====
+// Pulls editable copy + settings from /api/landing-config. Falls back to
+// inline defaults if the endpoint is unreachable. The config shape:
+//   {
+//     hero_title, hero_subtitle,
+//     features: [{emoji,title,text}, …],
+//     ai_block_title, ai_block_subtitle,
+//     find_cards: [{emoji,title,subtitle}, …],
+//     doctor_block_title, doctor_block_subtitle,
+//     social_links: {telegram, whatsapp, instagram, facebook, youtube},
+//     app_links: {appstore, googleplay},
+//     waitlist_enabled, yandex_metrika_id, gtm_id, cookie_text
+//   }
+function applyConfig(cfg) {
+  if (!cfg || typeof cfg !== 'object') return;
+
+  const setText = (sel, value) => {
+    if (value == null) return;
+    document.querySelectorAll(sel).forEach(el => { el.textContent = value; });
+  };
+  const setHTML = (sel, value) => {
+    if (value == null) return;
+    document.querySelectorAll(sel).forEach(el => { el.innerHTML = value; });
+  };
+
+  // Hero
+  setHTML('[data-i18n-html="hero.h1"]', cfg.hero_title);
+  setText('[data-i18n="hero.sub"]', cfg.hero_subtitle);
+
+  // AI greeting block (intro2)
+  setText('[data-i18n="intro2.title"]', cfg.ai_block_title);
+  setText('[data-i18n="intro2.sub"]', cfg.ai_block_subtitle);
+
+  // Find section
+  if (Array.isArray(cfg.find_cards) && cfg.find_cards.length) {
+    const cards = document.querySelectorAll('.find-card');
+    cfg.find_cards.forEach((c, i) => {
+      const el = cards[i]; if (!el) return;
+      if (c.emoji != null) { const e = el.querySelector('.emoji'); if (e) e.textContent = c.emoji; }
+      if (c.title != null) { const t = el.querySelector('h3'); if (t) t.textContent = c.title; }
+      if (c.subtitle != null) { const p = el.querySelector('p'); if (p) p.textContent = c.subtitle; }
+    });
+  }
+
+  // Doctor block (still rendered if user re-enables it later)
+  setText('[data-i18n="doctor.h2"]', cfg.doctor_block_title);
+  setText('[data-i18n="doctor.p"]', cfg.doctor_block_subtitle);
+
+  // Feature cards — only applies if the features section is rendered
+  if (Array.isArray(cfg.features) && cfg.features.length) {
+    const feats = document.querySelectorAll('.feat');
+    cfg.features.forEach((f, i) => {
+      const el = feats[i]; if (!el) return;
+      if (f.emoji != null) { const e = el.querySelector('.feat-emoji'); if (e) e.textContent = f.emoji; }
+      if (f.title != null) { const t = el.querySelector('h3'); if (t) t.textContent = f.title; }
+      if (f.text != null)  { const p = el.querySelector('p'); if (p) p.textContent = f.text; }
+    });
+  }
+
+  // Social links
+  if (cfg.social_links) {
+    const map = { tg: cfg.social_links.telegram, wa: cfg.social_links.whatsapp, ig: cfg.social_links.instagram, fb: cfg.social_links.facebook, yt: cfg.social_links.youtube };
+    Object.entries(map).forEach(([cls, url]) => {
+      if (!url) return;
+      document.querySelectorAll(`.footer-socials a.${cls}`).forEach(a => a.setAttribute('href', url));
+    });
+  }
+
+  // App store links
+  if (cfg.app_links) {
+    const dlBtns = document.querySelectorAll('.dl-btn');
+    if (cfg.app_links.appstore && dlBtns[0]) dlBtns[0].setAttribute('onclick', `window.open('${cfg.app_links.appstore}','_blank')`);
+    if (cfg.app_links.googleplay && dlBtns[1]) dlBtns[1].setAttribute('onclick', `window.open('${cfg.app_links.googleplay}','_blank')`);
+  }
+
+  // Wait-list toggle
+  if (cfg.waitlist_enabled === false) {
+    const cta = document.getElementById('ctaOpenModal');
+    if (cta) cta.style.display = 'none';
+  }
+
+  // Cookie banner override
+  if (cfg.cookie_text) setText('[data-i18n="cookie.text"]', cfg.cookie_text);
+
+  // Inject analytics IDs at runtime if not yet baked in
+  if (cfg.yandex_metrika_id && cfg.yandex_metrika_id !== 'YOUR_COUNTER_ID') {
+    try {
+      window.__ymCounterId = cfg.yandex_metrika_id;
+      if (typeof window.ym === 'function') {
+        window.ym(cfg.yandex_metrika_id, 'init', { clickmap: true, trackLinks: true, accurateTrackBounce: true });
+      }
+    } catch (e) { console.warn('ym init', e); }
+  }
+  if (cfg.gtm_id && cfg.gtm_id !== 'GTM-XXXXXXX') {
+    // GTM is loaded synchronously in <head>, but we can still dataLayer.push
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.runtime_id', gtm_id: cfg.gtm_id });
+  }
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/landing-config', { cache: 'no-store' });
+    if (r.ok) {
+      const cfg = await r.json();
+      applyConfig(cfg);
+    }
+  } catch (e) {
+    // silent — page works with HTML defaults
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadConfig);
+} else {
+  loadConfig();
+}
 </script>
+
 </body>
 </html>
