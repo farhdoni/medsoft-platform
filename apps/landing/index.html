@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MedSoft — Медицина, которая всегда с вами</title>
+<meta name="description" content="MedSoft — экосистема заботы о здоровье: профилактика, лечение, реабилитация. Платформа следующего поколения.">
+<meta property="og:title" content="MedSoft — Медицина, которая всегда с вами">
+<meta property="og:description" content="Экосистема заботы о здоровье. Скоро запуск.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aivita.uz">
+<meta property="og:image" content="https://aivita.uz/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://aivita.uz/assets/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#040c14;
+  --cyan:#00d4c8;
+  --green:#00e676;
+  --text:#e8f4f8;
+  --text2:#8ab0c0;
+  --border:rgba(0,212,200,0.15);
+}
+html,body{height:100%}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,200,0.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,200,0.05) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 40%,transparent 100%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 40%,transparent 100%);
+}
+.glow{
+  position:absolute;width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,212,200,0.12) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:pulse 4s ease-in-out infinite;
+  pointer-events:none;
+}
+.glow2{
+  position:absolute;width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,230,118,0.08) 0%,transparent 70%);
+  top:30%;right:10%;
+  animation:pulse 6s ease-in-out infinite reverse;
+  pointer-events:none;
+}
+@keyframes pulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.7}
+  50%{transform:translate(-50%,-50%) scale(1.1);opacity:1}
+}
+.content{
+  position:relative;z-index:2;
+  text-align:center;padding:24px;
+  max-width:640px;
+  animation:fadeIn 1.2s ease-out;
+}
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.logo-icon{
+  width:80px;height:80px;
+  margin:0 auto 24px;
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-icon svg{
+  width:80px;height:80px;
+  filter:drop-shadow(0 0 20px rgba(0,212,200,0.5));
+}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(0,212,200,0.1);
+  border:1px solid var(--border);
+  padding:6px 16px;border-radius:50px;
+  font-size:13px;color:var(--cyan);
+  margin-bottom:32px;
+}
+.badge::before{
+  content:'';width:8px;height:8px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+h1{
+  font-family:'Exo 2',sans-serif;
+  font-size:clamp(48px,8vw,88px);
+  font-weight:800;line-height:1;
+  margin-bottom:20px;
+  background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--green) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:-0.02em;
+}
+.tagline{
+  font-size:clamp(18px,2.5vw,24px);
+  color:var(--text);
+  margin-bottom:12px;
+  font-weight:500;
+}
+.subtitle{
+  font-size:16px;
+  color:var(--text2);
+  margin-bottom:40px;
+  line-height:1.6;
+}
+.counter{
+  display:flex;justify-content:center;gap:16px;
+  flex-wrap:wrap;margin-bottom:40px;
+}
+.unit{
+  background:rgba(0,212,200,0.05);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 20px;
+  min-width:88px;
+  backdrop-filter:blur(10px);
+}
+.unit .num{
+  font-family:'Exo 2',sans-serif;
+  font-size:32px;font-weight:700;
+  color:var(--cyan);line-height:1;
+  margin-bottom:6px;
+}
+.unit .lbl{
+  font-size:11px;color:var(--text2);
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+}
+.foot{
+  display:flex;align-items:center;justify-content:center;gap:20px;
+  color:var(--text2);font-size:13px;
+  flex-wrap:wrap;
+}
+.foot a{color:var(--cyan);text-decoration:none}
+.foot a:hover{text-decoration:underline}
+.dot{width:3px;height:3px;background:var(--text2);border-radius:50%}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="glow"></div>
+<div class="glow2"></div>
+
+<div class="content">
+  <div class="logo-icon">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00d4c8"/>
+          <stop offset="100%" stop-color="#00e676"/>
+        </linearGradient>
+      </defs>
+      <path d="M40 20 L60 20 L60 40 L80 40 L80 60 L60 60 L60 80 L40 80 L40 60 L20 60 L20 40 L40 40 Z"
+            stroke="url(#g1)" stroke-width="3" fill="rgba(0,212,200,0.05)"/>
+      <circle cx="50" cy="50" r="4" fill="#00e676"/>
+    </svg>
+  </div>
+
+  <div class="badge">Запуск платформы совсем скоро</div>
+
+  <h1>MedSoft</h1>
+
+  <div class="tagline">Медицина, которая всегда с вами</div>
+  <div class="subtitle">
+    Экосистема заботы о здоровье: профилактика, лечение, реабилитация.<br>
+    Цифровой двойник пациента · ИИ-маршрутизация · SOS-алгоритм
+  </div>
+
+  <div class="counter" id="cd">
+    <div class="unit"><div class="num" id="d">00</div><div class="lbl">Дней</div></div>
+    <div class="unit"><div class="num" id="h">00</div><div class="lbl">Часов</div></div>
+    <div class="unit"><div class="num" id="m">00</div><div class="lbl">Минут</div></div>
+    <div class="unit"><div class="num" id="s">00</div><div class="lbl">Секунд</div></div>
+  </div>
+
+  <div class="foot">
+    <span>© 2026 MedSoft</span>
+    <span class="dot"></span>
+    <span>Узбекистан</span>
+    <span class="dot"></span>
+    <a href="mailto:hello@aivita.uz">hello@aivita.uz</a>
+  </div>
+</div>
+
+<script>
+const KEY='medsoft_launch';
+let launch=localStorage.getItem(KEY);
+if(!launch){
+  launch=Date.now()+90*24*60*60*1000;
+  localStorage.setItem(KEY,launch);
+}
+launch=Number(launch);
+function tick(){
+  const now=Date.now();
+  let diff=Math.max(0,launch-now);
+  const d=Math.floor(diff/86400000); diff-=d*86400000;
+  const h=Math.floor(diff/3600000);  diff-=h*3600000;
+  const m=Math.floor(diff/60000);    diff-=m*60000;
+  const s=Math.floor(diff/1000);
+  document.getElementById('d').textContent=String(d).padStart(2,'0');
+  document.getElementById('h').textContent=String(h).padStart(2,'0');
+  document.getElementById('m').textContent=String(m).padStart(2,'0');
+  document.getElementById('s').textContent=String(s).padStart(2,'0');
+}
+tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
