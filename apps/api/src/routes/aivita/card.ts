@@ -13,9 +13,6 @@ import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const cardRouter = new Hono();
 
-// Public route — no auth: GET /:code
-// Auth routes applied below
-
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -34,52 +31,8 @@ async function uniqueCode(): Promise<string> {
   return code;
 }
 
-// ── PUBLIC ────────────────────────────────────────────────────────────────────
+// ── AUTH REQUIRED (registered BEFORE public /:code to avoid wildcard interception) ──
 
-// GET /:code — public mini card
-cardRouter.get('/:code', async (c) => {
-  const code = c.req.param('code').toUpperCase();
-  // Skip "my" route which is registered separately
-  if (code === 'MY') return c.json({ error: 'Not found' }, 404);
-
-  const [card] = await db.select().from(medicalCards)
-    .where(and(eq(medicalCards.cardCode, code), eq(medicalCards.isActive, true))).limit(1);
-  if (!card) return c.json({ error: 'Card not found or deactivated' }, 404);
-
-  await db.update(medicalCards).set({
-    accessCount: sql`${medicalCards.accessCount} + 1`,
-    lastAccessedAt: new Date(),
-  }).where(eq(medicalCards.id, card.id));
-
-  const [user] = await db.select({ name: aivitaUsers.name })
-    .from(aivitaUsers).where(eq(aivitaUsers.id, card.userId)).limit(1);
-  const [profile] = await db.select({
-    bloodType: healthProfiles.bloodType,
-    emergencyContactName: healthProfiles.emergencyContactName,
-    emergencyContactPhone: healthProfiles.emergencyContactPhone,
-  }).from(healthProfiles).where(eq(healthProfiles.userId, card.userId)).limit(1);
-
-  const allergyRows = await db.select({ allergen: allergies.allergen })
-    .from(allergies).where(eq(allergies.userId, card.userId));
-  const chronicRows = await db.select({ name: chronicConditions.name })
-    .from(chronicConditions).where(eq(chronicConditions.userId, card.userId));
-
-  return c.json({
-    data: {
-      name: user?.name || 'Неизвестно',
-      bloodGroup: profile?.bloodType || 'не указано',
-      allergies: allergyRows.length ? allergyRows.map(a => a.allergen).join(', ') : 'нет',
-      chronicDiseases: chronicRows.length ? chronicRows.map(r => r.name).join(', ') : 'нет',
-      currentMedications: 'см. у лечащего врача',
-      emergencyContactName: profile?.emergencyContactName || 'не указан',
-      emergencyContactPhone: profile?.emergencyContactPhone || null,
-    },
-  });
-});
-
-// ── AUTH REQUIRED ─────────────────────────────────────────────────────────────
-
-// Apply auth for the rest
 const authRoutes = new Hono();
 authRoutes.use('*', requireAivitaAuth);
 
@@ -158,7 +111,48 @@ authRoutes.get('/:code/full', async (c) => {
   return c.json({ data: { user, profile, vitals: recentVitals, allergies: allergyRowsFull, chronicConditions: chronicRowsFull } });
 });
 
-// Mount auth routes — these take priority over public /:code
+// Mount auth routes FIRST — so /my, /regenerate, etc. take priority over /:code
 cardRouter.route('/', authRoutes);
+
+// ── PUBLIC ────────────────────────────────────────────────────────────────────
+
+// GET /:code — public mini card (catch-all, must be LAST)
+cardRouter.get('/:code', async (c) => {
+  const code = c.req.param('code').toUpperCase();
+
+  const [card] = await db.select().from(medicalCards)
+    .where(and(eq(medicalCards.cardCode, code), eq(medicalCards.isActive, true))).limit(1);
+  if (!card) return c.json({ error: 'Card not found or deactivated' }, 404);
+
+  await db.update(medicalCards).set({
+    accessCount: sql`${medicalCards.accessCount} + 1`,
+    lastAccessedAt: new Date(),
+  }).where(eq(medicalCards.id, card.id));
+
+  const [user] = await db.select({ name: aivitaUsers.name })
+    .from(aivitaUsers).where(eq(aivitaUsers.id, card.userId)).limit(1);
+  const [profile] = await db.select({
+    bloodType: healthProfiles.bloodType,
+    emergencyContactName: healthProfiles.emergencyContactName,
+    emergencyContactPhone: healthProfiles.emergencyContactPhone,
+  }).from(healthProfiles).where(eq(healthProfiles.userId, card.userId)).limit(1);
+
+  const allergyRows = await db.select({ allergen: allergies.allergen })
+    .from(allergies).where(eq(allergies.userId, card.userId));
+  const chronicRows = await db.select({ name: chronicConditions.name })
+    .from(chronicConditions).where(eq(chronicConditions.userId, card.userId));
+
+  return c.json({
+    data: {
+      name: user?.name || 'Неизвестно',
+      bloodGroup: profile?.bloodType || 'не указано',
+      allergies: allergyRows.length ? allergyRows.map(a => a.allergen).join(', ') : 'нет',
+      chronicDiseases: chronicRows.length ? chronicRows.map(r => r.name).join(', ') : 'нет',
+      currentMedications: 'см. у лечащего врача',
+      emergencyContactName: profile?.emergencyContactName || 'не указан',
+      emergencyContactPhone: profile?.emergencyContactPhone || null,
+    },
+  });
+});
 
 export default cardRouter;

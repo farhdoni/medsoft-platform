@@ -17,7 +17,8 @@ paymeRouter.post('/', async (c) => {
   const body = await c.req.json() as { method: string; params: Record<string, unknown>; id: number };
   const { method, params, id } = body;
 
-  const orderId = parseInt(String(params.account?.order_id ?? params.id));
+  const account = params.account as Record<string, unknown> | undefined;
+  const orderId = parseInt(String(account?.order_id ?? params.id));
 
   if (method === 'CheckPerformTransaction') {
     const payment = await db.select().from(payments).where(eq(payments.id, orderId)).limit(1);

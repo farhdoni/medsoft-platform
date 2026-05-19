@@ -26,7 +26,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
       </div>
       <nav className="flex gap-1 flex-wrap border-b border-border">
         {tabs.map(t => {
-          const active = pathname === t.href || (t.href !== '/finance' && pathname.startsWith(t.href));
+          const active = pathname === t.href || (t.href !== '/finance' && (pathname ?? '').startsWith(t.href));
           return (
             <Link
               key={t.href}

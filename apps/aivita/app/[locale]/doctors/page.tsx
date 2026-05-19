@@ -62,7 +62,7 @@ export default function DoctorsCatalogPage() {
       const res = await fetch(`${API_BASE}/v1/aivita/catalog?${params}`);
       const json = await res.json();
       // API returns [{profile:{…}, user:{name,avatarUrl}}] — normalize to flat Doctor
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line
       const raw: any[] = json.data ?? [];
       setDoctors(raw.map(item => ({
         userId:              item.userId             ?? item.profile?.userId ?? item.user?.id ?? '',
