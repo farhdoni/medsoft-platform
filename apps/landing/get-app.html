@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Скачать AIVITA — приложение для пациентов и врачей</title>
+<meta name="description" content="Скачайте AIVITA — мобильное приложение для пациентов и врачей Узбекистана. APK для Android, скоро в App Store.">
+<meta property="og:title" content="Скачать AIVITA">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aivita.uz/get-app.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#c87d8a;
+  --accent2:#8b6aae;
+  --dark:#1a1824;
+  --bg:#faf9f7;
+  --muted:#9a96a8;
+  --card:#ffffff;
+  --border:#e8e5f0;
+  --text:#2d2a38;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+/* Topnav */
+.topnav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(250,249,247,0.94);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-size:22px;font-weight:800;text-decoration:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lang-switcher{display:flex;gap:4px}
+.lang-btn{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;
+  color:var(--muted);transition:all .18s;
+}
+.lang-btn.active,.lang-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-back{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 15px;border-radius:8px;
+  background:var(--dark);color:#fff;
+  text-decoration:none;font-size:13px;font-weight:500;
+  transition:opacity .18s;white-space:nowrap;
+}
+.btn-back:hover{opacity:.85}
+
+/* Hero */
+.hero{
+  text-align:center;padding:64px 24px 48px;
+  max-width:700px;margin:0 auto;
+}
+.hero h1{
+  font-size:clamp(28px,5vw,52px);font-weight:800;line-height:1.1;
+  margin-bottom:16px;
+  background:linear-gradient(135deg,var(--dark) 0%,var(--accent2) 55%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{font-size:clamp(14px,1.8vw,17px);color:var(--muted);max-width:480px;margin:0 auto;line-height:1.7}
+
+/* Cards grid */
+.cards-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;max-width:860px;margin:0 auto 48px;padding:0 24px;
+}
+
+/* App card */
+.app-card{
+  border-radius:28px;padding:32px 24px;color:#fff;
+  position:relative;overflow:hidden;
+}
+.app-card.patient{
+  background:linear-gradient(135deg,#9c5e6c,#8b6aae);
+  box-shadow:0 12px 40px rgba(156,94,108,.18);
+}
+.app-card.doctor{
+  background:linear-gradient(135deg,#5580b0,#6ba3d6);
+  box-shadow:0 12px 40px rgba(85,128,176,.18);
+}
+.card-icon{
+  width:52px;height:52px;border-radius:16px;
+  background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin-bottom:16px;
+}
+.card-name{font-size:22px;font-weight:900;letter-spacing:-.3px;margin-bottom:4px}
+.card-subtitle{font-size:13px;opacity:.7;margin-bottom:16px}
+.card-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.card-tag{
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);
+}
+
+/* Download button */
+.dl-btn{
+  display:flex;align-items:center;gap:12px;
+  background:#fff;border-radius:14px;padding:12px 16px;
+  text-decoration:none;color:var(--text);
+  transition:transform .18s,box-shadow .18s;
+  margin-bottom:10px;
+}
+.dl-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.dl-btn-icon{font-size:20px;flex-shrink:0}
+.dl-btn-text{}
+.dl-btn-label{font-size:11px;color:var(--muted);line-height:1}
+.dl-btn-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3}
+
+/* iOS soon */
+.dl-btn-soon{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.08);border-radius:14px;padding:12px 16px;
+  border:1.5px dashed rgba(255,255,255,.3);
+  color:rgba(255,255,255,.5);
+  cursor:default;
+}
+.dl-btn-soon .dl-btn-icon{font-size:20px;flex-shrink:0}
+.dl-btn-soon .dl-btn-label{font-size:11px;line-height:1;color:rgba(255,255,255,.4)}
+.dl-btn-soon .dl-btn-name{font-size:14px;font-weight:700;line-height:1.3;color:rgba(255,255,255,.55)}
+.soon-badge{
+  margin-left:auto;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  color:rgba(255,255,255,.6);white-space:nowrap;
+}
+
+/* Alternatives */
+.alts-wrap{
+  max-width:860px;margin:0 auto 64px;padding:0 24px;
+  text-align:center;
+}
+.alts-label{font-size:13px;color:var(--muted);margin-bottom:14px;font-weight:500}
+.alts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.alt-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 18px;border-radius:50px;
+  background:var(--card);border:1px solid rgba(42,37,64,.06);
+  text-decoration:none;font-size:13px;font-weight:600;color:var(--text);
+  transition:border-color .18s,color .18s,box-shadow .18s;
+}
+.alt-chip:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 4px 12px rgba(200,125,138,.1)}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:28px 24px;margin-top:40px}
+.footer-inner{
+  max-width:860px;margin:0 auto;
+  display:flex;flex-wrap:wrap;gap:20px;
+  align-items:center;justify-content:space-between;
+}
+.footer-brand{
+  font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.footer-copy{font-size:12px;color:var(--muted);margin-top:4px}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .18s}
+.footer-links a:hover{color:var(--accent)}
+
+@media(max-width:560px){
+  .topnav{flex-wrap:wrap;gap:10px}
+  .nav-right{gap:8px}
+  .cards-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="logo">aivita</a>
+  <div class="nav-right">
+    <div class="lang-switcher">
+      <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">RU</button>
+      <button class="lang-btn" data-lang="uz" onclick="setLang('uz')">UZ</button>
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+    <a href="/" class="btn-back" data-i18n="nav_back">← Главная</a>
+  </div>
+</nav>
+
+<main>
+  <div class="hero">
+    <h1 data-i18n="hero_title">Скачайте AIVITA</h1>
+    <p data-i18n="hero_sub">Выберите приложение и установите за 30 секунд</p>
+  </div>
+
+  <div class="cards-grid">
+    <!-- Patient -->
+    <div class="app-card patient">
+      <div class="card-icon">🧬</div>
+      <div class="card-name">AIVITA</div>
+      <div class="card-subtitle" data-i18n="patient_sub">Для пациентов</div>
+      <div class="card-tags" id="patient-tags"></div>
+      <a class="dl-btn" href="/downloads/aivita-patient.apk" download>
+        <span class="dl-btn-icon">▶️</span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label" data-i18n="android_label">Скачать для Android</span>
+          <span class="dl-btn-name" data-i18n="apk_size">APK • ~82 MB</span>
+        </span>
+      </a>
+      <div class="dl-btn-soon">
+        <span class="dl-btn-icon">🍎</span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label" data-i18n="ios_label">iOS</span>
+          <span class="dl-btn-name" data-i18n="ios_soon">Скоро в App Store</span>
+        </span>
+        <span class="soon-badge" data-i18n="soon_badge">Скоро</span>
+      </div>
+    </div>
+
+    <!-- Doctor -->
+    <div class="app-card doctor">
+      <div class="card-icon">🩺</div>
+      <div class="card-name">AIVITA Doctor</div>
+      <div class="card-subtitle" data-i18n="doctor_sub">Для врачей</div>
+      <div class="card-tags" id="doctor-tags"></div>
+      <a class="dl-btn" href="/downloads/aivita-doctor.apk" download>
+        <span class="dl-btn-icon">▶️</span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label" data-i18n="android_label">Скачать для Android</span>
+          <span class="dl-btn-name" data-i18n="apk_size_doc">APK • ~82 MB</span>
+        </span>
+      </a>
+      <div class="dl-btn-soon">
+        <span class="dl-btn-icon">🍎</span>
+        <span class="dl-btn-text">
+          <span class="dl-btn-label" data-i18n="ios_label">iOS</span>
+          <span class="dl-btn-name" data-i18n="ios_soon">Скоро в App Store</span>
+        </span>
+        <span class="soon-badge" data-i18n="soon_badge">Скоро</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="alts-wrap">
+    <div class="alts-label" data-i18n="alts_label">Или воспользуйтесь другим способом</div>
+    <div class="alts">
+      <a class="alt-chip" href="https://app.aivita.uz" target="_blank" rel="noopener">
+        🌐 <span data-i18n="alt_web">Открыть в браузере</span>
+      </a>
+      <a class="alt-chip" href="https://app.aivita.uz" target="_blank" rel="noopener">
+        📲 <span data-i18n="alt_pwa">Установить PWA</span>
+      </a>
+      <a class="alt-chip" href="#" id="tg-link">
+        💬 <span data-i18n="alt_tg">Telegram</span>
+      </a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">aivita</div>
+      <div class="footer-copy" data-i18n="footer_copy">© 2026 aivita. Все права защищены.</div>
+    </div>
+    <div class="footer-links">
+      <a href="/" data-i18n="footer_home">Главная</a>
+      <a href="/about.html" data-i18n="footer_about">О нас</a>
+      <a href="/get-app.html" style="color:var(--accent);font-weight:700" data-i18n="footer_app">📱 Скачать приложение</a>
+      <a href="/privacy.html" data-i18n="footer_privacy">Политика</a>
+      <a href="/terms.html" data-i18n="footer_terms">Оферта</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+const LANG_KEY = 'aivita_lang';
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+
+const I18N = {
+  ru: {
+    title: 'Скачать AIVITA — приложение',
+    nav_back: '← Главная',
+    hero_title: 'Скачайте AIVITA',
+    hero_sub: 'Выберите приложение и установите за 30 секунд',
+    patient_sub: 'Для пациентов',
+    doctor_sub: 'Для врачей',
+    patient_tags: ['Медкарта', 'AI-чекап', 'Врачи', 'Семья'],
+    doctor_tags: ['Пациенты', 'AI-диагност', 'Чат', 'Доход'],
+    android_label: 'Скачать для Android',
+    apk_size: 'APK • ~82 MB',
+    apk_size_doc: 'APK • ~82 MB',
+    ios_label: 'iOS',
+    ios_soon: 'Скоро в App Store',
+    soon_badge: 'Скоро',
+    alts_label: 'Или воспользуйтесь другим способом',
+    alt_web: 'Открыть в браузере',
+    alt_pwa: 'Установить PWA',
+    alt_tg: 'Telegram',
+    footer_copy: '© 2026 aivita. Все права защищены.',
+    footer_home: 'Главная',
+    footer_about: 'О нас',
+    footer_app: '📱 Скачать приложение',
+    footer_privacy: 'Политика',
+    footer_terms: 'Оферта',
+  },
+  uz: {
+    title: "AIVITA yuklab olish — ilova",
+    nav_back: '← Bosh sahifa',
+    hero_title: 'AIVITA yuklab oling',
+    hero_sub: "Ilovani tanlang va 30 soniyada o'rnating",
+    patient_sub: 'Bemorlar uchun',
+    doctor_sub: 'Shifokorlar uchun',
+    patient_tags: ['Tibbiy karta', 'AI-tekshiruv', 'Shifokorlar', 'Oila'],
+    doctor_tags: ['Bemorlar', 'AI-diagnostika', 'Chat', 'Daromad'],
+    android_label: "Android uchun yuklab olish",
+    apk_size: 'APK • ~82 MB',
+    apk_size_doc: 'APK • ~82 MB',
+    ios_label: 'iOS',
+    ios_soon: "Tez orada App Store'da",
+    soon_badge: 'Tez orada',
+    alts_label: "Yoki boshqa usuldan foydalaning",
+    alt_web: 'Brauzerda ochish',
+    alt_pwa: 'PWA o\'rnatish',
+    alt_tg: 'Telegram',
+    footer_copy: '© 2026 aivita. Barcha huquqlar himoyalangan.',
+    footer_home: 'Bosh sahifa',
+    footer_about: 'Biz haqimizda',
+    footer_app: '📱 Ilovani yuklab olish',
+    footer_privacy: 'Maxfiylik siyosati',
+    footer_terms: 'Oferta',
+  },
+  en: {
+    title: 'Download AIVITA — app',
+    nav_back: '← Home',
+    hero_title: 'Download AIVITA',
+    hero_sub: 'Choose your app and install in 30 seconds',
+    patient_sub: 'For patients',
+    doctor_sub: 'For doctors',
+    patient_tags: ['Medical record', 'AI checkup', 'Doctors', 'Family'],
+    doctor_tags: ['Patients', 'AI diagnosis', 'Chat', 'Income'],
+    android_label: 'Download for Android',
+    apk_size: 'APK • ~82 MB',
+    apk_size_doc: 'APK • ~82 MB',
+    ios_label: 'iOS',
+    ios_soon: 'Coming to App Store',
+    soon_badge: 'Soon',
+    alts_label: 'Or use another method',
+    alt_web: 'Open in browser',
+    alt_pwa: 'Install PWA',
+    alt_tg: 'Telegram',
+    footer_copy: '© 2026 aivita. All rights reserved.',
+    footer_home: 'Home',
+    footer_about: 'About',
+    footer_app: '📱 Download app',
+    footer_privacy: 'Privacy',
+    footer_terms: 'Terms',
+  },
+};
+
+function t(key) {
+  const tr = I18N[lang] || I18N.ru;
+  return tr[key] !== undefined ? tr[key] : (I18N.ru[key] || key);
+}
+
+function renderTags() {
+  const tr = I18N[lang] || I18N.ru;
+  const pEl = document.getElementById('patient-tags');
+  const dEl = document.getElementById('doctor-tags');
+  if (pEl) pEl.innerHTML = (tr.patient_tags || []).map(tag =>
+    `<span class="card-tag">${tag}</span>`).join('');
+  if (dEl) dEl.innerHTML = (tr.doctor_tags || []).map(tag =>
+    `<span class="card-tag">${tag}</span>`).join('');
+}
+
+function render() {
+  document.title = t('title');
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (key) el.textContent = t(key);
+  });
+  renderTags();
+}
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem(LANG_KEY, l);
+  render();
+}
+
+fetch(API_BASE + '/api/landing-config')
+  .then(r => r.json())
+  .then(data => {
+    const sl = data.social_links || {};
+    if (sl.telegram) {
+      const tgLink = document.getElementById('tg-link');
+      if (tgLink) tgLink.href = sl.telegram;
+    }
+  })
+  .catch(() => {});
+
+render();
+</script>
+</body>
+</html>
