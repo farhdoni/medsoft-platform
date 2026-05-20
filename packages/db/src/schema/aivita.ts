@@ -603,17 +603,30 @@ export const notifications = pgTable(
       .notNull()
       .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
 
-    type: text('type').notNull(), // 'ai_insight' | 'habit_reminder' | 'streak' | 'test_due' | 'family_alert'
+    type: text('type').notNull(),
+    // 'medication_reminder'|'payment_confirm'|'action_required'|'appointment_reminder'
+    // |'message_new'|'checkup_result'|'outbreak_alert'|'subscription_expiring'
+    // |'admin_broadcast'|'doctor_verification'|'family_request'|'order_status'
+    // |'ai_insight'|'habit_reminder'|'streak'|'test_due'|'family_alert' (legacy)
+
     title: text('title').notNull(),
     body: text('body').notNull(),
 
+    icon: text('icon'),            // emoji icon for the notification
+    link: text('link'),            // navigation path on click
+
+    isRead: boolean('is_read').default(false).notNull(),
+    isArchived: boolean('is_archived').default(false).notNull(),
+    priority: text('priority').default('normal').notNull(), // 'low'|'normal'|'high'|'urgent'
+
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+
+    // legacy — kept for backward compat
     payload: jsonb('payload').$type<{
       screen?: string;
       params?: Record<string, unknown>;
     }>(),
-
     readAt: timestamp('read_at'),
-
     pushSent: boolean('push_sent').default(false).notNull(),
     pushSentAt: timestamp('push_sent_at'),
 
@@ -621,7 +634,35 @@ export const notifications = pgTable(
   },
   (table) => ({
     userIdx: index('notifications_user_idx').on(table.userId, table.createdAt),
-    unreadIdx: index('notifications_unread_idx').on(table.userId, table.readAt),
+    unreadIdx: index('notifications_unread_idx').on(table.userId, table.isRead, table.createdAt),
+  })
+);
+
+// ─── 14b. notification_settings ────────────────────────────────────────────────
+
+export const notificationSettings = pgTable(
+  'notification_settings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' })
+      .unique(),
+
+    emailEnabled: boolean('email_enabled').default(true).notNull(),
+    telegramEnabled: boolean('telegram_enabled').default(false).notNull(),
+    telegramChatId: text('telegram_chat_id'),
+
+    medicationReminders: boolean('medication_reminders').default(true).notNull(),
+    appointmentReminders: boolean('appointment_reminders').default(true).notNull(),
+    outbreakAlerts: boolean('outbreak_alerts').default(true).notNull(),
+    marketingEnabled: boolean('marketing_enabled').default(false).notNull(),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('notification_settings_user_idx').on(table.userId),
   })
 );
 
@@ -692,6 +733,10 @@ export const aivitaUsersRelations = relations(aivitaUsers, ({ one, many }) => ({
   memberInFamily: many(familyMembers, { relationName: 'member' }),
   chatSessions: many(chatSessions),
   notifications: many(notifications),
+  notificationSettings: one(notificationSettings, {
+    fields: [aivitaUsers.id],
+    references: [notificationSettings.userId],
+  }),
   doctorReports: many(doctorReports),
   emailVerifications: many(aivitaEmailVerifications),
   passwordResets: many(aivitaPasswordResets),

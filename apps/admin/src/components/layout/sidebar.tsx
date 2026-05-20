@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
-  Server, Globe, Banknote, UserCheck, Wallet, Settings2,
+  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -30,6 +30,7 @@ const baseNavItems = [
   { href: '/aivita/doctors', label: 'Врачи AIVITA', icon: UserCheck, section: 'aivita' },
   { href: '/aivita/billing', label: 'Биллинг', icon: Wallet, section: 'aivita' },
   { href: '/aivita/home-settings', label: 'Главная страница', icon: Settings2, section: 'aivita' },
+  { href: '/aivita/notifications', label: 'Уведомления', icon: Bell, section: 'aivita' },
 ];
 
 export function Sidebar() {

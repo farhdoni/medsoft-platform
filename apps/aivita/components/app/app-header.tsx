@@ -1,10 +1,9 @@
 'use client';
-import Link from 'next/link';
-import { Bell } from 'lucide-react';
+import { NotificationBell } from './notification-bell';
 
 interface AppHeaderProps {
   name?: string;
-  hasNotifications?: boolean;
+  locale?: string;
 }
 
 function getGreeting(): string {
@@ -14,7 +13,7 @@ function getGreeting(): string {
   return 'Добрый вечер';
 }
 
-export function AppHeader({ name = 'Азиз', hasNotifications = true }: AppHeaderProps) {
+export function AppHeader({ name = 'Азиз', locale = 'ru' }: AppHeaderProps) {
   return (
     <header className="flex items-center justify-between px-5 py-4">
       {/* Avatar + greeting */}
@@ -28,13 +27,8 @@ export function AppHeader({ name = 'Азиз', hasNotifications = true }: AppHea
         </div>
       </div>
 
-      {/* Notification bell */}
-      <Link href="/notifications" className="relative w-9 h-9 rounded-xl bg-white/70 backdrop-blur border border-[rgba(120,160,200,0.2)] flex items-center justify-center hover:bg-white transition-colors">
-        <Bell className="w-4 h-4 text-navy" />
-        {hasNotifications && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-pink-500" />
-        )}
-      </Link>
+      {/* Notification bell with live count + dropdown */}
+      <NotificationBell locale={locale} />
     </header>
   );
 }

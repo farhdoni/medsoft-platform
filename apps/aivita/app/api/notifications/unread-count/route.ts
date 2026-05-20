@@ -9,18 +9,12 @@ export async function GET() {
   if (!isProxyAuthenticated(authHeaders)) return Response.json({ count: 0 });
 
   try {
-    const res = await fetch(`${API_BASE}/v1/aivita/notifications`, {
+    const res = await fetch(`${API_BASE}/v1/aivita/notifications/unread-count`, {
       headers: authHeaders,
       cache: 'no-store',
     });
-
     if (!res.ok) return Response.json({ count: 0 });
-
-    const json = await res.json();
-    const list: Array<{ readAt?: string | null }> = json?.data ?? [];
-    const count = list.filter(n => !n.readAt).length;
-
-    return Response.json({ count });
+    return Response.json(await res.json());
   } catch {
     return Response.json({ count: 0 });
   }

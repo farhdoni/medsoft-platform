@@ -2,81 +2,146 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
-import { notifications } from '@medsoft/db';
-import { eq, and, desc, isNull } from 'drizzle-orm';
+import { notifications, notificationSettings } from '@medsoft/db';
+import { eq, and, desc, isNull, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const aivitaNotificationsRouter = new Hono();
 
 aivitaNotificationsRouter.use('*', requireAivitaAuth);
 
-// ─── List notifications ────────────────────────────────────────────────────────
+// ─── GET / ─────────────────────────────────────────────────────────────────────
 aivitaNotificationsRouter.get('/', async (c) => {
   const userId = c.get('aivitaUserId');
   const limit = Math.min(Number(c.req.query('limit') ?? 30), 100);
   const offset = Number(c.req.query('offset') ?? 0);
 
   const rows = await db.select().from(notifications)
-    .where(eq(notifications.userId, userId))
+    .where(and(eq(notifications.userId, userId), eq(notifications.isArchived, false)))
     .orderBy(desc(notifications.createdAt))
     .limit(limit)
     .offset(offset);
 
-  const unreadCount = rows.filter((n) => !n.readAt).length;
-
-  return c.json({ data: rows, unreadCount });
+  return c.json({ data: rows });
 });
 
-// ─── Mark single as read ───────────────────────────────────────────────────────
-aivitaNotificationsRouter.patch('/:id/read', async (c) => {
+// ─── GET /unread-count ─────────────────────────────────────────────────────────
+aivitaNotificationsRouter.get('/unread-count', async (c) => {
   const userId = c.get('aivitaUserId');
-  const { id } = c.req.param();
-
-  await db.update(notifications)
-    .set({ readAt: new Date() })
-    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
-
-  return c.json({ data: { read: true } });
+  const [{ count }] = await db
+    .select({ count: sql<number>`cast(count(*) as int)` })
+    .from(notifications)
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.isRead, false),
+      eq(notifications.isArchived, false),
+    ));
+  return c.json({ count: count ?? 0 });
 });
 
-// ─── Mark all as read ──────────────────────────────────────────────────────────
-aivitaNotificationsRouter.post('/read-all', async (c) => {
+// ─── GET /settings ─────────────────────────────────────────────────────────────
+aivitaNotificationsRouter.get('/settings', async (c) => {
   const userId = c.get('aivitaUserId');
-  await db.update(notifications)
-    .set({ readAt: new Date() })
-    .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
-  return c.json({ data: { success: true } });
+  const [settings] = await db.select().from(notificationSettings)
+    .where(eq(notificationSettings.userId, userId)).limit(1);
+
+  if (!settings) {
+    return c.json({
+      data: {
+        emailEnabled: true,
+        telegramEnabled: false,
+        telegramChatId: null,
+        medicationReminders: true,
+        appointmentReminders: true,
+        outbreakAlerts: true,
+        marketingEnabled: false,
+      },
+    });
+  }
+  return c.json({ data: settings });
 });
 
-// ─── Create notification ───────────────────────────────────────────────────────
-aivitaNotificationsRouter.post(
-  '/',
+// ─── PUT /settings ─────────────────────────────────────────────────────────────
+aivitaNotificationsRouter.put(
+  '/settings',
   zValidator('json', z.object({
-    type: z.string().min(1),
-    title: z.string().min(1),
-    body: z.string().min(1),
-    payload: z.object({
-      screen: z.string().optional(),
-      params: z.record(z.unknown()).optional(),
-    }).optional(),
+    emailEnabled:          z.boolean().optional(),
+    telegramEnabled:       z.boolean().optional(),
+    telegramChatId:        z.string().nullable().optional(),
+    medicationReminders:   z.boolean().optional(),
+    appointmentReminders:  z.boolean().optional(),
+    outbreakAlerts:        z.boolean().optional(),
+    marketingEnabled:      z.boolean().optional(),
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
     const body = c.req.valid('json');
 
-    const [created] = await db.insert(notifications).values({
-      userId,
-      type: body.type,
-      title: body.title,
-      body: body.body,
-      payload: body.payload,
-    }).returning();
+    const [existing] = await db.select({ id: notificationSettings.id })
+      .from(notificationSettings)
+      .where(eq(notificationSettings.userId, userId)).limit(1);
 
+    if (existing) {
+      const [updated] = await db.update(notificationSettings)
+        .set({ ...body, updatedAt: new Date() })
+        .where(eq(notificationSettings.userId, userId))
+        .returning();
+      return c.json({ data: updated });
+    }
+
+    const [created] = await db.insert(notificationSettings)
+      .values({ userId, ...body })
+      .returning();
     return c.json({ data: created }, 201);
   }
 );
 
-// ─── Delete notification ───────────────────────────────────────────────────────
+// ─── PUT /:id/read ─────────────────────────────────────────────────────────────
+aivitaNotificationsRouter.put('/:id/read', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const { id } = c.req.param();
+  await db.update(notifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  return c.json({ data: { read: true } });
+});
+
+// ─── PATCH /:id/read (legacy alias) ───────────────────────────────────────────
+aivitaNotificationsRouter.patch('/:id/read', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const { id } = c.req.param();
+  await db.update(notifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  return c.json({ data: { read: true } });
+});
+
+// ─── PUT /read-all ─────────────────────────────────────────────────────────────
+aivitaNotificationsRouter.put('/read-all', async (c) => {
+  const userId = c.get('aivitaUserId');
+  await db.update(notifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.isRead, false),
+    ));
+  return c.json({ data: { success: true } });
+});
+
+// ─── POST /read-all (legacy alias) ────────────────────────────────────────────
+aivitaNotificationsRouter.post('/read-all', async (c) => {
+  const userId = c.get('aivitaUserId');
+  await db.update(notifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.isRead, false),
+      isNull(notifications.readAt),
+    ));
+  return c.json({ data: { success: true } });
+});
+
+// ─── DELETE /:id ───────────────────────────────────────────────────────────────
 aivitaNotificationsRouter.delete('/:id', async (c) => {
   const userId = c.get('aivitaUserId');
   const { id } = c.req.param();

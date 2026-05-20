@@ -8,6 +8,7 @@ import {
 } from '@medsoft/db';
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { createNotification } from '../../lib/notification-service.js';
 
 export const aivitaFamilyRouter = new Hono();
 
@@ -234,6 +235,18 @@ aivitaFamilyRouter.post(
       familyMemberId,
       status: 'pending',
     }).returning();
+
+    // Notify recipient
+    const [from] = await db.select({ name: aivitaUsers.name, nickname: aivitaUsers.nickname })
+      .from(aivitaUsers).where(eq(aivitaUsers.id, userId)).limit(1);
+    const fromName = from?.name ?? from?.nickname ?? 'Пользователь';
+    await createNotification(
+      toUserId,
+      'family_request',
+      'Запрос на привязку семьи',
+      `${fromName} хочет добавить вас в семейный аккаунт`,
+      { link: '/family' }
+    ).catch(() => {});
 
     return c.json({ data: created }, 201);
   }

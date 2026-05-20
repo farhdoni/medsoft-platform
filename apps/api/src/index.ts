@@ -57,6 +57,7 @@ import { conversationsRouter } from './routes/aivita/conversations.js';
 import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
+import { startNotificationReminders } from './jobs/notification-reminders.js';
 import { clickRouter } from './routes/payments/click.js';
 import { paymeRouter } from './routes/payments/payme.js';
 import { uzumRouter } from './routes/payments/uzum.js';
@@ -66,6 +67,7 @@ import { doctorDashboardStatsRouter } from './routes/aivita/doctor/dashboard-sta
 import { adminFinanceRouter } from './routes/admin/finance.js';
 import { platformSettingsRouter } from './routes/admin/platform-settings.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
+import { adminNotificationsRouter } from './routes/admin/notifications.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 import { landingApiRouter } from './routes/landing-api.js';
@@ -160,6 +162,7 @@ app.route('/v1/aivita/doctor/dashboard-stats', doctorDashboardStatsRouter);
 app.route('/v1/admin/finance', adminFinanceRouter);
 app.route('/v1/admin/payouts', adminPayoutsRouter);
 app.route('/v1/admin/settings/platform', platformSettingsRouter);
+app.route('/v1/admin/notifications', adminNotificationsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
@@ -242,6 +245,7 @@ async function main() {
 
   startPushReminders();
   startSubscriptionRenewal();
+  startNotificationReminders();
 }
 
 main().catch((err) => {

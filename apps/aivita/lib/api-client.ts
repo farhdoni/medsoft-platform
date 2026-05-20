@@ -110,8 +110,20 @@ export const api = {
   notifications: {
     list: (cookie: string) =>
       apiRequest('/notifications', { sessionCookie: cookie }),
+    unreadCount: (cookie: string) =>
+      apiRequest('/notifications/unread-count', { sessionCookie: cookie }),
     readAll: (cookie: string) =>
-      apiRequest('/notifications/read-all', { method: 'POST', sessionCookie: cookie }),
+      apiRequest('/notifications/read-all', { method: 'PUT', sessionCookie: cookie }),
+    markRead: (id: string, cookie: string) =>
+      apiRequest(`/notifications/${id}/read`, { method: 'PUT', sessionCookie: cookie }),
+    delete: (id: string, cookie: string) =>
+      apiRequest(`/notifications/${id}`, { method: 'DELETE', sessionCookie: cookie }),
+    settings: {
+      get: (cookie: string) =>
+        apiRequest('/notifications/settings', { sessionCookie: cookie }),
+      update: (data: Record<string, unknown>, cookie: string) =>
+        apiRequest('/notifications/settings', { method: 'PUT', body: data, sessionCookie: cookie }),
+    },
   },
   reports: {
     list: (cookie: string) =>

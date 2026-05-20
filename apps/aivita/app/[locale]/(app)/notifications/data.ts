@@ -6,8 +6,14 @@ export interface NotificationRecord {
   type: string;
   title: string;
   body: string;
-  readAt: string | null;
+  icon: string | null;
+  link: string | null;
+  isRead: boolean;
+  isArchived: boolean;
+  priority: string;
   createdAt: string;
+  // legacy
+  readAt?: string | null;
   payload?: { screen?: string; params?: Record<string, unknown> } | null;
 }
 
@@ -21,6 +27,6 @@ export async function loadNotificationsData() {
 
   return {
     notifications,
-    unreadCount: notifications.filter((n) => !n.readAt).length,
+    unreadCount: notifications.filter((n) => !n.isRead && !n.readAt).length,
   };
 }

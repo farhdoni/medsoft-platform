@@ -3,6 +3,7 @@ import { db } from '@medsoft/db';
 import { doctorConversations, doctorMessages, aivitaUsers, doctorProfiles } from '@medsoft/db';
 import { eq, and, desc, gt, not, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { createNotification } from '../../lib/notification-service.js';
 
 export const conversationsRouter = new Hono();
 
@@ -168,6 +169,21 @@ conversationsRouter.post('/:id/messages', async (c) => {
   await db.update(doctorConversations)
     .set({ lastMessageAt: new Date() })
     .where(eq(doctorConversations.id, convId));
+
+  // Notify recipient: doctor → notify patient, patient → notify doctor
+  const recipientId = senderRole === 'doctor' ? conv.patientId : conv.doctorId;
+  if (recipientId) {
+    const [sender] = await db.select({ name: aivitaUsers.name, nickname: aivitaUsers.nickname })
+      .from(aivitaUsers).where(eq(aivitaUsers.id, userId)).limit(1);
+    const senderName = sender?.name ?? sender?.nickname ?? (senderRole === 'doctor' ? 'Врач' : 'Пациент');
+    await createNotification(
+      recipientId,
+      'message_new',
+      'Новое сообщение',
+      `${senderName}: ${(body.content ?? '').slice(0, 80) || 'отправил вложение'}`,
+      { link: `/chats/${convId}` }
+    ).catch(() => {});
+  }
 
   return c.json({ data: msg }, 201);
 });
