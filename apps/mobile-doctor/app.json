@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "AIVITA Doctor",
+    "slug": "aivita-doctor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "aivita-doctor",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#5580b0"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.aivita.doctor"
+    },
+    "android": {
+      "package": "uz.aivita.doctor",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#5580b0"
+      },
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AIVITA Doctor использует камеру для загрузки медицинских документов"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#5580b0",
+          "sounds": []
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "AIVITA Doctor использует Face ID для быстрого входа"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AIVITA Doctor использует галерею для загрузки документов",
+          "cameraPermission": "AIVITA Doctor использует камеру для фото документов"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
