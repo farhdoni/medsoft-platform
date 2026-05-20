@@ -9,6 +9,7 @@ import { AiMonitor } from '@/components/cabinet/dashboard/AiMonitor';
 import { DoctorsHomeBlock } from '@/components/doctors/DoctorsHomeBlock';
 import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
+import { ReferralBanner } from './ReferralBanner';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,9 @@ export default async function HomePage({
         <section className="px-4 pb-4 sm:px-7">
           <DoctorsHomeBlock locale={locale} />
         </section>
+
+        {/* ── Referral Banner ─────────────────────────────────────────────── */}
+        <ReferralBanner locale={locale} />
 
         {/* ── AI Checkup CTA ──────────────────────────────────────────────── */}
         <section className="px-4 pb-6 sm:px-7">

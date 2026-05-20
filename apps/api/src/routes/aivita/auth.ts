@@ -8,8 +8,10 @@ import {
   aivitaEmailVerifications,
   aivitaPasswordResets,
   doctorProfiles,
+  referrals,
 } from '@medsoft/db';
 import { eq, or, and, isNull, gt } from 'drizzle-orm';
+import { grantReferralReward } from './referral.js';
 import bcrypt from 'bcryptjs';
 import { randomInt, createHash, randomBytes } from 'crypto';
 import { SignJWT } from 'jose';
@@ -66,9 +68,10 @@ aivitaAuthRouter.post(
     locale: z.string().default('ru'),
     role: z.enum(['patient', 'doctor']).default('patient'),
     specialization: z.string().max(100).optional(),
+    refCode: z.string().max(20).optional(),
   })),
   async (c) => {
-    const { email, nickname, password, name, locale, role, specialization } = c.req.valid('json');
+    const { email, nickname, password, name, locale, role, specialization, refCode } = c.req.valid('json');
 
     // Check uniqueness
     const existing = await db.query.aivitaUsers.findFirst({
@@ -84,7 +87,19 @@ aivitaAuthRouter.post(
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const code = String(randomInt(100000, 999999));
+    const verificationCode = String(randomInt(100000, 999999));
+
+    // Generate unique referral code: first 3-4 chars of name + 4 random digits
+    const namePrefix = (name ?? nickname).trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'AIVI';
+    const referralCode = `${namePrefix}${String(randomInt(1000, 9999))}`;
+
+    // Resolve referrer if refCode provided
+    let referrerId: string | null = null;
+    if (refCode) {
+      const referrer = await db.select({ id: aivitaUsers.id })
+        .from(aivitaUsers).where(eq(aivitaUsers.referralCode, refCode.toUpperCase())).limit(1);
+      if (referrer.length) referrerId = referrer[0].id;
+    }
 
     const [user] = await db.insert(aivitaUsers).values({
       email: email.toLowerCase(),
@@ -95,6 +110,8 @@ aivitaAuthRouter.post(
       locale,
       role,
       plan: 'free',
+      referralCode,
+      referredBy: referrerId ?? undefined,
     }).returning();
 
     // Если врач — создать пустой профиль сразу
@@ -106,14 +123,25 @@ aivitaAuthRouter.post(
       });
     }
 
+    // If referred — create pending referral record
+    if (referrerId) {
+      await db.insert(referrals).values({
+        referrerId,
+        referredId: user.id,
+        code: refCode!.toUpperCase(),
+        status: 'pending',
+        rewardGiven: false,
+      }).onConflictDoNothing();
+    }
+
     // Create verification code (15 min TTL)
     await db.insert(aivitaEmailVerifications).values({
       userId: user.id,
-      code,
+      code: verificationCode,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    await sendVerificationCode(user.email!, code);
+    await sendVerificationCode(user.email!, verificationCode);
 
     return c.json({ data: { userId: user.id, email: user.email } }, 201);
   }
@@ -159,6 +187,19 @@ aivitaAuthRouter.post(
     });
 
     if (!user) return c.json({ error: 'user_not_found' }, 404);
+
+    // Complete pending referral and grant rewards
+    if (user.referredBy) {
+      const pendingRef = await db.select().from(referrals)
+        .where(and(eq(referrals.referredId, userId), eq(referrals.status, 'pending')))
+        .limit(1);
+      if (pendingRef.length) {
+        await db.update(referrals)
+          .set({ status: 'completed', rewardGiven: true })
+          .where(eq(referrals.id, pendingRef[0].id));
+        await grantReferralReward(user.referredBy, userId);
+      }
+    }
 
     const session: SessionPayload = {
       userId: user.id,

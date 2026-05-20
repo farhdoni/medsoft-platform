@@ -1,7 +1,7 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { OrbBackground } from '@/components/shared/orb-background';
@@ -16,7 +16,9 @@ const REGISTER_ERRORS: Record<string, string> = {
 
 export default function SignUpPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const locale = (params?.locale as string) ?? 'ru';
+  const refCode = searchParams?.get('ref') ?? '';
 
   const [showPassword, setShowPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -132,6 +134,20 @@ export default function SignUpPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="flex justify-center mb-8"><Logo /></div>
 
+        {/* Referral badge */}
+        {refCode && (
+          <div
+            className="rounded-2xl px-4 py-3.5 mb-5 flex items-center gap-3"
+            style={{ background: 'linear-gradient(135deg, #9c5e6c 0%, #8b6aae 100%)' }}
+          >
+            <span className="text-2xl flex-shrink-0">🎁</span>
+            <div>
+              <p className="text-[13px] font-bold text-white leading-tight">Вас пригласил друг!</p>
+              <p className="text-[11px] text-white/80">Зарегистрируйтесь и оба получите 1 месяц Premium бесплатно</p>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-pink-blue-mint flex items-center justify-center shadow-pink">
             <span className="text-3xl">✨</span>
@@ -149,6 +165,8 @@ export default function SignUpPage() {
           action={registerFormAction}
           className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium space-y-4 mb-4"
         >
+          {refCode && <input type="hidden" name="refCode" value={refCode} />}
+
           {registerState.error && (
             <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
               {REGISTER_ERRORS[registerState.error] ?? 'Произошла ошибка.'}

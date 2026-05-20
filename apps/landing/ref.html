@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIVITA — Приглашение</title>
+<style>
+  body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Outfit', sans-serif; background: #faf9f7; color: #2a2540; }
+  .wrap { text-align: center; padding: 24px; }
+  .logo { font-size: 28px; font-weight: 900; background: linear-gradient(135deg, #c87d8a, #8b6aae); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; }
+  .title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .sub { color: #9a96a8; font-size: 14px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e8e4dc; border-top-color: #c87d8a; border-radius: 50%; animation: spin .7s linear infinite; margin: 24px auto 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">aivita</div>
+  <div class="title">🎁 Вас пригласил друг!</div>
+  <div class="sub">Регистрируйтесь и оба получите 1 месяц Premium</div>
+  <div class="spinner"></div>
+</div>
+<script>
+(function() {
+  var APP_URL = 'https://app.aivita.uz';
+  // Path: /ref/CODE
+  var parts = window.location.pathname.split('/');
+  var code = '';
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i] === 'ref' && parts[i + 1]) {
+      code = parts[i + 1];
+      break;
+    }
+  }
+  if (!code) {
+    // Fallback: check hash or query
+    var m = window.location.search.match(/[?&]code=([^&]+)/);
+    if (m) code = m[1];
+  }
+  var target = APP_URL + '/ru/sign-up' + (code ? '?ref=' + encodeURIComponent(code) : '');
+  window.location.replace(target);
+})();
+</script>
+</body>
+</html>

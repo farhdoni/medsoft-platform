@@ -127,7 +127,19 @@ export const doctorPayoutSettings = pgTable('doctor_payout_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ─── 9. platform_settings ─────────────────────────────────────────────────────
+// ─── 9. referrals ─────────────────────────────────────────────────────────────
+
+export const referrals = pgTable('referrals', {
+  id: serial('id').primaryKey(),
+  referrerId: uuid('referrer_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+  referredId: uuid('referred_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }).unique(),
+  code: varchar('code', { length: 30 }).notNull(),
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending | completed | expired
+  rewardGiven: boolean('reward_given').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ─── 10. platform_settings ────────────────────────────────────────────────────
 
 export const platformSettings = pgTable('platform_settings', {
   id: serial('id').primaryKey(),

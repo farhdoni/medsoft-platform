@@ -10,6 +10,7 @@ import {
   numeric,
   index,
   unique,
+  varchar,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -57,6 +58,9 @@ export const aivitaUsers = pgTable(
     parentRelation: text('parent_relation'), // 'мама' | 'папа' | 'опекун'
     parentConsent: boolean('parent_consent').default(false).notNull(),
 
+    referralCode: varchar('referral_code', { length: 20 }).unique(),
+    referredBy: uuid('referred_by'),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     lastLoginAt: timestamp('last_login_at'),
@@ -66,6 +70,7 @@ export const aivitaUsers = pgTable(
     emailIdx: index('aivita_users_email_idx').on(table.email),
     phoneIdx: index('aivita_users_phone_idx').on(table.phone),
     providerIdx: index('aivita_users_provider_idx').on(table.provider, table.providerUserId),
+    referralCodeIdx: index('aivita_users_referral_code_idx').on(table.referralCode),
   })
 );
 
