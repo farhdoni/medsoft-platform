@@ -9,7 +9,7 @@ export default async function DrugCheckerPage({
   searchParams?: Promise<{ drugs?: string }>;
 }) {
   const { locale } = await params;
-  const sp = await (searchParams ?? Promise.resolve({}));
+  const sp = await (searchParams ?? Promise.resolve({} as { drugs?: string }));
   const prefilledDrugs = sp.drugs
     ? sp.drugs.split(',').map((d) => d.trim()).filter(Boolean)
     : [];
