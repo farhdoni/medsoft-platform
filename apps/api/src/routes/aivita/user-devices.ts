@@ -2,13 +2,37 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
-import { userDevices } from '@medsoft/db';
+import { userDevices, aivitaDeviceTokens } from '@medsoft/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const aivitaUserDevicesRouter = new Hono();
 
 aivitaUserDevicesRouter.use('*', requireAivitaAuth);
+
+// ─── POST /devices/register — mobile push token ────────────────────────────────
+
+aivitaUserDevicesRouter.post(
+  '/register',
+  zValidator('json', z.object({
+    pushToken: z.string().min(1),
+    platform: z.enum(['android', 'ios']).default('android'),
+    deviceId: z.string().optional(),
+  })),
+  async (c) => {
+    const userId = c.get('aivitaUserId');
+    const { pushToken, platform } = c.req.valid('json');
+
+    await db.insert(aivitaDeviceTokens)
+      .values({ userId, pushToken, platform })
+      .onConflictDoUpdate({
+        target: aivitaDeviceTokens.pushToken,
+        set: { userId, platform, updatedAt: new Date() },
+      });
+
+    return c.json({ data: { registered: true } });
+  }
+);
 
 // ─── Device catalog (static) ───────────────────────────────────────────────────
 
