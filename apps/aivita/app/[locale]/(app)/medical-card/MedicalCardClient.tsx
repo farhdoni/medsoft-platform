@@ -157,25 +157,29 @@ function Section({
       className="rounded-2xl overflow-hidden"
       style={{ border: '1px solid #e8e4dc', background: 'white' }}
     >
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50"
-      >
-        <span className="text-xl">{icon}</span>
-        <span className="flex-1 text-[14px] font-semibold" style={{ color: '#2a2540' }}>{title}</span>
-        {badge && (
-          <span
-            className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-            style={{ background: 'var(--accent-light, #f0d4dc)', color: 'var(--accent, #9c5e6c)' }}
-          >
-            {badge}
-          </span>
-        )}
+      <div className="flex items-center hover:bg-gray-50 transition-colors">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left min-w-0"
+        >
+          <span className="text-xl">{icon}</span>
+          <span className="flex-1 text-[14px] font-semibold" style={{ color: '#2a2540' }}>{title}</span>
+          {badge && (
+            <span
+              className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'var(--accent-light, #f0d4dc)', color: 'var(--accent, #9c5e6c)' }}
+            >
+              {badge}
+            </span>
+          )}
+          <span style={{ color: '#9a96a8', fontSize: 16, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>›</span>
+        </button>
         {onAttach && (
-          <AttachButton onClick={e => { e.stopPropagation(); onAttach(); }} />
+          <div className="pr-3">
+            <AttachButton onClick={() => onAttach()} />
+          </div>
         )}
-        <span style={{ color: '#9a96a8', fontSize: 16, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>›</span>
-      </button>
+      </div>
 
       {open && (
         <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: '#f0ece4' }}>
