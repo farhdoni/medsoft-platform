@@ -1,35 +1,36 @@
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Icon3D, type Icon3DName } from './icons/Icon3D';
 import type { AivitaSession } from '@/lib/auth/session';
 
 interface MenuItem {
   icon: Icon3DName;
   softBg: string;
-  title: string;
-  subtitle?: string;
+  titleKey: string;
+  subtitleKey?: string;
   href: string;
 }
 
 const PATIENT_MENU_ITEMS: MenuItem[] = [
-  { icon: 'family',   softBg: 'var(--accent-light)',    title: 'Мой профиль',          subtitle: 'Возраст, болезни',     href: '/profile' },
-  { icon: 'doctor',   softBg: '#d4dff0',                title: 'Найти врача',          subtitle: 'Каталог специалистов', href: '/doctors' },
-  { icon: 'kit',      softBg: 'var(--accent-bg-light)', title: 'Медкарта',             subtitle: 'Карточка здоровья',    href: '/medical-card' },
-  { icon: 'heart',    softBg: 'var(--accent-light)',    title: 'Биометрия',            subtitle: 'Показатели здоровья',  href: '/vitals' },
-  { icon: 'chat',     softBg: '#d4e8d8',                title: 'AI-чат',               subtitle: 'Помощник по здоровью', href: '/chat' },
-  { icon: 'family',   softBg: '#d4dff0',                title: 'Семья',                subtitle: 'Поделиться доступом',  href: '/family' },
-  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',            subtitle: 'Уведомления, язык',    href: '/settings' },
+  { icon: 'family',   softBg: 'var(--accent-light)',    titleKey: 'myProfile',    subtitleKey: 'myProfileSub',    href: '/profile' },
+  { icon: 'doctor',   softBg: '#d4dff0',                titleKey: 'findDoctor',   subtitleKey: 'findDoctorSub',   href: '/doctors' },
+  { icon: 'kit',      softBg: 'var(--accent-bg-light)', titleKey: 'medCard',      subtitleKey: 'medCardSub',      href: '/medical-card' },
+  { icon: 'heart',    softBg: 'var(--accent-light)',    titleKey: 'vitals',       subtitleKey: 'vitalsSub',       href: '/vitals' },
+  { icon: 'chat',     softBg: '#d4e8d8',                titleKey: 'aiChat',       subtitleKey: 'aiChatSub',       href: '/chat' },
+  { icon: 'family',   softBg: '#d4dff0',                titleKey: 'family',       subtitleKey: 'familySub',       href: '/family' },
+  { icon: 'settings', softBg: 'var(--accent-bg-light)', titleKey: 'settings',     subtitleKey: 'settingsSub',     href: '/settings' },
 ];
 
 const DOCTOR_MENU_ITEMS: MenuItem[] = [
-  { icon: 'doctor',   softBg: 'var(--accent-light)',    title: 'Профиль врача',   subtitle: 'Специализация, документы', href: '/doctor-profile' },
-  { icon: 'family',   softBg: '#d4e8d8',                title: 'Мои пациенты',   subtitle: 'Список пациентов',         href: '/doctor-patients' },
-  { icon: 'calendar', softBg: 'var(--accent-bg-light)', title: 'Расписание',     subtitle: 'Приёмы и слоты',           href: '/doctor-schedule' },
-  { icon: 'kit',      softBg: '#d4dff0',                title: 'Приёмы',         subtitle: 'История приёмов',          href: '/doctor-appointments' },
-  { icon: 'sparkle',  softBg: '#d4e8d8',                title: 'AI-ассистент',   subtitle: 'Диагнозы, анализы',        href: '/doctor-ai' },
-  { icon: 'chat',     softBg: '#d4dff0',                title: 'Чаты',           subtitle: 'Сообщения пациентов',      href: '/doctor-chats' },
-  { icon: 'settings', softBg: 'var(--accent-bg-light)', title: 'Настройки',      subtitle: 'Уведомления, язык',        href: '/settings' },
+  { icon: 'doctor',   softBg: 'var(--accent-light)',    titleKey: 'doctorProfile',  subtitleKey: 'doctorProfileSub', href: '/doctor-profile' },
+  { icon: 'family',   softBg: '#d4e8d8',                titleKey: 'patients',       subtitleKey: 'patientsSub',      href: '/doctor-patients' },
+  { icon: 'calendar', softBg: 'var(--accent-bg-light)', titleKey: 'schedule',       subtitleKey: 'scheduleSub',      href: '/doctor-schedule' },
+  { icon: 'kit',      softBg: '#d4dff0',                titleKey: 'appointments',   subtitleKey: 'appointmentsSub',  href: '/doctor-appointments' },
+  { icon: 'sparkle',  softBg: '#d4e8d8',                titleKey: 'aiAssistant',    subtitleKey: 'aiAssistantSub',   href: '/doctor-ai' },
+  { icon: 'chat',     softBg: '#d4dff0',                titleKey: 'chats',          subtitleKey: 'chatsSub',         href: '/doctor-chats' },
+  { icon: 'settings', softBg: 'var(--accent-bg-light)', titleKey: 'settings',       subtitleKey: 'settingsSub',      href: '/settings' },
 ];
 
 interface ProfileMenuProps {
@@ -39,6 +40,7 @@ interface ProfileMenuProps {
 }
 
 export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) {
+  const t = useTranslations('app.profileMenu');
   const [open, setOpen] = React.useState(false);
   const [pos, setPos] = React.useState({ top: 0, right: 0 });
   const buttonRef = React.useRef<HTMLButtonElement>(null);
@@ -74,14 +76,13 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
     setOpen(o => !o);
   };
 
-  const name = session?.name?.trim() || 'Пользователь';
+  const name = session?.name?.trim() || t('defaultUser');
   const email = session?.email ?? '';
   const words = name.split(/\s+/).filter(Boolean);
   const initials = words.length >= 2
     ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
     : name.slice(0, 2).toUpperCase();
 
-  // Use explicit role prop; fall back to session.role so any page without explicit role still works
   const effectiveRole = role ?? (session?.role as 'patient' | 'doctor' | undefined);
   const items = effectiveRole === 'doctor' ? DOCTOR_MENU_ITEMS : PATIENT_MENU_ITEMS;
 
@@ -91,7 +92,6 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
     } catch {
       // ignore network errors — cookie may already be invalid
     }
-    // Fallback: clear cookies client-side (works for non-httpOnly)
     document.cookie = 'aivita_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     document.cookie = 'aivita_api=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     document.cookie = 'aivita_session=; path=/; domain=.aivita.uz; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -106,7 +106,7 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
         onClick={handleToggle}
         className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-90 transition-opacity sm:w-10 sm:h-10 select-none"
         style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
-        aria-label="Меню профиля"
+        aria-label={t('ariaLabel')}
       >
         {initials}
       </button>
@@ -151,7 +151,7 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
                 style={{ background: '#f0faf4', color: '#3a7a5a', border: '1px solid #b8e8c8' }}
               >
                 <span>🏠</span>
-                <span>Кабинет пациента</span>
+                <span>{t('patientCabinet')}</span>
                 <span className="ml-auto" style={{ color: '#9a96a8', fontSize: 14 }}>›</span>
               </Link>
             </div>
@@ -165,7 +165,7 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
                 style={{ background: '#f0edf8', color: '#5e40a0', border: '1px solid #d8cff0' }}
               >
                 <span>🩺</span>
-                <span>Кабинет врача</span>
+                <span>{t('doctorCabinet')}</span>
                 <span className="ml-auto" style={{ color: '#9a96a8', fontSize: 14 }}>›</span>
               </Link>
             </div>
@@ -190,9 +190,13 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
                   <Icon3D name={item.icon} size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold truncate" style={{ color: '#2a2540' }}>{item.title}</p>
-                  {item.subtitle && (
-                    <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{item.subtitle}</p>
+                  <p className="text-[13px] font-semibold truncate" style={{ color: '#2a2540' }}>
+                    {t(item.titleKey as Parameters<typeof t>[0])}
+                  </p>
+                  {item.subtitleKey && (
+                    <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>
+                      {t(item.subtitleKey as Parameters<typeof t>[0])}
+                    </p>
                   )}
                 </div>
                 <span style={{ color: '#9a96a8', fontSize: 16 }}>›</span>
@@ -209,7 +213,7 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
               <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm flex-shrink-0">
                 🚪
               </div>
-              <span className="text-sm font-medium">Выйти</span>
+              <span className="text-sm font-medium">{t('logout')}</span>
             </button>
           </div>
         </div>

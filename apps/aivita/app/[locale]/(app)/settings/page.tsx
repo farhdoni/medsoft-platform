@@ -66,7 +66,9 @@ export default async function SettingsPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const { localeLabel, notificationsOn } = await loadSettingsData();
+  const { notificationsOn } = await loadSettingsData();
+  const LOCALE_LABELS: Record<string, string> = { ru: 'Русский', uz: "O'zbek", en: 'English' };
+  const localeLabel = LOCALE_LABELS[locale] ?? 'Русский';
   const session = await getSession();
   const isDoctor = session?.role === 'doctor';
   const t = await getTranslations('app.settings');
