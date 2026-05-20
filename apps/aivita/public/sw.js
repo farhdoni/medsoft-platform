@@ -1,10 +1,19 @@
-const CACHE_NAME = 'aivita-v2';
-const OFFLINE_URL = '/ru/offline';
+const CACHE_NAME = 'aivita-v3';
+const STATIC_CACHE = 'aivita-static-v3';
+const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
   '/',
-  '/ru',
+  '/ru/home',
+  '/ru/sign-in',
   OFFLINE_URL,
+];
+
+// Patterns that get Cache First treatment (static assets, rarely change)
+const STATIC_PATTERNS = [
+  /\/_next\/static\//,
+  /\/icons\//,
+  /\.(woff2?|ttf|eot|otf)(\?.*)?$/i,
 ];
 
 self.addEventListener('install', (event) => {
@@ -23,7 +32,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((names) =>
       Promise.all(
         names
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
           .map((name) => caches.delete(name))
       )
     )
@@ -40,8 +49,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
       tag: data.tag,
       data: { url: '/ru/medications', scheduleId: data.scheduleId, time: data.time },
       actions: [
@@ -81,14 +90,13 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// ─── Cabinet routes (used for cache bypass) ───────────────────────────────────
+// ─── Cabinet routes (cache bypass) ────────────────────────────────────────────
 
 const CABINET_ROUTES = ['/home', '/profile', '/habits', '/medications', '/nutrition', '/chat', '/test', '/family', '/report', '/settings', '/notifications', '/install'];
 
 function isCabinetRoute(pathname) {
   return CABINET_ROUTES.some((r) => {
     const segments = pathname.split('/').filter(Boolean);
-    // Strip locale prefix (ru/uz/en) before matching
     const withoutLocale = segments[0] === 'ru' || segments[0] === 'uz' || segments[0] === 'en'
       ? '/' + segments.slice(1).join('/')
       : pathname;
@@ -96,21 +104,41 @@ function isCabinetRoute(pathname) {
   });
 }
 
+function isStaticAsset(url) {
+  return STATIC_PATTERNS.some((p) => p.test(url.pathname));
+}
+
+// ─── Fetch handler ────────────────────────────────────────────────────────────
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Don't cache API calls, Next.js internals, or authenticated cabinet routes
+  // Skip: API calls, external origins, authenticated cabinet routes
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/v1/') ||
-    url.pathname.startsWith('/_next/') ||
     isCabinetRoute(url.pathname)
   ) {
     return;
   }
 
+  // Cache First — static assets (JS chunks, CSS, fonts, icons)
+  if (isStaticAsset(url)) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const response = await fetch(event.request);
+        if (response.ok) cache.put(event.request, response.clone());
+        return response;
+      })
+    );
+    return;
+  }
+
+  // Network First — HTML pages and everything else
   event.respondWith(
     fetch(event.request)
       .then((response) => {

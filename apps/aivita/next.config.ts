@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Service worker must be served with correct scope and no caching
+        source: '/sw.js',
+        headers: [
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
+      {
         // Prevent bfcache from serving stale authenticated pages after sign-out
         source: `/:locale(ru|uz|en)/:path(${CABINET_ROUTES})`,
         headers: [

@@ -2,13 +2,13 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'aivita — твой Health Score',
-    short_name: 'aivita',
-    description: 'Персональный индекс здоровья и AI-помощник для Узбекистана',
-    start_url: '/home',
+    name: 'AIVITA',
+    short_name: 'AIVITA',
+    description: 'AI-платформа здоровья',
+    start_url: '/ru/home',
     display: 'standalone',
-    background_color: '#fdfbfc',
-    theme_color: '#fdfbfc',
+    background_color: '#f4f3ef',
+    theme_color: '#9c5e6c',
     orientation: 'portrait',
     lang: 'ru',
     categories: ['health', 'medical', 'lifestyle'],
