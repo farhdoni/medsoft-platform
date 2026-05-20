@@ -128,16 +128,21 @@ export function PricingClient({ showSuccess }: { showSuccess: boolean }) {
 
   useEffect(() => {
     async function load() {
-      const [plansRes, methodsRes, subRes] = await Promise.all([
-        fetch(`${API}/v1/aivita/payments/plans`, { credentials: 'include' }),
-        fetch(`${API}/v1/aivita/payment-methods`, { credentials: 'include' }),
-        fetch(`${API}/v1/aivita/payments/subscription`, { credentials: 'include' }),
-      ]);
-      const [p, m, s] = await Promise.all([plansRes.json(), methodsRes.json(), subRes.json()]);
-      setPlans((p.data ?? []).filter((pl: Plan) => pl.targetRole === 'patient'));
-      setMethods(m.data ?? []);
-      setCurrentSub(s.data);
-      setLoading(false);
+      try {
+        const [plansRes, methodsRes, subRes] = await Promise.all([
+          fetch(`${API}/v1/aivita/payments/plans`, { credentials: 'include' }),
+          fetch(`${API}/v1/aivita/payment-methods`, { credentials: 'include' }),
+          fetch(`${API}/v1/aivita/payments/subscription`, { credentials: 'include' }),
+        ]);
+        const [p, m, s] = await Promise.all([plansRes.json(), methodsRes.json(), subRes.json()]);
+        setPlans((p.data ?? []).filter((pl: Plan) => pl.targetRole === 'patient'));
+        setMethods(m.data ?? []);
+        setCurrentSub(s.data ?? null);
+      } catch {
+        // network/parse error — show empty state, spinner stops
+      } finally {
+        setLoading(false);
+      }
     }
     void load();
   }, []);
