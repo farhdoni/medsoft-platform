@@ -17,7 +17,12 @@ export function LangSwitcher({ locale }: { locale: string }) {
   function switchLocale(newLocale: string) {
     if (newLocale === locale || isPending) return;
     const newPath = (pathname ?? `/${locale}`).replace(/^\/(ru|uz|en)(\/|$)/, `/${newLocale}$2`) || `/${newLocale}`;
-    startTransition(() => router.push(newPath));
+    // Set cookie for non-routing fallback, then navigate + refresh server components
+    document.cookie = `NEXT_LOCALE=${newLocale};path=/;max-age=31536000;samesite=lax`;
+    startTransition(() => {
+      router.push(newPath);
+      router.refresh();
+    });
   }
 
   return (

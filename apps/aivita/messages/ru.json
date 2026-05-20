@@ -186,7 +186,11 @@
       "test": "Тест",
       "habits": "Привычки",
       "chats": "Чаты",
-      "family": "Семья"
+      "family": "Семья",
+      "vitals": "Биометрия",
+      "medications": "Лекарства",
+      "gadgets": "Гаджеты",
+      "aiAssistant": "AI Ассистент"
     },
     "topbar": {
       "doctorBadge": "Врач",

@@ -186,7 +186,11 @@
       "test": "Test",
       "habits": "Habits",
       "chats": "Chats",
-      "family": "Family"
+      "family": "Family",
+      "vitals": "Biometrics",
+      "medications": "Medications",
+      "gadgets": "Gadgets",
+      "aiAssistant": "AI Assistant"
     },
     "topbar": {
       "doctorBadge": "Doctor",

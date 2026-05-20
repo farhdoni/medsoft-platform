@@ -186,7 +186,11 @@
       "test": "Test",
       "habits": "Odatlar",
       "chats": "Chatlar",
-      "family": "Oila"
+      "family": "Oila",
+      "vitals": "Biometriya",
+      "medications": "Dorilar",
+      "gadgets": "Gadjetlar",
+      "aiAssistant": "AI Yordamchi"
     },
     "topbar": {
       "doctorBadge": "Shifokor",

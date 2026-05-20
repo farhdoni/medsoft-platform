@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ export function saveNavConfig(cfg: { left: string[]; right: string[] }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function FloatingNav({ active = "home" }: { active?: string }) {
+  const t = useTranslations('app.nav');
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "ru";
@@ -51,23 +53,23 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
   const leftTabs  = navConfig.left.map(id  => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
   const rightTabs = navConfig.right.map(id => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
 
-  function renderTab(t: (typeof ALL_NAV_OPTIONS)[0]) {
-    const isActive = t.id === active;
+  function renderTab(tab: (typeof ALL_NAV_OPTIONS)[0]) {
+    const isActive = tab.id === active;
     return (
       <button
-        key={t.id}
+        key={tab.id}
         type="button"
-        onClick={() => go(t.id)}
+        onClick={() => go(tab.id)}
         className="flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition sm:px-3 sm:py-2"
         style={isActive ? { background: 'var(--accent-light)' } : undefined}
         aria-current={isActive ? "page" : undefined}
       >
-        <Icon name={t.icon} size={22} />
+        <Icon name={tab.icon} size={22} />
         <span
           className="text-[10px] font-semibold"
           style={{ color: isActive ? 'var(--accent-dark)' : '#9a96a8' }}
         >
-          {t.label}
+          {t(tab.id as Parameters<typeof t>[0])}
         </span>
       </button>
     );
@@ -82,7 +84,7 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
         {/* Center AI Aura button — navigates to /ai-chat */}
         <button
           type="button"
-          aria-label="AI Ассистент"
+          aria-label={t('aiAssistant')}
           onClick={openAiChat}
           className="relative -mt-4 mx-1 flex-shrink-0 transition-transform active:scale-95 hover:scale-105"
         >
