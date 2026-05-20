@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export function Logo({ inverted = false }: { inverted?: boolean }) {
   return (
-    <Link href="/" className="font-bold text-xl tracking-tight flex items-center gap-2.5 group">
+    <Link href="https://aivita.uz" className="font-bold text-xl tracking-tight flex items-center gap-2.5 group">
       <LogoMark className="w-7 h-7" />
       <span className={inverted ? 'text-white' : 'text-navy'}>
         aivita<em className="font-serif italic font-normal text-pink-500">.uz</em>
