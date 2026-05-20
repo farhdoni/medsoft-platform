@@ -411,6 +411,28 @@ export const aivitaSubscriptions = pgTable(
   })
 );
 
+// ─── Doctor Consultations (AI Scribe) ─────────────────────────────────────────
+
+export const doctorConsultations = pgTable(
+  'doctor_consultations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    doctorId: uuid('doctor_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    patientId: uuid('patient_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    transcript: text('transcript'),
+    protocol: jsonb('protocol').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    doctorIdx:  index('consult_doctor_idx').on(table.doctorId),
+    patientIdx: index('consult_patient_idx').on(table.patientId),
+  })
+);
+
 // ─── Doctor ↔ Patient Conversations ───────────────────────────────────────────
 
 export const doctorConversations = pgTable(

@@ -140,9 +140,9 @@ export default function DoctorPatientPage() {
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg border-app-border">‹</Link>
         <h1 className="font-bold text-[#2a2540] flex-1 truncate">{patient.user.name}</h1>
-        <Link href={`/${locale}/doctor-appointments`}
-          className="text-xs font-medium px-3 py-1.5 rounded-full text-white"
-          style={{ background: 'var(--accent-dark)' }}>+ Приём</Link>
+        <Link href={`/${locale}/doctor-scribe?patientId=${patientId}`}
+          className="text-xs font-medium px-3 py-1.5 rounded-full text-white flex items-center gap-1"
+          style={{ background: 'var(--accent-dark)' }}>🎙️ Приём</Link>
       </div>
 
       <div className="px-4 pb-4 space-y-4">

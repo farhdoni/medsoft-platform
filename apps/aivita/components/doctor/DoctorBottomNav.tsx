@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { id: 'patients',          label: 'Пациенты',   href: '/doctor-patients',      icon: 'family'   as const },
   { id: 'schedule',          label: 'Расписание', href: '/doctor-schedule',      icon: 'calendar' as const },
   { id: 'chats',             label: 'Чаты',       href: '/doctor-chats',         icon: 'chat'     as const },
-  { id: 'doctor-drug-checker', label: 'Совмест.', href: '/doctor-drug-checker',  icon: 'pill'     as const },
+  { id: 'doctor-scribe',     label: 'Скрайб',     href: '/doctor-scribe',        icon: 'mic'      as const },
   { id: 'profile',           label: 'Профиль',    href: '/doctor-profile',       icon: 'doctor'   as const },
 ];
 

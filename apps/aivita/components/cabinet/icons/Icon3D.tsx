@@ -382,6 +382,21 @@ const Menu3D = ({ size }: { size: number }) => (
   </svg>
 );
 
+const Mic3D = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" style={{ overflow: 'visible' }}>
+    <defs>
+      {grad('mic-body', PALETTE.blue.light, PALETTE.blue.mid, PALETTE.blue.dark)}
+      {grad('mic-base', PALETTE.blue.mid, PALETTE.blue.dark, PALETTE.blue.dark)}
+    </defs>
+    <ellipse cx="32" cy="58" rx="12" ry="2" fill="rgba(80, 70, 140, 0.2)" />
+    <rect x="22" y="10" width="20" height="28" rx="10" fill="url(#mic-body)" stroke={PALETTE.blue.dark} strokeWidth="0.8" />
+    <rect x="27" y="14" width="4" height="5" rx="2" fill="white" opacity="0.5" />
+    <path d="M16 34 C16 46 48 46 48 34" fill="none" stroke="url(#mic-base)" strokeWidth="3" strokeLinecap="round" />
+    <line x1="32" y1="46" x2="32" y2="54" stroke={PALETTE.blue.dark} strokeWidth="3" strokeLinecap="round" />
+    <line x1="24" y1="54" x2="40" y2="54" stroke={PALETTE.blue.dark} strokeWidth="3" strokeLinecap="round" />
+  </svg>
+);
+
 const ICON_3D_MAP = {
   heart: Heart3D, drop: Drop3D, kit: Kit3D, shield: Shield3D,
   pill: Pill3D, chat: Chat3D, report: Report3D, bell: Bell3D,
@@ -389,6 +404,7 @@ const ICON_3D_MAP = {
   sparkle: Sparkle3D, doctor: Doctor3D, plus: Plus3D, book: Book3D,
   habit: Book3D, settings: Settings3D, search: Search3D,
   menu: Menu3D, arrow: Arrow3D, test: Test3D, calendar: Calendar3D,
+  mic: Mic3D,
 } as const;
 
 export type Icon3DName = keyof typeof ICON_3D_MAP;
@@ -420,5 +436,5 @@ export const Icon3D: React.FC<Icon3DProps> = ({ name, size = 32, className }) =>
 export {
   Heart3D, Drop3D, Kit3D, Shield3D, Pill3D, Chat3D, Report3D, Bell3D,
   Family3D, Home3D, Steps3D, Food3D, Sparkle3D, Doctor3D, Plus3D, Book3D,
-  Settings3D, Search3D, Arrow3D, Test3D, Calendar3D, Menu3D,
+  Settings3D, Search3D, Arrow3D, Test3D, Calendar3D, Menu3D, Mic3D,
 };

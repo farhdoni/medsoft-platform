@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
@@ -133,20 +134,30 @@ export default function DoctorAppointmentsPage() {
         ) : appts.map(row => {
           const st = STATUS_STYLE[row.appointment.status] ?? STATUS_STYLE.scheduled;
           return (
-            <button key={row.appointment.id} onClick={() => openAppt(row)}
-              className="w-full bg-white rounded-2xl p-4 border flex items-center gap-3 text-left active:opacity-80">
-              <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
-                style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
-                {initials(row.patient.name)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[#2a2540] text-sm">{row.patient.name}</p>
-                <p className="text-xs text-[#9a96a8]">{fmtDate(row.appointment.scheduledAt)} · {fmtTime(row.appointment.scheduledAt)} · {row.appointment.durationMinutes} мин</p>
-                <p className="text-xs text-[#9a96a8] capitalize">{row.appointment.type === 'offline' ? 'Очно' : 'Онлайн'}</p>
-              </div>
-              <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0"
-                style={{ background: st.bg, color: st.color }}>{st.label}</span>
-            </button>
+            <div key={row.appointment.id} className="w-full bg-white rounded-2xl border flex items-center gap-3 overflow-hidden">
+              <button onClick={() => openAppt(row)}
+                className="flex-1 flex items-center gap-3 p-4 text-left active:opacity-80">
+                <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
+                  style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--accent-dark))' }}>
+                  {initials(row.patient.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-[#2a2540] text-sm">{row.patient.name}</p>
+                  <p className="text-xs text-[#9a96a8]">{fmtDate(row.appointment.scheduledAt)} · {fmtTime(row.appointment.scheduledAt)} · {row.appointment.durationMinutes} мин</p>
+                  <p className="text-xs text-[#9a96a8] capitalize">{row.appointment.type === 'offline' ? 'Очно' : 'Онлайн'}</p>
+                </div>
+                <span className="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0"
+                  style={{ background: st.bg, color: st.color }}>{st.label}</span>
+              </button>
+              <Link
+                href={`/${locale}/doctor-scribe?patientId=${row.patient.id}`}
+                className="flex items-center justify-center w-10 h-full pr-3 text-xl active:opacity-70"
+                title="Начать приём со скрайбом"
+                onClick={e => e.stopPropagation()}
+              >
+                🎙
+              </Link>
+            </div>
           );
         })}
       </div>
