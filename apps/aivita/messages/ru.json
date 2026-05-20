@@ -293,7 +293,15 @@
       "save": "Сохранить",
       "aiCenter": "AI",
       "navigation": "Навигация",
-      "navigationSub": "Кнопки нижнего меню"
+      "navigationSub": "Кнопки нижнего меню",
+      "signOut": "Выйти из аккаунта",
+      "deleteAccount": "Удалить аккаунт",
+      "deleteAccountSub": "Безвозвратно удалит все данные",
+      "deleteConfirmTitle": "Удалить аккаунт навсегда?",
+      "deleteConfirmDesc": "Все данные, привычки и история будут удалены. Это нельзя отменить.",
+      "cancel": "Отмена",
+      "deleteConfirm": "Да, удалить",
+      "deleting": "Удаляю..."
     }
   }
 }

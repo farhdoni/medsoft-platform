@@ -293,7 +293,15 @@
       "save": "Save",
       "aiCenter": "AI",
       "navigation": "Navigation",
-      "navigationSub": "Bottom menu buttons"
+      "navigationSub": "Bottom menu buttons",
+      "signOut": "Sign out",
+      "deleteAccount": "Delete account",
+      "deleteAccountSub": "Permanently deletes all data",
+      "deleteConfirmTitle": "Delete account permanently?",
+      "deleteConfirmDesc": "All data, habits and history will be deleted. This cannot be undone.",
+      "cancel": "Cancel",
+      "deleteConfirm": "Yes, delete",
+      "deleting": "Deleting..."
     }
   }
 }

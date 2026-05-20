@@ -293,7 +293,15 @@
       "save": "Saqlash",
       "aiCenter": "AI",
       "navigation": "Navigatsiya",
-      "navigationSub": "Pastki menyu tugmalari"
+      "navigationSub": "Pastki menyu tugmalari",
+      "signOut": "Hisobdan chiqish",
+      "deleteAccount": "Hisobni o'chirish",
+      "deleteAccountSub": "Barcha ma'lumotlarni qaytarib bo'lmaydi o'chiradi",
+      "deleteConfirmTitle": "Hisobni butunlay o'chirishni xohlaysizmi?",
+      "deleteConfirmDesc": "Barcha ma'lumotlar, odatlar va tarix o'chiriladi. Buni bekor qilib bo'lmaydi.",
+      "cancel": "Bekor qilish",
+      "deleteConfirm": "Ha, o'chirish",
+      "deleting": "O'chirilmoqda..."
     }
   }
 }
