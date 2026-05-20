@@ -8,11 +8,12 @@ import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 const PROXY = '/api/proxy';
 
 const NAV_ITEMS = [
-  { id: 'home',     label: 'Dashboard',   href: '/doctor-home',     icon: 'home'     as const },
-  { id: 'patients', label: 'Пациенты',    href: '/doctor-patients', icon: 'family'   as const },
-  { id: 'schedule', label: 'Расписание',  href: '/doctor-schedule', icon: 'calendar' as const },
-  { id: 'chats',    label: 'Чаты',        href: '/doctor-chats',    icon: 'chat'     as const },
-  { id: 'profile',  label: 'Профиль',     href: '/doctor-profile',  icon: 'doctor'   as const },
+  { id: 'home',              label: 'Dashboard',  href: '/doctor-home',          icon: 'home'     as const },
+  { id: 'patients',          label: 'Пациенты',   href: '/doctor-patients',      icon: 'family'   as const },
+  { id: 'schedule',          label: 'Расписание', href: '/doctor-schedule',      icon: 'calendar' as const },
+  { id: 'chats',             label: 'Чаты',       href: '/doctor-chats',         icon: 'chat'     as const },
+  { id: 'doctor-drug-checker', label: 'Совмест.', href: '/doctor-drug-checker',  icon: 'pill'     as const },
+  { id: 'profile',           label: 'Профиль',    href: '/doctor-profile',       icon: 'doctor'   as const },
 ];
 
 export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {

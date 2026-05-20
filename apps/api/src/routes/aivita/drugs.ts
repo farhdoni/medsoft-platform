@@ -124,6 +124,90 @@ aivitaDrugsRouter.post('/check', async (c) => {
   return c.json({ data: { pairs, summary: buildSummary(pairs) } });
 });
 
+// ─── GET /patient-meds — врач: список лекарств пациента ──────────────────────
+
+aivitaDrugsRouter.get('/patient-meds', async (c) => {
+  const session = c.get('aivitaSession');
+  if (session.role !== 'doctor') {
+    return c.json({ error: 'Doctor only' }, 403);
+  }
+  const patientId = c.req.query('patientId');
+  if (!patientId) return c.json({ error: 'patientId required' }, 400);
+
+  const meds = await db.select({
+    id: medicationSchedule.id,
+    title: medicationSchedule.title,
+    dosage: medicationSchedule.dosage,
+  }).from(medicationSchedule)
+    .where(and(
+      eq(medicationSchedule.userId, patientId),
+      eq(medicationSchedule.isActive, true),
+    ));
+
+  return c.json({ data: meds });
+});
+
+// ─── POST /check-for-patient — врач: проверить новый препарат против лекарств пациента ──
+
+aivitaDrugsRouter.post('/check-for-patient', async (c) => {
+  const session = c.get('aivitaSession');
+  if (session.role !== 'doctor') {
+    return c.json({ error: 'Doctor only' }, 403);
+  }
+  const body = await c.req.json() as { patientId?: string; newDrug?: string };
+  const { patientId, newDrug } = body;
+  if (!patientId || !newDrug) {
+    return c.json({ error: 'patientId and newDrug required' }, 400);
+  }
+
+  const meds = await db.select({ title: medicationSchedule.title })
+    .from(medicationSchedule)
+    .where(and(
+      eq(medicationSchedule.userId, patientId),
+      eq(medicationSchedule.isActive, true),
+    ));
+
+  const patientDrugs = [...new Set(meds.map((m) => m.title))];
+
+  if (patientDrugs.length === 0) {
+    return c.json({ data: { interactions: [], patientDrugs: [], safe: true } });
+  }
+
+  const interactions: Array<{
+    drug1: string;
+    drug2: string;
+    severity: string;
+    description: string;
+    recommendation: string;
+  }> = [];
+
+  for (const existing of patientDrugs) {
+    let row = await lookupPair(newDrug, existing);
+    if (!row) {
+      const ai = await askClaude(newDrug, existing);
+      const [inserted] = await db.insert(drugInteractions).values({
+        drug1: newDrug,
+        drug2: existing,
+        severity: ai.severity,
+        description: ai.description,
+        recommendation: ai.recommendation,
+        source: 'AIVITA AI',
+      }).returning();
+      row = inserted ?? null;
+    }
+    interactions.push({
+      drug1: row?.drug1 ?? newDrug,
+      drug2: row?.drug2 ?? existing,
+      severity: row?.severity ?? 'none',
+      description: row?.description ?? '',
+      recommendation: row?.recommendation ?? '',
+    });
+  }
+
+  const safe = !interactions.some((i) => i.severity === 'critical' || i.severity === 'major');
+  return c.json({ data: { interactions, patientDrugs, safe } });
+});
+
 // ─── GET /my-check — проверить текущие лекарства пациента ────────────────────
 
 aivitaDrugsRouter.get('/my-check', async (c) => {

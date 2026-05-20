@@ -345,6 +345,12 @@ export default function DoctorPatientPage() {
             </Link>
           ))}
         </div>
+        <Link href={`/${locale}/doctor-drug-checker?patientId=${patientId}`}>
+          <button className="w-full py-3 rounded-xl text-sm font-semibold border-2 flex items-center justify-center gap-2"
+            style={{ borderColor: '#6BA3D6', color: '#4a7fb5', background: '#f0f7ff' }}>
+            🔍 Проверить совместимость лекарств
+          </button>
+        </Link>
       </div>
 
       {/* Add note modal */}

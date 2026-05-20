@@ -1,9 +1,72 @@
 import { Hono } from 'hono';
 import { db } from '@medsoft/db';
-import { doctorConversations, doctorMessages, aivitaUsers, doctorProfiles } from '@medsoft/db';
-import { eq, and, desc, gt, not, sql } from 'drizzle-orm';
+import { doctorConversations, doctorMessages, aivitaUsers, doctorProfiles, medicationSchedule, drugInteractions } from '@medsoft/db';
+import { eq, and, desc, gt, not, sql, or, ilike } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { createNotification } from '../../lib/notification-service.js';
+
+// ─── Drug interaction helper ──────────────────────────────────────────────────
+
+async function checkPrescriptionInteractions(
+  patientId: string,
+  doctorId: string,
+  newDrug: string,
+  convId: string,
+): Promise<void> {
+  const meds = await db.select({ title: medicationSchedule.title })
+    .from(medicationSchedule)
+    .where(and(eq(medicationSchedule.userId, patientId), eq(medicationSchedule.isActive, true)));
+
+  const patientDrugs = [...new Set(meds.map((m) => m.title))];
+  if (patientDrugs.length === 0) return;
+
+  for (const existing of patientDrugs) {
+    const [row] = await db.select().from(drugInteractions)
+      .where(or(
+        and(ilike(drugInteractions.drug1, `%${newDrug}%`), ilike(drugInteractions.drug2, `%${existing}%`)),
+        and(ilike(drugInteractions.drug1, `%${existing}%`), ilike(drugInteractions.drug2, `%${newDrug}%`)),
+      ))
+      .limit(1);
+
+    if (!row) continue;
+    if (row.severity !== 'critical' && row.severity !== 'major') continue;
+
+    const icon = row.severity === 'critical' ? '⛔' : '⚠️';
+    const sevLabel = row.severity === 'critical' ? 'КРИТИЧНОЕ' : 'Серьёзное';
+    const warningText = `${icon} Взаимодействие лекарств: **${row.drug1}** + **${row.drug2}** — ${sevLabel}.\n\n${row.description ?? ''}\n\n💡 ${row.recommendation ?? ''}`;
+
+    // System warning message visible to both doctor and patient
+    await db.insert(doctorMessages).values({
+      conversationId: convId,
+      senderId: doctorId,
+      senderRole: 'doctor',
+      type: 'drug_warning',
+      content: warningText,
+      metadata: {
+        drug1: row.drug1,
+        drug2: row.drug2,
+        severity: row.severity,
+        isSystemWarning: true,
+      },
+    });
+
+    await db.update(doctorConversations)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(doctorConversations.id, convId));
+
+    // Notify only the doctor
+    const notifTitle = row.severity === 'critical'
+      ? `⛔ Критическое взаимодействие: ${row.drug1} + ${row.drug2}`
+      : `⚠️ Серьёзное взаимодействие: ${row.drug1} + ${row.drug2}`;
+    await createNotification(
+      doctorId,
+      'action_required',
+      notifTitle,
+      `Рассмотрите замену. ${row.recommendation ?? ''}`.slice(0, 120),
+      { priority: row.severity === 'critical' ? 'urgent' : 'high', link: `/doctor-chats` },
+    ).catch(() => {});
+  }
+}
 
 export const conversationsRouter = new Hono();
 
@@ -169,6 +232,16 @@ conversationsRouter.post('/:id/messages', async (c) => {
   await db.update(doctorConversations)
     .set({ lastMessageAt: new Date() })
     .where(eq(doctorConversations.id, convId));
+
+  // Auto drug-check: prescription from doctor → check against patient's current meds
+  if (senderRole === 'doctor' && conv.patientId && (body.type === 'prescription' || body.type === 'medication')) {
+    const drugName = (body.metadata?.drugName as string | undefined)
+      ?? (body.metadata?.title as string | undefined)
+      ?? (body.content ?? '');
+    if (drugName.trim()) {
+      checkPrescriptionInteractions(conv.patientId, userId, drugName.trim(), convId).catch(() => {});
+    }
+  }
 
   // Notify recipient: doctor → notify patient, patient → notify doctor
   const recipientId = senderRole === 'doctor' ? conv.patientId : conv.doctorId;
