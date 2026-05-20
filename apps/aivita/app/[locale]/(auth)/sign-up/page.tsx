@@ -7,14 +7,6 @@ import { Logo } from '@/components/shared/logo';
 import { OrbBackground } from '@/components/shared/orb-background';
 import { registerAction, verifyEmailAction, resendCodeAction } from './actions';
 
-const SPECIALIZATIONS = [
-  'Терапевт', 'Кардиолог', 'Эндокринолог', 'Гастроэнтеролог', 'Невролог',
-  'Пульмонолог', 'Офтальмолог', 'ЛОР', 'Дерматолог', 'Уролог',
-  'Гинеколог', 'Педиатр', 'Хирург', 'Ортопед', 'Стоматолог',
-  'Психиатр', 'Психолог', 'Аллерголог', 'Онколог', 'Ревматолог',
-  'Нефролог', 'Инфекционист', 'Семейный врач', 'Другое',
-];
-
 const REGISTER_ERRORS: Record<string, string> = {
   email_taken: 'Этот email уже используется.',
   nickname_taken: 'Этот никнейм уже занят.',
@@ -28,7 +20,6 @@ export default function SignUpPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [role, setRole] = useState<'patient' | 'doctor'>('patient');
 
   const boundRegister = registerAction.bind(null, locale);
   const [registerState, registerFormAction, registering] = useActionState(
@@ -237,56 +228,7 @@ export default function SignUpPage() {
             </div>
           </div>
 
-          {/* Переключатель роли */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[rgb(var(--text-secondary))] pl-1">
-              Я регистрируюсь как
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setRole('patient')}
-                className={`flex-1 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                  role === 'patient'
-                    ? 'bg-[#f0d4dc] text-[#9c5e6c] border-2 border-[#cc8a96]'
-                    : 'bg-white text-[#9a96a8] border border-[#e8e4dc]'
-                }`}
-              >
-                🏠 Пациент
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('doctor')}
-                className={`flex-1 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                  role === 'doctor'
-                    ? 'bg-[color:var(--accent-bg-light)] text-[color:var(--accent-dark)] border-2 border-[color:var(--accent)]'
-                    : 'bg-white text-[#9a96a8] border border-[#e8e4dc]'
-                }`}
-              >
-                🩺 Врач
-              </button>
-            </div>
-            <input type="hidden" name="role" value={role} />
-          </div>
-
-          {/* Специализация — только для врача */}
-          {role === 'doctor' && (
-            <div className="space-y-1">
-              <label htmlFor="specialization" className="text-xs font-medium text-[rgb(var(--text-secondary))] pl-1">
-                Специализация
-              </label>
-              <select
-                id="specialization"
-                name="specialization"
-                className="w-full h-12 px-4 rounded-2xl border border-[rgba(120,160,200,0.2)] bg-white/80 text-navy text-sm outline-none focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-bg-light)] transition-all appearance-none"
-              >
-                <option value="">Выберите специализацию</option>
-                {SPECIALIZATIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <input type="hidden" name="role" value="patient" />
 
           <button
             type="submit"
