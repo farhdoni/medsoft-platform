@@ -126,6 +126,13 @@ export async function middleware(request: NextRequest) {
   );
   const isOnboarding = realPath.startsWith('/onboarding');
 
+  // Root locale route (/) — always redirect: auth → /home, guest → /sign-in
+  if (realPath === '/') {
+    const url = request.nextUrl.clone();
+    url.pathname = isAuth ? `/${locale}/home` : `/${locale}/sign-in`;
+    return NextResponse.redirect(url);
+  }
+
   // App route + not authenticated → redirect to /{locale}/sign-in
   if (isAppRoute && !isAuth) {
     const url = request.nextUrl.clone();
