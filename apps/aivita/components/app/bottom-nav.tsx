@@ -2,24 +2,25 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Icon3D, type Icon3DName } from '@/components/cabinet/icons/Icon3D';
 
 interface NavItem {
   id: string;
-  label: string;
   href: string;
   icon: Icon3DName;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home',   label: 'Главная',  href: '/home',      icon: 'home'   },
-  { id: 'test',   label: 'Тест',     href: '/test',      icon: 'test'   },
-  { id: 'habits', label: 'Привычки', href: '/habits',    icon: 'book'   },
-  { id: 'chats',  label: 'Чаты',     href: '/chats',     icon: 'chat'   },
-  { id: 'family', label: 'Семья',    href: '/family',    icon: 'family' },
+  { id: 'home',   href: '/home',   icon: 'home'   },
+  { id: 'test',   href: '/test',   icon: 'test'   },
+  { id: 'habits', href: '/habits', icon: 'book'   },
+  { id: 'chats',  href: '/chats',  icon: 'chat'   },
+  { id: 'family', href: '/family', icon: 'family' },
 ];
 
 export function BottomNav({ locale = 'ru' }: { locale?: string }) {
+  const t = useTranslations('app.nav');
   const pathname = usePathname();
   const isActive = (href: string) => !!pathname?.includes(href);
 
@@ -31,7 +32,7 @@ export function BottomNav({ locale = 'ru' }: { locale?: string }) {
         backdropFilter: 'blur(16px)',
         boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
       }}
-      aria-label="Навигация"
+      aria-label={t('home')}
     >
       {NAV_ITEMS.map((item) => {
         const active = isActive(item.href);
@@ -50,7 +51,7 @@ export function BottomNav({ locale = 'ru' }: { locale?: string }) {
               className="text-[11px] font-semibold leading-none whitespace-nowrap"
               style={{ color: active ? 'var(--accent-dark)' : '#9a96a8' }}
             >
-              {item.label}
+              {t(item.id)}
             </span>
           </Link>
         );

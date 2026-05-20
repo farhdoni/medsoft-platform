@@ -2,16 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import type { ChatPrompt, DailyMetrics, User } from "@/lib/cabinet-types";
-
-const PROMPTS: ChatPrompt[] = ["Анализы", "Сон", "Питание", "Тренировки"];
-
-function getGreeting() {
-  const h = new Date().getHours();
-  return h < 6 ? "Доброй ночи" :
-         h < 12 ? "Доброе утро" :
-         h < 18 ? "Добрый день" : "Добрый вечер";
-}
+import { useTranslations } from "next-intl";
+import type { DailyMetrics, User } from "@/lib/cabinet-types";
 
 interface Props {
   user: User;
@@ -19,16 +11,21 @@ interface Props {
 }
 
 export function HeroSection({ user, metrics }: Props) {
+  const t = useTranslations('app.hero');
   const [question, setQuestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Avoid SSR/client time mismatch: render neutral default, update after mount
-  const [greeting, setGreeting] = useState("Добрый день");
+  const [greeting, setGreeting] = useState(t('greetingDay'));
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "ru";
 
   useEffect(() => {
-    setGreeting(getGreeting());
+    const h = new Date().getHours();
+    const key = h < 6 ? 'greetingNight' : h < 12 ? 'greetingMorning' : h < 18 ? 'greetingDay' : 'greetingEvening';
+    setGreeting(t(key));
+  // t is stable across renders for the same locale
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function ask(q: string) {
@@ -36,6 +33,13 @@ export function HeroSection({ user, metrics }: Props) {
     setSubmitting(true);
     router.push(`/${locale}/chat?q=${encodeURIComponent(q)}`);
   }
+
+  const prompts = [
+    t('promptAnalyses'),
+    t('promptSleep'),
+    t('promptNutrition'),
+    t('promptWorkouts'),
+  ];
 
   const ringPct = Math.min(100, Math.max(0, metrics.healthIndex.score));
   const C = 2 * Math.PI * 56;
@@ -56,9 +60,9 @@ export function HeroSection({ user, metrics }: Props) {
             {greeting}, {user.name.split(" ")[0]}
           </div>
           <h1 className="mt-2 max-w-md text-[22px] font-bold leading-[1.15] sm:text-[28px]">
-            Чем сегодня помочь
+            {t('titleLine1')}
             <br />
-            твоему здоровью?
+            {t('titleLine2')}
           </h1>
 
           <form
@@ -72,7 +76,7 @@ export function HeroSection({ user, metrics }: Props) {
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Задай вопрос AI о здоровье…"
+              placeholder={t('aiPlaceholder')}
               className="flex-1 bg-transparent py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none"
               disabled={submitting}
             />
@@ -81,12 +85,12 @@ export function HeroSection({ user, metrics }: Props) {
               disabled={submitting}
               className="rounded-chip bg-accent-rose px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#8a4f5d] disabled:opacity-60"
             >
-              {submitting ? "…" : "Спросить"}
+              {submitting ? "…" : t('askButton')}
             </button>
           </form>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {PROMPTS.map((p) => (
+            {prompts.map((p) => (
               <button
                 key={p}
                 type="button"
@@ -102,7 +106,7 @@ export function HeroSection({ user, metrics }: Props) {
         {/* RIGHT: health-index ring card — compact on mobile, full on desktop */}
         <div className="rounded-card bg-white/95 p-4 text-text-primary shadow-card md:p-5 md:w-[230px]">
           <div className="text-center text-[12px] font-medium text-text-secondary">
-            Индекс здоровья
+            {t('healthIndex')}
           </div>
           <div className="relative mx-auto mt-3 grid h-[100px] w-[100px] place-items-center md:h-[140px] md:w-[140px]">
             <svg width="100" height="100" viewBox="0 0 140 140" className="-rotate-90 md:hidden absolute inset-0 w-full h-full">
@@ -148,7 +152,7 @@ export function HeroSection({ user, metrics }: Props) {
             onClick={() => router.push(`/${locale}/test`)}
             className="mt-3 w-full rounded-chip bg-accent-rose py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#8a4f5d]"
           >
-            Пройти тест →
+            {t('takeTest')}
           </button>
         </div>
       </div>

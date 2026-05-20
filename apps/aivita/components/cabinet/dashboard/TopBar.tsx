@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/components/cabinet/icons/Icon";
 import { ProfileMenu } from "@/components/cabinet/ProfileMenu";
 import { SosModal } from "@/components/sos/SosButton";
+import { LangSwitcher } from "@/components/shared/LangSwitcher";
 import type { AivitaSession } from "@/lib/auth/session";
 
 interface TopBarProps {
@@ -17,6 +19,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCount }: TopBarProps) {
+  const t = useTranslations('app.topbar');
   const [selfUnread, setSelfUnread] = useState(0);
   const [showSos, setShowSos] = useState(false);
 
@@ -51,17 +54,20 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: 'var(--role-badge-bg)', color: 'var(--role-badge-text)' }}
             >
-              Врач
+              {t('doctorBadge')}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
+          {/* Language switcher */}
+          <LangSwitcher locale={locale} />
+
           {/* SOS — patients only */}
           {role === 'patient' && (
             <button
               onClick={() => setShowSos(true)}
               className="px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full hover:bg-red-600 active:scale-95 transition-all shadow-sm sm:px-3 sm:py-1.5 sm:text-xs"
-              aria-label="SOS Экстренный вызов"
+              aria-label={t('sosAriaLabel')}
             >
               SOS
             </button>
@@ -69,14 +75,14 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
           {/* Search → каталог врачей */}
           <Link
             href={`/${locale}/doctors`}
-            aria-label="Найти врача"
+            aria-label={t('searchAriaLabel')}
             className="grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
           >
             <Icon name="search" size={18} />
           </Link>
           <Link
             href={`/${locale}/notifications`}
-            aria-label="Уведомления"
+            aria-label={t('notificationsAriaLabel')}
             className="relative grid h-8 w-8 place-items-center rounded-full bg-white shadow-card transition hover:scale-105 sm:h-10 sm:w-10"
           >
             <Icon name="bell" size={18} />

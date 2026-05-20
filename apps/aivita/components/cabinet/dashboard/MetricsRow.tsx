@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { DailyMetrics } from '@/lib/cabinet-types';
 import Modal from '@/components/ui/Modal';
 import { VITAL_CONFIG, AddVitalModal } from '@/components/cabinet/dashboard/HomeVitals';
@@ -22,16 +23,16 @@ const DEFAULT_STATS = ['heart_rate', 'water_ml', 'steps', 'habits'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const ALL_QUICK_STATS = [
-  { key: 'heart_rate',     icon: '❤️',  label: 'Пульс',       unit: 'bpm'   },
-  { key: 'blood_pressure', icon: '🩺',  label: 'Давление',    unit: 'mmHg'  },
-  { key: 'glucose',        icon: '🍬',  label: 'Сахар',       unit: 'мг/дл' },
-  { key: 'weight',         icon: '⚖️',  label: 'Вес',         unit: 'кг'    },
-  { key: 'spo2',           icon: '🫁',  label: 'SpO2',        unit: '%'     },
-  { key: 'sleep_hours',    icon: '😴',  label: 'Сон',         unit: 'ч'     },
-  { key: 'steps',          icon: '🏃',  label: 'Шаги',        unit: ''      },
-  { key: 'water_ml',       icon: '💧',  label: 'Вода',        unit: 'мл'    },
-  { key: 'temperature',    icon: '🌡️', label: 'Температура', unit: '°C'    },
-  { key: 'habits',         icon: '📋',  label: 'Привычки',    unit: ''      },
+  { key: 'heart_rate',     icon: '❤️',  unit: 'bpm'   },
+  { key: 'blood_pressure', icon: '🩺',  unit: 'mmHg'  },
+  { key: 'glucose',        icon: '🍬',  unit: 'мг/дл' },
+  { key: 'weight',         icon: '⚖️',  unit: 'кг'    },
+  { key: 'spo2',           icon: '🫁',  unit: '%'     },
+  { key: 'sleep_hours',    icon: '😴',  unit: 'ч'     },
+  { key: 'steps',          icon: '🏃',  unit: ''      },
+  { key: 'water_ml',       icon: '💧',  unit: 'мл'    },
+  { key: 'temperature',    icon: '🌡️', unit: '°C'    },
+  { key: 'habits',         icon: '📋',  unit: ''      },
 ];
 
 const CARD_BG: Record<string, string> = {
@@ -71,6 +72,7 @@ function getCardData(
   key: string,
   vitals: LatestVitals,
   metrics: DailyMetrics,
+  units: { steps: string; water: string },
 ): { value: string; meta: string } {
   const row = vitals[key];
   const fresh = isFresh(row);
@@ -85,7 +87,7 @@ function getCardData(
     case 'water_ml': {
       if (fresh) {
         const ml = (row!.value as { value?: number }).value;
-        return { value: ml != null ? `${ml}` : '—', meta: 'мл' };
+        return { value: ml != null ? `${ml}` : '—', meta: units.water };
       }
       return { value: `${metrics.water.liters}л`, meta: `${metrics.water.liters}/${metrics.water.goalLiters}` };
     }
@@ -93,8 +95,8 @@ function getCardData(
       const count = fresh
         ? (row!.value as { value?: number }).value
         : metrics.steps.count;
-      if (count == null) return { value: '—', meta: 'шагов' };
-      return { value: count >= 1000 ? `${(count / 1000).toFixed(1)}K` : `${count}`, meta: 'шагов' };
+      if (count == null) return { value: '—', meta: units.steps };
+      return { value: count >= 1000 ? `${(count / 1000).toFixed(1)}K` : `${count}`, meta: units.steps };
     }
     case 'habits': {
       const pct = metrics.habits.total > 0
@@ -151,6 +153,7 @@ function QuickStatsSettingsModal({
   onClose: () => void;
   onChange: (keys: string[]) => void;
 }) {
+  const t = useTranslations('app.metrics');
   const [picks, setPicks] = useState<string[]>(selected);
 
   function toggle(key: string) {
@@ -172,19 +175,19 @@ function QuickStatsSettingsModal({
     <Modal
       isOpen
       onClose={onClose}
-      title="⚙️ Быстрые показатели"
+      title={t('settingsTitle')}
       footer={
         <button
           onClick={handleSave}
           className="w-full py-3 rounded-xl text-sm font-bold text-white"
           style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
         >
-          Сохранить
+          {t('saveButton')}
         </button>
       }
     >
       <p className="text-xs text-app-t3 mb-4">
-        Выберите от 3 до 5 показателей для быстрого доступа
+        {t('settingsHint')}
         <span className="ml-1 font-semibold">({picks.length}/5)</span>
       </p>
       <div className="space-y-2">
@@ -203,7 +206,9 @@ function QuickStatsSettingsModal({
               }}
             >
               <span className="text-lg w-7 text-center">{s.icon}</span>
-              <span className="flex-1 text-sm font-semibold" style={{ color: '#2a2540' }}>{s.label}</span>
+              <span className="flex-1 text-sm font-semibold" style={{ color: '#2a2540' }}>
+                {t(s.key as Parameters<typeof t>[0])}
+              </span>
               <div
                 className="w-11 h-6 rounded-full flex items-center px-1 transition-all flex-shrink-0"
                 style={{ background: on ? 'var(--accent-dark)' : '#d0ccc4' }}
@@ -224,6 +229,7 @@ function QuickStatsSettingsModal({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function MetricsRow({ metrics, vitalsLatest }: Props) {
+  const t = useTranslations('app.metrics');
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || 'ru';
@@ -264,20 +270,21 @@ export function MetricsRow({ metrics, vitalsLatest }: Props) {
   }
 
   const shown = config.filter(k => ALL_QUICK_STATS.find(s => s.key === k));
+  const units = { steps: t('stepsUnit'), water: t('waterUnit') };
 
   return (
     <section className="px-7 pt-4">
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: '#9a96a8' }}>
-          Быстрые показатели
+          {t('sectionTitle')}
         </p>
         <button
           onClick={() => setShowSettings(true)}
           className="text-[11px] font-semibold transition-opacity hover:opacity-70 flex items-center gap-1"
           style={{ color: 'var(--accent)' }}
         >
-          ⚙️ Настроить
+          ⚙️ {t('configure')}
         </button>
       </div>
 
@@ -286,7 +293,8 @@ export function MetricsRow({ metrics, vitalsLatest }: Props) {
         {shown.map(key => {
           const meta = ALL_QUICK_STATS.find(s => s.key === key);
           if (!meta) return null;
-          const { value, meta: sub } = getCardData(key, latestOverride, metrics);
+          const label = t(key as Parameters<typeof t>[0]);
+          const { value, meta: sub } = getCardData(key, latestOverride, metrics, units);
           const bg    = CARD_BG[key]    ?? '#f4f3ef';
           const color = CARD_COLOR[key] ?? '#6a6580';
           const clickable = key !== 'habits' ? VITAL_CONFIG[key] : true;
@@ -298,7 +306,7 @@ export function MetricsRow({ metrics, vitalsLatest }: Props) {
               onClick={() => handleCardClick(key)}
               className="relative flex min-h-[110px] flex-col justify-between rounded-card p-4 text-left transition-all active:scale-[0.97] group hover:brightness-95"
               style={{ background: bg }}
-              aria-label={`Ввести ${meta.label}`}
+              aria-label={label}
             >
               {/* Edit hint */}
               {clickable && (
@@ -321,7 +329,7 @@ export function MetricsRow({ metrics, vitalsLatest }: Props) {
                 <div className="text-[22px] font-extrabold leading-none" style={{ color: '#2a2540' }}>
                   {value}
                 </div>
-                <div className="mt-1 text-[11px]" style={{ color: '#6a6580' }}>{meta.label}</div>
+                <div className="mt-1 text-[11px]" style={{ color: '#6a6580' }}>{label}</div>
               </div>
             </button>
           );

@@ -21,10 +21,14 @@ async function fetchDbOverrides(locale: string): Promise<Record<string, Record<s
   }
 }
 
-export default getRequestConfig(async () => {
+export default getRequestConfig(async ({ requestLocale }) => {
+  // Primary: URL locale set by next-intl middleware (e.g. /ru/, /uz/, /en/)
+  const urlLocale = await requestLocale;
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value;
-  const locale = localeCookie && ['ru', 'uz', 'en'].includes(localeCookie) ? localeCookie : 'ru';
+  // URL locale takes priority; cookie is fallback for non-routed pages
+  const raw = urlLocale ?? localeCookie;
+  const locale = raw && ['ru', 'uz', 'en'].includes(raw) ? raw : 'ru';
 
   // Base messages from JSON (always present)
   const base = (await import(`../messages/${locale}.json`)).default;

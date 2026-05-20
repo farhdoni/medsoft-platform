@@ -179,5 +179,64 @@
     "webCta": "А пока — используй веб-версию (она работает как приложение):",
     "webLink": "Открыть aivita →",
     "pwaHint": "PWA: установится как иконка на главный экран."
+  },
+  "app": {
+    "nav": {
+      "home": "Главная",
+      "test": "Тест",
+      "habits": "Привычки",
+      "chats": "Чаты",
+      "family": "Семья"
+    },
+    "topbar": {
+      "doctorBadge": "Врач",
+      "sosAriaLabel": "SOS Экстренный вызов",
+      "searchAriaLabel": "Найти врача",
+      "notificationsAriaLabel": "Уведомления"
+    },
+    "hero": {
+      "greetingNight": "Доброй ночи",
+      "greetingMorning": "Доброе утро",
+      "greetingDay": "Добрый день",
+      "greetingEvening": "Добрый вечер",
+      "titleLine1": "Чем сегодня помочь",
+      "titleLine2": "твоему здоровью?",
+      "aiPlaceholder": "Задай вопрос AI о здоровье…",
+      "askButton": "Спросить",
+      "healthIndex": "Индекс здоровья",
+      "takeTest": "Пройти тест →",
+      "promptAnalyses": "Анализы",
+      "promptSleep": "Сон",
+      "promptNutrition": "Питание",
+      "promptWorkouts": "Тренировки"
+    },
+    "metrics": {
+      "sectionTitle": "Быстрые показатели",
+      "configure": "Настроить",
+      "settingsTitle": "⚙️ Быстрые показатели",
+      "settingsHint": "Выберите от 3 до 5 показателей для быстрого доступа",
+      "saveButton": "Сохранить",
+      "heart_rate": "Пульс",
+      "blood_pressure": "Давление",
+      "glucose": "Сахар",
+      "weight": "Вес",
+      "spo2": "SpO2",
+      "sleep_hours": "Сон",
+      "steps": "Шаги",
+      "water_ml": "Вода",
+      "temperature": "Температура",
+      "habits": "Привычки",
+      "stepsUnit": "шагов",
+      "waterUnit": "мл"
+    },
+    "common": {
+      "save": "Сохранить",
+      "cancel": "Отмена",
+      "add": "Добавить",
+      "delete": "Удалить",
+      "edit": "Редактировать",
+      "close": "Закрыть",
+      "loading": "Загрузка…"
+    }
   }
 }

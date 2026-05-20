@@ -179,5 +179,64 @@
     "webCta": "In the meantime — use the web version (it works like an app):",
     "webLink": "Open aivita →",
     "pwaHint": "PWA: installs as an icon on your home screen."
+  },
+  "app": {
+    "nav": {
+      "home": "Home",
+      "test": "Test",
+      "habits": "Habits",
+      "chats": "Chats",
+      "family": "Family"
+    },
+    "topbar": {
+      "doctorBadge": "Doctor",
+      "sosAriaLabel": "SOS Emergency call",
+      "searchAriaLabel": "Find a doctor",
+      "notificationsAriaLabel": "Notifications"
+    },
+    "hero": {
+      "greetingNight": "Good night",
+      "greetingMorning": "Good morning",
+      "greetingDay": "Good afternoon",
+      "greetingEvening": "Good evening",
+      "titleLine1": "How can I help",
+      "titleLine2": "your health today?",
+      "aiPlaceholder": "Ask AI about health…",
+      "askButton": "Ask",
+      "healthIndex": "Health Index",
+      "takeTest": "Take test →",
+      "promptAnalyses": "Lab tests",
+      "promptSleep": "Sleep",
+      "promptNutrition": "Nutrition",
+      "promptWorkouts": "Workouts"
+    },
+    "metrics": {
+      "sectionTitle": "Quick stats",
+      "configure": "Configure",
+      "settingsTitle": "⚙️ Quick stats",
+      "settingsHint": "Choose 3 to 5 metrics for quick access",
+      "saveButton": "Save",
+      "heart_rate": "Heart rate",
+      "blood_pressure": "Blood pressure",
+      "glucose": "Glucose",
+      "weight": "Weight",
+      "spo2": "SpO2",
+      "sleep_hours": "Sleep",
+      "steps": "Steps",
+      "water_ml": "Water",
+      "temperature": "Temperature",
+      "habits": "Habits",
+      "stepsUnit": "steps",
+      "waterUnit": "ml"
+    },
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "add": "Add",
+      "delete": "Delete",
+      "edit": "Edit",
+      "close": "Close",
+      "loading": "Loading…"
+    }
   }
 }

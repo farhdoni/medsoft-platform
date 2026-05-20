@@ -179,5 +179,64 @@
     "webCta": "Hozircha — veb-versiyadan foydalaning:",
     "webLink": "aivita ni ochish →",
     "pwaHint": "PWA: asosiy ekranga ikonka sifatida o'rnatiladi."
+  },
+  "app": {
+    "nav": {
+      "home": "Bosh sahifa",
+      "test": "Test",
+      "habits": "Odatlar",
+      "chats": "Chatlar",
+      "family": "Oila"
+    },
+    "topbar": {
+      "doctorBadge": "Shifokor",
+      "sosAriaLabel": "SOS Favqulodda chaqiruv",
+      "searchAriaLabel": "Shifokor izlash",
+      "notificationsAriaLabel": "Bildirishnomalar"
+    },
+    "hero": {
+      "greetingNight": "Yaxshi tun",
+      "greetingMorning": "Xayrli tong",
+      "greetingDay": "Xayrli kun",
+      "greetingEvening": "Xayrli kech",
+      "titleLine1": "Bugun sog'lig'ingizga",
+      "titleLine2": "qanday yordam bera olaman?",
+      "aiPlaceholder": "Sog'liq haqida AI ga savol bering…",
+      "askButton": "So'rash",
+      "healthIndex": "Salomatlik indeksi",
+      "takeTest": "Testni boshlash →",
+      "promptAnalyses": "Tahlillar",
+      "promptSleep": "Uyqu",
+      "promptNutrition": "Ovqatlanish",
+      "promptWorkouts": "Mashqlar"
+    },
+    "metrics": {
+      "sectionTitle": "Tezkor ko'rsatkichlar",
+      "configure": "Sozlash",
+      "settingsTitle": "⚙️ Tezkor ko'rsatkichlar",
+      "settingsHint": "Tezkor kirish uchun 3 dan 5 gacha ko'rsatkich tanlang",
+      "saveButton": "Saqlash",
+      "heart_rate": "Yurak urishi",
+      "blood_pressure": "Bosim",
+      "glucose": "Shakar",
+      "weight": "Og'irlik",
+      "spo2": "SpO2",
+      "sleep_hours": "Uyqu",
+      "steps": "Qadamlar",
+      "water_ml": "Suv",
+      "temperature": "Harorat",
+      "habits": "Odatlar",
+      "stepsUnit": "qadam",
+      "waterUnit": "ml"
+    },
+    "common": {
+      "save": "Saqlash",
+      "cancel": "Bekor qilish",
+      "add": "Qo'shish",
+      "delete": "O'chirish",
+      "edit": "Tahrirlash",
+      "close": "Yopish",
+      "loading": "Yuklanmoqda…"
+    }
   }
 }
