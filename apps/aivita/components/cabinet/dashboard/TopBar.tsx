@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { Icon } from "@/components/cabinet/icons/Icon";
 import { ProfileMenu } from "@/components/cabinet/ProfileMenu";
 import { SosModal } from "@/components/sos/SosButton";
-import { LangSwitcher } from "@/components/shared/LangSwitcher";
 import type { AivitaSession } from "@/lib/auth/session";
 
 interface TopBarProps {
@@ -59,9 +58,6 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
           )}
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Language switcher */}
-          <LangSwitcher locale={locale} />
-
           {/* SOS — patients only */}
           {role === 'patient' && (
             <button

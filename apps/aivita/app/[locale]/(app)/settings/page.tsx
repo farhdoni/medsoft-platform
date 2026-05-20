@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import {
   User, Target, Globe, Bell, Lock, ChevronRight,
   Heart, Users, Cpu, HelpCircle, Stethoscope, Calendar, FileText, DollarSign, ShieldCheck,
@@ -20,6 +21,8 @@ type SettingItem = {
   bg: string;
   color: string;
 };
+
+type Section = { id: string; title: string; items: SettingItem[] };
 
 // ─── Row component ────────────────────────────────────────────────────────────
 
@@ -66,69 +69,78 @@ export default async function SettingsPage({
   const { localeLabel, notificationsOn } = await loadSettingsData();
   const session = await getSession();
   const isDoctor = session?.role === 'doctor';
+  const t = await getTranslations('app.settings');
 
-  const DOCTOR_SECTIONS: Array<{ title: string; items: SettingItem[] }> = [
+  const DOCTOR_SECTIONS: Section[] = [
     {
-      title: 'Аккаунт',
+      id: 'account',
+      title: t('sectionAccount'),
       items: [
-        { icon: Stethoscope, label: 'Профиль врача',           sub: 'Специализация, фото, клиника',  href: `/${locale}/doctor-profile`, bg: '#dbeeff', color: '#4a7fb5' },
-        { icon: ShieldCheck, label: 'Документы и верификация', sub: 'Диплом, лицензия, сертификаты', href: `/${locale}/doctor-profile`, bg: '#e8f4ec', color: '#2d7a56' },
+        { icon: Stethoscope, label: t('doctorProfile'),  sub: t('doctorProfileSub'),  href: `/${locale}/doctor-profile`, bg: '#dbeeff', color: '#4a7fb5' },
+        { icon: ShieldCheck, label: t('documents'),       sub: t('documentsSub'),       href: `/${locale}/doctor-profile`, bg: '#e8f4ec', color: '#2d7a56' },
       ],
     },
     {
-      title: 'Практика',
+      id: 'practice',
+      title: t('sectionPractice'),
       items: [
-        { icon: Calendar,  label: 'Расписание по умолчанию', sub: 'Рабочие дни, часы, слоты',     href: `/${locale}/doctor-schedule`, bg: '#dbeeff', color: '#4a7fb5' },
-        { icon: FileText,  label: 'Шаблоны назначений',      sub: 'Лекарства, анализы, процедуры', href: `/${locale}/doctor-prescriptions`, bg: '#e8f4ec', color: '#2d7a56' },
-        { icon: DollarSign, label: 'Стоимость консультации', sub: 'Настроить цену приёма', href: `/${locale}/doctor-profile`, bg: '#fff3e8', color: '#c07038' },
+        { icon: Calendar,   label: t('schedule'),         sub: t('scheduleSub'),         href: `/${locale}/doctor-schedule`,      bg: '#dbeeff', color: '#4a7fb5' },
+        { icon: FileText,   label: t('prescriptions'),    sub: t('prescriptionsSub'),    href: `/${locale}/doctor-prescriptions`, bg: '#e8f4ec', color: '#2d7a56' },
+        { icon: DollarSign, label: t('consultationCost'), sub: t('consultationCostSub'), href: `/${locale}/doctor-profile`,       bg: '#fff3e8', color: '#c07038' },
       ],
     },
     {
-      title: 'Приложение',
+      id: 'app',
+      title: t('sectionApp'),
       items: [
-        { icon: Globe, label: 'Язык',              sub: localeLabel,                           href: '#', value: localeLabel, bg: '#d4dff0', color: '#5e75a8' },
-        { icon: Bell,  label: 'Уведомления',       sub: 'Приёмы, чаты, алерты пациентов',     href: '#', value: notificationsOn ? 'Вкл' : 'Выкл', bg: '#dbeeff', color: '#4a7fb5' },
-        { icon: Lock,  label: 'Конфиденциальность', sub: 'Данные пациентов, экспорт',          href: `/${locale}/privacy`, bg: '#e8f4ec', color: '#2d7a56' },
+        { icon: Globe, label: t('language'),      sub: localeLabel,                     href: '#', value: localeLabel,                                           bg: '#d4dff0', color: '#5e75a8' },
+        { icon: Bell,  label: t('notifications'), sub: t('notificationsSubDoctor'),     href: '#', value: notificationsOn ? t('notifOn') : t('notifOff'),        bg: '#dbeeff', color: '#4a7fb5' },
+        { icon: Lock,  label: t('privacy'),       sub: t('privacySubDoctor'),           href: `/${locale}/privacy`,                                              bg: '#e8f4ec', color: '#2d7a56' },
       ],
     },
     {
-      title: 'Прочее',
+      id: 'other',
+      title: t('sectionOther'),
       items: [
-        { icon: HelpCircle, label: 'Помощь',       sub: 'FAQ и поддержка',  href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
-        { icon: Lock,       label: 'О приложении', sub: 'Aivita v0.1.0',    href: '#', value: 'v0.1.0', bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: HelpCircle, label: t('help'),  sub: t('helpSub'),   href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: t('about'), sub: 'Aivita v0.1.0', href: '#', value: 'v0.1.0',     bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
   ];
 
-  const PATIENT_SECTIONS: Array<{ title: string; items: SettingItem[] }> = [
+  const PATIENT_SECTIONS: Section[] = [
     {
-      title: 'Аккаунт',
+      id: 'account',
+      title: t('sectionAccount'),
       items: [
-        { icon: User,   label: 'Профиль',          sub: 'Имя, дата рождения, пол',   href: `/${locale}/profile`, bg: 'var(--accent-light)', color: 'var(--accent-dark)' },
-        { icon: Heart,  label: 'Мед. профиль',      sub: 'Аллергии, заболевания',     href: `/${locale}/profile`, bg: '#d4e8d8', color: '#548068' },
-        { icon: Target, label: 'Цели здоровья',     sub: 'Шаги, сон, вода',           href: `/${locale}/profile`, bg: '#d4dff0', color: '#5e75a8' },
+        { icon: User,   label: t('profile'),     sub: t('profileSub'),     href: `/${locale}/profile`, bg: 'var(--accent-light)', color: 'var(--accent-dark)' },
+        { icon: Heart,  label: t('medProfile'),  sub: t('medProfileSub'),  href: `/${locale}/profile`, bg: '#d4e8d8',             color: '#548068' },
+        { icon: Target, label: t('healthGoals'), sub: t('healthGoalsSub'), href: `/${locale}/profile`, bg: '#d4dff0',             color: '#5e75a8' },
       ],
     },
     {
-      title: 'Приложение',
+      id: 'app',
+      title: t('sectionApp'),
       items: [
-        { icon: Globe, label: 'Язык',          sub: localeLabel,                          href: '#', value: localeLabel, bg: '#d4dff0', color: '#5e75a8' },
-        { icon: Bell,  label: 'Уведомления',   sub: 'Привычки, напоминания',              href: '#', value: notificationsOn ? 'Вкл' : 'Выкл', bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
-        { icon: Lock,  label: 'Конфиденциальность', sub: 'Что видит семья, экспорт',     href: `/${locale}/privacy`, bg: '#d4e8d8', color: '#548068' },
+        { icon: Globe, label: t('language'),      sub: localeLabel,                 href: '#', value: localeLabel,                                       bg: '#d4dff0',               color: '#5e75a8' },
+        { icon: Bell,  label: t('notifications'), sub: t('notificationsSub'),       href: '#', value: notificationsOn ? t('notifOn') : t('notifOff'),    bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
+        { icon: Lock,  label: t('privacy'),       sub: t('privacySub'),             href: `/${locale}/privacy`,                                          bg: '#d4e8d8',               color: '#548068' },
       ],
     },
     {
-      title: 'Здоровье',
+      id: 'health',
+      title: t('sectionHealth'),
       items: [
-        { icon: Users, label: 'Семья',          sub: 'Члены и приглашения',   href: `/${locale}/family`, bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
-        { icon: Cpu,   label: 'Гаджеты',        sub: 'Не подключено',         href: `/${locale}/gadgets`, bg: '#d4dff0', color: '#5e75a8' },
+        { icon: Users, label: t('family'),  sub: t('familySub'),  href: `/${locale}/family`,  bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
+        { icon: Cpu,   label: t('gadgets'), sub: t('gadgetsSub'), href: `/${locale}/gadgets`, bg: '#d4dff0',               color: '#5e75a8' },
       ],
     },
     {
-      title: 'Прочее',
+      id: 'other',
+      title: t('sectionOther'),
       items: [
-        { icon: HelpCircle, label: 'Помощь',          sub: 'FAQ и поддержка',    href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
-        { icon: Lock,       label: 'О приложении',    sub: 'Aivita v0.1.0',      href: '#', value: 'v0.1.0', bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: HelpCircle, label: t('help'),  sub: t('helpSub'),    href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: t('about'), sub: 'Aivita v0.1.0', href: '#', value: 'v0.1.0',      bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
   ];
@@ -142,25 +154,25 @@ export default async function SettingsPage({
         {/* ── Title ────────────────────────────────────────────────────────── */}
         <div className="mb-5">
           <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-0.5">
-            НАСТРОЙКИ
+            {t('pageEyebrow')}
           </p>
           <h1 className="text-[22px] font-extrabold text-text-primary">
-            {isDoctor ? 'Кабинет врача' : 'Управление аккаунтом'}
+            {isDoctor ? t('pageTitleDoctor') : t('pageTitle')}
           </h1>
           {isDoctor && (
-            <p className="text-[13px] text-text-muted mt-1">Профиль, практика, уведомления</p>
+            <p className="text-[13px] text-text-muted mt-1">{t('doctorSubtitle')}</p>
           )}
         </div>
 
         {/* ── Sections ─────────────────────────────────────────────────────── */}
         <div className="space-y-5">
           {SECTIONS.map((section) => (
-            <div key={section.title}>
+            <div key={section.id}>
               <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 px-0.5">
                 {section.title}
               </p>
-              {section.title === 'Приложение' ? (
-                /* Language + Notifications rendered as interactive client component */
+              {section.id === 'app' ? (
+                /* Language + Notifications + Navigation rendered as interactive client component */
                 <SettingsInteractive locale={locale} localeLabel={localeLabel} notificationsOn={notificationsOn} />
               ) : (
                 <div className="rounded-card bg-white border border-border-soft overflow-hidden">
@@ -175,7 +187,7 @@ export default async function SettingsPage({
           {/* ── Danger zone ─────────────────────────────────────────────────── */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 px-0.5">
-              Опасная зона
+              {t('dangerZone')}
             </p>
             <DangerZone locale={locale} />
           </div>
