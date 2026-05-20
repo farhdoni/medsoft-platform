@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Тарифы — aivita</title>
+<meta name="description" content="Тарифы aivita — начните бесплатно, обновите когда будете готовы. Free, Premium, Family и годовой план.">
+<meta property="og:title" content="Тарифы — aivita">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aivita.uz/pricing.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/assets/aivita-face-v3.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#c87d8a;
+  --accent2:#8b6aae;
+  --dark:#1a1824;
+  --bg:#faf9f7;
+  --muted:#9a96a8;
+  --card:#ffffff;
+  --border:#e8e5f0;
+  --text:#2d2a38;
+  --green:#3d8b5e;
+  --green-light:#f0faf4;
+  --green-border:#b8d8bc;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+/* Topnav */
+.topnav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(250,249,247,0.94);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-size:22px;font-weight:800;text-decoration:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lang-switcher{display:flex;gap:4px}
+.lang-btn{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;
+  color:var(--muted);transition:all .18s;
+}
+.lang-btn.active,.lang-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-back{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 15px;border-radius:8px;
+  background:var(--dark);color:#fff;
+  text-decoration:none;font-size:13px;font-weight:500;
+  transition:opacity .18s;white-space:nowrap;
+}
+.btn-back:hover{opacity:.85}
+
+/* Hero */
+.hero{
+  text-align:center;padding:64px 24px 48px;
+  max-width:800px;margin:0 auto;
+}
+.hero h1{
+  font-size:clamp(32px,6vw,56px);font-weight:800;line-height:1.1;
+  margin-bottom:16px;
+  background:linear-gradient(135deg,var(--dark) 0%,var(--accent2) 55%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{font-size:clamp(15px,2vw,18px);color:var(--muted);max-width:520px;margin:0 auto}
+
+/* Promo banner */
+.promo-banner{
+  max-width:680px;margin:28px auto 0;
+  background:linear-gradient(135deg,rgba(200,125,138,.12),rgba(139,106,174,.10));
+  border:1px solid rgba(200,125,138,.25);
+  border-radius:16px;padding:16px 24px;
+  display:flex;align-items:center;gap:14px;
+}
+.promo-banner .promo-icon{font-size:28px;flex-shrink:0}
+.promo-banner .promo-text{font-size:14px;font-weight:600;color:var(--dark)}
+.promo-code{
+  display:inline-block;
+  background:var(--accent);color:#fff;
+  font-size:13px;font-weight:800;letter-spacing:1px;
+  padding:3px 10px;border-radius:6px;margin-left:4px;
+}
+
+/* Pricing grid */
+.pricing-wrap{max-width:1060px;margin:64px auto 0;padding:0 24px}
+.pricing-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+  align-items:end;
+}
+@media(max-width:900px){.pricing-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.pricing-grid{grid-template-columns:1fr}}
+
+.pricing-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:28px 22px 24px;
+  position:relative;
+  transition:box-shadow .25s,transform .25s;
+}
+.pricing-card:hover{box-shadow:0 20px 48px rgba(42,37,64,.09)}
+.pricing-card.popular{
+  border:2px solid var(--accent);
+  transform:translateY(-10px);
+  box-shadow:0 20px 50px rgba(200,125,138,.18);
+}
+.pricing-card.annual{
+  background:var(--green-light);
+  border:1px solid var(--green-border);
+}
+.pricing-badge{
+  display:inline-block;
+  font-size:11px;font-weight:700;
+  padding:4px 12px;border-radius:50px;
+  margin-bottom:14px;
+}
+.badge-popular{background:var(--accent);color:#fff}
+.badge-annual{background:var(--green);color:#fff}
+.pricing-name{font-size:17px;font-weight:800;color:var(--dark);margin-bottom:6px}
+.pricing-price{font-size:28px;font-weight:900;color:var(--dark);margin-bottom:2px;line-height:1.1}
+.pricing-price .period{font-size:13px;font-weight:500;color:var(--muted)}
+.pricing-save{font-size:12px;font-weight:700;color:var(--green);margin-bottom:2px}
+.pricing-features{list-style:none;margin:18px 0 22px}
+.pricing-features li{
+  font-size:13px;color:var(--text);
+  padding:6px 0;border-bottom:1px solid rgba(42,37,64,.04);
+  display:flex;align-items:flex-start;gap:8px;
+}
+.pricing-features li:last-child{border-bottom:none}
+.pricing-features li::before{content:'✓';color:var(--accent);font-weight:800;flex-shrink:0;margin-top:1px}
+.pricing-card.annual .pricing-features li::before{color:var(--green)}
+.pricing-btn{
+  display:block;width:100%;
+  padding:13px;border-radius:12px;
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;
+  text-align:center;text-decoration:none;cursor:pointer;
+  border:2px solid var(--border);
+  transition:all .22s;background:transparent;color:var(--dark);
+}
+.pricing-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pricing-btn.btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.pricing-btn.btn-accent:hover{background:#b8697a;border-color:#b8697a;transform:translateY(-1px)}
+.pricing-btn.btn-green{background:var(--green);border-color:var(--green);color:#fff}
+.pricing-btn.btn-green:hover{background:#2f7a50;border-color:#2f7a50;transform:translateY(-1px)}
+
+/* FAQ */
+.faq-wrap{max-width:720px;margin:80px auto 0;padding:0 24px}
+.faq-title{font-size:clamp(22px,4vw,30px);font-weight:800;text-align:center;margin-bottom:32px;color:var(--dark)}
+.faq-item{
+  border:1px solid var(--border);border-radius:14px;
+  margin-bottom:12px;background:var(--card);
+  overflow:hidden;
+}
+.faq-q{
+  width:100%;text-align:left;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:18px 20px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;color:var(--dark);
+  background:transparent;border:none;cursor:pointer;
+  transition:color .18s;
+}
+.faq-q:hover{color:var(--accent)}
+.faq-q .arrow{font-size:18px;flex-shrink:0;transition:transform .22s;color:var(--muted)}
+.faq-item.open .faq-q .arrow{transform:rotate(180deg)}
+.faq-a{
+  display:none;
+  padding:0 20px 18px;
+  font-size:14px;color:var(--muted);line-height:1.7;
+}
+.faq-item.open .faq-a{display:block}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:28px 24px;margin-top:80px}
+.footer-inner{
+  max-width:1000px;margin:0 auto;
+  display:flex;flex-wrap:wrap;gap:20px;
+  align-items:center;justify-content:space-between;
+}
+.footer-brand{
+  font-size:20px;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.footer-copy{font-size:12px;color:var(--muted);margin-top:4px}
+.footer-links{display:flex;gap:16px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .18s}
+.footer-links a:hover{color:var(--accent)}
+
+@media(max-width:560px){
+  .topnav{flex-wrap:wrap;gap:10px}
+  .nav-right{gap:8px}
+  .promo-banner{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="logo">aivita</a>
+  <div class="nav-right">
+    <div class="lang-switcher">
+      <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">RU</button>
+      <button class="lang-btn" data-lang="uz" onclick="setLang('uz')">UZ</button>
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+    <a href="/" class="btn-back" id="navBack">← Главная</a>
+  </div>
+</nav>
+
+<main>
+  <!-- Hero -->
+  <div class="hero">
+    <h1 id="heroTitle">Тарифы</h1>
+    <p id="heroSub">Начните бесплатно, обновите когда будете готовы</p>
+  </div>
+
+  <!-- Promo banner -->
+  <div class="promo-banner" style="max-width:680px;margin:0 auto 0;padding-left:32px;padding-right:32px">
+    <div class="promo-icon">🎁</div>
+    <div class="promo-text" id="promoText">
+      Промокод <span class="promo-code">FIRST30</span> — скидка 30% на первый месяц Premium
+    </div>
+  </div>
+
+  <!-- Pricing grid -->
+  <div class="pricing-wrap">
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-name" id="freeName">Free</div>
+        <div class="pricing-price">0 <span class="period" id="freePrice">сум</span></div>
+        <ul class="pricing-features">
+          <li id="freeF1">Медкарта</li>
+          <li id="freeF2">1 AI-чекап в месяц</li>
+          <li id="freeF3">5 AI-сообщений в день</li>
+          <li id="freeF4">2 человека в семье</li>
+          <li id="freeF5">QR-код медкарты</li>
+        </ul>
+        <a class="pricing-btn" id="freeBtn" href="#">Начать бесплатно</a>
+      </div>
+
+      <!-- Premium -->
+      <div class="pricing-card popular">
+        <span class="pricing-badge badge-popular" id="premiumBadge">⭐ Популярный</span>
+        <div class="pricing-name" id="premiumName">Premium</div>
+        <div class="pricing-price">29 000 <span class="period" id="premiumPeriod">/мес</span></div>
+        <ul class="pricing-features">
+          <li id="premiumF1">Безлимит AI-чат</li>
+          <li id="premiumF2">Безлимит чекапы</li>
+          <li id="premiumF3">Чат с врачом</li>
+          <li id="premiumF4">30-дневный план здоровья</li>
+          <li id="premiumF5">PDF отчёты</li>
+        </ul>
+        <a class="pricing-btn btn-accent" id="premiumBtn" href="#">Оформить Premium</a>
+      </div>
+
+      <!-- Family -->
+      <div class="pricing-card">
+        <div class="pricing-name" id="familyName">Family</div>
+        <div class="pricing-price">49 000 <span class="period" id="familyPeriod">/мес</span></div>
+        <ul class="pricing-features">
+          <li id="familyF1">Всё из Premium</li>
+          <li id="familyF2">До 5 человек в семье</li>
+          <li id="familyF3">Детские карты</li>
+          <li id="familyF4">Семейный дашборд</li>
+        </ul>
+        <a class="pricing-btn" id="familyBtn" href="#">Выбрать Family</a>
+      </div>
+
+      <!-- Annual -->
+      <div class="pricing-card annual">
+        <span class="pricing-badge badge-annual" id="annualBadge">🔥 Выгода 28%</span>
+        <div class="pricing-name" id="annualName">Годовой</div>
+        <div class="pricing-price">249 000 <span class="period" id="annualPeriod">/год</span></div>
+        <div class="pricing-save" id="annualSave">Экономия 99 000 сум</div>
+        <ul class="pricing-features">
+          <li id="annualF1">Всё из Family</li>
+          <li id="annualF2">12 месяцев одним платежом</li>
+          <li id="annualF3">Приоритетная поддержка</li>
+          <li id="annualF4">Ранний доступ к новым функциям</li>
+        </ul>
+        <a class="pricing-btn btn-green" id="annualBtn" href="#">Выгодное предложение</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq-wrap">
+    <h2 class="faq-title" id="faqTitle">Частые вопросы</h2>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span id="faq1q">Можно ли отменить подписку?</span>
+        <span class="arrow">▾</span>
+      </button>
+      <div class="faq-a" id="faq1a">Да, в любой момент без штрафов. Подписка действует до конца оплаченного периода. Отмена — в настройках приложения.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span id="faq2q">Какие способы оплаты?</span>
+        <span class="arrow">▾</span>
+      </button>
+      <div class="faq-a" id="faq2a">Click, Payme, Uzum Pay. Оплата безопасна и проходит через сертифицированные платёжные шлюзы Узбекистана.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span id="faq3q">Есть ли пробный период?</span>
+        <span class="arrow">▾</span>
+      </button>
+      <div class="faq-a" id="faq3a">Free тариф доступен навсегда — без ограничения по времени. Для Premium используйте промокод <strong>FIRST30</strong> и получите скидку 30% на первый месяц.</div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span id="faq4q">Что происходит с данными при отмене?</span>
+        <span class="arrow">▾</span>
+      </button>
+      <div class="faq-a" id="faq4a">Все данные сохраняются. После отмены вы переходите на Free тариф и сохраняете доступ к медкарте и истории чекапов.</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">aivita</div>
+      <div class="footer-copy" id="footerCopy">© 2026 aivita. Все права защищены.</div>
+    </div>
+    <div class="footer-links">
+      <a href="/" id="footerHome">Главная</a>
+      <a href="/about.html" id="footerAbout">О нас</a>
+      <a href="/pricing.html" id="footerPricing" style="color:var(--accent);font-weight:700">Тарифы</a>
+      <a href="/get-app.html" id="footerApp">📱 Скачать</a>
+      <a href="/privacy.html" id="footerPrivacy">Политика</a>
+      <a href="/terms.html" id="footerTerms">Оферта</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const APP_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://app.aivita.uz';
+const LANG_KEY = 'aivita_lang';
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+
+const I18N = {
+  ru: {
+    title: 'Тарифы — aivita',
+    navBack: '← Главная',
+    heroTitle: 'Тарифы',
+    heroSub: 'Начните бесплатно, обновите когда будете готовы',
+    promoText: 'Промокод',
+    promoSuffix: '— скидка 30% на первый месяц Premium',
+    freeName: 'Free', freePrice: 'сум',
+    freeF1: 'Медкарта', freeF2: '1 AI-чекап в месяц', freeF3: '5 AI-сообщений в день', freeF4: '2 человека в семье', freeF5: 'QR-код медкарты',
+    freeBtn: 'Начать бесплатно',
+    premiumBadge: '⭐ Популярный', premiumName: 'Premium', premiumPeriod: '/мес',
+    premiumF1: 'Безлимит AI-чат', premiumF2: 'Безлимит чекапы', premiumF3: 'Чат с врачом', premiumF4: '30-дневный план здоровья', premiumF5: 'PDF отчёты',
+    premiumBtn: 'Оформить Premium',
+    familyName: 'Family', familyPeriod: '/мес',
+    familyF1: 'Всё из Premium', familyF2: 'До 5 человек в семье', familyF3: 'Детские карты', familyF4: 'Семейный дашборд',
+    familyBtn: 'Выбрать Family',
+    annualBadge: '🔥 Выгода 28%', annualName: 'Годовой', annualPeriod: '/год', annualSave: 'Экономия 99 000 сум',
+    annualF1: 'Всё из Family', annualF2: '12 месяцев одним платежом', annualF3: 'Приоритетная поддержка', annualF4: 'Ранний доступ к новым функциям',
+    annualBtn: 'Выгодное предложение',
+    faqTitle: 'Частые вопросы',
+    faq1q: 'Можно ли отменить подписку?',
+    faq1a: 'Да, в любой момент без штрафов. Подписка действует до конца оплаченного периода. Отмена — в настройках приложения.',
+    faq2q: 'Какие способы оплаты?',
+    faq2a: 'Click, Payme, Uzum Pay. Оплата безопасна и проходит через сертифицированные платёжные шлюзы Узбекистана.',
+    faq3q: 'Есть ли пробный период?',
+    faq3a: 'Free тариф доступен навсегда. Для Premium используйте промокод FIRST30 — скидка 30% на первый месяц.',
+    faq4q: 'Что происходит с данными при отмене?',
+    faq4a: 'Все данные сохраняются. После отмены вы переходите на Free тариф и сохраняете доступ к медкарте и истории чекапов.',
+    footerCopy: '© 2026 aivita. Все права защищены.',
+    footerHome: 'Главная', footerAbout: 'О нас', footerPricing: 'Тарифы', footerApp: '📱 Скачать', footerPrivacy: 'Политика', footerTerms: 'Оферта',
+  },
+  uz: {
+    title: "Tariflar — aivita",
+    navBack: '← Bosh sahifa',
+    heroTitle: 'Tariflar',
+    heroSub: 'Bepul boshlang, tayyor bo\'lganda yangilang',
+    promoText: 'Promokod',
+    promoSuffix: '— Premium\'ning birinchi oyiga 30% chegirma',
+    freeName: 'Free', freePrice: 'so\'m',
+    freeF1: 'Tibbiy karta', freeF2: 'Oyiga 1 AI-tekshiruv', freeF3: 'Kuniga 5 AI-xabar', freeF4: 'Oilada 2 kishi', freeF5: 'QR-kod tibbiy karta',
+    freeBtn: 'Bepul boshlash',
+    premiumBadge: '⭐ Mashhur', premiumName: 'Premium', premiumPeriod: '/oy',
+    premiumF1: 'Cheksiz AI-chat', premiumF2: 'Cheksiz tekshiruvlar', premiumF3: 'Shifokor bilan chat', premiumF4: '30 kunlik sog\'liq rejasi', premiumF5: 'PDF hisobotlar',
+    premiumBtn: 'Premium olish',
+    familyName: 'Family', familyPeriod: '/oy',
+    familyF1: 'Premium\'dan hamma narsa', familyF2: '5 tagacha oila a\'zosi', familyF3: 'Bolalar kartasi', familyF4: 'Oilaviy dashboard',
+    familyBtn: 'Family tanlash',
+    annualBadge: '🔥 28% tejamkorlik', annualName: 'Yillik', annualPeriod: '/yil', annualSave: '99 000 so\'m tejash',
+    annualF1: 'Family\'dan hamma narsa', annualF2: 'Bir to\'lovda 12 oy', annualF3: 'Ustuvor qo\'llab-quvvatlash', annualF4: 'Yangi xususiyatlarga erta kirish',
+    annualBtn: 'Foydali taklif',
+    faqTitle: 'Ko\'p so\'raladigan savollar',
+    faq1q: 'Obunani bekor qilish mumkinmi?',
+    faq1a: 'Ha, istalgan vaqtda jarlimsiz. Obuna to\'langan davr oxirigacha amal qiladi.',
+    faq2q: 'Qanday to\'lov usullari mavjud?',
+    faq2a: 'Click, Payme, Uzum Pay. To\'lov O\'zbekistonning sertifikatlangan to\'lov shlyuzlari orqali amalga oshiriladi.',
+    faq3q: 'Sinov muddati bormi?',
+    faq3a: 'Free tarif abadiy mavjud. Premium uchun FIRST30 promokodidan foydalaning — birinchi oyga 30% chegirma.',
+    faq4q: 'Bekor qilganda ma\'lumotlar nima bo\'ladi?',
+    faq4a: 'Barcha ma\'lumotlar saqlanadi. Bekor qilgandan so\'ng Free tarifga o\'tasiz va tibbiy kartangiz hamda tekshiruv tarixingizga kirish huquqini saqlab qolasiz.',
+    footerCopy: '© 2026 aivita. Barcha huquqlar himoyalangan.',
+    footerHome: 'Bosh sahifa', footerAbout: 'Biz haqimizda', footerPricing: 'Tariflar', footerApp: '📱 Yuklab olish', footerPrivacy: 'Maxfiylik', footerTerms: 'Oferta',
+  },
+  en: {
+    title: 'Pricing — aivita',
+    navBack: '← Home',
+    heroTitle: 'Pricing',
+    heroSub: 'Start free, upgrade when you\'re ready',
+    promoText: 'Promo code',
+    promoSuffix: '— 30% off your first month of Premium',
+    freeName: 'Free', freePrice: 'UZS',
+    freeF1: 'Medical card', freeF2: '1 AI checkup/month', freeF3: '5 AI messages/day', freeF4: '2 family members', freeF5: 'QR medical card',
+    freeBtn: 'Start for free',
+    premiumBadge: '⭐ Popular', premiumName: 'Premium', premiumPeriod: '/mo',
+    premiumF1: 'Unlimited AI chat', premiumF2: 'Unlimited checkups', premiumF3: 'Doctor chat', premiumF4: '30-day health plan', premiumF5: 'PDF reports',
+    premiumBtn: 'Get Premium',
+    familyName: 'Family', familyPeriod: '/mo',
+    familyF1: 'Everything in Premium', familyF2: 'Up to 5 family members', familyF3: "Kids' cards", familyF4: 'Family dashboard',
+    familyBtn: 'Choose Family',
+    annualBadge: '🔥 Save 28%', annualName: 'Annual', annualPeriod: '/yr', annualSave: 'Save 99,000 UZS',
+    annualF1: 'Everything in Family', annualF2: '12 months in one payment', annualF3: 'Priority support', annualF4: 'Early access to new features',
+    annualBtn: 'Best value',
+    faqTitle: 'Frequently asked questions',
+    faq1q: 'Can I cancel my subscription?',
+    faq1a: 'Yes, at any time with no penalties. Your subscription stays active until the end of the paid period.',
+    faq2q: 'What payment methods are available?',
+    faq2a: 'Click, Payme, Uzum Pay — certified payment gateways in Uzbekistan.',
+    faq3q: 'Is there a free trial?',
+    faq3a: 'The Free plan is available forever. Use promo code FIRST30 for 30% off your first month of Premium.',
+    faq4q: 'What happens to my data if I cancel?',
+    faq4a: 'All data is preserved. After cancellation you revert to the Free plan and keep access to your medical card and checkup history.',
+    footerCopy: '© 2026 aivita. All rights reserved.',
+    footerHome: 'Home', footerAbout: 'About', footerPricing: 'Pricing', footerApp: '📱 Download', footerPrivacy: 'Privacy', footerTerms: 'Terms',
+  },
+};
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined) el.textContent = val;
+}
+
+function applyLang(l) {
+  lang = l;
+  localStorage.setItem(LANG_KEY, l);
+  const t = I18N[l] || I18N.ru;
+  document.title = t.title;
+  document.documentElement.lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+
+  setText('navBack', t.navBack);
+  setText('heroTitle', t.heroTitle);
+  setText('heroSub', t.heroSub);
+
+  // Promo
+  const promoEl = document.getElementById('promoText');
+  if (promoEl) {
+    promoEl.innerHTML = t.promoText + ' <span class="promo-code">FIRST30</span> ' + t.promoSuffix;
+  }
+
+  // Cards
+  setText('freeName', t.freeName); setText('freePrice', t.freePrice);
+  setText('freeF1', t.freeF1); setText('freeF2', t.freeF2); setText('freeF3', t.freeF3); setText('freeF4', t.freeF4); setText('freeF5', t.freeF5);
+  setText('freeBtn', t.freeBtn);
+
+  setText('premiumBadge', t.premiumBadge); setText('premiumName', t.premiumName); setText('premiumPeriod', t.premiumPeriod);
+  setText('premiumF1', t.premiumF1); setText('premiumF2', t.premiumF2); setText('premiumF3', t.premiumF3); setText('premiumF4', t.premiumF4); setText('premiumF5', t.premiumF5);
+  setText('premiumBtn', t.premiumBtn);
+
+  setText('familyName', t.familyName); setText('familyPeriod', t.familyPeriod);
+  setText('familyF1', t.familyF1); setText('familyF2', t.familyF2); setText('familyF3', t.familyF3); setText('familyF4', t.familyF4);
+  setText('familyBtn', t.familyBtn);
+
+  setText('annualBadge', t.annualBadge); setText('annualName', t.annualName); setText('annualPeriod', t.annualPeriod); setText('annualSave', t.annualSave);
+  setText('annualF1', t.annualF1); setText('annualF2', t.annualF2); setText('annualF3', t.annualF3); setText('annualF4', t.annualF4);
+  setText('annualBtn', t.annualBtn);
+
+  // FAQ
+  setText('faqTitle', t.faqTitle);
+  setText('faq1q', t.faq1q); setText('faq1a', t.faq1a);
+  setText('faq2q', t.faq2q); setText('faq2a', t.faq2a);
+  setText('faq3q', t.faq3q); setText('faq3a', t.faq3a);
+  setText('faq4q', t.faq4q); setText('faq4a', t.faq4a);
+
+  // Footer
+  setText('footerCopy', t.footerCopy);
+  setText('footerHome', t.footerHome); setText('footerAbout', t.footerAbout);
+  setText('footerPricing', t.footerPricing); setText('footerApp', t.footerApp);
+  setText('footerPrivacy', t.footerPrivacy); setText('footerTerms', t.footerTerms);
+
+  // Button links
+  const freeBtn = document.getElementById('freeBtn');
+  if (freeBtn) freeBtn.href = APP_URL + '/' + l + '/sign-up';
+  const premiumBtn = document.getElementById('premiumBtn');
+  if (premiumBtn) premiumBtn.href = APP_URL + '/' + l + '/pricing';
+  const familyBtn = document.getElementById('familyBtn');
+  if (familyBtn) familyBtn.href = APP_URL + '/' + l + '/pricing';
+  const annualBtn = document.getElementById('annualBtn');
+  if (annualBtn) annualBtn.href = APP_URL + '/' + l + '/pricing';
+}
+
+function setLang(l) { applyLang(l); }
+
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+
+applyLang(lang);
+</script>
+</body>
+</html>

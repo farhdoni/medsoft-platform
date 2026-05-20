@@ -611,84 +611,6 @@ h1 .gradient {
 .find-card h3 { font-size: 15px; font-weight: 700; }
 .find-card p { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-/* ===== PRICING ===== */
-.pricing-section {
-  padding: 100px 24px;
-  max-width: 1000px;
-  margin: 0 auto;
-  text-align: center;
-}
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-top: 48px;
-  align-items: end;
-}
-@media (max-width: 768px) { .pricing-grid { grid-template-columns: 1fr; } }
-.pricing-card {
-  background: #fff;
-  border: 1px solid #e8e4dc;
-  border-radius: 20px;
-  padding: 32px 24px;
-  text-align: left;
-  transition: all .3s;
-  position: relative;
-}
-.pricing-card:hover { box-shadow: 0 20px 50px rgba(42,37,64,.09); }
-.pricing-card.popular {
-  border: 2px solid var(--accent);
-  transform: translateY(-8px);
-  box-shadow: 0 20px 50px rgba(200,125,138,.15);
-}
-.pricing-badge {
-  display: inline-block;
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 50px;
-  margin-bottom: 16px;
-}
-.pricing-name { font-size: 18px; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
-.pricing-price { font-size: 28px; font-weight: 900; color: var(--dark); margin-bottom: 4px; }
-.pricing-price .period { font-size: 14px; font-weight: 500; color: var(--muted); }
-.pricing-features { list-style: none; margin: 20px 0 24px; }
-.pricing-features li {
-  font-size: 13px;
-  color: var(--text);
-  padding: 7px 0;
-  border-bottom: 1px solid rgba(42,37,64,.04);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.pricing-features li::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
-.pricing-btn {
-  display: block;
-  width: 100%;
-  padding: 13px;
-  border-radius: 14px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  border: 2px solid #e8e4dc;
-  transition: all .25s;
-  background: transparent;
-  color: var(--dark);
-}
-.pricing-btn:hover { border-color: var(--accent); color: var(--accent); }
-.pricing-btn.accent {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.pricing-btn.accent:hover { background: #b8697a; border-color: #b8697a; transform: translateY(-1px); }
-
 /* ===== DOCTOR BLOCK (bottom, dark) ===== */
 .doctor-section {
   margin: 0 24px 40px;
@@ -1511,58 +1433,6 @@ h1 .gradient {
   </div>
 </section>
 
-<!-- ===== PRICING ===== -->
-<section class="pricing-section" id="pricing">
-  <div class="section-header reveal">
-    <div class="section-tag" data-i18n="pricing.tag">Тарифы</div>
-    <div class="section-title" data-i18n="pricing.title">Начните бесплатно, обновите когда будете готовы</div>
-  </div>
-
-  <div class="pricing-grid">
-    <!-- Free -->
-    <div class="pricing-card reveal reveal-d1">
-      <div class="pricing-name" data-i18n="pricing.free.name">Free</div>
-      <div class="pricing-price">0 <span class="period" data-i18n="pricing.free.price">сум</span></div>
-      <ul class="pricing-features">
-        <li data-i18n="pricing.free.f1">Медкарта</li>
-        <li data-i18n="pricing.free.f2">1 AI-чекап/мес</li>
-        <li data-i18n="pricing.free.f3">5 AI-сообщений/день</li>
-        <li data-i18n="pricing.free.f4">2 человека в семье</li>
-        <li data-i18n="pricing.free.f5">QR-код медкарты</li>
-      </ul>
-      <a class="pricing-btn" id="pricingFreeBtn" data-i18n="pricing.free.btn" href="#">Начать бесплатно</a>
-    </div>
-
-    <!-- Premium -->
-    <div class="pricing-card popular reveal">
-      <span class="pricing-badge" data-i18n="pricing.premium.badge">⭐ Популярный</span>
-      <div class="pricing-name" data-i18n="pricing.premium.name">Premium</div>
-      <div class="pricing-price">29 000 <span class="period" data-i18n="pricing.premium.period">/мес</span></div>
-      <ul class="pricing-features">
-        <li data-i18n="pricing.premium.f1">Безлимит AI-чат</li>
-        <li data-i18n="pricing.premium.f2">Безлимит чекапы</li>
-        <li data-i18n="pricing.premium.f3">Чат с врачом</li>
-        <li data-i18n="pricing.premium.f4">30-дневный план</li>
-        <li data-i18n="pricing.premium.f5">PDF отчёты</li>
-      </ul>
-      <a class="pricing-btn accent" id="pricingPremiumBtn" data-i18n="pricing.premium.btn" href="#">Оформить Premium</a>
-    </div>
-
-    <!-- Family -->
-    <div class="pricing-card reveal reveal-d2">
-      <div class="pricing-name" data-i18n="pricing.family.name">Family</div>
-      <div class="pricing-price">49 000 <span class="period" data-i18n="pricing.family.period">/мес</span></div>
-      <ul class="pricing-features">
-        <li data-i18n="pricing.family.f1">Всё из Premium</li>
-        <li data-i18n="pricing.family.f2">До 5 в семье</li>
-        <li data-i18n="pricing.family.f3">Детские карты</li>
-        <li data-i18n="pricing.family.f4">Семейный дашборд</li>
-      </ul>
-      <a class="pricing-btn" id="pricingFamilyBtn" data-i18n="pricing.family.btn" href="#">Выбрать Family</a>
-    </div>
-  </div>
-</section>
-
 <!-- ===== ROBOT SHOWCASE (intro to doctor block) ===== -->
 <div class="robot-showcase reveal">
   <img src="assets/aivita-robot-cutout.png" alt="AIVITA — AI-доктор" />
@@ -1593,7 +1463,7 @@ h1 .gradient {
   <div class="footer-brand">aivita</div>
   <div class="footer-links">
     <a href="/about.html" data-i18n="footer.about">О нас</a>
-    <a href="#" id="footerPricing" data-i18n="footer.pricing">Тарифы</a>
+    <a href="/pricing.html" id="footerPricing" data-i18n="footer.pricing">Тарифы</a>
     <a href="#" id="footerDoctors" data-i18n="footer.doctors">Врачам</a>
     <a href="#partners" data-i18n="footer.partners">Партнёрам</a>
     <a href="/about.html#contacts" data-i18n="footer.contact">Контакты</a>
@@ -1725,14 +1595,6 @@ const I18N = {
     "find.cosmetic.t": "Косметолог", "find.cosmetic.s": "Уход и красота",
     "find.gym.t": "Фитнес-зал", "find.gym.s": "Занятия рядом",
     "find.wellness.t": "Wellness", "find.wellness.s": "Массаж и SPA",
-    "pricing.tag": "Тарифы",
-    "pricing.title": "Начните бесплатно, обновите когда будете готовы",
-    "pricing.free.name": "Free", "pricing.free.price": "сум", "pricing.free.btn": "Начать бесплатно",
-    "pricing.free.f1": "Медкарта", "pricing.free.f2": "1 AI-чекап/мес", "pricing.free.f3": "5 AI-сообщений/день", "pricing.free.f4": "2 человека в семье", "pricing.free.f5": "QR-код медкарты",
-    "pricing.premium.badge": "⭐ Популярный", "pricing.premium.name": "Premium", "pricing.premium.period": "/мес", "pricing.premium.btn": "Оформить Premium",
-    "pricing.premium.f1": "Безлимит AI-чат", "pricing.premium.f2": "Безлимит чекапы", "pricing.premium.f3": "Чат с врачом", "pricing.premium.f4": "30-дневный план", "pricing.premium.f5": "PDF отчёты",
-    "pricing.family.name": "Family", "pricing.family.period": "/мес", "pricing.family.btn": "Выбрать Family",
-    "pricing.family.f1": "Всё из Premium", "pricing.family.f2": "До 5 в семье", "pricing.family.f3": "Детские карты", "pricing.family.f4": "Семейный дашборд",
     "doctor.tag": "🩺 Врачам",
     "doctor.h2": "Зарабатывайте с AIVITA",
     "doctor.p": "Присоединяйтесь к платформе. Пациенты найдут вас, а AI поможет с диагностикой.",
@@ -1807,14 +1669,6 @@ const I18N = {
     "find.cosmetic.t": "Kosmetolog", "find.cosmetic.s": "Parvarish va go'zallik",
     "find.gym.t": "Fitnes-zal", "find.gym.s": "Yaqin atrofda",
     "find.wellness.t": "Wellness", "find.wellness.s": "Massaj va SPA",
-    "pricing.tag": "Tariflar",
-    "pricing.title": "Bepul boshlang, tayyor bo'lganda yangilang",
-    "pricing.free.name": "Free", "pricing.free.price": "so'm", "pricing.free.btn": "Bepul boshlash",
-    "pricing.free.f1": "Tibbiy karta", "pricing.free.f2": "1 AI-tekshiruv/oy", "pricing.free.f3": "5 AI-xabar/kun", "pricing.free.f4": "Oilada 2 kishi", "pricing.free.f5": "QR-kod tibbiy karta",
-    "pricing.premium.badge": "⭐ Mashhur", "pricing.premium.name": "Premium", "pricing.premium.period": "/oy", "pricing.premium.btn": "Premium olish",
-    "pricing.premium.f1": "Cheksiz AI-chat", "pricing.premium.f2": "Cheksiz tekshiruvlar", "pricing.premium.f3": "Shifokor bilan chat", "pricing.premium.f4": "30 kunlik reja", "pricing.premium.f5": "PDF hisobotlar",
-    "pricing.family.name": "Family", "pricing.family.period": "/oy", "pricing.family.btn": "Family tanlash",
-    "pricing.family.f1": "Premium'dan hamma narsa", "pricing.family.f2": "5 tagacha oila a'zosi", "pricing.family.f3": "Bolalar kartasi", "pricing.family.f4": "Oilaviy dashboard",
     "doctor.tag": "🩺 Shifokorlarga",
     "doctor.h2": "AIVITA bilan daromad oling",
     "doctor.p": "Platformaga qo'shiling. Bemorlar sizni topadi, AI esa diagnostikada yordam beradi.",
@@ -1889,14 +1743,6 @@ const I18N = {
     "find.cosmetic.t": "Cosmetologist", "find.cosmetic.s": "Beauty & care",
     "find.gym.t": "Gym", "find.gym.s": "Classes nearby",
     "find.wellness.t": "Wellness", "find.wellness.s": "Massage & SPA",
-    "pricing.tag": "Pricing",
-    "pricing.title": "Start free, upgrade when you're ready",
-    "pricing.free.name": "Free", "pricing.free.price": "sum", "pricing.free.btn": "Start for free",
-    "pricing.free.f1": "Medical card", "pricing.free.f2": "1 AI checkup/month", "pricing.free.f3": "5 AI messages/day", "pricing.free.f4": "2 family members", "pricing.free.f5": "QR medical card",
-    "pricing.premium.badge": "⭐ Popular", "pricing.premium.name": "Premium", "pricing.premium.period": "/mo", "pricing.premium.btn": "Get Premium",
-    "pricing.premium.f1": "Unlimited AI chat", "pricing.premium.f2": "Unlimited checkups", "pricing.premium.f3": "Doctor chat", "pricing.premium.f4": "30-day health plan", "pricing.premium.f5": "PDF reports",
-    "pricing.family.name": "Family", "pricing.family.period": "/mo", "pricing.family.btn": "Choose Family",
-    "pricing.family.f1": "Everything in Premium", "pricing.family.f2": "Up to 5 family members", "pricing.family.f3": "Kids' cards", "pricing.family.f4": "Family dashboard",
     "doctor.tag": "🩺 For doctors",
     "doctor.h2": "Earn with AIVITA",
     "doctor.p": "Join the platform. Patients find you, AI helps with diagnostics.",
@@ -2143,13 +1989,7 @@ function applyConfig(cfg) {
   const loginBtn = document.getElementById('loginBtn');
   if (loginBtn) loginBtn.onclick = () => { window.location.href = appUrl + '/ru/sign-in'; };
   const fp = document.getElementById('footerPricing');
-  if (fp) fp.href = '#pricing';
-  const pfree = document.getElementById('pricingFreeBtn');
-  if (pfree) pfree.href = appUrl + '/ru/sign-up';
-  const pprem = document.getElementById('pricingPremiumBtn');
-  if (pprem) pprem.href = appUrl + '/ru/pricing';
-  const pfam = document.getElementById('pricingFamilyBtn');
-  if (pfam) pfam.href = appUrl + '/ru/pricing';
+  if (fp) fp.href = '/pricing.html';
   const fd = document.getElementById('footerDoctors');
   if (fd) fd.href = appUrl + '/ru/doctor-settings/partnership';
 
