@@ -77,6 +77,37 @@ function getVitalDisplay(v: { type: string; value: any }) {
   }
 }
 
+function VideoCallButton({ patientId, locale }: { patientId: string; locale: string }) {
+  const [loading, setLoading] = useState(false);
+
+  async function start() {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await apiRequest<{ id: string; roomId: string }>('/video-call/create', {
+        method: 'POST',
+        body: { patientId },
+      });
+      if ('data' in res && res.data?.roomId) {
+        window.location.href = `/${locale}/doctor-video-call/${res.data.roomId}?callId=${res.data.id}`;
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={() => void start()}
+      disabled={loading}
+      className="text-xs font-medium px-3 py-1.5 rounded-full text-white flex items-center gap-1"
+      style={{ background: '#28a745', opacity: loading ? 0.7 : 1 }}
+    >
+      {loading ? '⏳' : '📹'} Звонок
+    </button>
+  );
+}
+
 export default function DoctorPatientPage() {
   const params = useParams<{ locale: string; id: string }>();
   const locale = params?.locale ?? 'ru';
@@ -140,6 +171,7 @@ export default function DoctorPatientPage() {
       <div className="sticky top-0 z-30 bg-app/90 backdrop-blur-md px-4 pt-12 pb-3 flex items-center gap-3">
         <Link href={`/${locale}/doctor-patients`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border text-[color:var(--accent-dark)] font-bold text-lg border-app-border">‹</Link>
         <h1 className="font-bold text-[#2a2540] flex-1 truncate">{patient.user.name}</h1>
+        <VideoCallButton patientId={patientId} locale={locale} />
         <Link href={`/${locale}/doctor-scribe?patientId=${patientId}`}
           className="text-xs font-medium px-3 py-1.5 rounded-full text-white flex items-center gap-1"
           style={{ background: 'var(--accent-dark)' }}>🎙️ Приём</Link>

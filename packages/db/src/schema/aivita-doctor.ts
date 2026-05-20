@@ -411,6 +411,37 @@ export const aivitaSubscriptions = pgTable(
   })
 );
 
+// ─── Video Calls ──────────────────────────────────────────────────────────────
+
+export const videoCalls = pgTable(
+  'video_calls',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    roomId: text('room_id').unique().notNull(),
+    doctorId: uuid('doctor_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    patientId: uuid('patient_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id'),
+    // scheduled | active | completed | cancelled
+    status: text('status').notNull().default('scheduled'),
+    scheduledAt: timestamp('scheduled_at'),
+    startedAt: timestamp('started_at'),
+    endedAt: timestamp('ended_at'),
+    duration: integer('duration'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    vcRoomIdx:    index('vc_room_idx').on(table.roomId),
+    vcDoctorIdx:  index('vc_doctor_idx').on(table.doctorId),
+    vcPatientIdx: index('vc_patient_idx').on(table.patientId),
+    vcStatusIdx:  index('vc_status_idx').on(table.status),
+  })
+);
+
 // ─── Doctor Consultations (AI Scribe) ─────────────────────────────────────────
 
 export const doctorConsultations = pgTable(

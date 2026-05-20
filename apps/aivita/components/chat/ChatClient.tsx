@@ -119,6 +119,102 @@ function ReferralCard({ meta }: { meta: Record<string, unknown> }) {
   );
 }
 
+// ─── Video Call Card ─────────────────────────────────────────────────────────
+
+function VideoCallCard({
+  meta, isDoctor, locale,
+}: { meta: Record<string, unknown>; isDoctor: boolean; locale: string }) {
+  const callId = String(meta.callId ?? '');
+  const roomId = String(meta.roomId ?? '');
+  const status = String(meta.status ?? 'scheduled');
+  const duration = typeof meta.duration === 'number' ? meta.duration : null;
+  const ended = status === 'completed' || status === 'cancelled';
+  const joinPath = isDoctor
+    ? `/${locale}/doctor-video-call/${roomId}?callId=${callId}`
+    : `/${locale}/video-call/${roomId}?callId=${callId}`;
+
+  return (
+    <div className="rounded-xl overflow-hidden min-w-[220px] max-w-[280px]"
+      style={{ background: '#d4e8d8', borderLeft: '4px solid #28a745' }}>
+      <div className="px-3 py-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#1a6632' }}>
+          📹 Видеоконсультация
+        </p>
+        {ended ? (
+          <p className="text-xs text-[#6a6580]">
+            {status === 'completed' ? '✅ Завершена' : '❌ Отменена'}
+            {duration != null && duration > 0 && ` · ${Math.floor(duration / 60)} мин`}
+          </p>
+        ) : (
+          <a
+            href={joinPath}
+            className="mt-1.5 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white"
+            style={{ background: '#28a745' }}
+          >
+            📹 Присоединиться
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Incoming Call Overlay ────────────────────────────────────────────────────
+
+interface IncomingCall {
+  id: string;
+  roomId: string;
+  status: string;
+  otherUser: { name: string } | null;
+  conversationId: string | null;
+}
+
+function IncomingCallOverlay({
+  call, locale, onDismiss,
+}: { call: IncomingCall; locale: string; onDismiss: () => void }) {
+  const [declining, setDeclining] = useState(false);
+
+  async function handleDecline() {
+    setDeclining(true);
+    await fetch(`${PROXY}/video-call/${call.id}/end`, { method: 'POST' }).catch(() => {});
+    onDismiss();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+          style={{ background: 'linear-gradient(135deg, #d4e8d8, #28a745)' }}>
+          <span className="text-3xl">📹</span>
+        </div>
+        <p className="text-xs font-semibold text-[#9a96a8] uppercase tracking-wide mb-1">Входящий видеозвонок</p>
+        <p className="text-lg font-bold text-[#2a2540] mb-5">
+          {call.otherUser?.name ?? 'Доктор'}
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={handleDecline}
+            disabled={declining}
+            className="flex-1 py-3.5 rounded-xl text-sm font-semibold text-white"
+            style={{ background: '#dc3545', opacity: declining ? 0.6 : 1 }}
+          >
+            ❌ Отклонить
+          </button>
+          <a
+            href={`/${locale}/video-call/${call.roomId}?callId=${call.id}`}
+            className="flex-1 py-3.5 rounded-xl text-sm font-semibold text-white text-center block"
+            style={{ background: '#28a745' }}
+            onClick={onDismiss}
+          >
+            ✅ Принять
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Doctor Action Modal ──────────────────────────────────────────────────────
 
 type ActionType = 'prescription' | 'referral';
@@ -195,6 +291,9 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
   const [actionModal, setActionModal] = useState<ActionType | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [fullscreenImg, setFullscreenImg] = useState<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+  const [callDismissed, setCallDismissed] = useState<string>('');
+  const [startingCall, setStartingCall] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -252,6 +351,25 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
     }, 5000);
     return () => clearInterval(t);
   }, [convId]);
+
+  // Patient: poll for incoming video calls
+  useEffect(() => {
+    if (isDoctor) return;
+    const poll = async () => {
+      try {
+        const j = await fetch(`${PROXY}/video-call/active`).then(r => r.json());
+        const call: IncomingCall | null = j.data ?? null;
+        if (call && call.id !== callDismissed && call.status !== 'completed' && call.status !== 'cancelled') {
+          setIncomingCall(call);
+        } else if (!call || call.id === callDismissed) {
+          setIncomingCall(null);
+        }
+      } catch {}
+    };
+    void poll();
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, [isDoctor, callDismissed]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -355,6 +473,25 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
       return { kind: 'file', url: j.data?.url, name: a.file.name, mime: a.file.type };
     } catch {
       return { kind: 'file', name: a.file.name, mime: a.file.type };
+    }
+  }
+
+  // ── Start video call (doctor only) ──────────────────────────────────────────
+  async function handleVideoCall() {
+    if (!convInfo || startingCall) return;
+    setStartingCall(true);
+    setShowActionMenu(false);
+    try {
+      const j = await fetch(`${PROXY}/video-call/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: convInfo.patientId, convId }),
+      }).then(r => r.json());
+      if (j.data?.roomId) {
+        router.push(`/${locale}/doctor-video-call/${j.data.roomId}?callId=${j.data.id}`);
+      }
+    } finally {
+      setStartingCall(false);
     }
   }
 
@@ -505,6 +642,19 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
                   <ReferralCard meta={msg.metadata} />
                 )}
 
+                {/* Video call card */}
+                {msg.type === 'video_call' && msg.metadata && (
+                  <VideoCallCard meta={msg.metadata} isDoctor={isDoctor} locale={locale} />
+                )}
+
+                {/* Drug warning */}
+                {msg.type === 'drug_warning' && msg.content && (
+                  <div className="px-4 py-3 rounded-xl max-w-[280px]"
+                    style={{ background: '#fff3cd', border: '1px solid #ffc107' }}>
+                    <p className="text-[13px] text-[#856404] whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  </div>
+                )}
+
                 {/* Image */}
                 {msg.type === 'image' && msg.attachmentUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -623,8 +773,14 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
               {showActionMenu && (
                 <div className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border overflow-hidden z-30"
                   style={{ borderColor: '#e8e4dc', minWidth: 180 }}>
+                  <button type="button" onClick={() => void handleVideoCall()}
+                    disabled={startingCall}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-[#f4f3ef] transition-colors text-left font-medium"
+                    style={{ color: '#1a6632', opacity: startingCall ? 0.6 : 1 }}>
+                    {startingCall ? '⏳ Создание...' : '📹 Видеозвонок'}
+                  </button>
                   <button type="button" onClick={() => { setActionModal('prescription'); setShowActionMenu(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-[#f4f3ef] transition-colors text-left">
+                    className="w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-[#f4f3ef] transition-colors border-t border-[#f4f3ef] text-left">
                     📋 Назначение
                   </button>
                   <button type="button" onClick={() => { setActionModal('referral'); setShowActionMenu(false); }}
@@ -699,6 +855,18 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={fullscreenImg} alt="" className="max-w-full max-h-full object-contain rounded-xl" />
         </div>
+      )}
+
+      {/* Incoming call overlay (patient only) */}
+      {!isDoctor && incomingCall && (
+        <IncomingCallOverlay
+          call={incomingCall}
+          locale={locale}
+          onDismiss={() => {
+            setCallDismissed(incomingCall.id);
+            setIncomingCall(null);
+          }}
+        />
       )}
     </div>
   );
