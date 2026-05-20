@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 import Modal from '@/components/ui/Modal';
 
@@ -195,6 +195,8 @@ interface Props {
 
 export function MedicationsClient({ initialSchedule, initialStats, initialMedications }: Props) {
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'ru';
   const [schedule, setSchedule] = useState<ScheduleItem[]>(initialSchedule);
   const [stats, setStats]       = useState<MedStats | null>(initialStats);
   const [medications]           = useState<MedicationRow[]>(initialMedications);
@@ -396,14 +398,23 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
         </div>
       )}
 
-      {/* Add button */}
+      {/* Add + drug-checker buttons */}
       <button
         onClick={() => setShowAdd(true)}
-        className="w-full flex items-center justify-center gap-2 h-12 rounded-card text-[13px] font-semibold transition-opacity hover:opacity-80"
+        className="w-full flex items-center justify-center gap-2 h-12 rounded-card text-[13px] font-semibold transition-opacity hover:opacity-80 mb-3"
         style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))', color: '#ffffff' }}
       >
         + Добавить лекарство
       </button>
+      {medications.length >= 2 && (
+        <button
+          onClick={() => router.push(`/${locale}/drug-checker?drugs=${medications.map(m => encodeURIComponent(m.title)).join(',')}`)}
+          className="w-full flex items-center justify-center gap-2 h-11 rounded-card text-[13px] font-semibold transition-opacity hover:opacity-80"
+          style={{ background: '#f4f3ef', color: '#9c5e6c', border: '1px solid #e8e4dc' }}
+        >
+          🔍 Проверить совместимость
+        </button>
+      )}
     </>
   );
 }

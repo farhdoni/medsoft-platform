@@ -96,6 +96,50 @@ async function fetchPatientContext(sessionCookie: string): Promise<string> {
   }
 }
 
+// ─── Drug interaction check ───────────────────────────────────────────────────
+
+const DRUG_INTERACTION_RE = /(?:совместимост|interaction|совмест|можно.{0,20}(?:пить|принима|вмест)|вмест.{0,20}(?:пить|принима)|compat|взаимодейств)/i;
+
+async function checkDrugInteractions(message: string, apiToken: string): Promise<string> {
+  if (!DRUG_INTERACTION_RE.test(message)) return '';
+
+  const words = message.split(/[\s,;]+/).filter((w) => w.length > 3);
+  if (words.length < 2) return '';
+
+  const drugs = words.filter((w) => /^[A-ZА-Яа-яa-z]/.test(w) && w.length >= 4);
+  if (drugs.length < 2) return '';
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/aivita/drugs/check`, {
+      method: 'POST',
+      headers: { Cookie: `aivita_api=${apiToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drugs: drugs.slice(0, 5) }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return '';
+    const json = await res.json() as { data?: { pairs?: Array<{ drug1: string; drug2: string; severity: string; description: string; recommendation: string }>; summary?: string } };
+    const data = json?.data;
+    if (!data?.pairs?.length) return '';
+
+    const lines = ['\n\n=== РЕЗУЛЬТАТ ПРОВЕРКИ СОВМЕСТИМОСТИ ЛЕКАРСТВ ==='];
+    lines.push(data.summary ?? '');
+    for (const p of data.pairs) {
+      const sev = p.severity === 'critical' ? '⛔ КРИТИЧНО'
+        : p.severity === 'major' ? '⚠️ Серьёзное'
+        : p.severity === 'moderate' ? 'ℹ️ Умеренное'
+        : p.severity === 'minor' ? '💬 Незначительное'
+        : '✅ Нет взаимодействия';
+      lines.push(`\n${p.drug1} + ${p.drug2}: ${sev}`);
+      if (p.description) lines.push(p.description);
+      if (p.recommendation) lines.push(`Рекомендация: ${p.recommendation}`);
+    }
+    lines.push('=== КОНЕЦ РЕЗУЛЬТАТОВ ===');
+    return lines.join('\n');
+  } catch {
+    return '';
+  }
+}
+
 // ─── System prompts per locale ───────────────────────────────────────────────
 
 // Single adaptive prompt — model mirrors the user's language exactly
@@ -119,7 +163,10 @@ NEVER mix languages in one response. NEVER say you cannot speak Uzbek — you ca
 6. Use **bold** for key terms and - bullet points for tips
 
 ## EXPERTISE
-Sleep · Nutrition · Physical activity · Stress · Mental health · Chronic disease prevention · Healthy habits
+Sleep · Nutrition · Physical activity · Stress · Mental health · Chronic disease prevention · Healthy habits · Drug interactions
+
+## DRUG INTERACTION RESULTS
+If the context contains "=== РЕЗУЛЬТАТ ПРОВЕРКИ СОВМЕСТИМОСТИ ЛЕКАРСТВ ===" — incorporate those results into your answer with colored-label formatting using: ⛔ for critical, ⚠️ for major, ℹ️ for moderate, 💬 for minor, ✅ for none. Always add a note to consult a doctor.
 
 If a question is outside health — gently redirect back in the user's language.`;
 
@@ -245,13 +292,21 @@ export async function POST(req: Request) {
 
   // Fetch patient context — use API cookie (verified by api.aivita.uz)
   const apiToken = cookieStore.get('aivita_api')?.value ?? '';
-  const patientContext = await fetchPatientContext(apiToken);
+  const lastUserMsg = messages?.filter(m => m.role === 'user').at(-1)?.content ?? '';
+  const [patientContext, drugContext] = await Promise.all([
+    fetchPatientContext(apiToken),
+    checkDrugInteractions(lastUserMsg, apiToken),
+  ]);
 
   // Build system prompt with patient data
   let systemPrompt = SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru;
   if (patientContext) {
     systemPrompt += `\n\n${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
-  } else if (userContext?.name) {
+  }
+  if (drugContext) {
+    systemPrompt += drugContext;
+  }
+  if (!patientContext && userContext?.name) {
     const suffix: Record<string, string> = {
       ru: `\n\nПользователь: ${userContext.name}${userContext.score ? `, Health Score: ${userContext.score}/100` : ''}`,
       uz: `\n\nFoydalanuvchi: ${userContext.name}${userContext.score ? `, Health Score: ${userContext.score}/100` : ''}`,

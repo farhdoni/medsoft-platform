@@ -10,6 +10,7 @@ export * from './audit-logs';
 export * from './aivita';
 export * from './aivita-doctor';
 export * from './aivita-medications';
+export * from './drug-interactions';
 export * from './landing';
 export * from './pharmacy';
 export * from './payments';
