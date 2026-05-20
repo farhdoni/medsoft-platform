@@ -139,6 +139,24 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold truncate" style={{ color: '#2a2540' }}>{name}</p>
               <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>{email}</p>
+              {effectiveRole !== 'doctor' && (
+                <div className="mt-0.5">
+                  {!session?.plan || session.plan === 'free' ? (
+                    <Link
+                      href={`/${locale}/pricing`}
+                      onClick={() => setOpen(false)}
+                      className="text-[10px] font-semibold hover:opacity-80 transition-opacity"
+                      style={{ color: '#9c5e6c' }}
+                    >
+                      Бесплатный — Обновить →
+                    </Link>
+                  ) : (
+                    <span className="text-[10px] font-semibold" style={{ color: '#548068' }}>
+                      {session.plan === 'pro' ? 'Pro ✓' : 'Premium ✓'}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

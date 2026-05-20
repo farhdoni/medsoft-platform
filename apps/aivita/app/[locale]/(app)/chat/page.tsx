@@ -5,6 +5,7 @@ import VoiceInput from '@/components/voice/VoiceInput';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
+import { PlanLimitModal } from '@/components/shared/PlanLimitModal';
 
 type MessageAttachment = {
   name: string;
@@ -141,6 +142,7 @@ export default function ChatPage() {
   const [showNav, setShowNav] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   // Persist pinned IDs in localStorage
   const PINS_KEY = `aivita_chat_pins_${locale}`;
@@ -274,6 +276,14 @@ export default function ChatPage() {
         signal: ctrl.signal,
       });
 
+      if (res.status === 429) {
+        const errJson = await res.json().catch(() => ({})) as { error?: string };
+        if (errJson.error === 'plan_limit') {
+          setShowLimitModal(true);
+          setMessages(prev => prev.filter(m => m.id !== aiId));
+          return;
+        }
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const contentType = res.headers.get('Content-Type') ?? '';
@@ -343,6 +353,12 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 56px)' }}>
+      <PlanLimitModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        locale={locale}
+        type="chat"
+      />
 
       {/* Hidden file inputs */}
       <input

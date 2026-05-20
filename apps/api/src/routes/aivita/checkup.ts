@@ -7,7 +7,7 @@ import {
   medications, allergies, chronicConditions,
   type CheckupSystem, type CheckupProblem, type CheckupPlanItem,
 } from '@medsoft/db';
-import { eq, desc, and, gte, isNull } from 'drizzle-orm';
+import { eq, desc, and, gte, isNull, count } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { autoReport, inferDiseaseCategory } from './outbreak.js';
 
@@ -212,6 +212,22 @@ async function buildUserContext(userId: string): Promise<{ context: string; chro
 
 aivitaCheckupRouter.post('/run', async (c) => {
   const userId = c.get('aivitaUserId');
+
+  // Enforce free-plan limit: 1 checkup per calendar month
+  const session = c.get('aivitaSession');
+  const plan = session?.plan ?? 'free';
+  if (!plan || plan === 'free') {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const [{ value: monthCount }] = await db
+      .select({ value: count() })
+      .from(healthCheckups)
+      .where(and(eq(healthCheckups.userId, userId), gte(healthCheckups.createdAt, monthStart)));
+    if (monthCount >= 1) {
+      return c.json({ error: 'plan_limit' }, 429);
+    }
+  }
 
   // Insert pending record
   const [pending] = await db.insert(healthCheckups).values({

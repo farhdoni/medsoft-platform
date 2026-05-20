@@ -56,6 +56,25 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
               {t('doctorBadge')}
             </span>
           )}
+          {role !== 'doctor' && session && (
+            <Link
+              href={`/${locale}/pricing`}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full transition hover:opacity-80 select-none"
+              style={
+                !session.plan || session.plan === 'free'
+                  ? { background: '#f0eef5', color: '#9a96a8', border: '1px solid #e0dcec' }
+                  : session.plan === 'pro'
+                  ? { background: 'linear-gradient(135deg, #6a5a8e 0%, #4a3a6e 100%)', color: '#fff' }
+                  : { background: 'linear-gradient(135deg, #9c5e6c 0%, #8b6aae 100%)', color: '#fff' }
+              }
+            >
+              {!session.plan || session.plan === 'free'
+                ? 'Free'
+                : session.plan === 'pro'
+                ? 'Pro'
+                : 'Premium'}
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           {/* SOS — patients only */}

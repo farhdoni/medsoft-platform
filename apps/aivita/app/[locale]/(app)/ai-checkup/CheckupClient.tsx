@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Download, Share2, ChevronDown, ChevronUp } from 'lucide-react';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
+import { PlanLimitModal } from '@/components/shared/PlanLimitModal';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -311,7 +312,7 @@ function StartScreen({ onStart, locale }: { onStart: () => void; locale: string 
 
 // ─── Screen 2: Analysis ────────────────────────────────────────────────────────
 
-function AnalysisScreen({ onDone }: { onDone: (result: CheckupResult) => void }) {
+function AnalysisScreen({ onDone, onLimitReached }: { onDone: (result: CheckupResult) => void; onLimitReached: () => void }) {
   const [step, setStep]         = useState(0);
   const [progress, setProgress] = useState(0);
   const resultRef               = useRef<CheckupResult | null>(null);
@@ -320,11 +321,18 @@ function AnalysisScreen({ onDone }: { onDone: (result: CheckupResult) => void })
   // Start API call immediately
   useEffect(() => {
     fetch('/api/proxy/checkup/run', { method: 'POST' })
-      .then(r => r.json())
-      .then((json: { data?: CheckupResult }) => {
-        if (json.data) resultRef.current = json.data;
+      .then(async r => {
+        if (r.status === 429) {
+          const body = await r.json().catch(() => ({})) as { error?: string };
+          if (body.error === 'plan_limit') { onLimitReached(); return; }
+        }
+        return r.json();
+      })
+      .then((json?: { data?: CheckupResult }) => {
+        if (json?.data) resultRef.current = json.data;
       })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fake progress tick
@@ -625,20 +633,29 @@ type Screen = 'start' | 'analysis' | 'result';
 export function CheckupClient({ locale }: { locale: string }) {
   const [screen, setScreen] = useState<Screen>('start');
   const [result, setResult] = useState<CheckupResult | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const handleDone = useCallback((r: CheckupResult) => {
     setResult(r);
     setScreen('result');
   }, []);
 
-  if (screen === 'start') {
-    return <StartScreen onStart={() => setScreen('analysis')} locale={locale} />;
-  }
-  if (screen === 'analysis') {
-    return <AnalysisScreen onDone={handleDone} />;
-  }
-  if (result) {
-    return <ResultScreen result={result} locale={locale} />;
-  }
-  return null;
+  const handleLimitReached = useCallback(() => {
+    setScreen('start');
+    setShowLimitModal(true);
+  }, []);
+
+  return (
+    <>
+      <PlanLimitModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        locale={locale}
+        type="checkup"
+      />
+      {screen === 'start' && <StartScreen onStart={() => setScreen('analysis')} locale={locale} />}
+      {screen === 'analysis' && <AnalysisScreen onDone={handleDone} onLimitReached={handleLimitReached} />}
+      {screen === 'result' && result && <ResultScreen result={result} locale={locale} />}
+    </>
+  );
 }

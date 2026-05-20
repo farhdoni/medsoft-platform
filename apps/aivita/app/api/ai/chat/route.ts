@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -188,6 +189,21 @@ const MOCK: Record<string, (msg: string) => string> = {
   en: mockResponse,
 };
 
+// ─── Session decode ───────────────────────────────────────────────────────────
+
+async function getSessionPlan(token: string): Promise<string | null> {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || !token) return null;
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    return (payload as { plan?: string }).plan ?? 'free';
+  } catch {
+    return null;
+  }
+}
+
+const FREE_DAILY_CHAT_LIMIT = 5;
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -198,6 +214,22 @@ export async function POST(req: Request) {
   };
 
   const lang = ['ru', 'uz', 'en'].includes(locale) ? locale : 'ru';
+
+  // Check free-plan chat limit
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('aivita_session')?.value
+    ?? cookieStore.get('aivita_api')?.value ?? '';
+  const plan = await getSessionPlan(sessionToken);
+  if (!plan || plan === 'free') {
+    const userMsgCount = (messages ?? []).filter(m => m.role === 'user').length;
+    if (userMsgCount > FREE_DAILY_CHAT_LIMIT) {
+      return new Response(JSON.stringify({ error: 'plan_limit' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const isRealKey = apiKey && apiKey.startsWith('sk-ant-api') && apiKey.length > 30;
 
@@ -211,10 +243,9 @@ export async function POST(req: Request) {
     );
   }
 
-  // Fetch patient context from session cookie
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
-  const patientContext = await fetchPatientContext(sessionCookie);
+  // Fetch patient context — use API cookie (verified by api.aivita.uz)
+  const apiToken = cookieStore.get('aivita_api')?.value ?? '';
+  const patientContext = await fetchPatientContext(apiToken);
 
   // Build system prompt with patient data
   let systemPrompt = SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru;
