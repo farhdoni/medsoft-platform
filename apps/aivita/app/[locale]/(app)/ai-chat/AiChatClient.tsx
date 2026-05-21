@@ -189,6 +189,9 @@ export function AiChatClient({ locale }: { locale: string }) {
   // ── Medical document modal ──────────────────────────────────────────────────
   const [medModal, setMedModal] = useState<ParsedMedical | null>(null);
 
+  // ── AI conversation history (sent to /api/ai/chat) ──────────────────────────
+  const [apiHistory, setApiHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -358,21 +361,76 @@ export function AiChatClient({ locale }: { locale: string }) {
       textareaRef.current.style.height = '40px';
     }
 
-    // Stub response
-    setTyping(true);
-    await new Promise(r => setTimeout(r, 1000));
-    setTyping(false);
-    setMessages(prev => [...prev, {
-      id: uid(), role: 'assistant',
-      text: '🤖 AI-ассистент скоро будет доступен.',
-      ts: new Date(),
-    }]);
+    // ── Call real AI endpoint ──────────────────────────────────────────────
+    const aiInput = msgText || (filesToParse.length > 0 ? '[пользователь прикрепил изображение или документ]' : '');
+
+    if (aiInput) {
+      const nextHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [
+        ...apiHistory,
+        { role: 'user', content: aiInput },
+      ];
+      setApiHistory(nextHistory);
+      setTyping(true);
+
+      try {
+        const res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: nextHistory, locale }),
+        });
+
+        const contentType = res.headers.get('content-type') ?? '';
+
+        if (contentType.includes('text/event-stream')) {
+          // ── Streaming mode (real Anthropic API key) ────────────────────
+          const streamId = uid();
+          setTyping(false);
+          setMessages(prev => [...prev, { id: streamId, role: 'assistant', text: '', ts: new Date() }]);
+
+          let aiText = '';
+          const reader = res.body!.getReader();
+          const decoder = new TextDecoder();
+          outer: while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            for (const line of decoder.decode(value).split('\n')) {
+              if (!line.startsWith('data: ')) continue;
+              const payload = line.slice(6);
+              if (payload === '[DONE]') break outer;
+              try {
+                const { text: t } = JSON.parse(payload) as { text: string };
+                aiText += t;
+                setMessages(prev => prev.map(m => m.id === streamId ? { ...m, text: aiText } : m));
+              } catch { /* skip malformed SSE frame */ }
+            }
+          }
+          setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
+
+        } else {
+          // ── JSON mode (mock — no API key) ──────────────────────────────
+          setTyping(false);
+          const json = await res.json() as { content?: string; error?: string };
+          const aiText = json.error === 'plan_limit'
+            ? '⚠️ Вы достигли дневного лимита сообщений. Оформите подписку для безлимитного общения.'
+            : (json.content ?? 'Попробуйте ещё раз позже.');
+          setMessages(prev => [...prev, { id: uid(), role: 'assistant', text: aiText, ts: new Date() }]);
+          setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
+        }
+      } catch {
+        setTyping(false);
+        setMessages(prev => [...prev, {
+          id: uid(), role: 'assistant',
+          text: 'Не удалось соединиться с AI. Проверьте подключение.',
+          ts: new Date(),
+        }]);
+      }
+    }
 
     // Attempt medical parsing for image/PDF attachments (non-blocking)
     for (const file of filesToParse) {
       void tryParseDocument(file);
     }
-  }, [text, attachments]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [text, attachments, apiHistory, locale]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -579,6 +637,7 @@ export function AiChatClient({ locale }: { locale: string }) {
           {/* Media buttons */}
           <div className="flex gap-1.5 flex-shrink-0 pb-0.5">
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
               style={{ background: '#f4f3ef' }}
@@ -586,15 +645,17 @@ export function AiChatClient({ locale }: { locale: string }) {
             >
               <Paperclip className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
             </button>
-            <button
-              onClick={() => cameraInputRef.current?.click()}
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
+            {/* Camera — using <label> instead of programmatic .click() for iOS Safari reliability */}
+            <label
+              htmlFor="ai-chat-camera-input"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80 cursor-pointer select-none"
               style={{ background: '#f4f3ef' }}
               aria-label="Сделать фото"
             >
               <Camera className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
-            </button>
+            </label>
             <button
+              type="button"
               onClick={() => galleryInputRef.current?.click()}
               className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
               style={{ background: '#f4f3ef' }}
@@ -650,7 +711,7 @@ export function AiChatClient({ locale }: { locale: string }) {
 
       {/* ── Hidden file inputs ──────────────────────────────────────────────── */}
       <input ref={fileInputRef}    type="file" accept="*/*"              multiple className="hidden" onChange={handleFileInput} />
-      <input ref={cameraInputRef}  type="file" accept="image/*"          capture="environment" className="hidden" onChange={handleFileInput} />
+      <input id="ai-chat-camera-input" ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileInput} />
       <input ref={galleryInputRef} type="file" accept="image/*,video/*"  multiple className="hidden" onChange={handleFileInput} />
 
       {/* ── Floating Nav ────────────────────────────────────────────────────── */}
