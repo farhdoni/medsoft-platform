@@ -11,6 +11,7 @@ import {
   index,
   unique,
   varchar,
+  serial,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -1064,5 +1065,24 @@ export const labResults = pgTable(
   (table) => ({
     userIdx:     index('lab_results_user_idx').on(table.userId),
     testedAtIdx: index('lab_results_tested_at_idx').on(table.userId, table.testedAt),
+  })
+);
+
+// ─── AI Chat Messages ──────────────────────────────────────────────────────────
+
+export const aiChatMessages = pgTable(
+  'ai_chat_messages',
+  {
+    seq:       serial('seq').notNull(),
+    id:        uuid('id').primaryKey().defaultRandom(),
+    userId:    uuid('user_id')
+                 .notNull()
+                 .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    role:      text('role').notNull(), // 'user' | 'assistant'
+    content:   text('content').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userSeqIdx: index('ai_chat_messages_user_seq_idx').on(table.userId, table.seq),
   })
 );

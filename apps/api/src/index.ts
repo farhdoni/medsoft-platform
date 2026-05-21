@@ -55,6 +55,7 @@ import { aivitaOnboardingRouter } from './routes/aivita/onboarding.js';
 import { aivitaCheckupRouter } from './routes/aivita/checkup.js';
 import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
 import { conversationsRouter } from './routes/aivita/conversations.js';
+import { aiChatRouter } from './routes/aivita/ai-chat.js';
 import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
@@ -145,6 +146,7 @@ app.route('/v1/aivita/checkup', aivitaCheckupRouter);
 app.route('/v1/aivita/outbreak', outbreakRouter);
 app.route('/v1/aivita/symptoms', symptomsRouter);
 app.route('/v1/aivita/conversations', conversationsRouter);
+app.route('/v1/aivita/ai-chat', aiChatRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
 // Pharmacy partner system

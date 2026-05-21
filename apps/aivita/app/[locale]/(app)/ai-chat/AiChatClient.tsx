@@ -191,6 +191,26 @@ export function AiChatClient({ locale }: { locale: string }) {
 
   // ── AI conversation history (sent to /api/ai/chat) ──────────────────────────
   const [apiHistory, setApiHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  // Load chat history from DB on mount
+  useEffect(() => {
+    fetch('/api/proxy/ai-chat/history?limit=50')
+      .then(r => r.ok ? r.json() as Promise<{ data: Array<{ id: string; role: string; content: string; created_at: string }> }> : null)
+      .then(json => {
+        if (!json?.data?.length) return;
+        const loaded: Message[] = json.data.map(row => ({
+          id: row.id,
+          role: row.role as 'user' | 'assistant',
+          text: row.content,
+          ts: new Date(row.created_at),
+        }));
+        setMessages(loaded);
+        setApiHistory(json.data.map(row => ({ role: row.role as 'user' | 'assistant', content: row.content })));
+      })
+      .catch(() => { /* ignore — history is non-critical */ })
+      .finally(() => setHistoryLoaded(true));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -405,6 +425,15 @@ export function AiChatClient({ locale }: { locale: string }) {
             }
           }
           setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
+          // Persist both messages to DB (non-blocking)
+          void fetch('/api/proxy/ai-chat/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: [
+              { role: 'user', content: aiInput },
+              { role: 'assistant', content: aiText },
+            ]}),
+          }).catch(() => { /* ignore save errors */ });
 
         } else {
           // ── JSON mode (mock — no API key) ──────────────────────────────
@@ -415,6 +444,17 @@ export function AiChatClient({ locale }: { locale: string }) {
             : (json.content ?? 'Попробуйте ещё раз позже.');
           setMessages(prev => [...prev, { id: uid(), role: 'assistant', text: aiText, ts: new Date() }]);
           setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
+          // Persist both messages to DB (non-blocking, skip plan_limit errors)
+          if (json.error !== 'plan_limit') {
+            void fetch('/api/proxy/ai-chat/message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages: [
+                { role: 'user', content: aiInput },
+                { role: 'assistant', content: aiText },
+              ]}),
+            }).catch(() => { /* ignore save errors */ });
+          }
         }
       } catch {
         setTyping(false);
@@ -476,7 +516,7 @@ export function AiChatClient({ locale }: { locale: string }) {
 
       {/* ── Messages ────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
-        {messages.length === 0 && !typing
+        {messages.length === 0 && !typing && historyLoaded
           ? <WelcomeScreen onChip={t => void sendMessage(t)} locale={locale} />
           : (
             <>
