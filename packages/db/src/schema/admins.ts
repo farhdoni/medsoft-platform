@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, boolean, timestamp, integer, inet, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, boolean, timestamp, integer, inet, pgEnum, serial, varchar, jsonb } from 'drizzle-orm/pg-core';
 
 export const adminRoleEnum = pgEnum('admin_role', ['superadmin', 'admin', 'viewer']);
 
@@ -38,5 +38,36 @@ export const adminSessions = pgTable('admin_sessions', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
 
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type AdminPermissions = {
+  dashboard?: boolean;
+  users_read?: boolean;
+  users_edit?: boolean;
+  users_delete?: boolean;
+  doctors_verify?: boolean;
+  finance_read?: boolean;
+  finance_edit?: boolean;
+  payouts?: boolean;
+  marketing?: boolean;
+  settings?: boolean;
+  roles?: boolean;
+  ai_settings?: boolean;
+  system?: boolean;
+};
+
+export const adminRoles = pgTable('admin_roles', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 50 }).unique().notNull(),
+  displayName: varchar('display_name', { length: 100 }).notNull(),
+  permissions: jsonb('permissions').$type<AdminPermissions>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const adminUserRoles = pgTable('admin_user_roles', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => adminUsers.id, { onDelete: 'cascade' }),
+  roleId: integer('role_id').notNull().references(() => adminRoles.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

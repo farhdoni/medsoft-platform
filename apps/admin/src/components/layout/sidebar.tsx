@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
-  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell,
+  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -26,11 +26,17 @@ const baseNavItems = [
   { href: '/sos-calls', label: 'SOS вызовы', icon: AlertTriangle, section: null },
   { href: '/monitoring', label: 'Мониторинг', icon: Server, section: null },
   { href: '/cms', label: 'CMS лендинга', icon: Globe, section: null },
+  // ── ПОЛЬЗОВАТЕЛИ ──
+  { href: '/users/patients', label: 'Пациенты (Aivita)', icon: Users, section: 'users' },
+  { href: '/users/doctors', label: 'Врачи (Aivita)', icon: Stethoscope, section: 'users' },
   // ── AIVITA ──
   { href: '/aivita/doctors', label: 'Врачи AIVITA', icon: UserCheck, section: 'aivita' },
   { href: '/aivita/billing', label: 'Биллинг', icon: Wallet, section: 'aivita' },
   { href: '/aivita/home-settings', label: 'Главная страница', icon: Settings2, section: 'aivita' },
   { href: '/aivita/notifications', label: 'Уведомления', icon: Bell, section: 'aivita' },
+  // ── НАСТРОЙКИ ──
+  { href: '/settings/roles', label: 'Роли', icon: Shield, section: 'settings' },
+  { href: '/settings/team', label: 'Команда', icon: UsersRound, section: 'settings' },
 ];
 
 export function Sidebar() {
@@ -49,6 +55,12 @@ export function Sidebar() {
     ...baseNavItems,
     ...(me?.role === 'superadmin' ? [{ href: '/admins', label: 'Админы', icon: Shield, section: null as null }] : []),
   ];
+
+  const sectionLabels: Record<string, string> = {
+    aivita: 'AIVITA',
+    users: 'ПОЛЬЗОВАТЕЛИ',
+    settings: 'НАСТРОЙКИ',
+  };
 
   async function handleLogout() {
     await api.post('/v1/auth/logout').catch(() => {});
@@ -71,7 +83,7 @@ export function Sidebar() {
               {showSectionLabel && (
                 <div className="px-3 pt-4 pb-1">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">
-                    AIVITA
+                    {sectionLabels[section] ?? section.toUpperCase()}
                   </span>
                 </div>
               )}
