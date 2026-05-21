@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
-  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound,
+  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +37,7 @@ const baseNavItems = [
   // ── НАСТРОЙКИ ──
   { href: '/settings/roles', label: 'Роли', icon: Shield, section: 'settings' },
   { href: '/settings/team', label: 'Команда', icon: UsersRound, section: 'settings' },
+  { href: '/settings/ai', label: 'AI настройки', icon: BrainCircuit, section: 'settings' },
 ];
 
 export function Sidebar() {

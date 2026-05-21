@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
+import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import { api, downloadFile } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
 type Row = {
@@ -31,7 +33,22 @@ export default function DoctorPayoutsPage() {
   const [page, setPage] = useState(1);
   const [generating, setGenerating] = useState(false);
   const [genPeriod, setGenPeriod] = useState('');
+  const [downloading, setDownloading] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setDownloading(true);
+    try {
+      await downloadFile(
+        '/v1/admin/payouts/doctors/export',
+        `doctor_payouts_${new Date().toISOString().slice(0, 10)}.csv`,
+      );
+    } catch {
+      toast.error('Ошибка при экспорте');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-doctor-payouts', page],
@@ -87,8 +104,8 @@ export default function DoctorPayoutsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Generate payouts */}
-      <div className="flex items-center gap-2 p-4 rounded-xl border bg-card">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 p-4 rounded-xl border bg-card flex-wrap">
         <Input
           value={genPeriod}
           onChange={e => setGenPeriod(e.target.value)}
@@ -100,6 +117,13 @@ export default function DoctorPayoutsPage() {
           disabled={generating || !genPeriod}
         >
           {generating ? 'Генерация...' : 'Сформировать ведомость'}
+        </Button>
+        <Button
+          size="sm" variant="outline" className="ml-auto"
+          onClick={handleExport} disabled={downloading}
+        >
+          <Download className="h-3.5 w-3.5 mr-1.5" />
+          {downloading ? 'Экспорт...' : 'CSV'}
         </Button>
       </div>
 

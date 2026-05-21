@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
+import { requireAuth } from '../../middleware/auth.js';
 import { db } from '@medsoft/db';
 import { doctorPayouts, pharmacyPayouts, payments, aivitaUsers, doctorPayoutSettings } from '@medsoft/db';
 import { eq, desc, and, sql, gte, lte } from 'drizzle-orm';
 
 export const adminPayoutsRouter = new Hono();
+
+adminPayoutsRouter.use('*', requireAuth);
 
 const COMMISSION_PERCENT = 20;
 
@@ -26,6 +29,42 @@ adminPayoutsRouter.get('/doctors', async (c) => {
     .orderBy(desc(doctorPayouts.createdAt));
 
   return c.json({ data: rows });
+});
+
+// ─── GET /v1/admin/payouts/doctors/export ────────────────────────────────────
+
+adminPayoutsRouter.get('/doctors/export', async (c) => {
+  const rows = await db.select({
+    payout: doctorPayouts,
+    doctorName: aivitaUsers.name,
+    doctorEmail: aivitaUsers.email,
+  })
+    .from(doctorPayouts)
+    .leftJoin(aivitaUsers, eq(doctorPayouts.doctorId, aivitaUsers.id))
+    .orderBy(desc(doctorPayouts.createdAt));
+
+  const STATUS_LABELS: Record<string, string> = {
+    completed: 'Выплачено', processing: 'В обработке', pending: 'Ожидает',
+  };
+
+  const csvHeader = 'ID,Врач,Email,Период,Сумма,Карта,Банк,Статус,Дата выплаты,Создан\r\n';
+  const csvRows = rows.map(r => [
+    r.payout.id,
+    `"${(r.doctorName ?? '').replace(/"/g, '""')}"`,
+    `"${(r.doctorEmail ?? '').replace(/"/g, '""')}"`,
+    r.payout.period ?? '',
+    r.payout.amount,
+    r.payout.cardNumber ?? '',
+    `"${(r.payout.bankName ?? '').replace(/"/g, '""')}"`,
+    STATUS_LABELS[r.payout.status] ?? r.payout.status,
+    r.payout.paidAt ? r.payout.paidAt.toISOString() : '',
+    r.payout.createdAt.toISOString(),
+  ].join(',')).join('\r\n');
+
+  const filename = `doctor_payouts_${new Date().toISOString().slice(0, 10)}.csv`;
+  c.header('Content-Type', 'text/csv; charset=utf-8');
+  c.header('Content-Disposition', `attachment; filename="${filename}"`);
+  return c.body('﻿' + csvHeader + csvRows);
 });
 
 // ─── POST /v1/admin/payouts/doctors/generate ─────────────────────────────────
@@ -95,6 +134,35 @@ adminPayoutsRouter.post('/doctors/:id/mark-paid', async (c) => {
 adminPayoutsRouter.get('/pharmacies', async (c) => {
   const rows = await db.select().from(pharmacyPayouts).orderBy(desc(pharmacyPayouts.createdAt));
   return c.json({ data: rows });
+});
+
+// ─── GET /v1/admin/payouts/pharmacies/export ─────────────────────────────────
+
+adminPayoutsRouter.get('/pharmacies/export', async (c) => {
+  const rows = await db.select().from(pharmacyPayouts).orderBy(desc(pharmacyPayouts.createdAt));
+
+  const STATUS_LABELS: Record<string, string> = {
+    completed: 'Выплачено', processing: 'В обработке', pending: 'Ожидает',
+  };
+
+  const csvHeader = 'ID,Аптека ID,Период,Сумма,Счёт банка,МФО,ИНН,Статус,Дата выплаты,Создан\r\n';
+  const csvRows = rows.map(r => [
+    r.id,
+    r.pharmacyId,
+    r.period ?? '',
+    r.amount,
+    r.bankAccount ?? '',
+    r.mfo ?? '',
+    r.inn ?? '',
+    STATUS_LABELS[r.status] ?? r.status,
+    r.paidAt ? r.paidAt.toISOString() : '',
+    r.createdAt.toISOString(),
+  ].join(',')).join('\r\n');
+
+  const filename = `pharmacy_payouts_${new Date().toISOString().slice(0, 10)}.csv`;
+  c.header('Content-Type', 'text/csv; charset=utf-8');
+  c.header('Content-Disposition', `attachment; filename="${filename}"`);
+  return c.body('﻿' + csvHeader + csvRows);
 });
 
 // ─── POST /v1/admin/payouts/pharmacies/generate ──────────────────────────────

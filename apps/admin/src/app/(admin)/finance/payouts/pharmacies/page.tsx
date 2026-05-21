@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
+import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import { api, downloadFile } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
 type Row = {
@@ -26,7 +28,22 @@ const STATUS_LABELS: Record<string, string> = {
 export default function PharmacyPayoutsPage() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({ pharmacyId: '', amount: '', period: '', bankAccount: '', mfo: '', inn: '' });
+  const [downloading, setDownloading] = useState(false);
   const qc = useQueryClient();
+
+  async function handleExport() {
+    setDownloading(true);
+    try {
+      await downloadFile(
+        '/v1/admin/payouts/pharmacies/export',
+        `pharmacy_payouts_${new Date().toISOString().slice(0, 10)}.csv`,
+      );
+    } catch {
+      toast.error('Ошибка при экспорте');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-pharmacy-payouts', page],
@@ -82,7 +99,7 @@ export default function PharmacyPayoutsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Create payout */}
+      {/* Create payout + export */}
       <div className="p-4 rounded-xl border bg-card space-y-3">
         <p className="text-sm font-semibold">Создать выплату аптеке</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -93,13 +110,22 @@ export default function PharmacyPayoutsPage() {
           <Input placeholder="МФО" value={form.mfo} onChange={e => setForm(f => ({ ...f, mfo: e.target.value }))} className="h-8 text-sm" />
           <Input placeholder="ИНН" value={form.inn} onChange={e => setForm(f => ({ ...f, inn: e.target.value }))} className="h-8 text-sm" />
         </div>
-        <Button
-          size="sm"
-          onClick={() => createPayout.mutate()}
-          disabled={createPayout.isPending || !form.pharmacyId || !form.amount || !form.period}
-        >
-          Создать выплату
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => createPayout.mutate()}
+            disabled={createPayout.isPending || !form.pharmacyId || !form.amount || !form.period}
+          >
+            Создать выплату
+          </Button>
+          <Button
+            size="sm" variant="outline"
+            onClick={handleExport} disabled={downloading}
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            {downloading ? 'Экспорт...' : 'CSV'}
+          </Button>
+        </div>
       </div>
 
       <DataTable
