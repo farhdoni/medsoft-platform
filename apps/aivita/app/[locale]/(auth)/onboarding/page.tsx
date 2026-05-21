@@ -850,14 +850,23 @@ export default function OnboardingPage() {
   const [cardCode, setCardCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [stepData, setStepData] = useState<Record<number, StepData>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const TOTAL_STEPS = 6;
 
   // Load status on mount
   useEffect(() => {
     fetch('/api/proxy/onboarding/status')
-      .then(r => r.json())
-      .then((j: { data?: { completed: boolean; currentStep: number; isMinor: boolean; cardCode: string | null } }) => {
+      .then(r => {
+        if (r.status === 401) {
+          // Session expired — force re-login
+          window.location.href = `/${locale}/sign-in`;
+          return null;
+        }
+        return r.json();
+      })
+      .then((j: { data?: { completed: boolean; currentStep: number; isMinor: boolean; cardCode: string | null } } | null) => {
+        if (!j) return;
         if (j.data?.completed) {
           window.location.href = `/${locale}/home`;
           return;
@@ -887,12 +896,25 @@ export default function OnboardingPage() {
 
   const saveStep = useCallback(async (stepNum: number, data: StepData) => {
     setLoading(true);
+    setSaveError(null);
     try {
       const res = await fetch('/api/proxy/onboarding/step', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ step: stepNum, data }),
       });
+
+      // Session expired — redirect to login
+      if (res.status === 401) {
+        window.location.href = `/${locale}/sign-in`;
+        return;
+      }
+
+      if (!res.ok) {
+        setSaveError('Ошибка сервера. Попробуйте ещё раз.');
+        return;
+      }
+
       const json = await res.json() as { data?: { isMinor?: boolean; cardCode?: string; completed?: boolean } };
       if (json.data?.isMinor !== undefined) setIsMinor(json.data.isMinor);
       if (json.data?.cardCode) setCardCode(json.data.cardCode);
@@ -904,10 +926,11 @@ export default function OnboardingPage() {
       setStep(s => Math.min(s + 1, TOTAL_STEPS));
     } catch (e) {
       console.error(e);
+      setSaveError('Нет соединения. Проверьте интернет.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   function handleNext() {
     void saveStep(step, currentData);
@@ -954,6 +977,11 @@ export default function OnboardingPage() {
         {/* Bottom actions */}
         {!showStep6Success && (
           <div className="mt-4 space-y-2">
+            {saveError && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-center">
+                {saveError}
+              </div>
+            )}
             <NextBtn
               onClick={handleNext}
               disabled={!isValid()}
