@@ -69,9 +69,13 @@ aivitaAuthRouter.post(
     role: z.enum(['patient', 'doctor']).default('patient'),
     specialization: z.string().max(100).optional(),
     refCode: z.string().max(20).optional(),
+    // Doctor-specific fields (ignored for patients)
+    phone: z.string().max(30).optional(),
+    experienceYears: z.number().int().min(0).max(60).optional(),
+    workplace: z.string().max(200).optional(),
   })),
   async (c) => {
-    const { email, nickname, password, name, locale, role, specialization, refCode } = c.req.valid('json');
+    const { email, nickname, password, name, locale, role, specialization, refCode, phone, experienceYears, workplace } = c.req.valid('json');
 
     // Check uniqueness
     const existing = await db.query.aivitaUsers.findFirst({
@@ -114,11 +118,20 @@ aivitaAuthRouter.post(
       referredBy: referrerId ?? undefined,
     }).returning();
 
-    // Если врач — создать пустой профиль сразу
+    // Если врач — создать профиль с базовыми данными
     if (role === 'doctor') {
+      // Compute experienceStartDate from experienceYears
+      let experienceStartDate: string | null = null;
+      if (experienceYears != null && experienceYears > 0) {
+        const startYear = new Date().getFullYear() - experienceYears;
+        experienceStartDate = `${startYear}-01-01`;
+      }
       await db.insert(doctorProfiles).values({
         userId: user.id,
         specialization: specialization ?? null,
+        phone: phone ?? null,
+        experienceStartDate: experienceStartDate ?? null,
+        clinicName: workplace ?? null,
         verificationStatus: 'not_verified',
       });
     }

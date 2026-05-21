@@ -26,6 +26,8 @@ import {
   sql, count, avg, inArray,
 } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
+import bcrypt from 'bcryptjs';
+import { randomBytes, randomInt } from 'crypto';
 
 const router = new Hono();
 router.use('*', requireAuth);
@@ -639,6 +641,72 @@ router.patch('/aivita-doctors/:id/catalog', async (c) => {
   await auditLog(adminId, 'doctor_catalog_update', 'doctor_profile', id, body as Record<string, unknown>, c.req);
 
   return c.json({ data: { updated: true } });
+});
+
+// POST /v1/aivita-admin/aivita-doctors — create a doctor account (admin)
+router.post('/aivita-doctors', async (c) => {
+  const adminId = c.get('adminId') as string;
+  const body = await c.req.json() as {
+    name: string;
+    email: string;
+    phone?: string;
+    specialization?: string;
+    password?: string;
+  };
+
+  const { name, email, phone, specialization, password: providedPassword } = body;
+  if (!name?.trim() || !email?.trim()) {
+    return c.json({ error: 'name and email are required' }, 400);
+  }
+
+  // Check email uniqueness
+  const existing = await db.query.aivitaUsers.findFirst({
+    where: eq(aivitaUsers.email, email.trim().toLowerCase()),
+  });
+  if (existing) return c.json({ error: 'email_taken' }, 409);
+
+  // Generate password if not provided
+  const plainPassword = providedPassword?.trim() || randomBytes(8).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  const passwordHash = await bcrypt.hash(plainPassword, 12);
+
+  // Generate unique nickname
+  const base = name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 16) || 'doctor';
+  const suffix = randomInt(1000, 9999);
+  const nickname = `${base}_${suffix}`;
+
+  const now = new Date();
+
+  const [user] = await db.insert(aivitaUsers).values({
+    email: email.trim().toLowerCase(),
+    nickname,
+    name: name.trim(),
+    passwordHash,
+    provider: 'email',
+    locale: 'ru',
+    role: 'doctor',
+    plan: 'free',
+    referralCode: `DR${suffix}`,
+    emailVerified: now, // auto-verify since admin created
+  }).returning();
+
+  await db.insert(doctorProfiles).values({
+    userId: user.id,
+    specialization: specialization?.trim() ?? null,
+    phone: phone?.trim() ?? null,
+    verificationStatus: 'not_verified',
+  });
+
+  await auditLog(adminId, 'doctor_create', 'aivita_user', user.id, { email, name, specialization }, c.req);
+
+  return c.json({
+    data: {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      password: plainPassword,
+      specialization: specialization ?? null,
+    },
+  }, 201);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

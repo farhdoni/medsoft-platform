@@ -110,11 +110,17 @@ export default function SignInPage() {
           </button>
         </form>
 
-        {/* Sign up link */}
-        <p className="text-center text-sm text-[rgb(var(--text-secondary))] mb-4">
+        {/* Sign up links */}
+        <p className="text-center text-sm text-[rgb(var(--text-secondary))] mb-2">
           Нет аккаунта?{' '}
           <Link href={`/${locale}/sign-up`} className="text-pink-500 font-medium hover:underline">
             Зарегистрироваться
+          </Link>
+        </p>
+        <p className="text-center text-sm text-[rgb(var(--text-secondary))] mb-4">
+          Вы врач?{' '}
+          <Link href={`/${locale}/doctor-sign-up`} className="font-medium hover:underline" style={{ color: '#5580b0' }}>
+            Регистрация для врачей →
           </Link>
         </p>
 

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import {
-  CheckCircle, XCircle, Eye, ToggleLeft, ToggleRight, Search,
+  CheckCircle, XCircle, Eye, ToggleLeft, ToggleRight, Search, UserPlus, Copy, Check,
 } from 'lucide-react';
 import { DataTable } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
@@ -46,6 +46,23 @@ const VERIFY_STATUS_COLORS: Record<string, 'default' | 'success' | 'warning' | '
   rejected:     'destructive',
 };
 
+type CreatedDoctor = {
+  userId: string;
+  email: string;
+  name: string;
+  password: string;
+  specialization: string | null;
+};
+
+const SPECIALIZATIONS = [
+  'Терапевт', 'Педиатр', 'Кардиолог', 'Невролог', 'Хирург',
+  'Гинеколог', 'Уролог', 'Офтальмолог', 'Оториноларинголог (ЛОР)',
+  'Стоматолог', 'Дерматолог', 'Эндокринолог', 'Онколог',
+  'Ортопед-травматолог', 'Гастроэнтеролог', 'Психиатр',
+  'Пульмонолог', 'Нефролог', 'Аллерголог', 'Ревматолог',
+  'Инфекционист', 'Анестезиолог', 'Радиолог', 'Другое',
+];
+
 export default function AivitaDoctorsPage() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
@@ -53,6 +70,12 @@ export default function AivitaDoctorsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [rejectDialog, setRejectDialog] = useState<{ userId: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Create doctor dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: '', email: '', phone: '', specialization: '' });
+  const [createdDoctor, setCreatedDoctor] = useState<CreatedDoctor | null>(null);
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['aivita-doctors', page, search, statusFilter],
@@ -82,6 +105,41 @@ export default function AivitaDoctorsPage() {
     },
     onError: () => toast.error('Ошибка'),
   });
+
+  const createDoctorMutation = useMutation({
+    mutationFn: (data: { name: string; email: string; phone?: string; specialization?: string }) =>
+      api.post<{ data: CreatedDoctor }>('/v1/aivita-admin/aivita-doctors', data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['aivita-doctors'] });
+      setCreatedDoctor(res.data);
+      setCreateForm({ name: '', email: '', phone: '', specialization: '' });
+      toast.success('✅ Врач создан');
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { message?: string })?.message ?? '';
+      if (msg.includes('email_taken')) toast.error('Email уже занят');
+      else toast.error('Ошибка создания врача');
+    },
+  });
+
+  function handleCreateSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!createForm.name.trim() || !createForm.email.trim()) return;
+    createDoctorMutation.mutate({
+      name: createForm.name.trim(),
+      email: createForm.email.trim(),
+      phone: createForm.phone.trim() || undefined,
+      specialization: createForm.specialization || undefined,
+    });
+  }
+
+  function copyPassword() {
+    if (!createdDoctor) return;
+    navigator.clipboard.writeText(createdDoctor.password).then(() => {
+      setPasswordCopied(true);
+      setTimeout(() => setPasswordCopied(false), 2000);
+    });
+  }
 
   const columns: ColumnDef<AivitaDoctor>[] = [
     {
@@ -187,9 +245,15 @@ export default function AivitaDoctorsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Врачи AIVITA</h1>
-        <p className="text-muted-foreground">Верификация документов и управление каталогом</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Врачи AIVITA</h1>
+          <p className="text-muted-foreground">Верификация документов и управление каталогом</p>
+        </div>
+        <Button onClick={() => { setCreateOpen(true); setCreatedDoctor(null); }} className="shrink-0">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Добавить врача
+        </Button>
       </div>
 
       {/* Filters */}
@@ -254,6 +318,118 @@ export default function AivitaDoctorsPage() {
               Отклонить
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create doctor dialog */}
+      <Dialog open={createOpen} onOpenChange={open => { if (!open) { setCreateOpen(false); setCreatedDoctor(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Добавить врача</DialogTitle>
+            <DialogDescription>
+              Создать аккаунт врача. Пароль будет сгенерирован автоматически.
+            </DialogDescription>
+          </DialogHeader>
+
+          {createdDoctor ? (
+            /* Success state */
+            <div className="space-y-4">
+              <div className="rounded-lg bg-green-50 border border-green-200 p-4 space-y-2">
+                <p className="text-sm font-semibold text-green-700">✅ Врач успешно создан</p>
+                <div className="text-sm space-y-1">
+                  <p><span className="text-muted-foreground">Имя:</span> {createdDoctor.name}</p>
+                  <p><span className="text-muted-foreground">Email:</span> {createdDoctor.email}</p>
+                  {createdDoctor.specialization && (
+                    <p><span className="text-muted-foreground">Специализация:</span> {createdDoctor.specialization}</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Сгенерированный пароль</Label>
+                <div className="flex gap-2">
+                  <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono">
+                    {createdDoctor.password}
+                  </code>
+                  <Button size="icon" variant="outline" onClick={copyPassword}>
+                    {passwordCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Сохраните пароль — он будет показан только один раз.
+                </p>
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => { setCreateOpen(false); setCreatedDoctor(null); }}
+              >
+                Закрыть
+              </Button>
+            </div>
+          ) : (
+            /* Form state */
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="create-name">ФИО *</Label>
+                <Input
+                  id="create-name"
+                  value={createForm.name}
+                  onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Иванов Иван Иванович"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-email">Email *</Label>
+                <Input
+                  id="create-email"
+                  type="email"
+                  value={createForm.email}
+                  onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="doctor@example.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-phone">Телефон</Label>
+                <Input
+                  id="create-phone"
+                  type="tel"
+                  value={createForm.phone}
+                  onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="+998 90 000 00 00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-spec">Специализация</Label>
+                <select
+                  id="create-spec"
+                  value={createForm.specialization}
+                  onChange={e => setCreateForm(f => ({ ...f, specialization: e.target.value }))}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Выберите специализацию</option>
+                  {SPECIALIZATIONS.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Пароль будет сгенерирован автоматически. Email считается подтверждённым.
+              </p>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setCreateOpen(false)}>
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={!createForm.name.trim() || !createForm.email.trim() || createDoctorMutation.isPending}
+                >
+                  {createDoctorMutation.isPending ? 'Создаём...' : 'Создать'}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1438,6 +1438,25 @@ h1 .gradient {
   <img src="assets/aivita-robot-cutout.png" alt="AIVITA — AI-доктор" />
 </div>
 
+<!-- ===== DOCTOR — join as a doctor ===== -->
+<section class="doctor-section reveal">
+  <div class="content">
+    <div class="tag" data-i18n="doctor.tag">🩺 Врачам</div>
+    <h2 data-i18n="doctor.h2">Зарабатывайте с AIVITA</h2>
+    <p data-i18n="doctor.p">Присоединяйтесь к платформе. Пациенты найдут вас, а AI поможет с диагностикой.</p>
+    <div class="doctor-perks">
+      <div class="doctor-perk"><div class="ic">👥</div><span data-i18n="doctor.perk1">Пациенты из каталога</span></div>
+      <div class="doctor-perk"><div class="ic">💬</div><span data-i18n="doctor.perk2">Чат с назначениями</span></div>
+      <div class="doctor-perk"><div class="ic">🤖</div><span data-i18n="doctor.perk3">AI-ассистент врача</span></div>
+      <div class="doctor-perk"><div class="ic">💰</div><span data-i18n="doctor.perk4">Выплаты каждую пятницу</span></div>
+    </div>
+    <div class="doctor-cta">
+      <a href="#" id="doctorBtn1" class="btn-doctor" data-i18n="doctor.btn1">Стать врачом AIVITA →</a>
+      <a href="/about.html#doctors" class="btn-doctor-ghost" data-i18n="doctor.btn2">Подробнее</a>
+    </div>
+  </div>
+</section>
+
 <!-- ===== MANAGE — call to action ===== -->
 <section class="manage-section reveal">
   <div class="manage-card">
@@ -1991,7 +2010,9 @@ function applyConfig(cfg) {
   const fp = document.getElementById('footerPricing');
   if (fp) fp.href = '/pricing.html';
   const fd = document.getElementById('footerDoctors');
-  if (fd) fd.href = appUrl + '/ru/doctor-settings/partnership';
+  if (fd) fd.href = appUrl + '/ru/doctor-sign-up';
+  const doctorBtn1 = document.getElementById('doctorBtn1');
+  if (doctorBtn1) doctorBtn1.href = appUrl + '/ru/doctor-sign-up';
 
   // Wait-list toggle
   if (cfg.waitlist_enabled === false) {
