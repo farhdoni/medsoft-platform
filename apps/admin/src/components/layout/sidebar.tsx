@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
   Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
+  Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -34,6 +35,20 @@ const baseNavItems = [
   { href: '/aivita/billing', label: 'Биллинг', icon: Wallet, section: 'aivita' },
   { href: '/aivita/home-settings', label: 'Главная страница', icon: Settings2, section: 'aivita' },
   { href: '/aivita/notifications', label: 'Уведомления', icon: Bell, section: 'aivita' },
+  // ── МАРКЕТИНГ ──
+  { href: '/marketing/email', label: 'Email рассылки', icon: Mail, section: 'marketing' },
+  { href: '/marketing/push', label: 'Push уведомления', icon: MessageSquare, section: 'marketing' },
+  { href: '/marketing/referrals', label: 'Реферальная', icon: Share2, section: 'marketing' },
+  { href: '/marketing/analytics', label: 'Аналитика', icon: BarChart2, section: 'marketing' },
+  // ── КОНТЕНТ ──
+  { href: '/content/landing', label: 'Лендинг', icon: Globe, section: 'content' },
+  { href: '/content/social', label: 'Соцсети', icon: Link2, section: 'content' },
+  { href: '/content/faq', label: 'FAQ', icon: HelpCircle, section: 'content' },
+  // ── БЕЗОПАСНОСТЬ ──
+  { href: '/security/auth-logs', label: 'Журнал входов', icon: Activity, section: 'security' },
+  { href: '/security/blocked-ips', label: 'Блокировки IP', icon: Ban, section: 'security' },
+  // ── ОТЧЁТЫ ──
+  { href: '/reports', label: 'Отчёты', icon: FileText, section: 'reports' },
   // ── НАСТРОЙКИ ──
   { href: '/settings/roles', label: 'Роли', icon: Shield, section: 'settings' },
   { href: '/settings/team', label: 'Команда', icon: UsersRound, section: 'settings' },
@@ -60,6 +75,10 @@ export function Sidebar() {
   const sectionLabels: Record<string, string> = {
     aivita: 'AIVITA',
     users: 'ПОЛЬЗОВАТЕЛИ',
+    marketing: 'МАРКЕТИНГ',
+    content: 'КОНТЕНТ',
+    security: 'БЕЗОПАСНОСТЬ',
+    reports: 'ОТЧЁТЫ',
     settings: 'НАСТРОЙКИ',
   };
 

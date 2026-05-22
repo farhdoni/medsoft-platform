@@ -1,28 +1,66 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { db } from '@medsoft/db';
-import { adminUsers, adminSessions } from '@medsoft/db';
-import { eq, and, gt, isNull } from 'drizzle-orm';
+import { adminUsers, adminSessions, authLogs, blockedIps } from '@medsoft/db';
+import { eq, and, gt, isNull, or } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
+import speakeasy from 'speakeasy';
 import { signAccessToken, signRefreshToken, verifyToken } from '../lib/jwt.js';
 import { requireAuth } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import { env } from '../env.js';
 import { loginSchema, changePasswordSchema } from '@medsoft/shared';
 
+async function isIpBlocked(ip: string): Promise<boolean> {
+  const now = new Date();
+  const rows = await db.select().from(blockedIps)
+    .where(
+      and(
+        eq(blockedIps.ip, ip),
+        or(isNull(blockedIps.expiresAt), gt(blockedIps.expiresAt, now)),
+      )
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
+async function logAuthAttempt(opts: {
+  userId?: string;
+  email: string;
+  ip: string | null;
+  userAgent: string | null;
+  status: 'success' | 'failed';
+}) {
+  await db.insert(authLogs).values({
+    userId: opts.userId ?? null,
+    email: opts.email,
+    ip: opts.ip ?? null,
+    userAgent: opts.userAgent ?? null,
+    status: opts.status,
+  }).catch(() => {}); // non-fatal
+}
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 
 const auth = new Hono();
 
-// POST /v1/auth/login — email + password
+// POST /v1/auth/login — email + password (+ optional TOTP)
 auth.post('/login',
   rateLimit('admin-login', 50, 300),
-  zValidator('json', loginSchema),
+  zValidator('json', loginSchema.extend({ totpCode: z.string().length(6).optional() })),
   async (c) => {
-    const { email, password } = c.req.valid('json');
+    const { email, password, totpCode } = c.req.valid('json') as { email: string; password: string; totpCode?: string };
+    const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? c.req.header('x-real-ip') ?? null;
+    const userAgent = c.req.header('user-agent') ?? null;
+
+    // Check IP block
+    if (ip && await isIpBlocked(ip)) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
 
     const admin = await db.query.adminUsers.findFirst({
       where: eq(adminUsers.email, email.toLowerCase().trim()),
@@ -30,6 +68,7 @@ auth.post('/login',
 
     // Do not reveal whether the user exists
     if (!admin) {
+      await logAuthAttempt({ email, ip, userAgent, status: 'failed' });
       return c.json({ error: 'Invalid credentials' }, 401);
     }
 
@@ -62,19 +101,48 @@ auth.post('/login',
         .set({ failedLoginAttempts: attempts, lockedUntil })
         .where(eq(adminUsers.id, admin.id));
 
+      await logAuthAttempt({ userId: admin.id, email, ip, userAgent, status: 'failed' });
+
+      // Auto-block IP after 10 failures in short period
+      if (attempts >= 10 && ip) {
+        await db.insert(blockedIps)
+          .values({
+            ip,
+            reason: 'Auto-blocked: too many failed login attempts',
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+          })
+          .onConflictDoNothing();
+      }
+
       return c.json({ error: 'Invalid credentials' }, 401);
     }
 
+    // ✅ Password OK — check 2FA if enabled
+    if (admin.totpSecret && admin.totpActivatedAt) {
+      if (!totpCode) {
+        return c.json({ requires2fa: true }, 200);
+      }
+      const totpValid = speakeasy.totp.verify({
+        secret: admin.totpSecret,
+        encoding: 'base32',
+        token: totpCode,
+        window: 1,
+      });
+      if (!totpValid) {
+        await logAuthAttempt({ userId: admin.id, email, ip, userAgent, status: 'failed' });
+        return c.json({ error: 'Invalid 2FA code' }, 401);
+      }
+    }
+
     // ✅ Credentials OK — reset failed counter
-    const ip = c.req.header('x-forwarded-for') ?? null;
-    const userAgent = c.req.header('user-agent') ?? null;
+    await logAuthAttempt({ userId: admin.id, email, ip, userAgent, status: 'success' });
 
     await db.update(adminUsers)
       .set({
         failedLoginAttempts: 0,
         lockedUntil: null,
         lastLoginAt: new Date(),
-        lastLoginIp: ip,
+        lastLoginIp: ip ?? undefined,
       })
       .where(eq(adminUsers.id, admin.id));
 
@@ -245,5 +313,94 @@ auth.post('/change-password',
     return c.json({ ok: true });
   },
 );
+
+// POST /v1/auth/2fa/setup — generate TOTP secret
+auth.post('/2fa/setup', requireAuth, async (c) => {
+  const adminId = c.get('adminId');
+  const admin = await db.query.adminUsers.findFirst({ where: eq(adminUsers.id, adminId) });
+  if (!admin) return c.json({ error: 'Not found' }, 404);
+
+  const secret = speakeasy.generateSecret({
+    length: 20,
+    name: `Aivita Admin (${admin.email})`,
+    issuer: 'Aivita',
+  });
+
+  // Store the temp secret (not yet activated)
+  await db.update(adminUsers)
+    .set({ totpSecret: secret.base32 })
+    .where(eq(adminUsers.id, adminId));
+
+  return c.json({
+    secret: secret.base32,
+    otpauthUrl: secret.otpauth_url,
+  });
+});
+
+// POST /v1/auth/2fa/confirm — verify code and activate 2FA
+auth.post('/2fa/confirm',
+  requireAuth,
+  zValidator('json', z.object({ token: z.string().length(6) })),
+  async (c) => {
+    const adminId = c.get('adminId');
+    const { token } = c.req.valid('json');
+
+    const admin = await db.query.adminUsers.findFirst({ where: eq(adminUsers.id, adminId) });
+    if (!admin?.totpSecret) return c.json({ error: '2FA setup not initiated' }, 400);
+
+    const valid = speakeasy.totp.verify({
+      secret: admin.totpSecret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+    if (!valid) return c.json({ error: 'Invalid code' }, 400);
+
+    await db.update(adminUsers)
+      .set({ totpActivatedAt: new Date() })
+      .where(eq(adminUsers.id, adminId));
+
+    return c.json({ ok: true, message: '2FA activated' });
+  }
+);
+
+// POST /v1/auth/2fa/disable — disable 2FA
+auth.post('/2fa/disable',
+  requireAuth,
+  zValidator('json', z.object({ token: z.string().length(6) })),
+  async (c) => {
+    const adminId = c.get('adminId');
+    const { token } = c.req.valid('json');
+
+    const admin = await db.query.adminUsers.findFirst({ where: eq(adminUsers.id, adminId) });
+    if (!admin?.totpSecret || !admin.totpActivatedAt) {
+      return c.json({ error: '2FA is not enabled' }, 400);
+    }
+
+    const valid = speakeasy.totp.verify({
+      secret: admin.totpSecret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+    if (!valid) return c.json({ error: 'Invalid code' }, 400);
+
+    await db.update(adminUsers)
+      .set({ totpSecret: null, totpActivatedAt: null })
+      .where(eq(adminUsers.id, adminId));
+
+    return c.json({ ok: true, message: '2FA disabled' });
+  }
+);
+
+// GET /v1/auth/2fa/status
+auth.get('/2fa/status', requireAuth, async (c) => {
+  const adminId = c.get('adminId');
+  const admin = await db.query.adminUsers.findFirst({
+    where: eq(adminUsers.id, adminId),
+    columns: { totpActivatedAt: true },
+  });
+  return c.json({ enabled: !!(admin?.totpActivatedAt) });
+});
 
 export { auth };

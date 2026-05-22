@@ -15,3 +15,6 @@ export * from './landing';
 export * from './pharmacy';
 export * from './payments';
 export * from './ai-usage-logs';
+export * from './marketing';
+export * from './content';
+export * from './security';

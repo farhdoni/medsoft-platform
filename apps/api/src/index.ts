@@ -71,6 +71,10 @@ import { videoCallRouter } from './routes/aivita/video-call.js';
 import { adminDashboardRouter } from './routes/admin/dashboard.js';
 import { adminUsersRouter } from './routes/admin/users.js';
 import { aiSettingsRouter, aiUsageRouter } from './routes/admin/ai.js';
+import { adminMarketingRouter } from './routes/admin/marketing.js';
+import { adminContentRouter, publicFaqRouter } from './routes/admin/content.js';
+import { adminSecurityRouter } from './routes/admin/security.js';
+import { adminReportsRouter } from './routes/admin/reports.js';
 import { adminFinanceRouter } from './routes/admin/finance.js';
 import { platformSettingsRouter } from './routes/admin/platform-settings.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
@@ -180,6 +184,11 @@ app.route('/v1/admin/payouts', adminPayoutsRouter);
 app.route('/v1/admin/settings/platform', platformSettingsRouter);
 app.route('/v1/admin/settings/ai', aiSettingsRouter);
 app.route('/v1/admin/ai', aiUsageRouter);
+app.route('/v1/admin/marketing', adminMarketingRouter);
+app.route('/v1/admin/content', adminContentRouter);
+app.route('/v1/admin/security', adminSecurityRouter);
+app.route('/v1/admin/reports', adminReportsRouter);
+app.route('/v1/aivita/faq', publicFaqRouter);
 app.route('/v1/admin/notifications', adminNotificationsRouter);
 
 app.onError((err, c) => {
