@@ -77,6 +77,13 @@ import { adminSecurityRouter } from './routes/admin/security.js';
 import { adminReportsRouter } from './routes/admin/reports.js';
 import { adminFinanceRouter } from './routes/admin/finance.js';
 import { platformSettingsRouter } from './routes/admin/platform-settings.js';
+import {
+  adminGeneralSettingsRouter,
+  adminPaymentSettingsRouter,
+  adminSmsSettingsRouter,
+  adminEmailSettingsRouter,
+} from './routes/admin/settings.js';
+import { adminSystemRouter } from './routes/admin/system.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminNotificationsRouter } from './routes/admin/notifications.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
@@ -183,6 +190,11 @@ app.route('/v1/admin/finance', adminFinanceRouter);
 app.route('/v1/admin/payouts', adminPayoutsRouter);
 app.route('/v1/admin/settings/platform', platformSettingsRouter);
 app.route('/v1/admin/settings/ai', aiSettingsRouter);
+app.route('/v1/admin/settings/general', adminGeneralSettingsRouter);
+app.route('/v1/admin/settings/payments', adminPaymentSettingsRouter);
+app.route('/v1/admin/settings/sms', adminSmsSettingsRouter);
+app.route('/v1/admin/settings/email', adminEmailSettingsRouter);
+app.route('/v1/admin/system', adminSystemRouter);
 app.route('/v1/admin/ai', aiUsageRouter);
 app.route('/v1/admin/marketing', adminMarketingRouter);
 app.route('/v1/admin/content', adminContentRouter);

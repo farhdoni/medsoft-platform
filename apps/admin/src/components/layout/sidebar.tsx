@@ -7,6 +7,7 @@ import {
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
   Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
   Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
+  Pill, FlaskConical, MessageCircle, AtSign, Globe2, Database, ScrollText, Settings,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -35,6 +36,10 @@ const baseNavItems = [
   { href: '/aivita/billing', label: 'Биллинг', icon: Wallet, section: 'aivita' },
   { href: '/aivita/home-settings', label: 'Главная страница', icon: Settings2, section: 'aivita' },
   { href: '/aivita/notifications', label: 'Уведомления', icon: Bell, section: 'aivita' },
+  // ── ПАРТНЁРЫ ──
+  { href: '/partners/pharmacies', label: 'Аптеки', icon: Pill, section: 'partners' },
+  { href: '/partners/labs', label: 'Лаборатории', icon: FlaskConical, section: 'partners' },
+  { href: '/partners/clinics', label: 'Клиники', icon: Building2, section: 'partners' },
   // ── МАРКЕТИНГ ──
   { href: '/marketing/email', label: 'Email рассылки', icon: Mail, section: 'marketing' },
   { href: '/marketing/push', label: 'Push уведомления', icon: MessageSquare, section: 'marketing' },
@@ -49,6 +54,14 @@ const baseNavItems = [
   { href: '/security/blocked-ips', label: 'Блокировки IP', icon: Ban, section: 'security' },
   // ── ОТЧЁТЫ ──
   { href: '/reports', label: 'Отчёты', icon: FileText, section: 'reports' },
+  // ── СИСТЕМА ──
+  { href: '/settings/general', label: 'Общие', icon: Settings, section: 'system' },
+  { href: '/settings/payments', label: 'Платежи', icon: CreditCard, section: 'system' },
+  { href: '/settings/sms', label: 'SMS', icon: MessageCircle, section: 'system' },
+  { href: '/settings/email', label: 'Email', icon: AtSign, section: 'system' },
+  { href: '/settings/domains', label: 'Домены', icon: Globe2, section: 'system' },
+  { href: '/settings/backups', label: 'Бэкапы', icon: Database, section: 'system' },
+  { href: '/settings/logs', label: 'Логи', icon: ScrollText, section: 'system' },
   // ── НАСТРОЙКИ ──
   { href: '/settings/roles', label: 'Роли', icon: Shield, section: 'settings' },
   { href: '/settings/team', label: 'Команда', icon: UsersRound, section: 'settings' },
@@ -75,10 +88,12 @@ export function Sidebar() {
   const sectionLabels: Record<string, string> = {
     aivita: 'AIVITA',
     users: 'ПОЛЬЗОВАТЕЛИ',
+    partners: 'ПАРТНЁРЫ',
     marketing: 'МАРКЕТИНГ',
     content: 'КОНТЕНТ',
     security: 'БЕЗОПАСНОСТЬ',
     reports: 'ОТЧЁТЫ',
+    system: 'СИСТЕМА',
     settings: 'НАСТРОЙКИ',
   };
 
