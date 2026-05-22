@@ -27,58 +27,57 @@ type AdminMe = {
   avatarUrl?: string | null;
 };
 
+// All nav items — section:'main' = top collapsible group
 const baseNavItems = [
-  { href: '/dashboard',             labelKey: 'dashboard' as const,    icon: LayoutDashboard, section: null },
-  { href: '/patients',              labelKey: 'patients' as const,     icon: Users,           section: null },
-  { href: '/doctors',               labelKey: 'doctors' as const,      icon: Stethoscope,     section: null },
-  { href: '/clinics',               labelKey: 'clinics' as const,      icon: Building2,       section: null },
-  { href: '/appointments',          labelKey: 'appointments' as const, icon: Calendar,        section: null },
-  { href: '/transactions',          labelKey: 'transactions' as const, icon: CreditCard,      section: null },
-  { href: '/finance',               labelKey: 'finance' as const,      icon: Banknote,        section: null },
-  { href: '/sos-calls',             labelKey: 'sosCalls' as const,     icon: AlertTriangle,   section: null },
-  { href: '/monitoring',            labelKey: 'monitoring' as const,   icon: Server,          section: null },
-  { href: '/cms',                   labelKey: 'cms' as const,          icon: Globe,           section: null },
+  { href: '/dashboard',            labelKey: 'dashboard',    icon: LayoutDashboard, section: 'main' },
+  { href: '/patients',             labelKey: 'patients',     icon: Users,           section: 'main' },
+  { href: '/doctors',              labelKey: 'doctors',      icon: Stethoscope,     section: 'main' },
+  { href: '/clinics',              labelKey: 'clinics',      icon: Building2,       section: 'main' },
+  { href: '/appointments',         labelKey: 'appointments', icon: Calendar,        section: 'main' },
+  { href: '/transactions',         labelKey: 'transactions', icon: CreditCard,      section: 'main' },
+  { href: '/finance',              labelKey: 'finance',      icon: Banknote,        section: 'main' },
+  { href: '/sos-calls',            labelKey: 'sosCalls',     icon: AlertTriangle,   section: 'main' },
+  { href: '/monitoring',           labelKey: 'monitoring',   icon: Server,          section: 'main' },
+  { href: '/cms',                  labelKey: 'cms',          icon: Globe,           section: 'main' },
   // ── ПОЛЬЗОВАТЕЛИ ──
-  { href: '/users/patients',        label: 'Пациенты (Aivita)', icon: Users,           section: 'users' },
-  { href: '/users/doctors',         label: 'Врачи (Aivita)',    icon: Stethoscope,     section: 'users' },
+  { href: '/users/patients',       label: 'Пациенты (Aivita)', icon: Users,         section: 'users' },
+  { href: '/users/doctors',        label: 'Врачи (Aivita)',    icon: Stethoscope,   section: 'users' },
   // ── AIVITA ──
-  { href: '/aivita/doctors',        label: 'Врачи AIVITA',      icon: UserCheck,       section: 'aivita' },
-  { href: '/aivita/billing',        label: 'Биллинг',           icon: Wallet,          section: 'aivita' },
-  { href: '/aivita/home-settings',  label: 'Главная страница',  icon: Settings2,       section: 'aivita' },
-  { href: '/aivita/notifications',  label: 'Уведомления',       icon: Bell,            section: 'aivita' },
+  { href: '/aivita/doctors',       label: 'Врачи AIVITA',      icon: UserCheck,     section: 'aivita' },
+  { href: '/aivita/billing',       label: 'Биллинг',           icon: Wallet,        section: 'aivita' },
+  { href: '/aivita/home-settings', label: 'Главная страница',  icon: Settings2,     section: 'aivita' },
+  { href: '/aivita/notifications', label: 'Уведомления',       icon: Bell,          section: 'aivita' },
   // ── ПАРТНЁРЫ ──
-  { href: '/partners/pharmacies',   label: 'Аптеки',            icon: Pill,            section: 'partners' },
-  { href: '/partners/labs',         label: 'Лаборатории',       icon: FlaskConical,    section: 'partners' },
-  { href: '/partners/clinics',      label: 'Клиники',           icon: Building2,       section: 'partners' },
+  { href: '/partners/pharmacies',  label: 'Аптеки',            icon: Pill,          section: 'partners' },
+  { href: '/partners/labs',        label: 'Лаборатории',       icon: FlaskConical,  section: 'partners' },
+  { href: '/partners/clinics',     label: 'Клиники',           icon: Building2,     section: 'partners' },
   // ── МАРКЕТИНГ ──
-  { href: '/marketing/email',       label: 'Email рассылки',    icon: Mail,            section: 'marketing' },
-  { href: '/marketing/push',        label: 'Push уведомления',  icon: MessageSquare,   section: 'marketing' },
-  { href: '/marketing/referrals',   label: 'Реферальная',       icon: Share2,          section: 'marketing' },
-  { href: '/marketing/analytics',   label: 'Аналитика',         icon: BarChart2,       section: 'marketing' },
+  { href: '/marketing/email',      label: 'Email рассылки',    icon: Mail,          section: 'marketing' },
+  { href: '/marketing/push',       label: 'Push уведомления',  icon: MessageSquare, section: 'marketing' },
+  { href: '/marketing/referrals',  label: 'Реферальная',       icon: Share2,        section: 'marketing' },
+  { href: '/marketing/analytics',  label: 'Аналитика',         icon: BarChart2,     section: 'marketing' },
   // ── КОНТЕНТ ──
-  { href: '/content/landing',       label: 'Лендинг',           icon: Globe,           section: 'content' },
-  { href: '/content/social',        label: 'Соцсети',           icon: Link2,           section: 'content' },
-  { href: '/content/faq',           label: 'FAQ',               icon: HelpCircle,      section: 'content' },
+  { href: '/content/landing',      label: 'Лендинг',           icon: Globe,         section: 'content' },
+  { href: '/content/social',       label: 'Соцсети',           icon: Link2,         section: 'content' },
+  { href: '/content/faq',          label: 'FAQ',               icon: HelpCircle,    section: 'content' },
   // ── БЕЗОПАСНОСТЬ ──
-  { href: '/security/auth-logs',    label: 'Журнал входов',     icon: Activity,        section: 'security' },
-  { href: '/security/blocked-ips',  label: 'Блокировки IP',     icon: Ban,             section: 'security' },
+  { href: '/security/auth-logs',   label: 'Журнал входов',     icon: Activity,      section: 'security' },
+  { href: '/security/blocked-ips', label: 'Блокировки IP',     icon: Ban,           section: 'security' },
   // ── ОТЧЁТЫ ──
-  { href: '/reports',               label: 'Отчёты',            icon: FileText,        section: 'reports' },
+  { href: '/reports',              label: 'Отчёты',            icon: FileText,      section: 'reports' },
   // ── СИСТЕМА ──
-  { href: '/settings/general',      label: 'Общие',             icon: Settings,        section: 'system' },
-  { href: '/settings/payments',     label: 'Платежи',           icon: CreditCard,      section: 'system' },
-  { href: '/settings/sms',          label: 'SMS',               icon: MessageCircle,   section: 'system' },
-  { href: '/settings/email',        label: 'Email',             icon: AtSign,          section: 'system' },
-  { href: '/settings/domains',      label: 'Домены',            icon: Globe2,          section: 'system' },
-  { href: '/settings/backups',      label: 'Бэкапы',            icon: Database,        section: 'system' },
-  { href: '/settings/logs',         label: 'Логи',              icon: ScrollText,      section: 'system' },
+  { href: '/settings/general',     label: 'Общие',             icon: Settings,      section: 'system' },
+  { href: '/settings/payments',    label: 'Платежи',           icon: CreditCard,    section: 'system' },
+  { href: '/settings/sms',         label: 'SMS',               icon: MessageCircle, section: 'system' },
+  { href: '/settings/email',       label: 'Email',             icon: AtSign,        section: 'system' },
+  { href: '/settings/domains',     label: 'Домены',            icon: Globe2,        section: 'system' },
+  { href: '/settings/backups',     label: 'Бэкапы',            icon: Database,      section: 'system' },
+  { href: '/settings/logs',        label: 'Логи',              icon: ScrollText,    section: 'system' },
   // ── НАСТРОЙКИ ──
-  { href: '/settings/roles',        label: 'Роли',              icon: Shield,          section: 'settings' },
-  { href: '/settings/team',         label: 'Команда',           icon: UsersRound,      section: 'settings' },
-  { href: '/settings/ai',           label: 'AI настройки',      icon: BrainCircuit,    section: 'settings' },
-] as const;
-
-type NavItem = typeof baseNavItems[number];
+  { href: '/settings/roles',       label: 'Роли',              icon: Shield,        section: 'settings' },
+  { href: '/settings/team',        label: 'Команда',           icon: UsersRound,    section: 'settings' },
+  { href: '/settings/ai',          label: 'AI настройки',      icon: BrainCircuit,  section: 'settings' },
+] as { href: string; label?: string; labelKey?: string; icon: React.ElementType; section: string }[];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';
 
@@ -100,11 +99,9 @@ export function Sidebar() {
   const router = useRouter();
   const { t } = useI18n();
 
-  // Which sections are collapsed — persisted in localStorage
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [hydrated, setHydrated] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -116,8 +113,8 @@ export function Sidebar() {
   // Auto-expand section that has the active page
   useEffect(() => {
     if (!pathname) return;
-    const activeSection = baseNavItems.find(
-      (item) => item.section && (pathname === item.href || pathname.startsWith(item.href + '/')),
+    const activeSection = navItems.find(
+      (item) => pathname === item.href || pathname.startsWith(item.href + '/'),
     )?.section;
     if (activeSection && collapsed[activeSection]) {
       toggleSection(activeSection);
@@ -133,22 +130,16 @@ export function Sidebar() {
     });
   }
 
+  // ✅ Correct endpoint: /v1/auth/me
   const { data: me } = useQuery<AdminMe>({
     queryKey: ['admin-me'],
-    queryFn: () => api.get('/v1/admins/me'),
+    queryFn: () => api.get('/v1/auth/me'),
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
 
-  // nav label helper
-  function getLabel(item: NavItem): string {
-    if ('labelKey' in item) {
-      return (t.nav as Record<string, string>)[item.labelKey] ?? item.labelKey;
-    }
-    return (item as { label: string }).label;
-  }
-
   const sectionLabels: Record<string, string> = {
+    main:      'ОСНОВНОЕ',
     aivita:    t.sections.aivita,
     users:     t.sections.users,
     partners:  t.sections.partners,
@@ -160,14 +151,22 @@ export function Sidebar() {
     settings:  t.sections.settings,
   };
 
-  const topNavItems = [
-    ...baseNavItems.filter((item) => item.section === null),
+  // Add /admins for superadmin
+  const navItems = [
+    ...baseNavItems,
     ...(me?.role === 'superadmin'
-      ? [{ href: '/admins', labelKey: 'admins' as const, icon: Shield, section: null as null }]
+      ? [{ href: '/admins', labelKey: 'admins', icon: Shield, section: 'main' }]
       : []),
   ];
 
-  const sections = Object.keys(sectionLabels);
+  const sections = ['main', 'users', 'aivita', 'partners', 'marketing', 'content', 'security', 'reports', 'system', 'settings'];
+
+  function getLabel(item: { label?: string; labelKey?: string }): string {
+    if (item.labelKey) {
+      return (t.nav as Record<string, string>)[item.labelKey] ?? item.labelKey;
+    }
+    return item.label ?? '';
+  }
 
   async function handleLogout() {
     await api.post('/v1/auth/logout').catch(() => {});
@@ -183,32 +182,8 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-        {/* Top-level items (no section) */}
-        {topNavItems.map((item) => {
-          const href = item.href;
-          const Icon = item.icon;
-          const label = getLabel(item as NavItem);
-          const isActive = pathname === href || (pathname?.startsWith(href + '/') ?? false);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-white/10 text-white'
-                  : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white',
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
-            </Link>
-          );
-        })}
-
-        {/* Sectioned items */}
         {sections.map((section) => {
-          const items = baseNavItems.filter((item) => item.section === section);
+          const items = navItems.filter((item) => item.section === section);
           if (!items.length) return null;
 
           const isCollapsed = hydrated && !!collapsed[section];
@@ -217,8 +192,8 @@ export function Sidebar() {
           );
 
           return (
-            <div key={section} className="pt-2">
-              {/* Section header — clickable */}
+            <div key={section} className={section !== 'main' ? 'pt-2' : undefined}>
+              {/* Section header */}
               <button
                 type="button"
                 onClick={() => toggleSection(section)}
@@ -243,18 +218,17 @@ export function Sidebar() {
               <div
                 className={cn(
                   'overflow-hidden transition-all duration-200',
-                  isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[600px] opacity-100',
+                  isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[800px] opacity-100',
                 )}
               >
                 <div className="space-y-0.5 pt-0.5">
                   {items.map((item) => {
-                    const { href, icon: Icon } = item;
-                    const label = getLabel(item as NavItem);
-                    const isActive = pathname === href || (pathname?.startsWith(href + '/') ?? false);
+                    const isActive = pathname === item.href || (pathname?.startsWith(item.href + '/') ?? false);
+                    const Icon = item.icon;
                     return (
                       <Link
-                        key={href}
-                        href={href}
+                        key={item.href}
+                        href={item.href}
                         className={cn(
                           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                           isActive
@@ -263,7 +237,7 @@ export function Sidebar() {
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
-                        {label}
+                        {getLabel(item)}
                       </Link>
                     );
                   })}
@@ -276,7 +250,6 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-3 border-t border-white/10 shrink-0 space-y-1">
-        {/* Account link */}
         {me && (
           <Link
             href="/account"
