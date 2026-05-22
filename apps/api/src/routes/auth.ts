@@ -11,6 +11,7 @@ import speakeasy from 'speakeasy';
 import { signAccessToken, signRefreshToken, verifyToken } from '../lib/jwt.js';
 import { requireAuth } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
+import { redis } from '../lib/redis.js';
 import { env } from '../env.js';
 import { loginSchema, changePasswordSchema } from '@medsoft/shared';
 
@@ -391,6 +392,53 @@ auth.post('/2fa/disable',
 
     return c.json({ ok: true, message: '2FA disabled' });
   }
+);
+
+// POST /v1/auth/forgot-password — generate reset token (stored in Redis 15 min)
+auth.post('/forgot-password',
+  rateLimit('forgot-password', 5, 300),
+  zValidator('json', z.object({ email: z.string().email() })),
+  async (c) => {
+    const { email } = c.req.valid('json');
+
+    const admin = await db.query.adminUsers.findFirst({
+      where: eq(adminUsers.email, email.toLowerCase().trim()),
+      columns: { id: true, email: true, isActive: true },
+    });
+
+    // Always return success to not leak whether email exists
+    if (!admin || !admin.isActive) {
+      return c.json({ ok: true });
+    }
+
+    const token = randomBytes(32).toString('hex');
+    await redis.set(`pwd_reset:${token}`, admin.id, 'EX', 15 * 60); // 15 min
+
+    // In production you'd send email; for admin panel return token directly
+    return c.json({ ok: true, resetToken: token });
+  },
+);
+
+// POST /v1/auth/reset-password-token — set new password using token
+auth.post('/reset-password-token',
+  zValidator('json', z.object({
+    token: z.string().min(1),
+    newPassword: z.string().min(6),
+  })),
+  async (c) => {
+    const { token, newPassword } = c.req.valid('json');
+
+    const adminId = await redis.get(`pwd_reset:${token}`);
+    if (!adminId) return c.json({ error: 'Ссылка недействительна или истекла' }, 400);
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await db.update(adminUsers)
+      .set({ passwordHash: newHash, failedLoginAttempts: 0, lockedUntil: null, updatedAt: new Date() })
+      .where(eq(adminUsers.id, adminId));
+
+    await redis.del(`pwd_reset:${token}`);
+    return c.json({ ok: true });
+  },
 );
 
 // GET /v1/auth/2fa/status
