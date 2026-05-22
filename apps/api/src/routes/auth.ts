@@ -282,6 +282,8 @@ auth.get('/me', requireAuth, async (c) => {
       isActive: true,
       lastLoginAt: true,
       createdAt: true,
+      avatarUrl: true,
+      locale: true,
     },
   });
   if (!admin) return c.json({ error: 'Not found' }, 404);
@@ -438,6 +440,33 @@ auth.post('/reset-password-token',
 
     await redis.del(`pwd_reset:${token}`);
     return c.json({ ok: true });
+  },
+);
+
+// PUT /v1/auth/profile — update name, avatar_url, locale
+auth.put('/profile',
+  requireAuth,
+  zValidator('json', z.object({
+    fullName:  z.string().min(2).optional(),
+    avatarUrl: z.string().url().or(z.literal('')).optional(),
+    locale:    z.enum(['ru', 'en', 'uz']).optional(),
+  })),
+  async (c) => {
+    const adminId = c.get('adminId');
+    const data = c.req.valid('json');
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (data.fullName  !== undefined) updates.fullName  = data.fullName;
+    if (data.avatarUrl !== undefined) updates.avatarUrl = data.avatarUrl || null;
+    if (data.locale    !== undefined) updates.locale    = data.locale;
+
+    await db.update(adminUsers).set(updates).where(eq(adminUsers.id, adminId));
+
+    const admin = await db.query.adminUsers.findFirst({
+      where: eq(adminUsers.id, adminId),
+      columns: { id: true, email: true, fullName: true, role: true, avatarUrl: true, locale: true },
+    });
+    return c.json(admin);
   },
 );
 

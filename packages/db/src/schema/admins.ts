@@ -23,6 +23,10 @@ export const adminUsers = pgTable('admin_users', {
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   lastLoginIp: text('last_login_ip'),
 
+  // Profile
+  avatarUrl: text('avatar_url'),
+  locale: varchar('locale', { length: 5 }).notNull().default('ru'),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

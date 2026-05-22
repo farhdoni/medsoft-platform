@@ -8,7 +8,7 @@ import {
   Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
   Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
   Pill, FlaskConical, MessageCircle, AtSign, Globe2, Database, ScrollText, Settings,
-  ChevronDown,
+  ChevronDown, User,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -16,20 +16,28 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
-type AdminMe = { id: string; email: string; fullName: string; role: string; isActive: boolean };
+type AdminMe = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  avatarUrl?: string | null;
+};
 
 const baseNavItems = [
-  { href: '/dashboard',             label: 'Дашборд',          icon: LayoutDashboard, section: null },
-  { href: '/patients',              label: 'Пациенты',          icon: Users,           section: null },
-  { href: '/doctors',               label: 'Врачи',             icon: Stethoscope,     section: null },
-  { href: '/clinics',               label: 'Клиники',           icon: Building2,       section: null },
-  { href: '/appointments',          label: 'Приёмы',            icon: Calendar,        section: null },
-  { href: '/transactions',          label: 'Транзакции',        icon: CreditCard,      section: null },
-  { href: '/finance',               label: 'Финансы',           icon: Banknote,        section: null },
-  { href: '/sos-calls',             label: 'SOS вызовы',        icon: AlertTriangle,   section: null },
-  { href: '/monitoring',            label: 'Мониторинг',        icon: Server,          section: null },
-  { href: '/cms',                   label: 'CMS лендинга',      icon: Globe,           section: null },
+  { href: '/dashboard',             labelKey: 'dashboard' as const,    icon: LayoutDashboard, section: null },
+  { href: '/patients',              labelKey: 'patients' as const,     icon: Users,           section: null },
+  { href: '/doctors',               labelKey: 'doctors' as const,      icon: Stethoscope,     section: null },
+  { href: '/clinics',               labelKey: 'clinics' as const,      icon: Building2,       section: null },
+  { href: '/appointments',          labelKey: 'appointments' as const, icon: Calendar,        section: null },
+  { href: '/transactions',          labelKey: 'transactions' as const, icon: CreditCard,      section: null },
+  { href: '/finance',               labelKey: 'finance' as const,      icon: Banknote,        section: null },
+  { href: '/sos-calls',             labelKey: 'sosCalls' as const,     icon: AlertTriangle,   section: null },
+  { href: '/monitoring',            labelKey: 'monitoring' as const,   icon: Server,          section: null },
+  { href: '/cms',                   labelKey: 'cms' as const,          icon: Globe,           section: null },
   // ── ПОЛЬЗОВАТЕЛИ ──
   { href: '/users/patients',        label: 'Пациенты (Aivita)', icon: Users,           section: 'users' },
   { href: '/users/doctors',         label: 'Врачи (Aivita)',    icon: Stethoscope,     section: 'users' },
@@ -68,26 +76,29 @@ const baseNavItems = [
   { href: '/settings/roles',        label: 'Роли',              icon: Shield,          section: 'settings' },
   { href: '/settings/team',         label: 'Команда',           icon: UsersRound,      section: 'settings' },
   { href: '/settings/ai',           label: 'AI настройки',      icon: BrainCircuit,    section: 'settings' },
-];
+] as const;
 
-const sectionLabels: Record<string, string> = {
-  aivita:    'AIVITA',
-  users:     'ПОЛЬЗОВАТЕЛИ',
-  partners:  'ПАРТНЁРЫ',
-  marketing: 'МАРКЕТИНГ',
-  content:   'КОНТЕНТ',
-  security:  'БЕЗОПАСНОСТЬ',
-  reports:   'ОТЧЁТЫ',
-  system:    'СИСТЕМА',
-  settings:  'НАСТРОЙКИ',
-};
+type NavItem = typeof baseNavItems[number];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';
+
+function MiniAvatar({ src, name }: { src?: string | null; name: string }) {
+  if (src) {
+    return <img src={src} alt={name} className="h-7 w-7 rounded-full object-cover ring-1 ring-white/20 shrink-0" />;
+  }
+  const initials = name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold ring-1 ring-white/20 shrink-0">
+      {initials || <User className="h-3.5 w-3.5" />}
+    </div>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { t } = useI18n();
 
   // Which sections are collapsed — persisted in localStorage
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -129,20 +140,39 @@ export function Sidebar() {
     retry: false,
   });
 
-  const navItems = [
-    ...baseNavItems,
+  // nav label helper
+  function getLabel(item: NavItem): string {
+    if ('labelKey' in item) {
+      return (t.nav as Record<string, string>)[item.labelKey] ?? item.labelKey;
+    }
+    return (item as { label: string }).label;
+  }
+
+  const sectionLabels: Record<string, string> = {
+    aivita:    t.sections.aivita,
+    users:     t.sections.users,
+    partners:  t.sections.partners,
+    marketing: t.sections.marketing,
+    content:   t.sections.content,
+    security:  t.sections.security,
+    reports:   t.sections.reports,
+    system:    t.sections.system,
+    settings:  t.sections.settings,
+  };
+
+  const topNavItems = [
+    ...baseNavItems.filter((item) => item.section === null),
     ...(me?.role === 'superadmin'
-      ? [{ href: '/admins', label: 'Админы', icon: Shield, section: null as null }]
+      ? [{ href: '/admins', labelKey: 'admins' as const, icon: Shield, section: null as null }]
       : []),
   ];
+
+  const sections = Object.keys(sectionLabels);
 
   async function handleLogout() {
     await api.post('/v1/auth/logout').catch(() => {});
     router.push('/auth/login');
   }
-
-  // Group: null-section items are rendered inline; sectioned items are grouped
-  const sections = Object.keys(sectionLabels);
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -154,15 +184,18 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
         {/* Top-level items (no section) */}
-        {navItems
-          .filter((item) => item.section === null)
-          .map(({ href, label, icon: Icon }) => (
+        {topNavItems.map((item) => {
+          const href = item.href;
+          const Icon = item.icon;
+          const label = getLabel(item as NavItem);
+          const isActive = pathname === href || (pathname?.startsWith(href + '/') ?? false);
+          return (
             <Link
               key={href}
               href={href}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname === href || (pathname?.startsWith(href + '/') ?? false)
+                isActive
                   ? 'bg-white/10 text-white'
                   : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white',
               )}
@@ -170,11 +203,12 @@ export function Sidebar() {
               <Icon className="h-4 w-4 shrink-0" />
               {label}
             </Link>
-          ))}
+          );
+        })}
 
         {/* Sectioned items */}
         {sections.map((section) => {
-          const items = navItems.filter((item) => item.section === section);
+          const items = baseNavItems.filter((item) => item.section === section);
           if (!items.length) return null;
 
           const isCollapsed = hydrated && !!collapsed[section];
@@ -213,21 +247,26 @@ export function Sidebar() {
                 )}
               >
                 <div className="space-y-0.5 pt-0.5">
-                  {items.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                        pathname === href || (pathname?.startsWith(href + '/') ?? false)
-                          ? 'bg-white/10 text-white'
-                          : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white',
-                      )}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      {label}
-                    </Link>
-                  ))}
+                  {items.map((item) => {
+                    const { href, icon: Icon } = item;
+                    const label = getLabel(item as NavItem);
+                    const isActive = pathname === href || (pathname?.startsWith(href + '/') ?? false);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-white/10 text-white'
+                            : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white',
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {label}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -236,13 +275,26 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-white/10 space-y-1 shrink-0">
+      <div className="p-3 border-t border-white/10 shrink-0 space-y-1">
+        {/* Account link */}
         {me && (
-          <div className="px-3 py-1.5 text-xs text-sidebar-foreground/50 truncate">
-            {me.fullName} · <span className="capitalize">{me.role}</span>
-          </div>
+          <Link
+            href="/account"
+            className={cn(
+              'flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors',
+              pathname === '/account'
+                ? 'bg-white/10 text-white'
+                : 'text-sidebar-foreground/70 hover:bg-white/5 hover:text-white',
+            )}
+          >
+            <MiniAvatar src={me.avatarUrl} name={me.fullName} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{me.fullName}</p>
+              <p className="text-[10px] text-sidebar-foreground/50 capitalize">{me.role}</p>
+            </div>
+          </Link>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           <Button
             variant="ghost"
             size="icon"
@@ -259,7 +311,7 @@ export function Sidebar() {
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Выйти
+            {t.nav.logout}
           </Button>
         </div>
       </div>
