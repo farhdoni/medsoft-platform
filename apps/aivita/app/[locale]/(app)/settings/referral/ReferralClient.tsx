@@ -5,8 +5,6 @@ import { Copy, Check, Share2, Users, Gift, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
-
 type Friend = {
   id: number;
   referredId: string;
@@ -34,7 +32,7 @@ export function ReferralClient() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/v1/aivita/referral/my`, { credentials: 'include' })
+    fetch('/api/proxy/referral/my')
       .then(r => r.json())
       .then(j => { setData(j.data ?? null); setLoading(false); })
       .catch(() => setLoading(false));
