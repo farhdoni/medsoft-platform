@@ -13,6 +13,12 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 export const adminSystemRouter = new Hono();
+
+// ─── GET /health — public system health check ─────────────────────────────────
+adminSystemRouter.get('/health', (c) => {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
+});
+
 adminSystemRouter.use('*', requireAuth);
 
 // Backup storage directory (relative to project root in Docker)

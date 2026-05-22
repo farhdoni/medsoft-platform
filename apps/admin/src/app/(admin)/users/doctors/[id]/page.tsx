@@ -95,7 +95,7 @@ function calcExperienceYears(experienceStartDate: string | null): string {
 
 export default function DoctorDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = (params?.id ?? '') as string;
   const router = useRouter();
   const qc = useQueryClient();
 

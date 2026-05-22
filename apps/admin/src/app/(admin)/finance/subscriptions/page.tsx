@@ -135,7 +135,7 @@ export default function SubscriptionsPage() {
               <XAxis dataKey="month" tick={{ fontSize: 10 }} tickFormatter={monthLabel} />
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip labelFormatter={monthLabel} />
-              <Legend formatter={(name) => ({ active: 'Активные', new_subs: 'Новые', cancelled: 'Отменённые' }[name] ?? name)} iconType="circle" />
+              <Legend formatter={(name: string) => (({ active: 'Активные', new_subs: 'Новые', cancelled: 'Отменённые' } as Record<string, string>)[name] ?? name)} iconType="circle" />
               <Area type="monotone" dataKey="active" stackId="1" stroke="#00B4E6" fill="#00B4E633" strokeWidth={2} />
               <Area type="monotone" dataKey="new_subs" stackId="2" stroke="#9c5e6c" fill="#9c5e6c33" strokeWidth={2} />
               <Area type="monotone" dataKey="cancelled" stackId="3" stroke="#ef4444" fill="#ef444433" strokeWidth={2} />

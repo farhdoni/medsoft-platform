@@ -54,7 +54,7 @@ export default function PharmacyDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
-  const id = parseInt(params.id, 10);
+  const id = parseInt(params?.id ?? '0', 10);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ commissionPercent: '', tier: '', status: '' });

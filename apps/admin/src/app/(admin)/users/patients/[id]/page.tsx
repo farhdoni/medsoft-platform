@@ -57,7 +57,7 @@ function getInitials(name: string | null): string {
 
 export default function PatientDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = (params?.id ?? '') as string;
   const router = useRouter();
   const qc = useQueryClient();
 
