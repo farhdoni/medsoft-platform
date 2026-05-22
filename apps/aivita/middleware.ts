@@ -90,10 +90,18 @@ function stripLocale(pathname: string): string {
   return pathname.replace(/^\/(ru|uz|en)(\/|$)/, '/') || '/';
 }
 
-// Extract locale from pathname (falls back to DEFAULT_LOCALE)
-function extractLocale(pathname: string): string {
+// Extract locale from pathname.
+// Priority: 1) explicit locale in URL  2) NEXT_LOCALE cookie  3) default
+function extractLocale(pathname: string, request?: NextRequest): string {
   const m = pathname.match(/^\/(ru|uz|en)(\/|$)/);
-  return m ? m[1] : DEFAULT_LOCALE;
+  if (m) return m[1];
+
+  if (request) {
+    const cookie = request.cookies.get('NEXT_LOCALE')?.value;
+    if (cookie && (LOCALES as readonly string[]).includes(cookie)) return cookie;
+  }
+
+  return DEFAULT_LOCALE;
 }
 
 export async function middleware(request: NextRequest) {
@@ -116,7 +124,8 @@ export async function middleware(request: NextRequest) {
   const userId   = await getSessionUserId(request);
   const isAuth   = !!userId;
   const realPath = stripLocale(pathname);
-  const locale   = extractLocale(pathname);
+  // Pass request so locale falls back to NEXT_LOCALE cookie when not in URL
+  const locale   = extractLocale(pathname, request);
 
   const isAppRoute = APP_ROUTES.some(
     (r) => realPath === r || realPath.startsWith(r + '/')
@@ -158,8 +167,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Invalid JWT (token exists but can't verify) — force logout
+  // Use cookie-aware locale so user lands on sign-in in their language
   if (!isAuth && request.cookies.get(SESSION_COOKIE)?.value) {
-    return forceLogout(request, locale);
+    return forceLogout(request, extractLocale(pathname, request));
   }
 
   return intlMiddleware(request);
