@@ -5,7 +5,6 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Send, Paperclip, Camera, Image, Mic, MicOff, X, Play, Pause } from 'lucide-react';
-import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 import { AiDocumentModal, type ParsedMedical } from '@/components/medical/AiDocumentModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -645,8 +644,12 @@ export function AiChatClient({ locale }: { locale: string }) {
 
       {/* ── Input panel ─────────────────────────────────────────────────────── */}
       <div
-        className="flex-shrink-0 px-3 pt-2 pb-[88px]"
-        style={{ background: '#fff', borderTop: attachments.length === 0 ? '1px solid #e8e4dc' : 'none' }}
+        className="flex-shrink-0 px-3 pt-2 pb-3"
+        style={{
+          background: '#fff',
+          borderTop: attachments.length === 0 ? '1px solid #e8e4dc' : 'none',
+          paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+        }}
       >
         {/* Voice recording bar */}
         {isRecording && (
@@ -753,9 +756,6 @@ export function AiChatClient({ locale }: { locale: string }) {
       <input ref={fileInputRef}    type="file" accept="*/*"              multiple className="hidden" onChange={handleFileInput} />
       <input id="ai-chat-camera-input" ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileInput} />
       <input ref={galleryInputRef} type="file" accept="image/*,video/*"  multiple className="hidden" onChange={handleFileInput} />
-
-      {/* ── Floating Nav ────────────────────────────────────────────────────── */}
-      <FloatingNav active="home" />
 
       {/* ── Bounce animation for typing indicator ──────────────────────────── */}
       <style>{`
