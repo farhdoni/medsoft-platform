@@ -2,8 +2,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
-
 interface Card {
   cardCode: string;
   url: string;
@@ -18,9 +16,10 @@ export default function QrCardSection() {
   const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/v1/aivita/card/my`, { credentials: 'include' })
+    // Use the Next.js proxy to avoid CORS and ensure auth cookies are injected server-side
+    fetch('/api/proxy/card/my')
       .then(r => r.json())
-      .then(j => { setCard(j.data); setLoading(false); })
+      .then(j => { setCard(j.data ?? null); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -30,9 +29,8 @@ export default function QrCardSection() {
 
   const handleRegenerate = async () => {
     setRegenerating(true);
-    const res = await fetch(`${API_BASE}/v1/aivita/card/regenerate`, {
+    const res = await fetch('/api/proxy/card/regenerate', {
       method: 'POST',
-      credentials: 'include',
     }).then(r => r.json()).catch(() => null);
     if (res?.data) setCard(prev => prev ? { ...prev, ...res.data } : null);
     setRegenerating(false);

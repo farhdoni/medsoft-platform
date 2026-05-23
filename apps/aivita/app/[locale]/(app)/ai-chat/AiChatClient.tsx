@@ -202,7 +202,7 @@ export function AiChatClient({ locale }: { locale: string }) {
           id: row.id,
           role: row.role as 'user' | 'assistant',
           text: row.content,
-          ts: new Date(row.created_at),
+          ts: new Date(row.createdAt ?? row.created_at ?? Date.now()),
         }));
         setMessages(loaded);
         setApiHistory(json.data.map(row => ({ role: row.role as 'user' | 'assistant', content: row.content })));
@@ -424,15 +424,17 @@ export function AiChatClient({ locale }: { locale: string }) {
             }
           }
           setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
-          // Persist both messages to DB (non-blocking)
-          void fetch('/api/proxy/ai-chat/message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: [
-              { role: 'user', content: aiInput },
-              { role: 'assistant', content: aiText },
-            ]}),
-          }).catch(() => { /* ignore save errors */ });
+          // Persist both messages to DB (non-blocking, only if content non-empty)
+          if (aiText && aiInput) {
+            void fetch('/api/proxy/ai-chat/message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages: [
+                { role: 'user', content: aiInput },
+                { role: 'assistant', content: aiText },
+              ]}),
+            }).catch(() => { /* ignore save errors */ });
+          }
 
         } else {
           // ── JSON mode (mock — no API key) ──────────────────────────────

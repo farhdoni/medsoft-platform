@@ -13,22 +13,24 @@ import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const cardRouter = new Hono();
 
-function generateCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
+/** Generate sequential AI-YEAR-NNNNN card code (matches onboarding format) */
+async function generateCardCode(): Promise<string> {
+  const year = new Date().getFullYear();
+  const pattern = `AI-${year}-%`;
+  const [last] = await db
+    .select({ cardCode: medicalCards.cardCode })
+    .from(medicalCards)
+    .where(sql`${medicalCards.cardCode} LIKE ${pattern}`)
+    .orderBy(desc(medicalCards.cardCode))
+    .limit(1);
 
-async function uniqueCode(): Promise<string> {
-  let code = generateCode();
-  for (let i = 0; i < 10; i++) {
-    const [existing] = await db.select({ id: medicalCards.id })
-      .from(medicalCards).where(eq(medicalCards.cardCode, code)).limit(1);
-    if (!existing) return code;
-    code = generateCode();
+  let nextNum = 1;
+  if (last?.cardCode) {
+    const parts = last.cardCode.split('-');
+    const n = parseInt(parts[2] ?? '0', 10);
+    if (!isNaN(n)) nextNum = n + 1;
   }
-  return code;
+  return `AI-${year}-${String(nextNum).padStart(5, '0')}`;
 }
 
 // ── AUTH REQUIRED (registered BEFORE public /:code to avoid wildcard interception) ──
@@ -43,7 +45,7 @@ authRoutes.get('/my', async (c) => {
     .where(eq(medicalCards.userId, userId)).limit(1);
 
   if (!card) {
-    const code = await uniqueCode();
+    const code = await generateCardCode();
     [card] = await db.insert(medicalCards).values({ userId, cardCode: code }).returning();
   }
 
@@ -61,7 +63,7 @@ authRoutes.get('/my', async (c) => {
 // POST /regenerate
 authRoutes.post('/regenerate', async (c) => {
   const userId = c.get('aivitaUserId');
-  const code = await uniqueCode();
+  const code = await generateCardCode();
   const [updated] = await db.update(medicalCards)
     .set({ cardCode: code })
     .where(eq(medicalCards.userId, userId))

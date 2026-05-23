@@ -64,16 +64,38 @@ export async function grantReferralReward(referrerId: string, referredId: string
 
 // ─── GET /v1/aivita/referral/my ───────────────────────────────────────────────
 
+/** Generate a unique referral code for users who don't have one */
+async function generateUniqueReferralCode(name: string): Promise<string> {
+  const prefix = (name || 'USER').replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 4) || 'USER';
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const candidate = `${prefix}${num}`;
+    const existing = await db.select({ id: aivitaUsers.id })
+      .from(aivitaUsers).where(eq(aivitaUsers.referralCode, candidate)).limit(1);
+    if (!existing.length) return candidate;
+  }
+  // Fallback: timestamp-based
+  return `USR${Date.now().toString(36).toUpperCase().slice(-5)}`;
+}
+
 aivitaReferralRouter.get('/my', requireAivitaAuth, async (c) => {
   const userId = c.get('aivitaUserId');
 
   const user = await db.select({
     referralCode: aivitaUsers.referralCode,
+    name: aivitaUsers.name,
   }).from(aivitaUsers).where(eq(aivitaUsers.id, userId)).limit(1);
 
   if (!user.length) return c.json({ error: 'user_not_found' }, 404);
 
-  const code = user[0].referralCode ?? null;
+  let code = user[0].referralCode ?? null;
+
+  // Auto-generate referral code if user somehow doesn't have one
+  if (!code) {
+    code = await generateUniqueReferralCode(user[0].name ?? '');
+    await db.update(aivitaUsers).set({ referralCode: code }).where(eq(aivitaUsers.id, userId));
+  }
+
   const refLink = code ? `${AIVITA_URL}/ref/${code}` : null;
 
   // Stats: who I invited

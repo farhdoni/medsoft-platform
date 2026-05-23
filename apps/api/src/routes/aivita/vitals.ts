@@ -140,27 +140,38 @@ aivitaVitalsRouter.post(
     const userId = c.get('aivitaUserId');
     const body = c.req.valid('json');
 
-    const [row] = await db.insert(vitals).values({
-      userId,
-      type: body.type,
-      value: body.value as { value: number; unit: string } | { systolic: number; diastolic: number } | { hours: number; quality?: 'poor' | 'ok' | 'good' },
-      source: body.source,
-      recordedAt: body.recordedAt ? new Date(body.recordedAt) : new Date(),
-    }).returning();
+    let row: typeof vitals.$inferSelect;
+    try {
+      const [inserted] = await db.insert(vitals).values({
+        userId,
+        type: body.type,
+        value: body.value as { value: number; unit: string } | { systolic: number; diastolic: number } | { hours: number; quality?: 'poor' | 'ok' | 'good' },
+        source: body.source,
+        recordedAt: body.recordedAt ? new Date(body.recordedAt) : new Date(),
+      }).returning();
+      row = inserted;
+    } catch (err) {
+      console.error('[vitals POST] DB insert error:', err);
+      return c.json({ error: 'db_error', message: 'Не удалось сохранить показатель. Попробуйте ещё раз.' }, 500);
+    }
 
     // AI monitor: analyze vital value for anomalies
     let aiRecommendation = null;
-    const v = body.value as Record<string, unknown>;
-    if (body.type === 'blood_pressure' && typeof v.systolic === 'number') {
-      const sysAnalysis = analyzeHealthChange('systolic', v.systolic);
-      const diaAnalysis = typeof v.diastolic === 'number' ? analyzeHealthChange('diastolic', v.diastolic) : { level: 'none' as const };
-      const worst = sysAnalysis.level === 'critical' || diaAnalysis.level === 'critical'
-        ? (sysAnalysis.level === 'critical' ? sysAnalysis : diaAnalysis)
-        : (sysAnalysis.level === 'important' ? sysAnalysis : diaAnalysis);
-      if (worst.level !== 'none') aiRecommendation = worst;
-    } else if (typeof v.value === 'number') {
-      const analysis = analyzeHealthChange(body.type, v.value);
-      if (analysis.level !== 'none') aiRecommendation = analysis;
+    try {
+      const v = body.value as Record<string, unknown>;
+      if (body.type === 'blood_pressure' && typeof v.systolic === 'number') {
+        const sysAnalysis = analyzeHealthChange('systolic', v.systolic);
+        const diaAnalysis = typeof v.diastolic === 'number' ? analyzeHealthChange('diastolic', v.diastolic) : { level: 'none' as const };
+        const worst = sysAnalysis.level === 'critical' || diaAnalysis.level === 'critical'
+          ? (sysAnalysis.level === 'critical' ? sysAnalysis : diaAnalysis)
+          : (sysAnalysis.level === 'important' ? sysAnalysis : diaAnalysis);
+        if (worst.level !== 'none') aiRecommendation = worst;
+      } else if (typeof v.value === 'number') {
+        const analysis = analyzeHealthChange(body.type, v.value);
+        if (analysis.level !== 'none') aiRecommendation = analysis;
+      }
+    } catch {
+      // Analysis errors should not block the response
     }
 
     // ── Auto-report fever to outbreak monitoring ─────────────────────────────
@@ -169,16 +180,20 @@ aivitaVitalsRouter.post(
         ? (body.value as { value: number }).value
         : null;
       if (tempVal != null && tempVal > 37.5) {
-        const profile = await db.query.healthProfiles.findFirst({ where: eq(healthProfiles.userId, userId) });
-        void autoReport({
-          userId,
-          city:            (profile as { city?: string } | undefined)?.city ?? 'Ташкент',
-          symptomType:     'fever',
-          temperature:     tempVal,
-          diseaseCategory: tempVal > 39 ? 'flu' : 'orvi',
-          severity:        tempVal > 39 ? 'severe' : tempVal > 38 ? 'moderate' : 'mild',
-          source:          'vitals',
-        });
+        try {
+          const profile = await db.query.healthProfiles.findFirst({ where: eq(healthProfiles.userId, userId) });
+          void autoReport({
+            userId,
+            city:            (profile as { city?: string } | undefined)?.city ?? 'Ташкент',
+            symptomType:     'fever',
+            temperature:     tempVal,
+            diseaseCategory: tempVal > 39 ? 'flu' : 'orvi',
+            severity:        tempVal > 39 ? 'severe' : tempVal > 38 ? 'moderate' : 'mild',
+            source:          'vitals',
+          });
+        } catch {
+          // Don't block response on fever reporting errors
+        }
       }
     }
 
