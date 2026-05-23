@@ -38,15 +38,28 @@ async function generateCardCode(): Promise<string> {
 const authRoutes = new Hono();
 authRoutes.use('*', requireAivitaAuth);
 
-// GET /my — get or auto-create card
+// GET /my — get or auto-create card (race-condition safe via upsert)
 authRoutes.get('/my', async (c) => {
   const userId = c.get('aivitaUserId');
+
+  // Try to find existing card first
   let [card] = await db.select().from(medicalCards)
     .where(eq(medicalCards.userId, userId)).limit(1);
 
   if (!card) {
     const code = await generateCardCode();
-    [card] = await db.insert(medicalCards).values({ userId, cardCode: code }).returning();
+    // Use ON CONFLICT DO NOTHING to handle race conditions (userId is UNIQUE)
+    await db.insert(medicalCards)
+      .values({ userId, cardCode: code })
+      .onConflictDoNothing();
+    // Re-fetch — whether we inserted or someone else raced us, card now exists
+    [card] = await db.select().from(medicalCards)
+      .where(eq(medicalCards.userId, userId)).limit(1);
+  }
+
+  if (!card) {
+    // This should never happen, but be safe
+    return c.json({ error: 'Failed to create medical card' }, 500);
   }
 
   return c.json({

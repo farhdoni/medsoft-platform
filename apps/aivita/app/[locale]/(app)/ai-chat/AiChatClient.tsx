@@ -195,7 +195,7 @@ export function AiChatClient({ locale }: { locale: string }) {
   // Load chat history from DB on mount
   useEffect(() => {
     fetch('/api/proxy/ai-chat/history?limit=50')
-      .then(r => r.ok ? r.json() as Promise<{ data: Array<{ id: string; role: string; content: string; created_at: string }> }> : null)
+      .then(r => r.ok ? r.json() as Promise<{ data: Array<{ id: string; role: string; content: string; createdAt?: string; created_at?: string }> }> : null)
       .then(json => {
         if (!json?.data?.length) return;
         const loaded: Message[] = json.data.map(row => ({
