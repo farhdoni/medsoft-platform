@@ -5,6 +5,7 @@ import { api } from '@/lib/api-client';
 import { getInitials } from '@/lib/date-utils';
 import { ProfileClient } from './ProfileClient';
 import QrCardSection from '@/components/medical-card/QrCardSection';
+import { CardCodeBadge } from '@/components/medical-card/CardCodeBadge';
 
 // ─── Types (exported so ProfileClient can import) ─────────────────────────────
 
@@ -125,6 +126,10 @@ export default async function ProfilePage({
             <p className="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-0.5">МОЙ ПРОФИЛЬ</p>
             <p className="text-[20px] font-extrabold text-white leading-tight truncate">{name}</p>
             {email && <p className="text-[12px] text-white/70 mt-0.5 truncate">{email}</p>}
+            <CardCodeBadge
+              className="mt-1"
+              textStyle={{ fontSize: 12, color: '#fff', opacity: 0.8 }}
+            />
           </div>
         </section>
 

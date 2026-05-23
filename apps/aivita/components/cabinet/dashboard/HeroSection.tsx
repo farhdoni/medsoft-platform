@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { DailyMetrics, User } from "@/lib/cabinet-types";
+import { CardCodeBadge } from "@/components/medical-card/CardCodeBadge";
 
 interface Props {
   user: User;
@@ -59,6 +60,10 @@ export function HeroSection({ user, metrics }: Props) {
           <div className="text-[13px] font-medium opacity-85">
             {greeting}, {user.name.split(" ")[0]}
           </div>
+          <CardCodeBadge
+            className="mt-1"
+            textStyle={{ fontSize: 11, color: '#fff', opacity: 0.7 }}
+          />
           <h1 className="mt-2 max-w-md text-[22px] font-bold leading-[1.15] sm:text-[28px]">
             {t('titleLine1')}
             <br />
