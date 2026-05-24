@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import {
   User, Target, Globe, Bell, Lock, ChevronRight,
-  Heart, Users, Cpu, HelpCircle, Stethoscope, Calendar, FileText, DollarSign, ShieldCheck,
+  Heart, Users, Cpu, HelpCircle, Stethoscope, Calendar, FileText, DollarSign, ShieldCheck, Crown,
 } from 'lucide-react';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { DangerZone } from './danger-zone';
@@ -115,9 +115,10 @@ export default async function SettingsPage({
       id: 'account',
       title: t('sectionAccount'),
       items: [
-        { icon: User,   label: t('profile'),     sub: t('profileSub'),     href: `/${locale}/profile`, bg: 'var(--accent-light)', color: 'var(--accent-dark)' },
-        { icon: Heart,  label: t('medProfile'),  sub: t('medProfileSub'),  href: `/${locale}/profile`, bg: '#d4e8d8',             color: '#548068' },
-        { icon: Target, label: t('healthGoals'), sub: t('healthGoalsSub'), href: `/${locale}/profile`, bg: '#d4dff0',             color: '#5e75a8' },
+        { icon: User,   label: t('profile'),      sub: t('profileSub'),      href: `/${locale}/profile`,               bg: 'var(--accent-light)', color: 'var(--accent-dark)' },
+        { icon: Heart,  label: t('medProfile'),  sub: t('medProfileSub'),   href: `/${locale}/profile`,               bg: '#d4e8d8',             color: '#548068' },
+        { icon: Target, label: t('healthGoals'), sub: t('healthGoalsSub'),  href: `/${locale}/profile`,               bg: '#d4dff0',             color: '#5e75a8' },
+        { icon: Crown,  label: t('subscription'), sub: t('subscriptionSub'), href: `/${locale}/settings/subscription`, bg: 'var(--accent-light)', color: 'var(--accent-dark)' },
       ],
     },
     {
