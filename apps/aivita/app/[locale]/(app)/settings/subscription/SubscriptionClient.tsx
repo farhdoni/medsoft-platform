@@ -263,28 +263,34 @@ export function SubscriptionClient({ showSuccess }: { showSuccess: boolean }) {
   useEffect(() => {
     async function load() {
       try {
+        const safeJson = async (res: Response) => {
+          try { return await res.json(); } catch { return {}; }
+        };
+
         const [subRes, methodsRes, plansRes] = await Promise.all([
           fetch(`${API}/v1/aivita/payments/subscription`, { credentials: 'include' }),
           fetch(`${API}/v1/aivita/payment-methods`, { credentials: 'include' }),
           fetch(`${API}/v1/aivita/payments/plans`, { credentials: 'include' }),
         ]);
         const [s, m, p] = await Promise.all([
-          subRes.json(), methodsRes.json(), plansRes.json(),
+          safeJson(subRes), safeJson(methodsRes), safeJson(plansRes),
         ]);
         setSub(s.data ?? null);
         setMethods(m.data ?? []);
-        setPlans((p.data ?? []).filter((pl: Plan) => pl.targetRole === 'patient'));
+        const allPlans: Plan[] = p.data ?? [];
+        const patientPlans = allPlans.filter(pl => pl.targetRole === 'patient');
+        setPlans(patientPlans.length > 0 ? patientPlans : allPlans);
 
-        // history is optional — don't block loading if endpoint missing
+        // history is optional
         try {
           const histRes = await fetch(`${API}/v1/aivita/payments/history`, { credentials: 'include' });
           if (histRes.ok) {
-            const h = await histRes.json();
+            const h = await safeJson(histRes);
             setPayments((h.data ?? []).slice(0, 10));
           }
-        } catch { /* history not critical */ }
+        } catch { /* not critical */ }
       } catch {
-        // show page even on error
+        // show empty state
       } finally {
         setLoading(false);
       }
