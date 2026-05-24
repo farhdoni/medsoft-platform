@@ -85,7 +85,7 @@ export function PlanLimitModal({ open, onClose, locale = 'ru', type = 'chat' }: 
 
         {/* CTA */}
         <Link
-          href={`/${locale}/pricing`}
+          href={`/${locale}/settings/subscription`}
           onClick={onClose}
           className="block w-full text-center py-4 rounded-2xl text-[14px] font-bold text-white mb-3 transition hover:opacity-90 active:scale-95"
           style={{ background: 'linear-gradient(135deg, #9c5e6c 0%, #8b6aae 100%)' }}

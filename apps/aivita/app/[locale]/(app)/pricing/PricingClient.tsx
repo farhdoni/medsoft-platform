@@ -361,7 +361,11 @@ export function PricingClient({ showSuccess }: { showSuccess: boolean }) {
                 >
                   {paying && selectedPlan?.id === plan.id
                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : plan.price === 0 ? 'Активировать' : <>Оформить <ChevronRight className="w-3.5 h-3.5" /></>}
+                    : plan.price === 0
+                      ? 'Активировать'
+                      : currentSub && !isCurrent
+                        ? <>Сменить <ChevronRight className="w-3.5 h-3.5" /></>
+                        : <>Оформить <ChevronRight className="w-3.5 h-3.5" /></>}
                 </button>
               )}
             </div>

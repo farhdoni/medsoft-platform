@@ -143,17 +143,27 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
                 <div className="mt-0.5">
                   {!session?.plan || session.plan === 'free' ? (
                     <Link
-                      href={`/${locale}/pricing`}
+                      href={`/${locale}/settings/subscription`}
                       onClick={() => setOpen(false)}
                       className="text-[10px] font-semibold hover:opacity-80 transition-opacity"
                       style={{ color: '#9c5e6c' }}
                     >
-                      Бесплатный — Обновить →
+                      Обновить до Premium →
                     </Link>
                   ) : (
-                    <span className="text-[10px] font-semibold" style={{ color: '#548068' }}>
-                      {session.plan === 'pro' ? 'Pro ✓' : 'Premium ✓'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold" style={{ color: '#548068' }}>
+                        {session.plan === 'pro' ? 'Pro ✓' : 'Premium ✓'}
+                      </span>
+                      <Link
+                        href={`/${locale}/settings/subscription`}
+                        onClick={() => setOpen(false)}
+                        className="text-[10px] font-semibold hover:opacity-80 transition-opacity"
+                        style={{ color: '#9c5e6c' }}
+                      >
+                        · Изменить →
+                      </Link>
+                    </div>
                   )}
                 </div>
               )}
