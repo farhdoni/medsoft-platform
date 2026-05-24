@@ -262,20 +262,32 @@ export function SubscriptionClient({ showSuccess }: { showSuccess: boolean }) {
 
   useEffect(() => {
     async function load() {
-      const [subRes, histRes, methodsRes, plansRes] = await Promise.all([
-        fetch(`${API}/v1/aivita/payments/subscription`, { credentials: 'include' }),
-        fetch(`${API}/v1/aivita/payments/history`, { credentials: 'include' }),
-        fetch(`${API}/v1/aivita/payment-methods`, { credentials: 'include' }),
-        fetch(`${API}/v1/aivita/payments/plans`, { credentials: 'include' }),
-      ]);
-      const [s, h, m, p] = await Promise.all([
-        subRes.json(), histRes.json(), methodsRes.json(), plansRes.json(),
-      ]);
-      setSub(s.data);
-      setPayments((h.data ?? []).slice(0, 10));
-      setMethods(m.data ?? []);
-      setPlans((p.data ?? []).filter((pl: Plan) => pl.targetRole === 'patient'));
-      setLoading(false);
+      try {
+        const [subRes, methodsRes, plansRes] = await Promise.all([
+          fetch(`${API}/v1/aivita/payments/subscription`, { credentials: 'include' }),
+          fetch(`${API}/v1/aivita/payment-methods`, { credentials: 'include' }),
+          fetch(`${API}/v1/aivita/payments/plans`, { credentials: 'include' }),
+        ]);
+        const [s, m, p] = await Promise.all([
+          subRes.json(), methodsRes.json(), plansRes.json(),
+        ]);
+        setSub(s.data ?? null);
+        setMethods(m.data ?? []);
+        setPlans((p.data ?? []).filter((pl: Plan) => pl.targetRole === 'patient'));
+
+        // history is optional — don't block loading if endpoint missing
+        try {
+          const histRes = await fetch(`${API}/v1/aivita/payments/history`, { credentials: 'include' });
+          if (histRes.ok) {
+            const h = await histRes.json();
+            setPayments((h.data ?? []).slice(0, 10));
+          }
+        } catch { /* history not critical */ }
+      } catch {
+        // show page even on error
+      } finally {
+        setLoading(false);
+      }
     }
     void load();
   }, []);
