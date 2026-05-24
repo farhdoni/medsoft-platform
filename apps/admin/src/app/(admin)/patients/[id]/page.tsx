@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, MoreHorizontal, MessageSquare, Activity, Heart,
-  UserX, Trash2, Download, Shield, CheckCircle, XCircle,
+  ArrowLeft, MessageSquare, Activity, Heart,
+  UserX, Trash2, Download, Shield, CheckCircle,
+  Crown, Calendar, RefreshCw, ChevronDown,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,9 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
@@ -32,6 +36,16 @@ type AivitaUser = {
   deletedAt: string | null;
   locale: string;
 };
+
+type SubPlan = {
+  id: number; name: string; slug: string; price: number; period: string;
+};
+type SubInfo = {
+  id: number; status: string; startedAt: string; expiresAt: string;
+  autoRenew: boolean; planId: number; planName: string; planSlug: string;
+  planPrice: number; planPeriod: string;
+} | null;
+type SubResponse = { subscription: SubInfo; plans: SubPlan[] };
 
 type Habit = {
   id: string;
@@ -68,10 +82,30 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [subDialogOpen, setSubDialogOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState('');
 
   const { data, isLoading } = useQuery<DetailResponse>({
     queryKey: ['aivita-user', id],
     queryFn: () => api.get(`/v1/aivita-admin/users/${id}`),
+  });
+
+  const { data: subData, isLoading: subLoading } = useQuery<SubResponse>({
+    queryKey: ['aivita-user-sub', id],
+    queryFn: () => api.get(`/v1/aivita-admin/users/${id}/subscription`),
+  });
+
+  const assignSubMutation = useMutation({
+    mutationFn: (planId: number) =>
+      api.post(`/v1/aivita-admin/users/${id}/subscription`, { planId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['aivita-user-sub', id] });
+      qc.invalidateQueries({ queryKey: ['aivita-user', id] });
+      toast.success('Подписка обновлена');
+      setSubDialogOpen(false);
+      setSelectedPlanId('');
+    },
+    onError: () => toast.error('Ошибка при изменении подписки'),
   });
 
   const deactivateMutation = useMutation({
@@ -257,6 +291,55 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         </Card>
       </div>
 
+      {/* Subscription */}
+      <Card>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Crown className="h-4 w-4 text-amber-500" /> Подписка
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={() => setSubDialogOpen(true)}>
+            <ChevronDown className="h-3.5 w-3.5 mr-1" /> Изменить
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {subLoading ? (
+            <div className="h-12 bg-muted animate-pulse rounded" />
+          ) : subData?.subscription ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Тариф</p>
+                <Badge variant="default" className="font-semibold">{subData.subscription.planName}</Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Статус</p>
+                <Badge variant={subData.subscription.status === 'active' ? 'success' : 'secondary'}>
+                  {subData.subscription.status === 'active' ? 'Активна' : subData.subscription.status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Начало
+                </p>
+                <p className="font-medium">{formatDate(subData.subscription.startedAt)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Истекает
+                </p>
+                <p className="font-medium">{formatDate(subData.subscription.expiresAt)}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Нет активной подписки</p>
+              <Button size="sm" onClick={() => setSubDialogOpen(true)}>
+                Назначить тариф
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Habits */}
       {habits.length > 0 && (
         <Card>
@@ -299,6 +382,52 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           </CardContent>
         </Card>
       )}
+
+      {/* Subscription dialog */}
+      <Dialog open={subDialogOpen} onOpenChange={setSubDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Изменить подписку</DialogTitle>
+            <DialogDescription>
+              Выберите тариф для пользователя. Подписка назначается без оплаты (admin override).
+              {subData?.subscription && (
+                <span className="block mt-1">
+                  Текущий тариф: <strong>{subData.subscription.planName}</strong>,
+                  истекает {formatDate(subData.subscription.expiresAt)}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите тариф..." />
+              </SelectTrigger>
+              <SelectContent>
+                {(subData?.plans ?? []).map(plan => (
+                  <SelectItem key={plan.id} value={String(plan.id)}>
+                    {plan.name} — {plan.price === 0 ? 'Бесплатно' : `${plan.price.toLocaleString('ru-RU')} сум`}
+                    {plan.period === 'annual' ? '/год' : plan.period === 'monthly' ? '/мес' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSubDialogOpen(false); setSelectedPlanId(''); }}>
+              Отмена
+            </Button>
+            <Button
+              disabled={!selectedPlanId || assignSubMutation.isPending}
+              onClick={() => { if (selectedPlanId) assignSubMutation.mutate(Number(selectedPlanId)); }}
+            >
+              {assignSubMutation.isPending ? (
+                <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Применяю...</>
+              ) : 'Применить тариф'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Deactivate dialog */}
       <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>

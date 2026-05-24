@@ -529,6 +529,88 @@ router.post('/users/:id/verify-email', async (c) => {
   return c.json({ data: { verified: true, userId: id } });
 });
 
+// ─── I. Get user subscription ─────────────────────────────────────────────────
+
+router.get('/users/:id/subscription', async (c) => {
+  const { id } = c.req.param();
+
+  const sub = await db
+    .select({
+      id: subscriptions.id,
+      status: subscriptions.status,
+      startedAt: subscriptions.startedAt,
+      expiresAt: subscriptions.expiresAt,
+      autoRenew: subscriptions.autoRenew,
+      planId: subscriptions.planId,
+      planName: subscriptionPlans.name,
+      planSlug: subscriptionPlans.slug,
+      planPrice: subscriptionPlans.price,
+      planPeriod: subscriptionPlans.period,
+    })
+    .from(subscriptions)
+    .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+    .where(and(eq(subscriptions.userId, id), eq(subscriptions.status, 'active')))
+    .orderBy(desc(subscriptions.startedAt))
+    .limit(1);
+
+  const plans = await db
+    .select()
+    .from(subscriptionPlans)
+    .where(eq(subscriptionPlans.isActive, true))
+    .orderBy(asc(subscriptionPlans.price));
+
+  return c.json({ data: { subscription: sub[0] ?? null, plans } });
+});
+
+// ─── J. Assign / change subscription (admin override, no payment) ─────────────
+
+router.post('/users/:id/subscription', async (c) => {
+  const { id } = c.req.param();
+  const adminId = c.get('adminId') as string;
+  const body = await c.req.json() as { planId: number; months?: number };
+
+  const user = await db.query.aivitaUsers.findFirst({ where: eq(aivitaUsers.id, id) });
+  if (!user) return c.json({ error: 'User not found' }, 404);
+
+  const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, body.planId));
+  if (!plan) return c.json({ error: 'Plan not found' }, 404);
+
+  const now = new Date();
+  const expiresAt = new Date(now);
+  const months = body.months ?? (plan.period === 'annual' ? 12 : 1);
+  expiresAt.setMonth(expiresAt.getMonth() + months);
+
+  // Cancel existing active subscriptions
+  await db.update(subscriptions)
+    .set({ status: 'cancelled' })
+    .where(and(eq(subscriptions.userId, id), eq(subscriptions.status, 'active')));
+
+  const [sub] = await db.insert(subscriptions).values({
+    userId: id,
+    planId: plan.id,
+    status: 'active',
+    paymentMethodId: null,
+    startedAt: now,
+    expiresAt,
+    autoRenew: false,
+  }).returning();
+
+  // Sync user.plan field
+  const planToTier: Record<string, string> = {
+    free: 'free',
+    premium: 'premium',
+    'premium-family': 'premium',
+    annual: 'premium',
+  };
+  await db.update(aivitaUsers)
+    .set({ plan: planToTier[plan.slug] ?? 'free', updatedAt: now })
+    .where(eq(aivitaUsers.id, id));
+
+  await auditLog(adminId, 'admin_assign_subscription', 'subscription', String(sub.id), { planId: plan.id, planSlug: plan.slug, months }, c.req);
+
+  return c.json({ data: { subscription: sub, plan } });
+});
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // AIVITA DOCTORS MANAGEMENT
