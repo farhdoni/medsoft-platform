@@ -89,6 +89,7 @@ import { adminNotificationsRouter } from './routes/admin/notifications.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 import { landingApiRouter } from './routes/landing-api.js';
+import { clinicPublicRouter, clinicAdminRouter } from './routes/clinic-requests.js';
 import { adminPharmaciesRouter } from './routes/admin-pharmacies.js';
 import { pharmacyRouter } from './routes/pharmacy.js';
 import { aivitaPharmacyRouter } from './routes/aivita/pharmacy.js';
@@ -119,6 +120,7 @@ app.route('/v1/dashboard', dashboardRouter);
 app.route('/v1/admin/monitoring', adminMonitoringRouter);
 // Landing public API (aivita.uz/api/*)
 app.route('/api', landingApiRouter);
+app.route('/api', clinicPublicRouter);
 // Landing CMS — public read + admin write
 app.route('/v1/landing', landingPublicRouter);
 app.route('/v1/aivita-admin/cms', landingAdminRouter);
@@ -198,6 +200,8 @@ app.route('/v1/admin/system', adminSystemRouter);
 app.route('/v1/admin/ai', aiUsageRouter);
 app.route('/v1/admin/marketing', adminMarketingRouter);
 app.route('/v1/admin/content', adminContentRouter);
+app.route('/v1/admin/content', clinicAdminRouter);
+app.route('/v1/admin/stats', clinicAdminRouter);
 app.route('/v1/admin/security', adminSecurityRouter);
 app.route('/v1/admin/reports', adminReportsRouter);
 app.route('/v1/aivita/faq', publicFaqRouter);

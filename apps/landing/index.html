@@ -1438,25 +1438,6 @@ h1 .gradient {
   <img src="assets/aivita-robot-cutout.png" alt="AIVITA — AI-доктор" />
 </div>
 
-<!-- ===== DOCTOR — join as a doctor ===== -->
-<section class="doctor-section reveal">
-  <div class="content">
-    <div class="tag" data-i18n="doctor.tag">🩺 Врачам</div>
-    <h2 data-i18n="doctor.h2">Зарабатывайте с AIVITA</h2>
-    <p data-i18n="doctor.p">Присоединяйтесь к платформе. Пациенты найдут вас, а AI поможет с диагностикой.</p>
-    <div class="doctor-perks">
-      <div class="doctor-perk"><div class="ic">👥</div><span data-i18n="doctor.perk1">Пациенты из каталога</span></div>
-      <div class="doctor-perk"><div class="ic">💬</div><span data-i18n="doctor.perk2">Чат с назначениями</span></div>
-      <div class="doctor-perk"><div class="ic">🤖</div><span data-i18n="doctor.perk3">AI-ассистент врача</span></div>
-      <div class="doctor-perk"><div class="ic">💰</div><span data-i18n="doctor.perk4">Выплаты каждую пятницу</span></div>
-    </div>
-    <div class="doctor-cta">
-      <a href="#" id="doctorBtn1" class="btn-doctor" data-i18n="doctor.btn1">Стать врачом AIVITA →</a>
-      <a href="/about.html#doctors" class="btn-doctor-ghost" data-i18n="doctor.btn2">Подробнее</a>
-    </div>
-  </div>
-</section>
-
 <!-- ===== MANAGE — call to action ===== -->
 <section class="manage-section reveal">
   <div class="manage-card">
@@ -1484,7 +1465,7 @@ h1 .gradient {
     <a href="/about.html" data-i18n="footer.about">О нас</a>
     <a href="/pricing.html" id="footerPricing" data-i18n="footer.pricing">Тарифы</a>
     <a href="#" id="footerDoctors" data-i18n="footer.doctors">Врачам</a>
-    <a href="#partners" data-i18n="footer.partners">Партнёрам</a>
+    <a href="/clinics.html" data-i18n="footer.partners">Для клиник</a>
     <a href="/about.html#contacts" data-i18n="footer.contact">Контакты</a>
     <a href="/get-app.html" style="color:var(--accent);font-weight:700" data-i18n="footer.app">📱 Скачать приложение</a>
     <a href="/privacy.html" data-i18n="footer.policy">Политика</a>
@@ -1627,7 +1608,7 @@ const I18N = {
     "dl.sub": "Бесплатно для iOS и Android",
     "dl.appstore.small": "Скачать в", "dl.gplay.small": "Доступно в",
     "footer.about": "О нас", "footer.pricing": "Тарифы", "footer.doctors": "Врачам",
-    "footer.partners": "Партнёрам", "footer.contact": "Контакты", "footer.app": "📱 Скачать приложение", "footer.policy": "Политика",
+    "footer.partners": "Для клиник", "footer.contact": "Контакты", "footer.app": "📱 Скачать приложение", "footer.policy": "Политика",
     "footer.terms": "Оферта",
     "footer.copy": "© 2026 AIVITA.UZ — AI-платформа здоровья для Узбекистана"
   },
@@ -1701,7 +1682,7 @@ const I18N = {
     "dl.sub": "iOS va Android uchun bepul",
     "dl.appstore.small": "Yuklab olish", "dl.gplay.small": "Mavjud",
     "footer.about": "Biz haqimizda", "footer.pricing": "Tariflar", "footer.doctors": "Shifokorlarga",
-    "footer.partners": "Hamkorlarga", "footer.contact": "Aloqa", "footer.app": "📱 Ilovani yuklab olish", "footer.policy": "Maxfiylik",
+    "footer.partners": "Klinikalar uchun", "footer.contact": "Aloqa", "footer.app": "📱 Ilovani yuklab olish", "footer.policy": "Maxfiylik",
     "footer.terms": "Oferta",
     "footer.copy": "© 2026 AIVITA.UZ — O'zbekiston uchun AI sog'liq platformasi"
   },
@@ -1775,7 +1756,7 @@ const I18N = {
     "dl.sub": "Free for iOS and Android",
     "dl.appstore.small": "Download on", "dl.gplay.small": "Get it on",
     "footer.about": "About", "footer.pricing": "Pricing", "footer.doctors": "For doctors",
-    "footer.partners": "Partners", "footer.contact": "Contact", "footer.app": "📱 Download app", "footer.policy": "Privacy",
+    "footer.partners": "For clinics", "footer.contact": "Contact", "footer.app": "📱 Download app", "footer.policy": "Privacy",
     "footer.terms": "Terms",
     "footer.copy": "© 2026 AIVITA.UZ — AI health platform for Uzbekistan"
   }
@@ -2011,8 +1992,6 @@ function applyConfig(cfg) {
   if (fp) fp.href = '/pricing.html';
   const fd = document.getElementById('footerDoctors');
   if (fd) fd.href = appUrl + '/ru/doctor-sign-up';
-  const doctorBtn1 = document.getElementById('doctorBtn1');
-  if (doctorBtn1) doctorBtn1.href = appUrl + '/ru/doctor-sign-up';
 
   // Wait-list toggle
   if (cfg.waitlist_enabled === false) {

@@ -60,6 +60,7 @@ const baseNavItems = [
   { href: '/content/landing',      label: 'Лендинг',           icon: Globe,         section: 'content' },
   { href: '/content/social',       label: 'Соцсети',           icon: Link2,         section: 'content' },
   { href: '/content/faq',          label: 'FAQ',               icon: HelpCircle,    section: 'content' },
+  { href: '/content/clinics',      label: 'Заявки клиник',     icon: Building2,     section: 'content' },
   // ── БЕЗОПАСНОСТЬ ──
   { href: '/security/auth-logs',   label: 'Журнал входов',     icon: Activity,      section: 'security' },
   { href: '/security/blocked-ips', label: 'Блокировки IP',     icon: Ban,           section: 'security' },

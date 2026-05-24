@@ -348,6 +348,7 @@ footer{border-top:1px solid var(--border);padding:28px 24px;margin-top:80px}
       <a href="/about.html" id="footerAbout">О нас</a>
       <a href="/pricing.html" id="footerPricing" style="color:var(--accent);font-weight:700">Тарифы</a>
       <a href="/get-app.html" id="footerApp">📱 Скачать</a>
+      <a href="/clinics.html" id="footerClinics">Для клиник</a>
       <a href="/privacy.html" id="footerPrivacy">Политика</a>
       <a href="/terms.html" id="footerTerms">Оферта</a>
     </div>
@@ -389,7 +390,7 @@ const I18N = {
     faq4q: 'Что происходит с данными при отмене?',
     faq4a: 'Все данные сохраняются. После отмены вы переходите на Free тариф и сохраняете доступ к медкарте и истории чекапов.',
     footerCopy: '© 2026 aivita. Все права защищены.',
-    footerHome: 'Главная', footerAbout: 'О нас', footerPricing: 'Тарифы', footerApp: '📱 Скачать', footerPrivacy: 'Политика', footerTerms: 'Оферта',
+    footerHome: 'Главная', footerAbout: 'О нас', footerPricing: 'Тарифы', footerApp: '📱 Скачать', footerClinics: 'Для клиник', footerPrivacy: 'Политика', footerTerms: 'Оферта',
   },
   uz: {
     title: "Tariflar — aivita",
@@ -420,7 +421,7 @@ const I18N = {
     faq4q: 'Bekor qilganda ma\'lumotlar nima bo\'ladi?',
     faq4a: 'Barcha ma\'lumotlar saqlanadi. Bekor qilgandan so\'ng Free tarifga o\'tasiz va tibbiy kartangiz hamda tekshiruv tarixingizga kirish huquqini saqlab qolasiz.',
     footerCopy: '© 2026 aivita. Barcha huquqlar himoyalangan.',
-    footerHome: 'Bosh sahifa', footerAbout: 'Biz haqimizda', footerPricing: 'Tariflar', footerApp: '📱 Yuklab olish', footerPrivacy: 'Maxfiylik', footerTerms: 'Oferta',
+    footerHome: 'Bosh sahifa', footerAbout: 'Biz haqimizda', footerPricing: 'Tariflar', footerApp: '📱 Yuklab olish', footerClinics: 'Klinikalar uchun', footerPrivacy: 'Maxfiylik', footerTerms: 'Oferta',
   },
   en: {
     title: 'Pricing — aivita',
@@ -451,7 +452,7 @@ const I18N = {
     faq4q: 'What happens to my data if I cancel?',
     faq4a: 'All data is preserved. After cancellation you revert to the Free plan and keep access to your medical card and checkup history.',
     footerCopy: '© 2026 aivita. All rights reserved.',
-    footerHome: 'Home', footerAbout: 'About', footerPricing: 'Pricing', footerApp: '📱 Download', footerPrivacy: 'Privacy', footerTerms: 'Terms',
+    footerHome: 'Home', footerAbout: 'About', footerPricing: 'Pricing', footerApp: '📱 Download', footerClinics: 'For clinics', footerPrivacy: 'Privacy', footerTerms: 'Terms',
   },
 };
 
@@ -506,7 +507,7 @@ function applyLang(l) {
   setText('footerCopy', t.footerCopy);
   setText('footerHome', t.footerHome); setText('footerAbout', t.footerAbout);
   setText('footerPricing', t.footerPricing); setText('footerApp', t.footerApp);
-  setText('footerPrivacy', t.footerPrivacy); setText('footerTerms', t.footerTerms);
+  setText('footerClinics', t.footerClinics); setText('footerPrivacy', t.footerPrivacy); setText('footerTerms', t.footerTerms);
 
   // Button links
   const freeBtn = document.getElementById('freeBtn');

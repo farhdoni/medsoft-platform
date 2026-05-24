@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity, CheckCircle2, CreditCard, DollarSign, Server,
-  Stethoscope, TrendingDown, TrendingUp, Users, XCircle,
+  Stethoscope, TrendingDown, TrendingUp, Users, XCircle, Smartphone,
 } from 'lucide-react';
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
@@ -32,6 +32,13 @@ type DashboardData = {
   recentRegistrations: Array<{ id: string; name: string | null; email: string | null; role: string; plan: string; createdAt: string }>;
   pendingDoctors: Array<{ id: string; userId: string; name: string | null; specialization: string | null; createdAt: string }>;
   recentPayments: Array<{ id: number; userId: string; userName: string | null; amount: number; type: string; provider: string | null; status: string; createdAt: string }>;
+};
+
+type DownloadStats = {
+  patientTotal: number;
+  doctorTotal: number;
+  patientToday: number;
+  doctorToday: number;
 };
 
 type HealthData = {
@@ -87,6 +94,12 @@ export default function DashboardPage() {
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.get('/v1/admin/dashboard'),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: dlStats } = useQuery<DownloadStats>({
+    queryKey: ['admin-download-stats'],
+    queryFn: () => api.get('/v1/admin/stats/downloads'),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -204,6 +217,38 @@ export default function DashboardPage() {
               {isLoading ? '...' : formatCurrency(data?.revenueMonth ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">текущий месяц</p>
+          </CardContent>
+        </Card>
+
+        {/* 5b. APK Пациент */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">📱 APK Пациент</CardTitle>
+            <Smartphone className="h-4 w-4 text-pink-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {dlStats?.patientTotal?.toLocaleString() ?? '...'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              +{dlStats?.patientToday ?? 0} сегодня
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* 5c. APK Врач */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">📱 APK Врач</CardTitle>
+            <Smartphone className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {dlStats?.doctorTotal?.toLocaleString() ?? '...'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              +{dlStats?.doctorToday ?? 0} сегодня
+            </p>
           </CardContent>
         </Card>
 
