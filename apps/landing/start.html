@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedSoft START — автоматизация клиники бесплатно до 30 сентября 2026</title>
+<meta name="description" content="MedSoft START — полная автоматизация клиники за 200,000 сум/мес. Регистратура, медкарты, очередь, касса, Telegram-бот. Бесплатно до 30 сентября 2026!">
+<meta property="og:title" content="MedSoft START — бесплатно до 30 сентября 2026">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aivita.uz/start.html">
+<meta property="og:description" content="Полная автоматизация клиники: 12 модулей, AIVITA интеграция, Telegram-бот. Бесплатно до 30 сентября 2026!">
+<meta property="og:image" content="https://aivita.uz/assets/logo-avatar.png">
+<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/logo-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#c87d8a;
+  --accent2:#8b6aae;
+  --blue:#2E3B4E;
+  --blue2:#3a5070;
+  --dark:#1a1824;
+  --bg:#faf9f7;
+  --muted:#9a96a8;
+  --card:#ffffff;
+  --border:#e8e5f0;
+  --text:#2d2a38;
+  --green:#38a169;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+/* ─── Topnav ─── */
+.topnav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(250,249,247,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo img{height:32px;display:block;width:auto;}
+.topnav .right{display:flex;align-items:center;gap:12px;}
+.lang-switch{position:relative;}
+.lang-trigger{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.7);border:1px solid rgba(42,37,64,.1);border-radius:50px;padding:9px 14px;font-size:12px;font-weight:700;font-family:inherit;color:var(--text);cursor:pointer;transition:all .25s;letter-spacing:.5px;}
+.lang-trigger:hover{background:rgba(255,255,255,.95);}
+.lang-trigger svg{width:14px;height:14px;}
+.lang-trigger .caret{font-size:9px;opacity:.55;transition:transform .25s;}
+.lang-switch.open .lang-trigger .caret{transform:rotate(180deg);}
+.lang-menu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1px solid rgba(42,37,64,.08);border-radius:14px;padding:6px;min-width:132px;box-shadow:0 18px 40px rgba(42,37,64,.12);display:none;flex-direction:column;gap:2px;z-index:60;}
+.lang-switch.open .lang-menu{display:flex;}
+.lang-menu button{border:none;background:transparent;padding:9px 12px;font-size:13px;font-weight:600;font-family:inherit;color:var(--text);border-radius:9px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:background .2s;}
+.lang-menu button:hover{background:rgba(200,125,138,.08);}
+.lang-menu button .code{font-size:11px;color:var(--muted);letter-spacing:.5px;}
+.lang-menu button.active{background:rgba(200,125,138,.15);color:var(--accent);}
+.btn-nav{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:50px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:inherit;font-size:13px;font-weight:700;text-decoration:none;transition:opacity .2s;}
+.btn-nav:hover{opacity:.88;}
+
+/* ─── Hero ─── */
+.hero{
+  background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 100%);
+  color:#fff;padding:88px 24px 80px;
+  text-align:center;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 75% 40%,rgba(139,106,174,.4) 0%,transparent 55%),
+             radial-gradient(ellipse at 20% 70%,rgba(200,125,138,.2) 0%,transparent 50%);
+  pointer-events:none;
+}
+.hero-inner{max-width:860px;margin:0 auto;position:relative;}
+.hero-promo{
+  display:inline-block;margin-bottom:24px;
+  padding:10px 24px;border-radius:50px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:14px;font-weight:800;letter-spacing:.3px;
+  box-shadow:0 4px 24px rgba(200,125,138,.4);
+  animation:pulse-badge 2.5s ease-in-out infinite;
+}
+@keyframes pulse-badge{0%,100%{box-shadow:0 4px 24px rgba(200,125,138,.4)}50%{box-shadow:0 4px 36px rgba(200,125,138,.7)}}
+.hero h1{font-size:clamp(30px,5.5vw,60px);font-weight:900;line-height:1.05;margin-bottom:20px;letter-spacing:-.5px;}
+.hero h1 .grad{background:linear-gradient(135deg,#ffd6e0,#c9b1f4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:clamp(15px,2vw,19px);opacity:.82;max-width:600px;margin:0 auto 36px;line-height:1.65;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:48px;}
+.btn-hero-main{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:15px 32px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-family:inherit;font-size:16px;font-weight:800;
+  text-decoration:none;border:none;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:0 6px 28px rgba(200,125,138,.45);
+}
+.btn-hero-main:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(200,125,138,.6)}
+.btn-hero-ghost{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:15px 32px;border-radius:14px;
+  background:rgba(255,255,255,.12);color:#fff;
+  font-family:inherit;font-size:16px;font-weight:600;
+  text-decoration:none;border:2px solid rgba(255,255,255,.3);cursor:pointer;
+  transition:background .2s;
+}
+.btn-hero-ghost:hover{background:rgba(255,255,255,.2)}
+
+/* ─── Dashboard mockup ─── */
+.dash-mockup{
+  background:rgba(255,255,255,.06);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.15);border-radius:20px;
+  padding:20px;max-width:820px;margin:0 auto;
+  text-align:left;
+}
+.dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.1);}
+.dash-brand{font-size:14px;font-weight:800;letter-spacing:-.2px;color:#fff;}
+.dash-date{font-size:11px;opacity:.5;color:#fff;}
+.dash-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.dash-card{background:rgba(255,255,255,.09);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.1);}
+.dash-card-label{font-size:10px;opacity:.55;text-transform:uppercase;letter-spacing:.8px;color:#fff;margin-bottom:4px;}
+.dash-card-val{font-size:22px;font-weight:800;color:#fff;line-height:1;}
+.dash-card-sub{font-size:10px;opacity:.45;color:#fff;margin-top:3px;}
+.dash-card.green .dash-card-val{color:#68d391;}
+.dash-card.purple .dash-card-val{color:#b794f4;}
+.dash-table{background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1);}
+.dash-table-head{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr;padding:8px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);border-bottom:1px solid rgba(255,255,255,.08);}
+.dash-row{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr;padding:10px 14px;font-size:12px;color:rgba(255,255,255,.8);border-bottom:1px solid rgba(255,255,255,.05);}
+.dash-row:last-child{border-bottom:none;}
+.dash-badge{display:inline-block;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:700;}
+.dash-badge.done{background:rgba(104,211,145,.2);color:#68d391;}
+.dash-badge.wait{background:rgba(246,173,85,.2);color:#f6ad55;}
+.dash-badge.prog{background:rgba(99,179,237,.2);color:#63b3ed;}
+
+/* ─── Sections ─── */
+.section{padding:72px 24px;max-width:1200px;margin:0 auto;}
+.section-sm{padding:48px 24px;max-width:1200px;margin:0 auto;}
+.section-label{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+.section-title{font-size:clamp(24px,4vw,40px);font-weight:800;line-height:1.12;margin-bottom:14px;letter-spacing:-.3px;}
+.section-sub{font-size:clamp(14px,1.8vw,16px);color:var(--muted);max-width:560px;line-height:1.7;}
+.section-center{text-align:center;}
+.section-center .section-sub{margin:0 auto;}
+
+/* ─── Stats row ─── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:40px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 16px;text-align:center;transition:box-shadow .2s,transform .2s;}
+.stat-card:hover{box-shadow:0 8px 24px rgba(42,37,64,.07);transform:translateY(-2px);}
+.stat-icon{font-size:28px;margin-bottom:8px;}
+.stat-val{font-size:20px;font-weight:800;color:var(--blue);line-height:1.1;margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--muted);font-weight:500;line-height:1.4;}
+
+/* ─── Features grid ─── */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px;}
+.feat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 20px;transition:box-shadow .2s,transform .2s;}
+.feat-card:hover{box-shadow:0 8px 24px rgba(42,37,64,.07);transform:translateY(-2px);}
+.feat-icon{font-size:28px;margin-bottom:12px;}
+.feat-card h3{font-size:14px;font-weight:700;margin-bottom:6px;color:var(--dark);}
+.feat-card p{font-size:12px;color:var(--muted);line-height:1.6;}
+
+/* ─── Integration flow ─── */
+.int-wrap{background:linear-gradient(135deg,#f0f4ff,#f8f0ff);border-radius:24px;padding:48px 40px;margin-top:40px;}
+.int-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;margin:32px 0;}
+.flow-block{background:#fff;border-radius:16px;padding:24px 20px;border:1px solid var(--border);text-align:center;min-width:200px;box-shadow:0 2px 12px rgba(42,37,64,.05);}
+.flow-block.a{border-color:rgba(200,125,138,.3);background:linear-gradient(135deg,#fff5f7,#fff);}
+.flow-block.m{border-color:rgba(46,59,78,.3);background:linear-gradient(135deg,#f0f4ff,#fff);}
+.flow-icon{font-size:36px;margin-bottom:10px;}
+.flow-block h3{font-size:16px;font-weight:800;margin-bottom:8px;}
+.flow-block ul{list-style:none;text-align:left;font-size:12px;color:var(--muted);line-height:1.8;}
+.flow-block ul li::before{content:'✓ ';color:var(--green);font-weight:700;}
+.flow-arrow{font-size:28px;color:var(--accent);margin:0 16px;flex-shrink:0;}
+.int-benefits{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:24px;}
+.int-b{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;background:#fff;border-radius:12px;border:1px solid var(--border);}
+.int-b-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.int-b p{font-size:13px;line-height:1.55;color:var(--text);}
+.int-b strong{display:block;font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px;}
+
+/* ─── Pricing card (centered big) ─── */
+.pricing-center{display:flex;justify-content:center;margin-top:40px;}
+.pricing-big{
+  background:var(--card);border:2px solid var(--accent);border-radius:24px;
+  padding:40px;max-width:540px;width:100%;
+  box-shadow:0 8px 40px rgba(200,125,138,.15);
+  position:relative;overflow:hidden;
+}
+.pricing-big::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.pb-icon{font-size:40px;margin-bottom:8px;}
+.pb-name{font-size:32px;font-weight:900;letter-spacing:-.5px;margin-bottom:4px;}
+.pb-price{font-size:42px;font-weight:900;color:var(--blue);margin:12px 0 4px;line-height:1;}
+.pb-price span{font-size:16px;font-weight:500;color:var(--muted);}
+.pb-promo{
+  display:inline-block;margin:12px 0 20px;
+  padding:10px 20px;border-radius:50px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:14px;font-weight:800;
+  box-shadow:0 4px 20px rgba(200,125,138,.35);
+}
+.pb-features{list-style:none;display:flex;flex-direction:column;gap:8px;margin:20px 0 28px;}
+.pb-features li{font-size:14px;color:#4a4760;display:flex;align-items:center;gap:8px;}
+.pb-features li::before{content:'✓';color:var(--green);font-weight:800;font-size:16px;flex-shrink:0;}
+.pb-deploy{font-size:12px;color:var(--muted);padding:8px 12px;background:rgba(42,37,64,.04);border-radius:8px;margin-bottom:20px;}
+.btn-big{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:16px;border-radius:14px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-family:inherit;font-size:17px;font-weight:800;
+  text-decoration:none;transition:transform .2s,box-shadow .2s;
+  box-shadow:0 6px 24px rgba(200,125,138,.4);
+}
+.btn-big:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(200,125,138,.55);}
+
+/* ─── Registration form ─── */
+.reg-section{
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border-radius:24px;padding:52px 40px;color:#fff;
+}
+.reg-section .section-label{color:rgba(255,255,255,.6);}
+.reg-section .section-title{color:#fff;}
+.reg-section .section-sub{color:rgba(255,255,255,.7);}
+.reg-form{max-width:640px;margin:32px auto 0;display:flex;flex-direction:column;gap:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:12px;font-weight:600;color:rgba(255,255,255,.8);}
+.form-input{
+  padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.1);color:#fff;
+  font-family:inherit;font-size:14px;transition:border-color .2s;outline:none;
+}
+.form-input::placeholder{color:rgba(255,255,255,.4);}
+.form-input:focus{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.16);}
+.form-input option{color:var(--dark);background:#fff;}
+.form-check{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);cursor:pointer;}
+.form-check input{margin-top:3px;width:16px;height:16px;flex-shrink:0;cursor:pointer;}
+.form-check-text{font-size:13px;line-height:1.5;color:rgba(255,255,255,.85);}
+.form-check-text strong{color:#fff;}
+.form-submit{
+  padding:15px;border-radius:14px;border:none;cursor:pointer;
+  background:#fff;color:var(--blue);
+  font-family:inherit;font-size:16px;font-weight:800;
+  transition:all .2s;margin-top:4px;
+}
+.form-submit:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.2);}
+.form-submit:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.form-status{font-size:14px;text-align:center;margin-top:6px;min-height:22px;}
+.form-status.ok{color:#68d391;}
+.form-status.err{color:#fc8181;}
+
+/* ─── Clients ─── */
+.clients-logos{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:28px;}
+.clinic-logo{width:140px;height:72px;border-radius:14px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);padding:8px;text-align:center;line-height:1.4;}
+
+/* ─── FAQ ─── */
+.faq-list{margin-top:32px;display:flex;flex-direction:column;gap:10px;}
+.faq-item{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.faq-q{width:100%;text-align:left;padding:18px 20px;background:transparent;border:none;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;transition:background .15s;}
+.faq-q:hover{background:rgba(42,37,64,.03);}
+.faq-q .chv{font-size:16px;transition:transform .25s;flex-shrink:0;color:var(--muted);}
+.faq-item.open .faq-q .chv{transform:rotate(180deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.faq-a-inner{padding:0 20px 18px;font-size:14px;color:#5a5570;line-height:1.7;}
+.faq-item.open .faq-a{max-height:400px;}
+
+/* ─── Footer ─── */
+.footer{padding:32px 24px;text-align:center;border-top:1px solid rgba(42,37,64,.06);max-width:1000px;margin:40px auto 0;}
+.footer-brand{margin-bottom:8px;display:flex;justify-content:center;}
+.footer-brand img{height:28px;width:auto;}
+.footer-links{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-links a:hover,.footer-links a.active{color:var(--accent);}
+.footer-links a.active{font-weight:700;}
+.footer-socials{display:flex;gap:12px;justify-content:center;margin:0 0 16px;}
+.footer-socials a{width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid rgba(42,37,64,.08);display:inline-flex;align-items:center;justify-content:center;color:var(--muted);transition:all .25s;text-decoration:none;}
+.footer-socials a:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(42,37,64,.10);color:#fff;}
+.footer-socials a svg{width:18px;height:18px;display:block;}
+.footer-socials a.tg:hover{background:#229ED9;border-color:#229ED9;}
+.footer-socials a.wa:hover{background:#25D366;border-color:#25D366;}
+.footer-socials a.ig:hover{background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);border-color:transparent;}
+.footer-copy{font-size:11px;color:#ccc;}
+
+/* ─── Scroll animations ─── */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+/* ─── Responsive ─── */
+@media(max-width:960px){
+  .stats-row{grid-template-columns:repeat(3,1fr);}
+  .features-grid{grid-template-columns:repeat(2,1fr);}
+  .int-benefits{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .topnav{padding:12px 16px;}
+  .hero{padding:60px 20px 52px;}
+  .section{padding:48px 20px;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .features-grid{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .int-wrap,.reg-section{padding:28px 20px;}
+  .dash-cards{grid-template-columns:1fr 1fr;}
+  .dash-card:last-child{display:none;}
+  .dash-table-head,.dash-row{grid-template-columns:2fr 1.5fr 1fr;}
+  .dash-row > *:last-child,.dash-table-head > *:last-child{display:none;}
+  .flow-arrow{transform:rotate(90deg);margin:8px 0;}
+  .pricing-big{padding:28px 20px;}
+  .pb-price{font-size:32px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Topnav ─── -->
+<header class="topnav">
+  <a href="/" class="logo"><img src="/assets/logo-horizontal.png" alt="AIVITA"></a>
+  <div class="right">
+    <div class="lang-switch" id="langSwitch">
+      <button class="lang-trigger" id="langTrigger" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>
+        <span id="langCurrent">RU</span>
+        <span class="caret">▼</span>
+      </button>
+      <div class="lang-menu" role="menu">
+        <button data-lang="ru" class="active">Русский <span class="code">RU</span></button>
+        <button data-lang="uz">O'zbekcha <span class="code">UZ</span></button>
+        <button data-lang="en">English <span class="code">EN</span></button>
+      </div>
+    </div>
+    <a href="#reg-form" class="btn-nav" data-i18n="nav_cta">Попробовать бесплатно</a>
+  </div>
+</header>
+
+<!-- ─── Hero ─── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-promo" data-i18n="promo_badge">🎁 Бесплатно до 30 сентября 2026!</div>
+    <h1><span class="grad" data-i18n="hero_h1a">MedSoft START</span><br><span data-i18n="hero_h1b">— автоматизация вашей клиники</span></h1>
+    <p class="hero-sub" data-i18n="hero_sub">Регистратура, медкарты, очередь, касса, Telegram-бот — всё в одном. Для клиник от 1 до 5 врачей.</p>
+    <div class="hero-btns">
+      <a href="#reg-form" class="btn-hero-main" data-i18n="hero_cta1">Начать бесплатно →</a>
+      <a href="#dashboard" class="btn-hero-ghost" data-i18n="hero_cta2">Смотреть демо</a>
+    </div>
+
+    <!-- Dashboard mockup -->
+    <div class="dash-mockup" id="dashboard">
+      <div class="dash-topbar">
+        <span class="dash-brand">MedSoft START — Клиника «Янги Хаёт»</span>
+        <span class="dash-date" data-i18n="dash_date">25 мая 2026 · Сегодня</span>
+      </div>
+      <div class="dash-cards">
+        <div class="dash-card">
+          <div class="dash-card-label" data-i18n="dash_c1_label">Записи сегодня</div>
+          <div class="dash-card-val">24</div>
+          <div class="dash-card-sub" data-i18n="dash_c1_sub">+3 от вчера</div>
+        </div>
+        <div class="dash-card green">
+          <div class="dash-card-label" data-i18n="dash_c2_label">В очереди</div>
+          <div class="dash-card-val">7</div>
+          <div class="dash-card-sub" data-i18n="dash_c2_sub">сейчас ожидают</div>
+        </div>
+        <div class="dash-card purple">
+          <div class="dash-card-label" data-i18n="dash_c3_label">Оплачено</div>
+          <div class="dash-card-val">3 500 000</div>
+          <div class="dash-card-sub" data-i18n="dash_c3_sub">сум за день</div>
+        </div>
+      </div>
+      <div class="dash-table">
+        <div class="dash-table-head">
+          <span data-i18n="dash_th1">Пациент</span>
+          <span data-i18n="dash_th2">Врач</span>
+          <span data-i18n="dash_th3">Время</span>
+          <span data-i18n="dash_th4">Статус</span>
+        </div>
+        <div class="dash-row">
+          <span>Ахмедов Б.Т.</span><span>Каримов А.Р.</span><span>09:00</span>
+          <span><span class="dash-badge done" data-i18n="st_done">Принят</span></span>
+        </div>
+        <div class="dash-row">
+          <span>Юсупова Н.И.</span><span>Назарова Д.Ш.</span><span>09:30</span>
+          <span><span class="dash-badge prog" data-i18n="st_prog">На приёме</span></span>
+        </div>
+        <div class="dash-row">
+          <span>Рашидов М.К.</span><span>Каримов А.Р.</span><span>10:00</span>
+          <span><span class="dash-badge wait" data-i18n="st_wait">Ожидает</span></span>
+        </div>
+        <div class="dash-row">
+          <span>Турсунова З.А.</span><span>Умаров Х.Б.</span><span>10:30</span>
+          <span><span class="dash-badge wait" data-i18n="st_wait">Ожидает</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── About / stats ─── -->
+<div class="section reveal" id="about">
+  <div class="section-center">
+    <div class="section-label" data-i18n="about_label">О MedSoft</div>
+    <h2 class="section-title" data-i18n="about_title">Система управления клиникой для Узбекистана</h2>
+    <p class="section-sub" data-i18n="about_sub">Работает в облаке, не требует установки. Начните за 5 минут.</p>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card reveal">
+      <div class="stat-icon">🧩</div>
+      <div class="stat-val" data-i18n="st1_val">12+</div>
+      <div class="stat-label" data-i18n="st1_label">модулей автоматизации</div>
+    </div>
+    <div class="stat-card reveal">
+      <div class="stat-icon">🔗</div>
+      <div class="stat-val" data-i18n="st2_val">AIVITA</div>
+      <div class="stat-label" data-i18n="st2_label">интеграция включена</div>
+    </div>
+    <div class="stat-card reveal">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-val" data-i18n="st3_val">5 мин</div>
+      <div class="stat-label" data-i18n="st3_label">настройка клиники</div>
+    </div>
+    <div class="stat-card reveal">
+      <div class="stat-icon">🤖</div>
+      <div class="stat-val" data-i18n="st4_val">24/7</div>
+      <div class="stat-label" data-i18n="st4_label">Telegram-бот</div>
+    </div>
+    <div class="stat-card reveal">
+      <div class="stat-icon">💳</div>
+      <div class="stat-val" data-i18n="st5_val">3</div>
+      <div class="stat-label" data-i18n="st5_label">платёжных системы</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 12 modules ─── -->
+<div style="background:rgba(42,37,64,.02);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+<div class="section reveal">
+  <div class="section-label" data-i18n="mods_label">Модули</div>
+  <h2 class="section-title" data-i18n="mods_title">12 модулей автоматизации</h2>
+  <p class="section-sub" data-i18n="mods_sub">Каждый модуль работает автономно и в единой экосистеме.</p>
+  <div class="features-grid">
+    <div class="feat-card reveal"><div class="feat-icon">📋</div><h3 data-i18n="m1_t">Регистратура</h3><p data-i18n="m1_d">Запись пациентов, поиск, карточки</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">🏥</div><h3 data-i18n="m2_t">Медкарты</h3><p data-i18n="m2_d">Электронные, МКБ-10, анализы</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">👥</div><h3 data-i18n="m3_t">Очередь</h3><p data-i18n="m3_d">Реалтайм WebSocket, экран в холле</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">📅</div><h3 data-i18n="m4_t">Расписание</h3><p data-i18n="m4_d">По врачам, дням, слотам</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">💰</div><h3 data-i18n="m5_t">Касса</h3><p data-i18n="m5_d">Счета, Payme / Click / Uzum</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">🧪</div><h3 data-i18n="m6_t">Лаборатория</h3><p data-i18n="m6_d">Направления, результаты</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">🤖</div><h3 data-i18n="m7_t">Telegram-бот</h3><p data-i18n="m7_d">Запись 24/7, напоминания</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">📱</div><h3 data-i18n="m8_t">SMS-уведомления</h3><p data-i18n="m8_d">Eskiz.uz интеграция</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">📊</div><h3 data-i18n="m9_t">Аналитика</h3><p data-i18n="m9_d">Дашборд, выручка, загрузка</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">🏢</div><h3 data-i18n="m10_t">Структура</h3><p data-i18n="m10_d">Здания, отделения, кабинеты</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">🔗</div><h3 data-i18n="m11_t">AIVITA</h3><p data-i18n="m11_d">Пациенты с готовой медкартой</p></div>
+    <div class="feat-card reveal"><div class="feat-icon">🔒</div><h3 data-i18n="m12_t">Безопасность</h3><p data-i18n="m12_d">Роли, логи, аудит</p></div>
+  </div>
+</div>
+</div>
+
+<!-- ─── AIVITA Integration ─── -->
+<div class="section reveal">
+  <div class="section-label" data-i18n="int_label">Интеграция</div>
+  <h2 class="section-title" data-i18n="int_title">Интеграция с AIVITA — включена в START</h2>
+  <p class="section-sub" data-i18n="int_sub">Пациенты приходят готовыми. Данные текут в обе стороны автоматически.</p>
+
+  <div class="int-wrap">
+    <div class="int-flow">
+      <div class="flow-block a reveal">
+        <div class="flow-icon">🩺</div>
+        <h3>AIVITA</h3>
+        <ul>
+          <li data-i18n="f1_1">Пациент проходит AI-чекап</li>
+          <li data-i18n="f1_2">Выявлена проблема</li>
+          <li data-i18n="f1_3">Направление в клинику</li>
+          <li data-i18n="f1_4">Медкарта сформирована</li>
+        </ul>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-block m reveal">
+        <div class="flow-icon">🏥</div>
+        <h3>MedSoft</h3>
+        <ul>
+          <li data-i18n="f2_1">Клиника получает карту</li>
+          <li data-i18n="f2_2">Врач видит историю</li>
+          <li data-i18n="f2_3">Приём и анализы</li>
+          <li data-i18n="f2_4">Результаты обратно</li>
+        </ul>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-block a reveal">
+        <div class="flow-icon">📲</div>
+        <h3 data-i18n="f3_title">Пациент</h3>
+        <ul>
+          <li data-i18n="f3_1">Результаты в AIVITA</li>
+          <li data-i18n="f3_2">Медкарта обновлена</li>
+          <li data-i18n="f3_3">AI-рекомендации</li>
+          <li data-i18n="f3_4">Следующий чекап</li>
+        </ul>
+      </div>
+    </div>
+    <div class="int-benefits">
+      <div class="int-b reveal"><div class="int-b-icon">🏃</div><div><strong data-i18n="ib1_t">Пациенты с готовой медкартой</strong><p data-i18n="ib1_d">Не нужен повторный сбор анамнеза — данные уже в системе.</p></div></div>
+      <div class="int-b reveal"><div class="int-b-icon">🔄</div><div><strong data-i18n="ib2_t">Нет повторного сбора анамнеза</strong><p data-i18n="ib2_d">Экономия 10–15 минут на каждом приёме врача.</p></div></div>
+      <div class="int-b reveal"><div class="int-b-icon">📤</div><div><strong data-i18n="ib3_t">Результаты — автоматически в AIVITA</strong><p data-i18n="ib3_d">Синхронизация анализов и назначений в обе стороны.</p></div></div>
+      <div class="int-b reveal"><div class="int-b-icon">💼</div><div><strong data-i18n="ib4_t">Комиссия только за реальных</strong><p data-i18n="ib4_d">Платите только за пациентов, пришедших через AIVITA.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Pricing ─── -->
+<div style="background:rgba(42,37,64,.02);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+<div class="section reveal" id="pricing">
+  <div class="section-center">
+    <div class="section-label" data-i18n="price_label">Тариф</div>
+    <h2 class="section-title" data-i18n="price_title">Тариф START</h2>
+    <p class="section-sub" data-i18n="price_sub">Всё что нужно клинике — без лишнего.</p>
+  </div>
+  <div class="pricing-center">
+    <div class="pricing-big">
+      <div class="pb-icon">🚀</div>
+      <div class="pb-name">START</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;" data-i18n="pb_size">Для клиник от 1 до 5 врачей</div>
+      <div class="pb-price">200 000 <span data-i18n="pb_per">сум/мес</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:-2px;" data-i18n="pb_incl">все 12 модулей включены</div>
+      <div class="pb-promo" data-i18n="pb_promo">🎁 БЕСПЛАТНО до 30 сентября 2026!</div>
+      <div class="pb-deploy">🌐 <span data-i18n="pb_deploy">Деплой: облако. Начало работы за 5 минут.</span></div>
+      <ul class="pb-features">
+        <li data-i18n="pb_f1">Регистратура и запись пациентов</li>
+        <li data-i18n="pb_f2">Электронные медкарты (МКБ-10)</li>
+        <li data-i18n="pb_f3">Очередь в реальном времени (WebSocket)</li>
+        <li data-i18n="pb_f4">Расписание по врачам и слотам</li>
+        <li data-i18n="pb_f5">Касса: Payme / Click / Uzum</li>
+        <li data-i18n="pb_f6">Лаборатория (направления, результаты)</li>
+        <li data-i18n="pb_f7">Telegram-бот для записи 24/7</li>
+        <li data-i18n="pb_f8">SMS-уведомления (Eskiz.uz)</li>
+        <li data-i18n="pb_f9">Аналитика и дашборд</li>
+        <li data-i18n="pb_f10">Управление структурой клиники</li>
+        <li data-i18n="pb_f11">AIVITA интеграция включена</li>
+        <li data-i18n="pb_f12">Роли, безопасность, аудит-лог</li>
+      </ul>
+      <a href="#reg-form" class="btn-big" data-i18n="pb_cta">Начать бесплатно →</a>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ─── Registration form ─── -->
+<div class="section" id="reg-form">
+  <div class="reg-section reveal">
+    <div class="section-label" data-i18n="reg_label">Регистрация</div>
+    <h2 class="section-title" data-i18n="reg_title">Зарегистрировать клинику</h2>
+    <p class="section-sub" data-i18n="reg_sub">Заполните форму — мы свяжемся в течение 24 часов и подключим вашу клинику.</p>
+
+    <form class="reg-form" id="startForm" onsubmit="submitStart(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-i18n="rf_clinic">Название клиники *</label>
+          <input class="form-input" name="clinicName" required placeholder="Yangi Hayot" data-i18n-ph="rf_clinic_ph">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="rf_contact">Контактное лицо *</label>
+          <input class="form-input" name="contactName" required placeholder="Иванов Иван" data-i18n-ph="rf_contact_ph">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-i18n="rf_phone">Телефон *</label>
+          <input class="form-input" name="phone" required type="tel" placeholder="+998 90 123 45 67">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="rf_email">Email</label>
+          <input class="form-input" name="email" type="email" placeholder="clinic@example.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="rf_doctors">Количество врачей *</label>
+        <select class="form-input" name="doctorsCount" required>
+          <option value="" disabled selected data-i18n="rf_select">Выберите</option>
+          <option value="1-3" data-i18n="rf_d1">1–3 врача</option>
+          <option value="3-5" data-i18n="rf_d2">3–5 врачей</option>
+          <option value="5-10" data-i18n="rf_d3">5–10 врачей</option>
+          <option value="10+" data-i18n="rf_d4">10+ врачей</option>
+        </select>
+      </div>
+      <label class="form-check">
+        <input type="checkbox" name="connectAivita" value="1">
+        <div class="form-check-text">
+          <strong data-i18n="rf_aivita_title">Подключить AIVITA</strong><br>
+          <span data-i18n="rf_aivita_sub">Получать пациентов из AIVITA с готовой медкартой</span>
+        </div>
+      </label>
+      <button type="submit" class="form-submit" data-i18n="rf_submit">Зарегистрировать клинику →</button>
+      <div class="form-status" id="startStatus"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── Clients ─── -->
+<div class="section-sm reveal">
+  <div style="text-align:center;">
+    <div class="section-label" data-i18n="clients_label">Клиенты</div>
+    <h2 class="section-title" data-i18n="clients_title">Уже используют MedSoft</h2>
+  </div>
+  <div class="clients-logos">
+    <div class="clinic-logo">Yangi<br>Hayot</div>
+    <div class="clinic-logo">Green<br>Zamin</div>
+    <div class="clinic-logo">Shifa<br>Clinic</div>
+    <div class="clinic-logo">MedLine<br>Plus</div>
+    <div class="clinic-logo" style="border-style:dashed">+ <span data-i18n="clients_more">ваша клиника</span></div>
+  </div>
+</div>
+
+<!-- ─── FAQ ─── -->
+<div style="background:rgba(42,37,64,.02);border-top:1px solid var(--border);">
+<div class="section reveal">
+  <div class="section-label">FAQ</div>
+  <h2 class="section-title" data-i18n="faq_title">Часто задаваемые вопросы</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq1_q">Сколько стоит после акции?</span><span class="chv">▼</span></button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq1_a">После окончания акции 30 сентября 2026 тариф START стоит 200 000 сум/месяц. Цена фиксированная — все 12 модулей без доплат.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq2_q">Нужен ли свой сервер?</span><span class="chv">▼</span></button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq2_a">Нет. MedSoft START работает полностью в облаке. Достаточно браузера или мобильного устройства. Никаких установок и серверов.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq3_q">Как быстро настроить?</span><span class="chv">▼</span></button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq3_a">Базовая настройка занимает 5 минут: добавить врачей, кабинеты и расписание. Наш менеджер поможет с настройкой бесплатно в течение 24 часов после регистрации.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq4_q">Что если пропадёт интернет?</span><span class="chv">▼</span></button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq4_a">START — облачная версия, требует интернет. Мы рекомендуем использовать резервное 4G-подключение. Desktop-версия без интернета доступна в тарифе Premium.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq5_q">Как подключиться к AIVITA?</span><span class="chv">▼</span></button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq5_a">При регистрации клиники поставьте галочку «Подключить AIVITA». Наш менеджер настроит интеграцию в течение 1–2 рабочих дней. После этого ваша клиника появится в каталоге AIVITA.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq6_q">Есть ли обучение?</span><span class="chv">▼</span></button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq6_a">Да, бесплатное обучение персонала включено в тариф START. Видеоинструкции, база знаний и Telegram-поддержка 24/7. Онлайн-демо по запросу.</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+  <div class="footer-brand"><img src="/assets/logo-horizontal.png" alt="AIVITA"></div>
+  <div class="footer-links">
+    <a href="/" data-i18n="footer_home">Главная</a>
+    <a href="/about.html" data-i18n="footer_about">О нас</a>
+    <a href="/pricing.html" data-i18n="footer_pricing">Тарифы</a>
+    <a href="/clinics.html" data-i18n="footer_clinics">Для клиник</a>
+    <a href="/start.html" class="active" data-i18n="footer_start">MedSoft START</a>
+    <a href="/privacy.html" data-i18n="footer_privacy">Политика</a>
+    <a href="/terms.html" data-i18n="footer_terms">Оферта</a>
+  </div>
+  <div class="footer-socials">
+    <a class="tg" href="https://t.me/aivita_uz" target="_blank" rel="noopener" aria-label="Telegram">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.94 4.55 18.7 19.94c-.24 1.07-.88 1.34-1.78.83l-4.92-3.62-2.37 2.28c-.26.26-.48.48-.99.48l.35-5 9.1-8.22c.4-.35-.08-.55-.62-.2L6.21 12.6 1.36 11.08c-1.06-.33-1.08-1.06.22-1.57L20.57 3.4c.88-.33 1.65.2 1.37 1.15z"/></svg>
+    </a>
+    <a class="wa" href="https://wa.me/998000000000" target="_blank" rel="noopener" aria-label="WhatsApp">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.21 8.21 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.25 8.24zm4.52-6.17c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.98-.15.17-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43-.06-.12-.55-1.33-.76-1.82-.2-.48-.41-.41-.55-.42l-.47-.01c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07s.89 2.4 1.01 2.57c.12.17 1.74 2.66 4.22 3.73.59.25 1.05.41 1.41.52.59.19 1.13.16 1.56.1.47-.07 1.47-.6 1.68-1.18.2-.58.2-1.08.14-1.18-.06-.1-.23-.16-.48-.28z"/></svg>
+    </a>
+    <a class="ig" href="https://instagram.com/aivita.uz" target="_blank" rel="noopener" aria-label="Instagram">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.81.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.81-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.81-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.81.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.83 5.83 0 0 0-2.13 1.38A5.83 5.83 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.73 1.46 1.38 2.13.67.65 1.34 1.07 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.83 5.83 0 0 0 2.13-1.38c.65-.67 1.07-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.83 5.83 0 0 0-1.38-2.13A5.83 5.83 0 0 0 19.86.63C19.1.33 18.22.13 16.95.07 15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.17 6.17 0 0 0 12 5.84zM12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm6.41-11.85a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44z"/></svg>
+    </a>
+  </div>
+  <div class="footer-copy" data-i18n="footer_copy">© 2026 aivita. Все права защищены.</div>
+</footer>
+
+<script>
+const LANG_KEY = 'aivita_lang';
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+const TG_BOT = '8933564145:AAFBibVi2gNEG2yFcvCiCQ9mGZWaMo8e08c';
+const TG_CHAT = '-1002000000000'; // fallback — bot will forward to admin
+
+const I18N = {
+  ru: {
+    nav_cta: 'Попробовать бесплатно',
+    promo_badge: '🎁 Бесплатно до 30 сентября 2026!',
+    hero_h1a: 'MedSoft START', hero_h1b: '— автоматизация вашей клиники',
+    hero_sub: 'Регистратура, медкарты, очередь, касса, Telegram-бот — всё в одном. Для клиник от 1 до 5 врачей.',
+    hero_cta1: 'Начать бесплатно →', hero_cta2: 'Смотреть демо',
+    dash_date: '25 мая 2026 · Сегодня',
+    dash_c1_label: 'Записи сегодня', dash_c1_sub: '+3 от вчера',
+    dash_c2_label: 'В очереди', dash_c2_sub: 'сейчас ожидают',
+    dash_c3_label: 'Оплачено', dash_c3_sub: 'сум за день',
+    dash_th1: 'Пациент', dash_th2: 'Врач', dash_th3: 'Время', dash_th4: 'Статус',
+    st_done: 'Принят', st_prog: 'На приёме', st_wait: 'Ожидает',
+    about_label: 'О MedSoft', about_title: 'Система управления клиникой для Узбекистана',
+    about_sub: 'Работает в облаке, не требует установки. Начните за 5 минут.',
+    st1_val: '12+', st1_label: 'модулей автоматизации',
+    st2_val: 'AIVITA', st2_label: 'интеграция включена',
+    st3_val: '5 мин', st3_label: 'настройка клиники',
+    st4_val: '24/7', st4_label: 'Telegram-бот',
+    st5_val: '3', st5_label: 'платёжных системы',
+    mods_label: 'Модули', mods_title: '12 модулей автоматизации',
+    mods_sub: 'Каждый модуль работает автономно и в единой экосистеме.',
+    m1_t:'Регистратура',m1_d:'Запись пациентов, поиск, карточки',
+    m2_t:'Медкарты',m2_d:'Электронные, МКБ-10, анализы',
+    m3_t:'Очередь',m3_d:'Реалтайм WebSocket, экран в холле',
+    m4_t:'Расписание',m4_d:'По врачам, дням, слотам',
+    m5_t:'Касса',m5_d:'Счета, Payme / Click / Uzum',
+    m6_t:'Лаборатория',m6_d:'Направления, результаты',
+    m7_t:'Telegram-бот',m7_d:'Запись 24/7, напоминания',
+    m8_t:'SMS-уведомления',m8_d:'Eskiz.uz интеграция',
+    m9_t:'Аналитика',m9_d:'Дашборд, выручка, загрузка',
+    m10_t:'Структура',m10_d:'Здания, отделения, кабинеты',
+    m11_t:'AIVITA',m11_d:'Пациенты с готовой медкартой',
+    m12_t:'Безопасность',m12_d:'Роли, логи, аудит',
+    int_label:'Интеграция',int_title:'Интеграция с AIVITA — включена в START',
+    int_sub:'Пациенты приходят готовыми. Данные текут в обе стороны автоматически.',
+    f1_1:'Пациент проходит AI-чекап',f1_2:'Выявлена проблема',f1_3:'Направление в клинику',f1_4:'Медкарта сформирована',
+    f2_1:'Клиника получает карту',f2_2:'Врач видит историю',f2_3:'Приём и анализы',f2_4:'Результаты обратно',
+    f3_title:'Пациент',f3_1:'Результаты в AIVITA',f3_2:'Медкарта обновлена',f3_3:'AI-рекомендации',f3_4:'Следующий чекап',
+    ib1_t:'Пациенты с готовой медкартой',ib1_d:'Не нужен повторный сбор анамнеза — данные уже в системе.',
+    ib2_t:'Нет повторного сбора анамнеза',ib2_d:'Экономия 10–15 минут на каждом приёме врача.',
+    ib3_t:'Результаты — автоматически в AIVITA',ib3_d:'Синхронизация анализов и назначений в обе стороны.',
+    ib4_t:'Комиссия только за реальных',ib4_d:'Платите только за пациентов, пришедших через AIVITA.',
+    price_label:'Тариф',price_title:'Тариф START',price_sub:'Всё что нужно клинике — без лишнего.',
+    pb_size:'Для клиник от 1 до 5 врачей',pb_per:'сум/мес',pb_incl:'все 12 модулей включены',
+    pb_promo:'🎁 БЕСПЛАТНО до 30 сентября 2026!',pb_deploy:'Деплой: облако. Начало работы за 5 минут.',
+    pb_f1:'Регистратура и запись пациентов',pb_f2:'Электронные медкарты (МКБ-10)',
+    pb_f3:'Очередь в реальном времени (WebSocket)',pb_f4:'Расписание по врачам и слотам',
+    pb_f5:'Касса: Payme / Click / Uzum',pb_f6:'Лаборатория (направления, результаты)',
+    pb_f7:'Telegram-бот для записи 24/7',pb_f8:'SMS-уведомления (Eskiz.uz)',
+    pb_f9:'Аналитика и дашборд',pb_f10:'Управление структурой клиники',
+    pb_f11:'AIVITA интеграция включена',pb_f12:'Роли, безопасность, аудит-лог',
+    pb_cta:'Начать бесплатно →',
+    reg_label:'Регистрация',reg_title:'Зарегистрировать клинику',
+    reg_sub:'Заполните форму — мы свяжемся в течение 24 часов и подключим вашу клинику.',
+    rf_clinic:'Название клиники *',rf_clinic_ph:'Yangi Hayot',
+    rf_contact:'Контактное лицо *',rf_contact_ph:'Иванов Иван',
+    rf_phone:'Телефон *',rf_email:'Email',
+    rf_doctors:'Количество врачей *',rf_select:'Выберите',
+    rf_d1:'1–3 врача',rf_d2:'3–5 врачей',rf_d3:'5–10 врачей',rf_d4:'10+ врачей',
+    rf_aivita_title:'Подключить AIVITA',rf_aivita_sub:'Получать пациентов из AIVITA с готовой медкартой',
+    rf_submit:'Зарегистрировать клинику →',
+    rf_sending:'Отправляем...',
+    rf_ok:'✅ Заявка отправлена! Мы свяжемся с вами в течение 24 часов.',
+    rf_err:'Ошибка. Напишите нам в Telegram: @aivita_uz',
+    clients_label:'Клиенты',clients_title:'Уже используют MedSoft',clients_more:'ваша клиника',
+    faq_title:'Часто задаваемые вопросы',
+    faq1_q:'Сколько стоит после акции?',faq1_a:'После окончания акции 30 сентября 2026 тариф START стоит 200 000 сум/месяц. Цена фиксированная — все 12 модулей без доплат.',
+    faq2_q:'Нужен ли свой сервер?',faq2_a:'Нет. MedSoft START работает полностью в облаке. Достаточно браузера или мобильного устройства.',
+    faq3_q:'Как быстро настроить?',faq3_a:'Базовая настройка занимает 5 минут: добавить врачей, кабинеты и расписание. Наш менеджер поможет бесплатно в течение 24 часов.',
+    faq4_q:'Что если пропадёт интернет?',faq4_a:'START — облачная версия, требует интернет. Рекомендуем резервное 4G-подключение.',
+    faq5_q:'Как подключиться к AIVITA?',faq5_a:'При регистрации поставьте галочку «Подключить AIVITA». Менеджер настроит интеграцию за 1–2 рабочих дня.',
+    faq6_q:'Есть ли обучение?',faq6_a:'Да, бесплатное обучение персонала включено. Видеоинструкции, база знаний и Telegram-поддержка 24/7.',
+    footer_home:'Главная',footer_about:'О нас',footer_pricing:'Тарифы',
+    footer_clinics:'Для клиник',footer_start:'MedSoft START',
+    footer_privacy:'Политика',footer_terms:'Оферта',
+    footer_copy:'© 2026 aivita. Все права защищены.',
+  },
+  uz: {
+    nav_cta:"Bepul sinab ko'ring",
+    promo_badge:"🎁 2026-yil 30-sentabrgacha bepul!",
+    hero_h1a:'MedSoft START',hero_h1b:"— klinikangizni avtomatlashtirish",
+    hero_sub:"Registratura, tibbiy kartalar, navbat, kassa, Telegram-bot — barchasi birda. 1 dan 5 gacha shifokorli klinikalar uchun.",
+    hero_cta1:"Bepul boshlash →",hero_cta2:"Demoni ko'rish",
+    dash_date:"25-may 2026 · Bugun",
+    dash_c1_label:"Bugungi yozuvlar",dash_c1_sub:"kechagidan +3",
+    dash_c2_label:"Navbatda",dash_c2_sub:"hozir kutmoqda",
+    dash_c3_label:"To'langan",dash_c3_sub:"so'm bir kunda",
+    dash_th1:"Bemor",dash_th2:"Shifokor",dash_th3:"Vaqt",dash_th4:"Holat",
+    st_done:"Qabul qilindi",st_prog:"Qabulda",st_wait:"Kutmoqda",
+    about_label:"MedSoft haqida",about_title:"O'zbekiston uchun klinika boshqaruv tizimi",
+    about_sub:"Bulutda ishlaydi, o'rnatishni talab qilmaydi. 5 daqiqada boshlang.",
+    st1_val:"12+",st1_label:"avtomatlashtirish modullari",
+    st2_val:"AIVITA",st2_label:"integratsiya kiritilgan",
+    st3_val:"5 daq",st3_label:"klinika sozlash",
+    st4_val:"24/7",st4_label:"Telegram-bot",
+    st5_val:"3",st5_label:"to'lov tizimlari",
+    mods_label:"Modullar",mods_title:"12 ta avtomatlashtirish moduli",
+    mods_sub:"Har bir modul mustaqil va yagona ekosistemada ishlaydi.",
+    m1_t:"Registratura",m1_d:"Bemorlarni yozish, qidirish, kartochkalar",
+    m2_t:"Tibbiy kartalar",m2_d:"Elektron, MKB-10, tahlillar",
+    m3_t:"Navbat",m3_d:"Real vaqt WebSocket, xoldagi ekran",
+    m4_t:"Jadval",m4_d:"Shifokorlar, kunlar, slotlar bo'yicha",
+    m5_t:"Kassa",m5_d:"Hisoblar, Payme / Click / Uzum",
+    m6_t:"Laboratoriya",m6_d:"Yo'naltirishlar, natijalar",
+    m7_t:"Telegram-bot",m7_d:"24/7 yozilish, eslatmalar",
+    m8_t:"SMS-bildirishnomalar",m8_d:"Eskiz.uz integratsiyasi",
+    m9_t:"Analitika",m9_d:"Dashboard, daromad, yuklanish",
+    m10_t:"Tuzilma",m10_d:"Binolar, bo'limlar, kabinetlar",
+    m11_t:"AIVITA",m11_d:"Tayyor tibbiy karta bilan bemorlar",
+    m12_t:"Xavfsizlik",m12_d:"Rollar, loglar, audit",
+    int_label:"Integratsiya",int_title:"AIVITA integratsiyasi — START da kiritilgan",
+    int_sub:"Bemorlar tayyor holda keladi. Ma'lumotlar ikki tomonlama avtomatik oqadi.",
+    f1_1:"Bemor AI-tekshiruvdan o'tadi",f1_2:"Muammo aniqlandi",f1_3:"Klinikaga yo'naltirish",f1_4:"Tibbiy karta shakllandi",
+    f2_1:"Klinika kartani oladi",f2_2:"Shifokor tarixni ko'radi",f2_3:"Qabul va tahlillar",f2_4:"Natijalar orqaga",
+    f3_title:"Bemor",f3_1:"AIVITA da natijalar",f3_2:"Tibbiy karta yangilandi",f3_3:"AI-tavsiyalar",f3_4:"Keyingi tekshiruv",
+    ib1_t:"Tayyor tibbiy karta bilan bemorlar",ib1_d:"Takroriy anamnez yig'ish shart emas — ma'lumotlar allaqachon tizimda.",
+    ib2_t:"Takroriy anamnez yo'q",ib2_d:"Har bir qabulda 10–15 daqiqa tejash.",
+    ib3_t:"Natijalar — avtomatik AIVITA ga",ib3_d:"Tahlillar va tayinlamalar ikki tomonlama sinxronlanadi.",
+    ib4_t:"Komissiya faqat haqiqiy uchun",ib4_d:"Faqat AIVITA orqali kelgan bemorlar uchun to'lang.",
+    price_label:"Tarif",price_title:"START tarifi",price_sub:"Klinikaga kerak bo'lgan hamma narsa — ortiqchasiz.",
+    pb_size:"1 dan 5 gacha shifokorli klinikalar uchun",pb_per:"so'm/oy",pb_incl:"barcha 12 modul kiritilgan",
+    pb_promo:"🎁 2026-yil 30-sentabrgacha BEPUL!",pb_deploy:"Deploy: bulut. 5 daqiqada ishlashni boshlang.",
+    pb_f1:"Registratura va bemorlarni yozish",pb_f2:"Elektron tibbiy kartalar (MKB-10)",
+    pb_f3:"Real vaqtda navbat (WebSocket)",pb_f4:"Shifokorlar va slotlar bo'yicha jadval",
+    pb_f5:"Kassa: Payme / Click / Uzum",pb_f6:"Laboratoriya (yo'naltirishlar, natijalar)",
+    pb_f7:"24/7 yozish uchun Telegram-bot",pb_f8:"SMS-bildirishnomalar (Eskiz.uz)",
+    pb_f9:"Analitika va dashboard",pb_f10:"Klinika tuzilmasini boshqarish",
+    pb_f11:"AIVITA integratsiyasi kiritilgan",pb_f12:"Rollar, xavfsizlik, audit-log",
+    pb_cta:"Bepul boshlash →",
+    reg_label:"Ro'yxatdan o'tish",reg_title:"Klinikani ro'yxatdan o'tkazish",
+    reg_sub:"Shaklni to'ldiring — 24 soat ichida bog'lanamiz va klinikangizni ulaymiz.",
+    rf_clinic:"Klinika nomi *",rf_clinic_ph:"Yangi Hayot",
+    rf_contact:"Aloqa shaxsi *",rf_contact_ph:"Ivanov Ivan",
+    rf_phone:"Telefon *",rf_email:"Email",
+    rf_doctors:"Shifokorlar soni *",rf_select:"Tanlang",
+    rf_d1:"1–3 shifokor",rf_d2:"3–5 shifokor",rf_d3:"5–10 shifokor",rf_d4:"10+ shifokor",
+    rf_aivita_title:"AIVITA ni ulash",rf_aivita_sub:"AIVITA dan tayyor tibbiy karta bilan bemorlar olish",
+    rf_submit:"Klinikani ro'yxatdan o'tkazish →",
+    rf_sending:"Yuborilmoqda...",
+    rf_ok:"✅ Ariza yuborildi! 24 soat ichida siz bilan bog'lanamiz.",
+    rf_err:"Xato. Telegram orqali yozing: @aivita_uz",
+    clients_label:"Mijozlar",clients_title:"Allaqachon MedSoft dan foydalanishadi",clients_more:"sizning klinikangiz",
+    faq_title:"Tez-tez so'raladigan savollar",
+    faq1_q:"Aksiyadan keyin qancha turadi?",faq1_a:"2026-yil 30-sentabrdan keyin START tarifi 200 000 so'm/oy. Belgilangan narx — barcha 12 modul qo'shimcha to'lovsiz.",
+    faq2_q:"O'z server kerakmi?",faq2_a:"Yo'q. MedSoft START to'liq bulutda ishlaydi. Brauzer yoki mobil qurilma yetarli.",
+    faq3_q:"Qanchalik tez sozlanadi?",faq3_a:"Asosiy sozlash 5 daqiqa: shifokorlar, kabinetlar va jadval qo'shish. Menejerimiz 24 soat ichida bepul yordam beradi.",
+    faq4_q:"Internet o'chib qolsa nima bo'ladi?",faq4_a:"START bulutli versiya, internet talab qiladi. Zaxira 4G ulanishdan foydalanishni tavsiya etamiz.",
+    faq5_q:"AIVITA ga qanday ulanish?",faq5_a:"Ro'yxatdan o'tishda 'AIVITA ni ulash' belgilang. Menejer 1–2 ish kunida integratsiyani sozlaydi.",
+    faq6_q:"O'qitish bormi?",faq6_a:"Ha, xodimlarni bepul o'qitish kiritilgan. Video ko'rsatmalar, bilimlar bazasi va 24/7 Telegram-qo'llab-quvvatlash.",
+    footer_home:"Bosh sahifa",footer_about:"Biz haqimizda",footer_pricing:"Tariflar",
+    footer_clinics:"Klinikalar uchun",footer_start:"MedSoft START",
+    footer_privacy:"Maxfiylik",footer_terms:"Oferta",
+    footer_copy:"© 2026 aivita. Barcha huquqlar himoyalangan.",
+  },
+  en: {
+    nav_cta:'Try for free',
+    promo_badge:'🎁 Free until September 30, 2026!',
+    hero_h1a:'MedSoft START',hero_h1b:'— automate your clinic',
+    hero_sub:'Reception, medical records, queue, cashier, Telegram bot — all in one. For clinics with 1–5 doctors.',
+    hero_cta1:'Start for free →',hero_cta2:'View demo',
+    dash_date:'May 25, 2026 · Today',
+    dash_c1_label:"Today's appointments",dash_c1_sub:'+3 from yesterday',
+    dash_c2_label:'In queue',dash_c2_sub:'waiting now',
+    dash_c3_label:'Paid',dash_c3_sub:'UZS today',
+    dash_th1:'Patient',dash_th2:'Doctor',dash_th3:'Time',dash_th4:'Status',
+    st_done:'Seen',st_prog:'In session',st_wait:'Waiting',
+    about_label:'About MedSoft',about_title:'Clinic management system for Uzbekistan',
+    about_sub:'Cloud-based, no installation required. Start in 5 minutes.',
+    st1_val:'12+',st1_label:'automation modules',
+    st2_val:'AIVITA',st2_label:'integration included',
+    st3_val:'5 min',st3_label:'clinic setup',
+    st4_val:'24/7',st4_label:'Telegram bot',
+    st5_val:'3',st5_label:'payment systems',
+    mods_label:'Modules',mods_title:'12 automation modules',
+    mods_sub:'Each module works standalone and within a unified ecosystem.',
+    m1_t:'Reception',m1_d:'Patient scheduling, search, cards',
+    m2_t:'Medical records',m2_d:'Electronic, ICD-10, tests',
+    m3_t:'Queue',m3_d:'Real-time WebSocket, lobby screen',
+    m4_t:'Schedule',m4_d:'By doctors, days, slots',
+    m5_t:'Cashier',m5_d:'Invoices, Payme / Click / Uzum',
+    m6_t:'Laboratory',m6_d:'Referrals, results',
+    m7_t:'Telegram bot',m7_d:'24/7 booking, reminders',
+    m8_t:'SMS notifications',m8_d:'Eskiz.uz integration',
+    m9_t:'Analytics',m9_d:'Dashboard, revenue, load',
+    m10_t:'Structure',m10_d:'Buildings, departments, rooms',
+    m11_t:'AIVITA',m11_d:'Patients with ready medical records',
+    m12_t:'Security',m12_d:'Roles, logs, audit',
+    int_label:'Integration',int_title:'AIVITA integration — included in START',
+    int_sub:'Patients arrive ready. Data flows both ways automatically.',
+    f1_1:'Patient completes AI checkup',f1_2:'Issue identified',f1_3:'Referral to clinic',f1_4:'Medical record created',
+    f2_1:'Clinic receives record',f2_2:'Doctor sees history',f2_3:'Appointment and tests',f2_4:'Results sent back',
+    f3_title:'Patient',f3_1:'Results in AIVITA',f3_2:'Record updated',f3_3:'AI recommendations',f3_4:'Next checkup',
+    ib1_t:'Patients with ready medical records',ib1_d:"No repeated anamnesis — data is already in the system.",
+    ib2_t:'No repeated anamnesis',ib2_d:'Save 10–15 minutes per appointment.',
+    ib3_t:'Results — automatically to AIVITA',ib3_d:'Tests and prescriptions sync bidirectionally.',
+    ib4_t:'Commission for real patients only',ib4_d:'Pay only for patients referred through AIVITA.',
+    price_label:'Plan',price_title:'START Plan',price_sub:'Everything a clinic needs — nothing extra.',
+    pb_size:'For clinics with 1–5 doctors',pb_per:'UZS/mo',pb_incl:'all 12 modules included',
+    pb_promo:'🎁 FREE until September 30, 2026!',pb_deploy:'Deploy: cloud. Start working in 5 minutes.',
+    pb_f1:'Reception and patient scheduling',pb_f2:'Electronic medical records (ICD-10)',
+    pb_f3:'Real-time queue (WebSocket)',pb_f4:'Schedule by doctors and slots',
+    pb_f5:'Cashier: Payme / Click / Uzum',pb_f6:'Laboratory (referrals, results)',
+    pb_f7:'Telegram bot for 24/7 booking',pb_f8:'SMS notifications (Eskiz.uz)',
+    pb_f9:'Analytics and dashboard',pb_f10:'Clinic structure management',
+    pb_f11:'AIVITA integration included',pb_f12:'Roles, security, audit log',
+    pb_cta:'Start for free →',
+    reg_label:'Registration',reg_title:'Register your clinic',
+    reg_sub:"Fill out the form — we'll contact you within 24 hours and connect your clinic.",
+    rf_clinic:'Clinic name *',rf_clinic_ph:'Yangi Hayot',
+    rf_contact:'Contact person *',rf_contact_ph:'John Smith',
+    rf_phone:'Phone *',rf_email:'Email',
+    rf_doctors:'Number of doctors *',rf_select:'Select',
+    rf_d1:'1–3 doctors',rf_d2:'3–5 doctors',rf_d3:'5–10 doctors',rf_d4:'10+ doctors',
+    rf_aivita_title:'Connect AIVITA',rf_aivita_sub:'Receive patients from AIVITA with ready medical records',
+    rf_submit:'Register clinic →',
+    rf_sending:'Sending...',
+    rf_ok:'✅ Request sent! We will contact you within 24 hours.',
+    rf_err:'Error. Please write to us on Telegram: @aivita_uz',
+    clients_label:'Clients',clients_title:'Already using MedSoft',clients_more:'your clinic',
+    faq_title:'Frequently asked questions',
+    faq1_q:'How much after the promo?',faq1_a:'After September 30, 2026, START costs 200,000 UZS/month. Fixed price — all 12 modules, no extra charges.',
+    faq2_q:'Do we need our own server?',faq2_a:'No. MedSoft START runs fully in the cloud. A browser or mobile device is enough.',
+    faq3_q:'How fast is setup?',faq3_a:'Basic setup takes 5 minutes: add doctors, rooms and schedule. Our manager will help for free within 24 hours.',
+    faq4_q:'What if internet goes down?',faq4_a:'START is cloud-based, requires internet. We recommend a backup 4G connection.',
+    faq5_q:'How to connect to AIVITA?',faq5_a:"Check 'Connect AIVITA' during registration. Our manager sets up the integration within 1–2 business days.",
+    faq6_q:'Is there training?',faq6_a:'Yes, free staff training is included. Video guides, knowledge base, and 24/7 Telegram support.',
+    footer_home:'Home',footer_about:'About',footer_pricing:'Pricing',
+    footer_clinics:'For clinics',footer_start:'MedSoft START',
+    footer_privacy:'Privacy',footer_terms:'Terms',
+    footer_copy:'© 2026 aivita. All rights reserved.',
+  },
+};
+
+function t(key){const tr=I18N[lang]||I18N.ru;return tr[key]!==undefined?tr[key]:(I18N.ru[key]||key);}
+
+function render(){
+  document.title=t('hero_h1a')+' — '+t('hero_h1b').replace('— ','');
+  document.documentElement.lang=lang;
+  document.querySelectorAll('#langSwitch .lang-menu button').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));
+  const cur=document.getElementById('langCurrent');
+  if(cur)cur.textContent=lang.toUpperCase();
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(k)el.textContent=t(k);});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.dataset.i18nPh;if(k)el.placeholder=t(k);});
+  // Update select options text
+  document.querySelectorAll('select[name="doctorsCount"] option[data-i18n]').forEach(opt=>{
+    const k=opt.dataset.i18n; if(k)opt.textContent=t(k);
+  });
+}
+
+function setLang(l){lang=l;localStorage.setItem(LANG_KEY,l);render();}
+
+const langWrap=document.getElementById('langSwitch');
+const langTrigger=document.getElementById('langTrigger');
+langTrigger.addEventListener('click',e=>{e.stopPropagation();langWrap.classList.toggle('open');langTrigger.setAttribute('aria-expanded',langWrap.classList.contains('open'));});
+document.querySelectorAll('#langSwitch .lang-menu button').forEach(b=>{
+  b.addEventListener('click',()=>{setLang(b.dataset.lang);langWrap.classList.remove('open');langTrigger.setAttribute('aria-expanded','false');});
+});
+document.addEventListener('click',e=>{if(!langWrap.contains(e.target)){langWrap.classList.remove('open');langTrigger.setAttribute('aria-expanded','false');}});
+
+function toggleFaq(btn){btn.closest('.faq-item').classList.toggle('open');}
+
+// Scroll animations
+const revealObserver=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');revealObserver.unobserve(e.target);}});
+},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>revealObserver.observe(el));
+
+async function submitStart(e){
+  e.preventDefault();
+  const form=e.target;
+  const btn=form.querySelector('button[type="submit"]');
+  const statusEl=document.getElementById('startStatus');
+  const fd=new FormData(form);
+  const payload={
+    clinicName:String(fd.get('clinicName')||'').trim(),
+    contactName:String(fd.get('contactName')||'').trim(),
+    phone:String(fd.get('phone')||'').trim(),
+    email:String(fd.get('email')||'').trim(),
+    doctorsCount:String(fd.get('doctorsCount')||'').trim(),
+    connectAivita:fd.get('connectAivita')==='1',
+    locale:lang,source:'start-landing',
+  };
+  if(!payload.clinicName||!payload.contactName||!payload.phone||!payload.doctorsCount)return;
+  btn.disabled=true;
+  statusEl.textContent=t('rf_sending');
+  statusEl.className='form-status';
+
+  // Send Telegram notification directly
+  const msg=`🏥 Новая заявка MedSoft START!\n\nКлиника: ${payload.clinicName}\nКонтакт: ${payload.contactName}\nТелефон: ${payload.phone}\nEmail: ${payload.email||'—'}\nВрачей: ${payload.doctorsCount}\nAIVITA: ${payload.connectAivita?'✅ Да':'❌ Нет'}\nЯзык: ${payload.locale.toUpperCase()}\n\n#start #registration`;
+
+  let sent=false;
+  // Try backend first
+  try{
+    const apiBase=window.location.hostname==='localhost'?'http://localhost:4000':'';
+    const r=await fetch(apiBase+'/api/clinic-demo-request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+    if(r.ok)sent=true;
+  }catch{}
+
+  // Fallback: Telegram Bot API directly
+  if(!sent){
+    try{
+      // Get admin chat id from bot first
+      const updatesRes=await fetch(`https://api.telegram.org/bot${TG_BOT}/getUpdates`);
+      const updates=await updatesRes.json();
+      const chatId=updates.result&&updates.result.length>0?updates.result[updates.result.length-1].message?.chat?.id:null;
+      if(chatId){
+        const tgRes=await fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`,{
+          method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({chat_id:chatId,text:msg,parse_mode:'HTML'}),
+        });
+        if(tgRes.ok)sent=true;
+      }
+    }catch{}
+  }
+
+  statusEl.className='form-status '+(sent?'ok':'err');
+  statusEl.textContent=t(sent?'rf_ok':'rf_err');
+  if(sent)form.reset();
+  btn.disabled=false;
+}
+
+render();
+</script>
+</body>
+</html>

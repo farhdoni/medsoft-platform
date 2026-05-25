@@ -404,6 +404,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
         <button data-lang="en">English <span class="code">EN</span></button>
       </div>
     </div>
+    <a href="/start.html" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:50px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🚀 MedSoft START</a>
     <button class="account-btn" id="loginBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 5-7 8-7s7 2 8 7"/>
@@ -628,31 +629,35 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
   <p class="section-sub" data-i18n="price_sub">Все тарифы включают обучение персонала и техническую поддержку. Цены указаны без учёта стоимости внедрения.</p>
 
   <div class="pricing-grid">
-    <!-- MVP -->
-    <div class="pricing-card">
+    <!-- START -->
+    <div class="pricing-card" style="border-color:var(--accent);box-shadow:0 4px 32px rgba(200,125,138,.18);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div>
       <div>
-        <div class="plan-icon">🌱</div>
-        <div class="plan-name" data-i18n="plan1_name">MVP</div>
-        <div class="plan-size" data-i18n="plan1_size">Для небольших клиник 2–5 врачей</div>
+        <div class="plan-icon">🚀</div>
+        <div class="plan-name" data-i18n="plan1_name">START</div>
+        <div class="plan-size" data-i18n="plan1_size">Для клиник от 1 до 5 врачей</div>
       </div>
-      <div class="plan-price">
-        <div class="plan-price-from" data-i18n="price_from">от</div>
-        <div class="plan-price-amount" data-i18n="plan1_price">500 000 сум/мес</div>
-        <div class="plan-price-per" data-i18n="price_or_request">или уточните стоимость</div>
+      <div class="plan-price" style="background:linear-gradient(135deg,var(--accent),var(--accent2));">
+        <div class="plan-price-from" data-i18n="plan1_price_prefix">фиксированно</div>
+        <div class="plan-price-amount" data-i18n="plan1_price">200 000 сум/мес</div>
+        <div class="plan-price-per" data-i18n="plan1_price_after">все 12 модулей включены</div>
       </div>
+      <div style="background:linear-gradient(135deg,rgba(200,125,138,.12),rgba(139,106,174,.12));border:1px solid rgba(200,125,138,.3);border-radius:10px;padding:10px 12px;text-align:center;font-size:13px;font-weight:700;color:var(--accent);" data-i18n="plan1_promo">🎁 Бесплатно до 30 сентября 2026!</div>
       <div class="plan-deploy">🌐 <span data-i18n="plan1_deploy">Деплой: облако</span></div>
       <ul class="plan-features">
         <li data-i18n="plan1_f1">Регистратура и запись пациентов</li>
         <li data-i18n="plan1_f2">Электронные медкарты (МКБ-10)</li>
         <li data-i18n="plan1_f3">Очередь в реальном времени</li>
         <li data-i18n="plan1_f4">Расписание по врачам и слотам</li>
-        <li data-i18n="plan1_f5">Касса и оплата (Payme/Click)</li>
+        <li data-i18n="plan1_f5">Касса: Payme / Click / Uzum</li>
         <li data-i18n="plan1_f6">Лаборатория (направления, результаты)</li>
-        <li data-i18n="plan1_f7">Telegram-бот для записи</li>
-        <li data-i18n="plan1_f8">SMS-уведомления</li>
+        <li data-i18n="plan1_f7">Telegram-бот для записи 24/7</li>
+        <li data-i18n="plan1_f8">SMS-уведомления (Eskiz.uz)</li>
         <li data-i18n="plan1_f9">Аналитика и дашборд</li>
+        <li data-i18n="plan1_f10">AIVITA интеграция включена</li>
       </ul>
-      <button class="plan-cta outline" onclick="document.getElementById('demo-form').scrollIntoView({behavior:'smooth'})" data-i18n="cta_try">Попробовать бесплатно</button>
+      <a href="/start.html" class="plan-cta filled" style="text-decoration:none;" data-i18n="cta_try">Попробовать бесплатно</a>
+      <a href="/start.html" style="text-align:center;font-size:12px;color:var(--accent);text-decoration:none;font-weight:600;margin-top:-8px;" data-i18n="plan1_more">Подробнее о тарифе START →</a>
     </div>
 
     <!-- Standard -->
@@ -670,7 +675,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
       </div>
       <div class="plan-deploy">☁️ <span data-i18n="plan2_deploy">Деплой: облако или свой сервер</span></div>
       <ul class="plan-features">
-        <li data-i18n="plan2_f1">Всё из MVP</li>
+        <li data-i18n="plan2_f1">Всё из START</li>
         <li data-i18n="plan2_f2">Склад медикаментов</li>
         <li data-i18n="plan2_f3">HR и управление сменами</li>
         <li data-i18n="plan2_f4">Маркетинг и CRM</li>
@@ -933,15 +938,19 @@ const I18N = {
     price_sub: 'Все тарифы включают обучение персонала и техническую поддержку.',
     price_from: 'от', price_or_request: 'или уточните стоимость',
     popular_badge: 'Популярный',
-    plan1_name: 'MVP', plan1_size: 'Для небольших клиник 2–5 врачей',
-    plan1_price: '500 000 сум/мес', plan1_deploy: 'Деплой: облако',
+    plan1_name: 'START', plan1_size: 'Для клиник от 1 до 5 врачей',
+    plan1_price: '200 000 сум/мес', plan1_price_prefix: 'фиксированно', plan1_price_after: 'все 12 модулей включены',
+    plan1_promo: '🎁 Бесплатно до 30 сентября 2026!',
+    plan1_deploy: 'Деплой: облако',
     plan1_f1: 'Регистратура и запись пациентов', plan1_f2: 'Электронные медкарты (МКБ-10)',
     plan1_f3: 'Очередь в реальном времени', plan1_f4: 'Расписание по врачам и слотам',
-    plan1_f5: 'Касса и оплата (Payme/Click)', plan1_f6: 'Лаборатория (направления, результаты)',
-    plan1_f7: 'Telegram-бот для записи', plan1_f8: 'SMS-уведомления', plan1_f9: 'Аналитика и дашборд',
+    plan1_f5: 'Касса: Payme / Click / Uzum', plan1_f6: 'Лаборатория (направления, результаты)',
+    plan1_f7: 'Telegram-бот для записи 24/7', plan1_f8: 'SMS-уведомления (Eskiz.uz)',
+    plan1_f9: 'Аналитика и дашборд', plan1_f10: 'AIVITA интеграция включена',
+    plan1_more: 'Подробнее о тарифе START →',
     plan2_name: 'Standard', plan2_size: 'Для средних клиник 5–20 врачей',
     plan2_price: '1 500 000 сум/мес', plan2_deploy: 'Деплой: облако или свой сервер',
-    plan2_f1: 'Всё из MVP', plan2_f2: 'Склад медикаментов',
+    plan2_f1: 'Всё из START', plan2_f2: 'Склад медикаментов',
     plan2_f3: 'HR и управление сменами', plan2_f4: 'Маркетинг и CRM',
     plan2_f5: 'Интеграция с 1С', plan2_f6: 'AI-помощник врача (Gemini)',
     plan2_f7: 'Мобильное приложение для врачей', plan2_f8: 'Расширенная аналитика',
@@ -1033,15 +1042,19 @@ const I18N = {
     price_sub: "Barcha tariflar xodimlarni o'qitish va texnik qo'llab-quvvatlashni o'z ichiga oladi.",
     price_from: "dan", price_or_request: "yoki narxni so'rang",
     popular_badge: "Mashhur",
-    plan1_name: "MVP", plan1_size: "2-5 shifokorli kichik klinikalar uchun",
-    plan1_price: "500 000 so'm/oy", plan1_deploy: "Deploy: bulut",
+    plan1_name: "START", plan1_size: "1 dan 5 gacha shifokorli klinikalar uchun",
+    plan1_price: "200 000 so'm/oy", plan1_price_prefix: "belgilangan narx", plan1_price_after: "barcha 12 modul kiritilgan",
+    plan1_promo: "🎁 2026-yil 30-sentabrgacha bepul!",
+    plan1_deploy: "Deploy: bulut",
     plan1_f1: "Registratura va bemorlarni yozish", plan1_f2: "Elektron tibbiy kartalar (MKB-10)",
     plan1_f3: "Real vaqtda navbat", plan1_f4: "Shifokorlar va slotlar bo'yicha jadval",
-    plan1_f5: "Kassa va to'lov (Payme/Click)", plan1_f6: "Laboratoriya (yo'naltirishlar, natijalar)",
-    plan1_f7: "Yozish uchun Telegram-bot", plan1_f8: "SMS-bildirishnomalar", plan1_f9: "Analitika va dashboard",
+    plan1_f5: "Kassa: Payme / Click / Uzum", plan1_f6: "Laboratoriya (yo'naltirishlar, natijalar)",
+    plan1_f7: "24/7 yozish uchun Telegram-bot", plan1_f8: "SMS-bildirishnomalar (Eskiz.uz)",
+    plan1_f9: "Analitika va dashboard", plan1_f10: "AIVITA integratsiyasi kiritilgan",
+    plan1_more: "START tarifi haqida batafsil →",
     plan2_name: "Standard", plan2_size: "5-20 shifokorli o'rta klinikalar uchun",
     plan2_price: "1 500 000 so'm/oy", plan2_deploy: "Deploy: bulut yoki o'z server",
-    plan2_f1: "MVP dan hamma narsa", plan2_f2: "Dori-darmon ombori",
+    plan2_f1: "START dan hamma narsa", plan2_f2: "Dori-darmon ombori",
     plan2_f3: "HR va smenalarni boshqarish", plan2_f4: "Marketing va CRM",
     plan2_f5: "1C integratsiyasi", plan2_f6: "Shifokor AI-yordamchisi (Gemini)",
     plan2_f7: "Shifokorlar uchun mobil ilova", plan2_f8: "Kengaytirilgan analitika",
@@ -1128,15 +1141,19 @@ const I18N = {
     price_sub: 'All plans include staff training and technical support.',
     price_from: 'from', price_or_request: 'or request pricing',
     popular_badge: 'Popular',
-    plan1_name: 'MVP', plan1_size: 'For small clinics 2–5 doctors',
-    plan1_price: '500,000 UZS/mo', plan1_deploy: 'Deploy: cloud',
+    plan1_name: 'START', plan1_size: 'For clinics with 1–5 doctors',
+    plan1_price: '200,000 UZS/mo', plan1_price_prefix: 'fixed price', plan1_price_after: 'all 12 modules included',
+    plan1_promo: '🎁 Free until September 30, 2026!',
+    plan1_deploy: 'Deploy: cloud',
     plan1_f1: 'Reception and patient scheduling', plan1_f2: 'Electronic medical records (ICD-10)',
     plan1_f3: 'Real-time queue', plan1_f4: 'Schedule by doctors and slots',
-    plan1_f5: 'Cashier and payments (Payme/Click)', plan1_f6: 'Laboratory (referrals, results)',
-    plan1_f7: 'Telegram bot for booking', plan1_f8: 'SMS notifications', plan1_f9: 'Analytics and dashboard',
+    plan1_f5: 'Cashier: Payme / Click / Uzum', plan1_f6: 'Laboratory (referrals, results)',
+    plan1_f7: 'Telegram bot for booking 24/7', plan1_f8: 'SMS notifications (Eskiz.uz)',
+    plan1_f9: 'Analytics and dashboard', plan1_f10: 'AIVITA integration included',
+    plan1_more: 'Learn more about START →',
     plan2_name: 'Standard', plan2_size: 'For medium clinics 5–20 doctors',
     plan2_price: '1,500,000 UZS/mo', plan2_deploy: 'Deploy: cloud or own server',
-    plan2_f1: 'Everything from MVP', plan2_f2: 'Medication warehouse',
+    plan2_f1: 'Everything from START', plan2_f2: 'Medication warehouse',
     plan2_f3: 'HR and shift management', plan2_f4: 'Marketing and CRM',
     plan2_f5: '1C integration', plan2_f6: 'AI doctor assistant (Gemini)',
     plan2_f7: 'Mobile app for doctors', plan2_f8: 'Advanced analytics',
