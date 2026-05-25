@@ -12,7 +12,7 @@ export async function PublicFooter() {
           {/* Brand column */}
           <div className="lp-footer-brand">
             <Link href="/" className="lp-logo">
-              <img src="/logo.png" alt="AIVITA" style={{ height: '28px', display: 'block', width: 'auto' }} />
+              <img src="/logo.png" alt="AIVITA" style={{ height: '28px', display: 'block', width: 'auto', mixBlendMode: 'multiply' }} />
             </Link>
             <p>{t('desc')}</p>
 
