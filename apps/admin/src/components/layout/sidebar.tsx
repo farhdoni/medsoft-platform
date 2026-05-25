@@ -177,9 +177,9 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
       {/* Header */}
-      <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6 shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white text-sm font-bold">M</div>
-        <span className="text-lg font-semibold">MedSoft Admin</span>
+      <div className="flex h-16 items-center border-b border-white/10 px-6 shrink-0">
+        <img src="/logo.png" alt="AIVITA" className="h-7 w-auto" />
+        <span className="ml-2 text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">Admin</span>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">

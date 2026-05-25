@@ -40,22 +40,23 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-.nav-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.lang-switcher{display:flex;gap:4px}
-.lang-btn{
-  padding:4px 10px;border-radius:6px;border:1px solid var(--border);
-  background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;
-  color:var(--muted);transition:all .18s;
-}
-.lang-btn.active,.lang-btn:hover{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
-.btn-back{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 15px;border-radius:8px;
-  background:var(--dark);color:#fff;
-  text-decoration:none;font-size:13px;font-weight:500;
-  transition:opacity .18s;white-space:nowrap;
-}
-.btn-back:hover{opacity:.85}
+.topnav .right{display:flex;align-items:center;gap:14px;}
+.lang-switch{position:relative;}
+.lang-trigger{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.7);border:1px solid rgba(42,37,64,.1);border-radius:50px;padding:9px 14px;font-size:12px;font-weight:700;font-family:inherit;color:var(--text);cursor:pointer;transition:all .25s;letter-spacing:.5px;}
+.lang-trigger:hover{background:rgba(255,255,255,.95);}
+.lang-trigger svg{width:14px;height:14px;}
+.lang-trigger .caret{font-size:9px;opacity:.55;transition:transform .25s;}
+.lang-switch.open .lang-trigger .caret{transform:rotate(180deg);}
+.lang-menu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1px solid rgba(42,37,64,.08);border-radius:14px;padding:6px;min-width:132px;box-shadow:0 18px 40px rgba(42,37,64,.12),0 4px 10px rgba(42,37,64,.05);display:none;flex-direction:column;gap:2px;z-index:60;}
+.lang-switch.open .lang-menu{display:flex;}
+.lang-menu button{border:none;background:transparent;padding:9px 12px;font-size:13px;font-weight:600;font-family:inherit;color:var(--text);border-radius:9px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:background .2s;}
+.lang-menu button:hover{background:rgba(200,125,138,.08);}
+.lang-menu button .code{font-size:11px;color:var(--muted);letter-spacing:.5px;}
+.lang-menu button.active{background:rgba(200,125,138,.15);color:var(--accent);}
+.lang-menu button.active .code{color:var(--accent);}
+.account-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:50px;border:1px solid rgba(42,37,64,.1);background:rgba(255,255,255,.7);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;transition:all .3s;}
+.account-btn:hover{background:var(--dark);color:#fff;border-color:var(--dark);transform:translateY(-1px);}
+.account-btn svg{width:18px;height:18px;}
 
 .hero{
   text-align:center;padding:60px 24px 48px;
@@ -90,41 +91,55 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
 .policy-section-body ul{padding-left:20px;margin-top:8px}
 .policy-section-body li{margin-bottom:6px}
 
-footer{border-top:1px solid var(--border);padding:28px 24px}
-.footer-inner{
-  max-width:800px;margin:0 auto;
-  display:flex;flex-wrap:wrap;gap:20px;
-  align-items:center;justify-content:space-between;
-}
-.footer-brand{
-  font-size:20px;font-weight:800;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.footer-copy{font-size:12px;color:var(--muted);margin-top:4px}
-.footer-links{display:flex;gap:16px;flex-wrap:wrap}
-.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .18s}
-.footer-links a:hover{color:var(--accent)}
+.footer{padding:32px 24px;text-align:center;border-top:1px solid rgba(42,37,64,.06);max-width:1000px;margin:40px auto 0;}
+.footer-brand{font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.footer-links{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;transition:color .2s;}
+.footer-links a:hover,.footer-links a.active{color:var(--accent);}
+.footer-links a.active{font-weight:700;}
+.footer-socials{display:flex;gap:12px;justify-content:center;margin:0 0 16px;}
+.footer-socials a{width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid rgba(42,37,64,.08);display:inline-flex;align-items:center;justify-content:center;color:var(--muted);transition:all .25s cubic-bezier(.4,0,.2,1);text-decoration:none;}
+.footer-socials a:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(42,37,64,.10);color:#fff;}
+.footer-socials a svg{width:18px;height:18px;display:block;}
+.footer-socials a.tg:hover{background:#229ED9;border-color:#229ED9;}
+.footer-socials a.wa:hover{background:#25D366;border-color:#25D366;}
+.footer-socials a.ig:hover{background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);border-color:transparent;}
+.footer-socials a.fb:hover{background:#1877F2;border-color:#1877F2;}
+.footer-socials a.yt:hover{background:#FF0000;border-color:#FF0000;}
+.footer-copy{font-size:11px;color:#ccc;}
 
 @media(max-width:560px){
-  .topnav{flex-wrap:wrap;gap:10px}
+  .topnav{padding:12px 16px;}
+  .topnav .logo{font-size:18px;}
+  .account-btn span{display:none;}
+  .account-btn{padding:9px 11px;}
+  .lang-trigger{padding:8px 11px;font-size:11px;}
   .policy-section{padding:20px}
 }
 </style>
 </head>
 <body>
 
-<nav class="topnav">
+<header class="topnav">
   <a href="/" class="logo">aivita</a>
-  <div class="nav-right">
-    <div class="lang-switcher">
-      <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">RU</button>
-      <button class="lang-btn" data-lang="uz" onclick="setLang('uz')">UZ</button>
-      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  <div class="topnav-right">
+    <div class="lang-switch" id="langSwitch">
+      <button class="lang-trigger" id="langTrigger">
+        <span id="langCurrent">RU</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="lang-menu" id="langMenu">
+        <button data-lang="ru">RU</button>
+        <button data-lang="uz">UZ</button>
+        <button data-lang="en">EN</button>
+      </div>
     </div>
-    <a href="/" class="btn-back" data-i18n="nav_back">← Главная</a>
+    <button class="account-btn" id="loginBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg>
+      <span data-i18n="nav_login">Войти</span>
+    </button>
   </div>
-</nav>
+</header>
 
 <div class="hero">
   <h1 data-i18n="page_title">Публичная оферта</h1>
@@ -133,22 +148,25 @@ footer{border-top:1px solid var(--border);padding:28px 24px}
 
 <div class="policy-wrap" id="policy-sections"></div>
 
-<footer>
-  <div class="footer-inner">
-    <div>
-      <div class="footer-brand">aivita</div>
-      <div class="footer-copy" data-i18n="footer_copy">© 2026 aivita. Все права защищены.</div>
-    </div>
-    <div class="footer-links">
-      <a href="/" data-i18n="footer_home">Главная</a>
-      <a href="/about.html" data-i18n="footer_about">О нас</a>
-      <a href="/pricing.html" data-i18n="footer_pricing">Тарифы</a>
-      <a href="/get-app.html" style="color:var(--accent);font-weight:700" data-i18n="footer_app">📱 Скачать приложение</a>
-      <a href="/clinics.html" data-i18n="footer_clinics">Для клиник</a>
-      <a href="/privacy.html" data-i18n="footer_privacy">Политика</a>
-      <a href="/terms.html" data-i18n="footer_terms">Оферта</a>
-    </div>
+<footer class="footer">
+  <div class="footer-brand"><img src="/assets/logo-horizontal.png" alt="AIVITA" style="height:28px;display:block;width:auto"></div>
+  <div class="footer-links">
+    <a href="/" data-i18n="footer_home">Главная</a>
+    <a href="/about.html" data-i18n="footer_about">О нас</a>
+    <a href="/pricing.html" data-i18n="footer_pricing">Тарифы</a>
+    <a href="/get-app.html" data-i18n="footer_app">📱 Скачать приложение</a>
+    <a href="/clinics.html" data-i18n="footer_clinics">Для клиник</a>
+    <a href="/privacy.html" data-i18n="footer_privacy">Политика</a>
+    <a href="/terms.html" class="active" data-i18n="footer_terms">Оферта</a>
   </div>
+  <div class="footer-socials">
+    <a href="https://t.me/aivita_uz" target="_blank" aria-label="Telegram"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/></svg></a>
+    <a href="https://wa.me/998000000000" target="_blank" aria-label="WhatsApp"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.522 5.855L0 24l6.335-1.502A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm6.128 17.028c-.264.738-1.536 1.408-2.118 1.458-.543.047-1.05.228-3.543-.738-2.993-1.17-4.91-4.207-5.059-4.402-.147-.195-1.2-1.596-1.2-3.046s.76-2.162.997-2.456c.237-.294.517-.368.689-.368l.496.009c.16.008.373-.061.583.445.217.523.736 1.8.8 1.932.065.13.108.282.022.455-.086.173-.13.28-.255.432-.126.152-.265.34-.378.457-.126.13-.257.27-.11.53.147.258.652 1.077 1.4 1.744.96.855 1.77 1.12 2.022 1.246.253.126.4.106.547-.064.148-.17.633-.738.802-.992.168-.254.337-.212.567-.127.23.085 1.46.688 1.71.814.253.126.42.19.483.295.063.106.063.614-.2 1.352z"/></svg></a>
+    <a href="https://instagram.com/aivita.uz" target="_blank" aria-label="Instagram"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+    <a href="https://facebook.com/aivita.uz" target="_blank" aria-label="Facebook"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg></a>
+    <a href="https://youtube.com/@aivita_uz" target="_blank" aria-label="YouTube"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg></a>
+  </div>
+  <div class="footer-copy" data-i18n="footer_copy">© 2026 aivita. Все права защищены.</div>
 </footer>
 
 <script>
@@ -159,7 +177,7 @@ let lang = localStorage.getItem(LANG_KEY) || 'ru';
 const I18N = {
   ru: {
     page_title: 'Публичная оферта',
-    nav_back: '← Главная',
+    nav_login: 'Войти',
     effective_date: 'Действует с 19 мая 2026 г.',
     footer_copy: '© 2026 aivita. Все права защищены.',
     footer_home: 'Главная',
@@ -222,7 +240,7 @@ const I18N = {
   },
   uz: {
     page_title: 'Ommaviy oferta',
-    nav_back: '← Bosh sahifa',
+    nav_login: 'Kirish',
     effective_date: '2026 yil 19 maydan kuchga kiradi.',
     footer_copy: '© 2026 aivita. Barcha huquqlar himoyalangan.',
     footer_home: 'Bosh sahifa',
@@ -285,7 +303,7 @@ const I18N = {
   },
   en: {
     page_title: 'Public Offer Agreement',
-    nav_back: '← Home',
+    nav_login: 'Sign in',
     effective_date: 'Effective May 19, 2026.',
     footer_copy: '© 2026 aivita. All rights reserved.',
     footer_home: 'Home',
@@ -367,7 +385,9 @@ function renderSections() {
 
 function render() {
   document.title = t('page_title') + ' — aivita';
-  document.querySelectorAll('.lang-btn').forEach(btn => {
+  const langCurrent = document.getElementById('langCurrent');
+  if (langCurrent) langCurrent.textContent = lang.toUpperCase();
+  document.querySelectorAll('#langSwitch .lang-menu button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === lang);
   });
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -382,6 +402,27 @@ function setLang(l) {
   localStorage.setItem(LANG_KEY, l);
   render();
 }
+
+const langSwitch = document.getElementById('langSwitch');
+const langTrigger = document.getElementById('langTrigger');
+const langMenu = document.getElementById('langMenu');
+if (langTrigger && langMenu) {
+  langTrigger.addEventListener('click', e => {
+    e.stopPropagation();
+    langSwitch.classList.toggle('open');
+  });
+  langMenu.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setLang(btn.dataset.lang);
+      langSwitch.classList.remove('open');
+    });
+  });
+  document.addEventListener('click', () => langSwitch.classList.remove('open'));
+}
+
+const APP_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://app.aivita.uz';
+const loginBtn = document.getElementById('loginBtn');
+if (loginBtn) loginBtn.addEventListener('click', () => window.location.href = APP_URL + '/ru/sign-in');
 
 fetch(API_BASE + '/api/landing-config').catch(() => {});
 

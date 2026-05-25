@@ -20,25 +20,12 @@ export function TopHeader({ session, locale }: TopHeaderProps) {
     >
       <div className="max-w-[1280px] mx-auto px-6 py-3.5 flex items-center justify-between">
         {/* Logo */}
-        <Link href={`/${locale}/home`} className="flex items-center gap-1.5 group">
-          <span
-            className="text-xl font-bold transition-opacity group-hover:opacity-80"
-            style={{ color: 'var(--accent)' }}
-          >
-            ✦
-          </span>
-          <span
-            className="text-[18px] font-bold"
-            style={{ color: '#2a2540' }}
-          >
-            aivita
-            <em
-              className="not-italic font-normal text-[11px] ml-0.5 align-middle"
-              style={{ color: '#9a96a8' }}
-            >
-              .uz
-            </em>
-          </span>
+        <Link href={`/${locale}/home`} className="flex items-center group">
+          <img
+            src="/logo.png"
+            alt="AIVITA"
+            className="h-8 w-auto transition-opacity group-hover:opacity-80"
+          />
         </Link>
 
         {/* Right: ProfileMenu */}

@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#5580b0"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uz.aivita.doctor"
@@ -27,7 +29,10 @@
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "plugins": [
@@ -62,8 +67,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "1c8c2ac7-12c6-4e81-953f-a65eef779162"
       }
-    }
+    },
+    "owner": "farhodni"
   }
 }

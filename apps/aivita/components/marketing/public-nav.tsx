@@ -23,7 +23,7 @@ export function PublicNav({ isAuthenticated = false }: Props) {
     <nav className="lp-nav">
       {/* Logo */}
       <a href={`/${locale}`} className="lp-logo">
-        aivita<span className="lp-logo-dot" />uz
+        <img src="/logo.png" alt="AIVITA" style={{ height: '32px', display: 'block', width: 'auto' }} />
       </a>
 
       {/* Desktop links */}
