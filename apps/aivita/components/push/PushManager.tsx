@@ -26,17 +26,20 @@ export default function PushManager() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    type AivitaWin = Window & { __AIVITA_PUSH_TOKEN__?: string; __AIVITA_PLATFORM__?: string };
+
     function handleNativeToken(e: Event) {
       const token = (e as CustomEvent<{ pushToken: string }>).detail?.pushToken;
-      const platform = (window as Record<string, unknown>).__AIVITA_PLATFORM__ as string ?? 'unknown';
+      const platform = (window as unknown as AivitaWin).__AIVITA_PLATFORM__ ?? 'unknown';
       if (token) void registerNativePushToken(token, platform);
     }
 
     window.addEventListener('aivita-push-token-ready', handleNativeToken);
 
     // Token may already be present if injected before this component mounted
-    const existing = (window as Record<string, unknown>).__AIVITA_PUSH_TOKEN__ as string | undefined;
-    if (existing) void registerNativePushToken(existing, (window as Record<string, unknown>).__AIVITA_PLATFORM__ as string ?? 'unknown');
+    const win = window as unknown as AivitaWin;
+    const existing = win.__AIVITA_PUSH_TOKEN__;
+    if (existing) void registerNativePushToken(existing, win.__AIVITA_PLATFORM__ ?? 'unknown');
 
     return () => window.removeEventListener('aivita-push-token-ready', handleNativeToken);
   }, []);

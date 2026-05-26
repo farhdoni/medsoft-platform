@@ -154,14 +154,15 @@ function WelcomeScreen({ onChip, locale }: { onChip: (text: string) => void; loc
 
 // ─── Native WebView detection ─────────────────────────────────────────────────
 
+type AivitaWindow = Window & { ReactNativeWebView?: { postMessage: (s: string) => void }; __AIVITA_PLATFORM__?: string };
+
 function isInNativeWebView(): boolean {
-  return typeof window !== 'undefined' && !!(window as Record<string, unknown>).ReactNativeWebView;
+  return typeof window !== 'undefined' && !!(window as unknown as AivitaWindow).ReactNativeWebView;
 }
 
 function nativePostMessage(type: string, extra?: Record<string, unknown>) {
   if (!isInNativeWebView()) return false;
-  (window as Record<string, unknown> & { ReactNativeWebView: { postMessage: (s: string) => void } })
-    .ReactNativeWebView.postMessage(JSON.stringify({ type, ...extra }));
+  (window as unknown as AivitaWindow).ReactNativeWebView!.postMessage(JSON.stringify({ type, ...extra }));
   return true;
 }
 
