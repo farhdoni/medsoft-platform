@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1355,11 +1356,11 @@ function TabFamily() {
           <span className="text-4xl block mb-3">👨‍👩‍👧</span>
           <p className="text-[15px] font-bold mb-1" style={{ color: '#2a2540' }}>Нет членов семьи</p>
           <p className="text-[13px]" style={{ color: '#9a96a8' }}>Добавьте семью в разделе «Семья»</p>
-          <a href="/family"
+          <Link href="/family"
             className="inline-block mt-3 text-[13px] font-semibold"
             style={{ color: '#9c5e6c' }}>
             Перейти →
-          </a>
+          </Link>
         </div>
       </div>
     );
