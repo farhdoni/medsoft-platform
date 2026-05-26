@@ -62,6 +62,13 @@ export const aivitaUsers = pgTable(
     referralCode: varchar('referral_code', { length: 20 }).unique(),
     referredBy: uuid('referred_by'),
 
+    // Streak & gamification (medications adherence)
+    currentStreak: integer('current_streak').notNull().default(0),
+    longestStreak: integer('longest_streak').notNull().default(0),
+    streakBadges: jsonb('streak_badges')
+      .$type<Array<{ id: string; name: string; icon: string; earnedAt: string }>>()
+      .notNull().default([]),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     lastLoginAt: timestamp('last_login_at'),

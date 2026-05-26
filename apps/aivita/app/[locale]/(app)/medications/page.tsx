@@ -8,6 +8,10 @@ export interface ScheduleItem {
   title: string;
   dosage: string | null;
   instructions: string | null;
+  foodInstruction: string | null;
+  sideEffects: string[];
+  contraindications: string[];
+  remainingPills: number | null;
   time: string;
   period: 'morning' | 'afternoon' | 'evening';
   status: string;
@@ -25,6 +29,9 @@ export interface MedStats {
   pending: number;
   percent: number;
   days: number;
+  currentStreak: number;
+  longestStreak: number;
+  streakBadges: Array<{ id: string; name: string; icon: string; earnedAt: string }>;
 }
 
 export interface MedicationRow {
@@ -34,12 +41,20 @@ export interface MedicationRow {
   frequency: string;
   times: string[];
   instructions: string | null;
+  sideEffects: string[];
+  contraindications: string[];
+  foodInstruction: string | null;
+  remainingPills: number | null;
+  persistentReminder: boolean;
+  source: string;
   startDate: string;
   endDate: string | null;
+  durationDays: number | null;
   isActive: boolean;
   createdBy: string;
   doctorId: string | null;
   reminderEnabled: boolean;
+  reminderMinutesBefore: number;
 }
 
 export default async function MedicationsPage({
@@ -74,11 +89,12 @@ export default async function MedicationsPage({
 
   return (
     <PageShell active="medications" locale={locale}>
-      <div className="max-w-[680px] mx-auto pb-6">
+      <div className="max-w-[480px] mx-auto pb-24">
         <MedicationsClient
           initialSchedule={schedule}
           initialStats={stats}
           initialMedications={medications}
+          locale={locale}
         />
       </div>
     </PageShell>

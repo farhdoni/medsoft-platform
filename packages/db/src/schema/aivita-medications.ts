@@ -38,14 +38,27 @@ export const medicationSchedule = pgTable(
     // Инструкции
     instructions: text('instructions'),
 
+    // Дополнительная медицинская информация
+    sideEffects: jsonb('side_effects').$type<string[]>().notNull().default([]),
+    contraindications: jsonb('contraindications').$type<string[]>().notNull().default([]),
+    foodInstruction: varchar('food_instruction', { length: 50 }),
+    // 'before' | 'after' | 'during' | 'no_alcohol' | null
+
+    // Учёт таблеток
+    remainingPills: integer('remaining_pills'),
+
     // Напоминания
     reminderEnabled: boolean('reminder_enabled').notNull().default(true),
     reminderMinutesBefore: integer('reminder_minutes_before').notNull().default(5),
+    persistentReminder: boolean('persistent_reminder').notNull().default(false),
+    // true = напоминать каждые 15 мин пока не отметит
 
     // Статус и источник
     isActive: boolean('is_active').notNull().default(true),
     createdBy: varchar('created_by', { length: 20 }).notNull().default('patient'),
     // 'patient' | 'doctor'
+    source: varchar('source', { length: 20 }).notNull().default('manual'),
+    // 'manual' | 'receipt_ocr' | 'doctor' | 'chat'
     doctorId: uuid('doctor_id').references(() => aivitaUsers.id, { onDelete: 'set null' }),
 
     createdAt: timestamp('created_at').notNull().defaultNow(),

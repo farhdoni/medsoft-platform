@@ -61,6 +61,7 @@ import { startPushReminders } from './jobs/push-reminders.js';
 import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
 import { startNotificationReminders } from './jobs/notification-reminders.js';
 import { startHealthAgents } from './jobs/health-agents.js';
+import { startMedicationReminders } from './jobs/medication-reminders.js';
 import { clickRouter } from './routes/payments/click.js';
 import { paymeRouter } from './routes/payments/payme.js';
 import { uzumRouter } from './routes/payments/uzum.js';
@@ -295,6 +296,7 @@ async function main() {
   startSubscriptionRenewal();
   startNotificationReminders();
   startHealthAgents();
+  startMedicationReminders();
 }
 
 main().catch((err) => {

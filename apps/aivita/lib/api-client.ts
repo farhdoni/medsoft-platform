@@ -156,6 +156,10 @@ export const api = {
       apiRequest('/medications/today', { sessionCookie: cookie }),
     stats: (cookie: string, period = 'week') =>
       apiRequest(`/medications/stats?period=${period}`, { sessionCookie: cookie }),
+    log: (cookie: string, dateFrom?: string, dateTo?: string) =>
+      apiRequest(`/medications/log${dateFrom ? `?dateFrom=${dateFrom}${dateTo ? `&dateTo=${dateTo}` : ''}` : ''}`, { sessionCookie: cookie }),
+    family: (cookie: string) =>
+      apiRequest('/medications/family', { sessionCookie: cookie }),
   },
   vitals: {
     latest: (cookie: string) =>
