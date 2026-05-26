@@ -1086,3 +1086,83 @@ export const aiChatMessages = pgTable(
     userSeqIdx: index('ai_chat_messages_user_seq_idx').on(table.userId, table.seq),
   })
 );
+
+// ─── Agent Alerts ─────────────────────────────────────────────────────────────
+
+export const agentAlerts = pgTable(
+  'agent_alerts',
+  {
+    id:            uuid('id').primaryKey().defaultRandom(),
+    userId:        uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    agentType:     varchar('agent_type', { length: 30 }).notNull(), // vitals_monitor|document_parser|medication_tracker|weekly_checkup
+    severity:      varchar('severity', { length: 20 }).notNull().default('info'), // info|warning|critical
+    title:         varchar('title', { length: 200 }).notNull(),
+    description:   text('description'),
+    recommendation: text('recommendation'),
+    relatedData:   jsonb('related_data').$type<Record<string, unknown>>(),
+    isRead:        boolean('is_read').notNull().default(false),
+    isDismissed:   boolean('is_dismissed').notNull().default(false),
+    createdAt:     timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userCreatedIdx: index('agent_alerts_user_created_idx').on(table.userId, table.createdAt),
+    userTypeIdx:    index('agent_alerts_user_type_idx').on(table.userId, table.agentType),
+  })
+);
+
+// ─── Agent Settings ───────────────────────────────────────────────────────────
+
+export const agentSettings = pgTable(
+  'agent_settings',
+  {
+    id:                      uuid('id').primaryKey().defaultRandom(),
+    userId:                  uuid('user_id').notNull().unique().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    vitalsMonitorEnabled:    boolean('vitals_monitor_enabled').notNull().default(true),
+    documentParserEnabled:   boolean('document_parser_enabled').notNull().default(true),
+    medicationTrackerEnabled: boolean('medication_tracker_enabled').notNull().default(true),
+    weeklyCheckupEnabled:    boolean('weekly_checkup_enabled').notNull().default(true),
+    alertThresholds:         jsonb('alert_thresholds').$type<{
+      pulse_high?: number; pulse_low?: number;
+      systolic_high?: number; systolic_low?: number;
+      diastolic_high?: number; diastolic_low?: number;
+      spo2_low?: number; sugar_high?: number; sugar_low?: number;
+      temp_high?: number; temp_low?: number;
+    }>().default({}),
+    updatedAt:               timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('agent_settings_user_idx').on(table.userId),
+  })
+);
+
+// ─── Health Analysis (AI Predict) ─────────────────────────────────────────────
+
+export const healthAnalysis = pgTable(
+  'health_analysis',
+  {
+    id:                uuid('id').primaryKey().defaultRandom(),
+    userId:            uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    healthScore:       integer('health_score'),
+    biologicalAge:     integer('biological_age'),
+    overallAssessment: text('overall_assessment'),
+    currentProblems:   jsonb('current_problems').$type<Array<{
+      title: string; description: string;
+      severity: 'low'|'medium'|'high'|'critical';
+      category: string; recommendation: string; suggestedDoctor?: string;
+    }>>().default([]),
+    futureRisks:       jsonb('future_risks').$type<Array<{
+      title: string; probability: 'low'|'medium'|'high';
+      timeframe: string; preventionPlan: string;
+    }>>().default([]),
+    healthPlan:        jsonb('health_plan').$type<{
+      duration: string;
+      goals: Array<{ title: string; description: string; metric: string; target: string }>;
+      dailyActions: string[]; weeklyActions: string[]; monthlyActions: string[];
+    }>(),
+    planProgress:      jsonb('plan_progress').$type<Record<string, boolean>>().default({}),
+    createdAt:         timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userCreatedIdx: index('health_analysis_user_created_idx').on(table.userId, table.createdAt),
+  })
+);

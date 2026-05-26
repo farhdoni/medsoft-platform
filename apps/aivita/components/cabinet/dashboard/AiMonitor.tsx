@@ -149,15 +149,24 @@ export function AiMonitor({ latest, compact = false, locale = 'ru' }: Props) {
         })}
       </div>
 
-      {/* compact: link to full vitals page */}
+      {/* compact: links to vitals and health analysis */}
       {compact && (
-        <Link
-          href={`/${locale}/vitals`}
-          className="mt-2 w-full flex items-center justify-center text-[12px] font-semibold py-2 rounded-[12px] transition-colors hover:bg-[#f4f3ef]"
-          style={{ color: 'var(--accent-dark)' }}
-        >
-          Все показатели →
-        </Link>
+        <div className="mt-2 flex gap-2">
+          <Link
+            href={`/${locale}/vitals`}
+            className="flex-1 flex items-center justify-center text-[12px] font-semibold py-2 rounded-[12px] transition-colors hover:bg-[#f4f3ef]"
+            style={{ color: 'var(--accent-dark)' }}
+          >
+            Все показатели →
+          </Link>
+          <Link
+            href={`/${locale}/health-analysis`}
+            className="flex-1 flex items-center justify-center text-[12px] font-semibold py-2 rounded-[12px] transition-colors hover:bg-[#f4f3ef]"
+            style={{ color: 'var(--accent-dark)' }}
+          >
+            AI-анализ →
+          </Link>
+        </div>
       )}
 
       {/* full mode: expand/collapse */}

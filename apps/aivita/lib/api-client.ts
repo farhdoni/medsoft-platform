@@ -268,4 +268,26 @@ export const api = {
     reviews: (doctorId: string) =>
       apiRequest(`/doctor/reviews/doctor/${doctorId}`),
   },
+  agents: {
+    alerts: (cookie: string, params?: string) =>
+      apiRequest(`/agents/alerts${params ? '?' + params : ''}`, { sessionCookie: cookie }),
+    readAlerts: (ids: string[], cookie: string) =>
+      apiRequest('/agents/alerts/read', { method: 'PUT', body: { ids }, sessionCookie: cookie }),
+    readAllAlerts: (cookie: string) =>
+      apiRequest('/agents/alerts/read-all', { method: 'PUT', sessionCookie: cookie }),
+    dismissAlert: (id: string, cookie: string) =>
+      apiRequest(`/agents/alerts/${id}/dismiss`, { method: 'PUT', sessionCookie: cookie }),
+    settings: (cookie: string) =>
+      apiRequest('/agents/settings', { sessionCookie: cookie }),
+    updateSettings: (data: Record<string, unknown>, cookie: string) =>
+      apiRequest('/agents/settings', { method: 'PUT', body: data, sessionCookie: cookie }),
+  },
+  healthAnalysis: {
+    latest: (cookie: string) =>
+      apiRequest('/health-analysis/latest', { sessionCookie: cookie }),
+    run: (cookie: string) =>
+      apiRequest('/health-analysis/run', { method: 'POST', sessionCookie: cookie }),
+    updateProgress: (id: string, progress: Record<string, boolean>, cookie: string) =>
+      apiRequest(`/health-analysis/${id}/progress`, { method: 'PUT', body: { progress }, sessionCookie: cookie }),
+  },
 };

@@ -60,6 +60,7 @@ import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
 import { startNotificationReminders } from './jobs/notification-reminders.js';
+import { startHealthAgents } from './jobs/health-agents.js';
 import { clickRouter } from './routes/payments/click.js';
 import { paymeRouter } from './routes/payments/payme.js';
 import { uzumRouter } from './routes/payments/uzum.js';
@@ -95,6 +96,8 @@ import { pharmacyRouter } from './routes/pharmacy.js';
 import { aivitaPharmacyRouter } from './routes/aivita/pharmacy.js';
 import { medicalRouter } from './routes/aivita/medical.js';
 import { aivitaReferralRouter } from './routes/aivita/referral.js';
+import { agentsRouter } from './routes/aivita/agents.js';
+import { healthAnalysisRouter } from './routes/aivita/health-analysis.js';
 
 const app = new Hono();
 
@@ -171,6 +174,8 @@ app.route('/v1/pharmacy', pharmacyRouter);
 app.route('/v1/aivita/pharmacy', aivitaPharmacyRouter);
 app.route('/v1/aivita/medical', medicalRouter);
 app.route('/v1/aivita/referral', aivitaReferralRouter);
+app.route('/v1/aivita/agents', agentsRouter);
+app.route('/v1/aivita/health-analysis', healthAnalysisRouter);
 // Payment gateways (webhooks + card binding)
 app.route('/v1/payments/click', clickRouter);
 app.route('/v1/payments/payme', paymeRouter);
@@ -289,6 +294,7 @@ async function main() {
   startPushReminders();
   startSubscriptionRenewal();
   startNotificationReminders();
+  startHealthAgents();
 }
 
 main().catch((err) => {
