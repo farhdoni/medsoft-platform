@@ -4,12 +4,44 @@ import { useEffect } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
+/** Register a native Expo push token via the authenticated proxy (cookie auth). */
+async function registerNativePushToken(pushToken: string, platform: string) {
+  const deviceId = `${platform}-${Date.now()}`;
+  await fetch('/api/proxy/devices/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pushToken, platform, deviceId }),
+  }).catch(() => {});
+}
+
 /**
- * Invisible component that registers the service worker and
- * requests permission for web push notifications.
- * Placed in the app layout so it runs on every authenticated page.
+ * Invisible component that:
+ * 1. Registers the service worker and requests permission for web push.
+ * 2. Listens for the native Expo push token injected by React Native WebView
+ *    (window.__AIVITA_PUSH_TOKEN__ / 'aivita-push-token-ready' event)
+ *    and registers it via the Next.js proxy (which has proper cookie auth).
  */
 export default function PushManager() {
+  // ── Native push token from React Native WebView ──────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    function handleNativeToken(e: Event) {
+      const token = (e as CustomEvent<{ pushToken: string }>).detail?.pushToken;
+      const platform = (window as Record<string, unknown>).__AIVITA_PLATFORM__ as string ?? 'unknown';
+      if (token) void registerNativePushToken(token, platform);
+    }
+
+    window.addEventListener('aivita-push-token-ready', handleNativeToken);
+
+    // Token may already be present if injected before this component mounted
+    const existing = (window as Record<string, unknown>).__AIVITA_PUSH_TOKEN__ as string | undefined;
+    if (existing) void registerNativePushToken(existing, (window as Record<string, unknown>).__AIVITA_PLATFORM__ as string ?? 'unknown');
+
+    return () => window.removeEventListener('aivita-push-token-ready', handleNativeToken);
+  }, []);
+
+  // ── Web push via Service Worker ──────────────────────────────────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
@@ -17,19 +49,15 @@ export default function PushManager() {
 
     async function setup() {
       try {
-        // Register (or re-use existing) service worker
         const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
-        // Request permission if not yet asked
         if (Notification.permission === 'default') {
-          // Small delay to not prompt immediately on page load
           await new Promise<void>((resolve) => setTimeout(resolve, 3000));
           await Notification.requestPermission();
         }
 
         if (Notification.permission !== 'granted') return;
 
-        // Try to get a push subscription (VAPID not configured → skip silently)
         try {
           const sub = await reg.pushManager.getSubscription();
           const endpoint = sub?.endpoint;

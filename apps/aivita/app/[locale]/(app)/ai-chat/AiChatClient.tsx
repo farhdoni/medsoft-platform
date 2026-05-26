@@ -152,6 +152,19 @@ function WelcomeScreen({ onChip, locale }: { onChip: (text: string) => void; loc
   );
 }
 
+// ─── Native WebView detection ─────────────────────────────────────────────────
+
+function isInNativeWebView(): boolean {
+  return typeof window !== 'undefined' && !!(window as Record<string, unknown>).ReactNativeWebView;
+}
+
+function nativePostMessage(type: string, extra?: Record<string, unknown>) {
+  if (!isInNativeWebView()) return false;
+  (window as Record<string, unknown> & { ReactNativeWebView: { postMessage: (s: string) => void } })
+    .ReactNativeWebView.postMessage(JSON.stringify({ type, ...extra }));
+  return true;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function AiChatClient({ locale }: { locale: string }) {
@@ -224,6 +237,27 @@ export function AiChatClient({ locale }: { locale: string }) {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   }
 
+  // ── Native camera/gallery bridge ───────────────────────────────────────────
+
+  const addPhotoFromDataUrl = useCallback((dataUrl: string) => {
+    // Create a synthetic File object for display name; actual data is in dataUrl
+    const file = new File([], 'photo.jpg', { type: 'image/jpeg' });
+    setAttachments(prev => [...prev, { kind: 'photo', file, dataUrl, id: uid() }]);
+  }, []);
+
+  useEffect(() => {
+    function handleCameraResult(e: Event) {
+      const dataUrl = (e as CustomEvent<{ dataUrl: string }>).detail?.dataUrl;
+      if (dataUrl) addPhotoFromDataUrl(dataUrl);
+    }
+    window.addEventListener('aivita-camera-result',  handleCameraResult);
+    window.addEventListener('aivita-gallery-result', handleCameraResult);
+    return () => {
+      window.removeEventListener('aivita-camera-result',  handleCameraResult);
+      window.removeEventListener('aivita-gallery-result', handleCameraResult);
+    };
+  }, [addPhotoFromDataUrl]);
+
   // ── Attachments ────────────────────────────────────────────────────────────
 
   function addPhotoFile(file: File) {
@@ -252,6 +286,23 @@ export function AiChatClient({ locale }: { locale: string }) {
       if (a?.kind === 'audio') URL.revokeObjectURL((a as AttachAudio).url);
       return prev.filter(x => x.id !== id);
     });
+  }
+
+  // ── Auto-save health data from AI response ─────────────────────────────────
+  // The AI embeds <!--HEALTH:{...}--> at the end of responses when it detects
+  // health metrics. We parse it and PUT to the patient profile (non-blocking).
+  async function tryAutoSaveHealth(aiText: string) {
+    const match = /<!--HEALTH:(\{[^}]+\})-->/.exec(aiText);
+    if (!match) return;
+    try {
+      const data = JSON.parse(match[1]) as Record<string, unknown>;
+      if (Object.keys(data).length === 0) return;
+      await fetch('/api/proxy/health-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch { /* non-critical */ }
   }
 
   // ── Voice recording ────────────────────────────────────────────────────────
@@ -381,7 +432,12 @@ export function AiChatClient({ locale }: { locale: string }) {
     }
 
     // ── Call real AI endpoint ──────────────────────────────────────────────
-    const aiInput = msgText || (filesToParse.length > 0 ? '[пользователь прикрепил изображение или документ]' : '');
+    // Collect image dataUrls from photo attachments (for vision)
+    const imageDataUrls = attachments
+      .filter((a): a is AttachPhoto => a.kind === 'photo')
+      .map(a => a.dataUrl);
+
+    const aiInput = msgText || (imageDataUrls.length > 0 ? 'Что на этом изображении? Есть ли медицинская информация?' : '');
 
     if (aiInput) {
       const nextHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [
@@ -395,7 +451,7 @@ export function AiChatClient({ locale }: { locale: string }) {
         const res = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: nextHistory, locale }),
+          body: JSON.stringify({ messages: nextHistory, locale, images: imageDataUrls }),
         });
 
         const contentType = res.headers.get('content-type') ?? '';
@@ -424,6 +480,8 @@ export function AiChatClient({ locale }: { locale: string }) {
             }
           }
           setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
+          // Auto-save health data extracted by AI (non-blocking)
+          void tryAutoSaveHealth(aiText);
           // Persist both messages to DB (non-blocking, only if content non-empty)
           if (aiText && aiInput) {
             void fetch('/api/proxy/ai-chat/message', {
@@ -445,6 +503,7 @@ export function AiChatClient({ locale }: { locale: string }) {
             : (json.content ?? 'Попробуйте ещё раз позже.');
           setMessages(prev => [...prev, { id: uid(), role: 'assistant', text: aiText, ts: new Date() }]);
           setApiHistory(prev => [...prev, { role: 'assistant', content: aiText }]);
+          void tryAutoSaveHealth(aiText);
           // Persist both messages to DB (non-blocking, skip plan_limit errors)
           if (json.error !== 'plan_limit') {
             void fetch('/api/proxy/ai-chat/message', {
@@ -690,18 +749,33 @@ export function AiChatClient({ locale }: { locale: string }) {
             >
               <Paperclip className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
             </button>
-            {/* Camera — using <label> instead of programmatic .click() for iOS Safari reliability */}
-            <label
-              htmlFor="ai-chat-camera-input"
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80 cursor-pointer select-none"
-              style={{ background: '#f4f3ef' }}
-              aria-label="Сделать фото"
-            >
-              <Camera className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
-            </label>
+            {/* Camera — native bridge in WebView, label fallback in browser */}
+            {isInNativeWebView() ? (
+              <button
+                type="button"
+                onClick={() => nativePostMessage('open-camera')}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
+                style={{ background: '#f4f3ef' }}
+                aria-label="Сделать фото"
+              >
+                <Camera className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
+              </button>
+            ) : (
+              <label
+                htmlFor="ai-chat-camera-input"
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80 cursor-pointer select-none"
+                style={{ background: '#f4f3ef' }}
+                aria-label="Сделать фото"
+              >
+                <Camera className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
+              </label>
+            )}
+            {/* Gallery — native bridge in WebView, file input fallback in browser */}
             <button
               type="button"
-              onClick={() => galleryInputRef.current?.click()}
+              onClick={() => {
+                if (!nativePostMessage('open-gallery')) galleryInputRef.current?.click();
+              }}
               className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
               style={{ background: '#f4f3ef' }}
               aria-label="Выбрать из галереи"

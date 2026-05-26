@@ -261,6 +261,11 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           domStorageEnabled
           javaScriptEnabled
           allowsBackForwardNavigationGestures
+          // Allow inline media & microphone access
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          // Grant mic/camera permission requests automatically (user already approved natively)
+          mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
         />
       </ScrollView>
     </View>

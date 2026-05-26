@@ -163,10 +163,24 @@ NEVER mix languages in one response. NEVER say you cannot speak Uzbek — you ca
 6. Use **bold** for key terms and - bullet points for tips
 
 ## EXPERTISE
-Sleep · Nutrition · Physical activity · Stress · Mental health · Chronic disease prevention · Healthy habits · Drug interactions
+Sleep · Nutrition · Physical activity · Stress · Mental health · Chronic disease prevention · Healthy habits · Drug interactions · Medical image analysis
 
 ## DRUG INTERACTION RESULTS
 If the context contains "=== РЕЗУЛЬТАТ ПРОВЕРКИ СОВМЕСТИМОСТИ ЛЕКАРСТВ ===" — incorporate those results into your answer with colored-label formatting using: ⛔ for critical, ⚠️ for major, ℹ️ for moderate, 💬 for minor, ✅ for none. Always add a note to consult a doctor.
+
+## IMAGE ANALYSIS
+When the user sends an image: describe what you see medically, identify any health metrics (lab results, blood pressure readings, ECG, prescriptions, food labels etc.), and give relevant health advice.
+
+## AUTO-SAVE HEALTH DATA — CRITICAL RULE
+After your main response, if the conversation or image contains SPECIFIC health metrics (not vague), append ONE line in this exact format (no spaces, no line break inside):
+<!--HEALTH:{"weightKg":X,"heightCm":X,"bloodType":"A+"}-->
+
+Only include fields you are CERTAIN about from this conversation. Supported fields:
+weightKg (number), heightCm (number), bloodType (string: "A+","A-","B+","B-","AB+","AB-","O+","O-"),
+smokingStatus (string: "never","quit","occasional","daily"), exerciseFrequency (string: "sedentary","light","moderate","active"),
+gender (string: "male","female"), city (string).
+
+If NO specific metrics are mentioned → do NOT add the <!--HEALTH:--> line at all.
 
 If a question is outside health — gently redirect back in the user's language.`;
 
@@ -253,11 +267,46 @@ const FREE_DAILY_CHAT_LIMIT = 5;
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
+// ─── Vision helpers ───────────────────────────────────────────────────────────
+
+type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } };
+
+/** Convert a plain-text history + optional image dataUrls for the last user message */
+function buildVisionMessages(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+  images: string[],
+): Array<{ role: 'user' | 'assistant'; content: string | ContentBlock[] }> {
+  if (!images.length) return messages;
+
+  const result: Array<{ role: 'user' | 'assistant'; content: string | ContentBlock[] }> = [...messages];
+  const lastUserIdx = result.reduce((acc, m, i) => m.role === 'user' ? i : acc, -1);
+  if (lastUserIdx < 0) return result;
+
+  const lastMsg = result[lastUserIdx];
+  const imageBlocks: ContentBlock[] = images.map(dataUrl => {
+    const [header, data] = dataUrl.split(',');
+    const mediaType = header?.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg';
+    return { type: 'image' as const, source: { type: 'base64' as const, media_type: mediaType, data: data ?? '' } };
+  });
+
+  result[lastUserIdx] = {
+    role: 'user',
+    content: [
+      ...imageBlocks,
+      { type: 'text', text: typeof lastMsg.content === 'string' ? lastMsg.content : '' },
+    ],
+  };
+  return result;
+}
+
 export async function POST(req: Request) {
-  const { messages, userContext, locale = 'ru' } = await req.json() as {
+  const { messages, userContext, locale = 'ru', images = [] } = await req.json() as {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     userContext?: { name?: string; score?: number };
     locale?: string;
+    images?: string[];
   };
 
   const lang = ['ru', 'uz', 'en'].includes(locale) ? locale : 'ru';
@@ -317,14 +366,17 @@ export async function POST(req: Request) {
 
   const client = new Anthropic({ apiKey: apiKey! });
 
+  // Build vision-aware messages (inject images into last user message if present)
+  const visionMessages = buildVisionMessages(messages, images ?? []);
+
   let stream;
   try {
-    // Sonnet has far better Uzbek language support than Haiku
+    // Sonnet has far better Uzbek language support than Haiku and supports vision
     stream = await client.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 1500,
       system: systemPrompt,
-      messages: messages.slice(-10),
+      messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
     });
   } catch {
     const lastMsg = messages?.[messages.length - 1]?.content ?? '';
