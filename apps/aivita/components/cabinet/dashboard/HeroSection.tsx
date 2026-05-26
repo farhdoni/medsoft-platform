@@ -88,7 +88,7 @@ export function HeroSection({ user, metrics }: Props) {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-chip bg-accent-rose px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#8a4f5d] disabled:opacity-60"
+              className="shrink-0 whitespace-nowrap rounded-chip bg-accent-rose px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#8a4f5d] disabled:opacity-60"
             >
               {submitting ? "…" : t('askButton')}
             </button>
