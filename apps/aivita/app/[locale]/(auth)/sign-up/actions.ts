@@ -45,7 +45,12 @@ export async function registerAction(
     return { error: 'network' };
   }
 
-  const json = await res.json() as { data?: { userId: string; email: string }; error?: string };
+  let json: { data?: { userId: string; email: string }; error?: string };
+  try {
+    json = await res.json();
+  } catch {
+    return { error: 'server_error' };
+  }
 
   if (!res.ok || !json.data) {
     if (json.error === 'email_taken') return { error: 'email_taken' };
@@ -77,7 +82,12 @@ export async function verifyEmailAction(
     return { error: 'network' };
   }
 
-  const json = await res.json() as { data?: { session: SessionPayload; apiToken?: string }; error?: string };
+  let json: { data?: { session: SessionPayload; apiToken?: string }; error?: string };
+  try {
+    json = await res.json();
+  } catch {
+    return { error: 'invalid_code' };
+  }
 
   if (!res.ok || !json.data?.session) {
     return { error: 'invalid_code' };

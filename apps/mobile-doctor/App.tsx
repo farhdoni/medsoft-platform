@@ -6,9 +6,7 @@ import SplashScreen from './src/screens/SplashScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import MainScreen from './src/screens/MainScreen';
-import { DOCTOR_HOME } from './src/constants/config';
-
-export type AppScreen = 'splash' | 'onboarding' | 'login' | 'main';
+import { DOCTOR_HOME, AppScreen } from './src/constants/config';
 
 function parseDoctorDeepLink(url: string): string | null {
   try {

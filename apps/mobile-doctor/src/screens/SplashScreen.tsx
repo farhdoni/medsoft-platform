@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppScreen } from '../../App';
-import { TOKEN_KEY, ONBOARDING_KEY, API_URL } from '../constants/config';
+import { AppScreen, TOKEN_KEY, ONBOARDING_KEY, API_URL } from '../constants/config';
 
 interface Props {
   onDone: (screen: AppScreen) => void;

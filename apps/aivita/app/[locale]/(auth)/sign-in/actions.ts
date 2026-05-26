@@ -35,11 +35,12 @@ export async function loginAction(
     return { error: 'network' };
   }
 
-  const json = await res.json() as {
-    data?: { session: SessionPayload; apiToken?: string };
-    error?: string;
-    userId?: string;
-  };
+  let json: { data?: { session: SessionPayload; apiToken?: string }; error?: string; userId?: string };
+  try {
+    json = await res.json();
+  } catch {
+    return { error: 'network' };
+  }
 
   if (!res.ok || !json.data?.session) {
     if (json.error === 'email_not_verified' && json.userId) {

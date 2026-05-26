@@ -1,122 +1,140 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── CSS Variables ────────────────────────────────────────────────────────────
+const C = {
+  bg: '#f4f3ef', card: '#fff', border: '#e8e4dc',
+  accent: '#9c5e6c', accentBg: '#f0d4dc',
+  green: '#3a7a4a', greenBg: '#d4e8d8',
+  blue: '#6BA3D6', blueBg: '#d4dff0',
+  purple: '#8b6aae', purpleBg: '#e0d8f0',
+  orange: '#e8873a', orangeBg: '#fff3cd',
+  red: '#dc3545', redBg: '#fde8e8',
+  t1: '#2a2540', t2: '#6a6580', t3: '#9a96a8',
+};
 
-interface ParsedMed {
-  name: string;
-  dosage: string;
-  frequency: string;
-  durationDays: number | null;
-  times: string[];
-  foodInstruction: string | null;
-  instructions: string | null;
-  selected: boolean;
-}
+const TOOLTIP_CSS = `
+  .tt-btn { position: relative; cursor: pointer; }
+  .tt-btn .tt { visibility: hidden; opacity: 0; position: absolute; bottom: calc(100% + 8px);
+    left: 50%; transform: translateX(-50%); padding: 6px 12px; border-radius: 10px;
+    background: #2a2540; color: #fff; font-size: 11px; font-weight: 600;
+    white-space: nowrap; transition: opacity .15s; z-index: 300; pointer-events: none; }
+  .tt-btn .tt::after { content:''; position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%); border: 5px solid transparent; border-top-color: #2a2540; }
+  .tt-btn:hover .tt { visibility: visible; opacity: 1; }
+`;
 
-interface PharmacyResult {
-  productId: number;
-  productName: string;
-  dosage: string | null;
-  form: string | null;
-  price: number;
-  oldPrice: number | null;
-  stock: number | null;
-  pharmacyName: string;
-  address: string | null;
-  lat: string | null;
-  lon: string | null;
-  phone: string | null;
-  isBestPrice: boolean;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-interface FamilyMember {
-  memberId: string;
-  memberUserId: string | null;
-  memberName: string;
-  memberRelation: string;
-  medications: Array<{ id: string; title: string; dosage: string | null; times: unknown; endDate: string | null }>;
-  todayStats: { taken: number; pending: number; total: number };
-}
-
-interface LogEntry {
-  log: { id: string; scheduleId: string; userId: string; scheduledAt: string; status: string; takenAt: string | null; note: string | null };
-  title: string;
-  dosage: string | null;
-}
-
-type LogDay = Record<string, LogEntry[]>;
+const FOOD_TAGS: Record<string, { label: string; bg: string; color: string }> = {
+  before:     { label: '🍽 до еды',       bg: '#fff3cd', color: '#856404' },
+  after:      { label: '🍽 после еды',    bg: C.blueBg,  color: C.blue   },
+  during:     { label: '🍽 во время еды', bg: C.greenBg, color: C.green  },
+  no_alcohol: { label: '🚫 без алкоголя', bg: C.redBg,   color: C.red    },
+};
 
 const FOOD_LABELS: Record<string, { label: string; color: string }> = {
-  before:    { label: 'до еды',       color: '#f0e8c8' },
-  after:     { label: 'после еды',    color: '#c8e8d0' },
-  during:    { label: 'во время еды', color: '#c8d8f0' },
-  no_alcohol:{ label: 'без алкоголя', color: '#f0c8c8' },
+  before:     { label: 'до еды',       color: '#f0e8c8' },
+  after:      { label: 'после еды',    color: '#c8e8d0' },
+  during:     { label: 'во время еды', color: '#c8d8f0' },
+  no_alcohol: { label: 'без алкоголя', color: '#f0c8c8' },
 };
 
-const STATUS_DOT: Record<string, string> = {
-  taken:   'bg-green-400',
-  missed:  'bg-red-400',
-  skipped: 'bg-gray-300',
-  pending: 'bg-gray-200',
-};
+const MED_COLORS = [
+  { bg: C.accentBg }, { bg: C.blueBg }, { bg: C.greenBg },
+  { bg: C.orangeBg }, { bg: C.purpleBg },
+];
 
-function formatPrice(p: number): string {
+function formatPrice(p: number) {
   return new Intl.NumberFormat('ru-RU').format(p) + ' сум';
 }
 
-function courseProgress(med: MedicationRow): { text: string; percent: number } | null {
+function courseProgress(med: MedicationRow): { text: string; percent: number; permanent?: boolean; warn?: boolean } | null {
   if (!med.startDate) return null;
-  if (!med.endDate && !med.durationDays) return { text: 'Постоянный приём', percent: 100 };
+  if (!med.endDate && !med.durationDays) return { text: 'Постоянный приём', percent: 100, permanent: true };
   const start = new Date(med.startDate).getTime();
   const total = med.durationDays ?? (med.endDate
-    ? Math.ceil((new Date(med.endDate).getTime() - start) / 86400000)
-    : null);
+    ? Math.ceil((new Date(med.endDate).getTime() - start) / 86400000) : null);
   if (!total) return null;
   const elapsed = Math.ceil((Date.now() - start) / 86400000);
   const day = Math.min(Math.max(elapsed, 0), total);
-  return { text: `${day} / ${total} дней`, percent: Math.round((day / total) * 100) };
+  const remaining = total - day;
+  const percent = Math.round((day / total) * 100);
+  const warn = remaining > 0 && remaining <= 5;
+  const text = warn ? `⚠️ осталось ${remaining} дня!` : `${day}/${total} дней`;
+  return { text, percent, warn };
+}
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function slotStatus(item: ScheduleItem): 'dn' | 'nw' | 'up' {
+  if (item.status === 'taken' || item.status === 'skipped') return 'dn';
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const slotMin = timeToMinutes(item.time);
+  if (slotMin <= nowMin + 30) return 'nw';
+  return 'up';
 }
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1] ?? result);
-    };
+    reader.onload = () => resolve((reader.result as string).split(',')[1] ?? (reader.result as string));
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-// ─── Toggle ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
+interface ParsedMed {
+  name: string; dosage: string; frequency: string; durationDays: number | null;
+  times: string[]; foodInstruction: string | null; instructions: string | null; selected: boolean;
+}
+interface PharmacyResult {
+  productId: number; productName: string; dosage: string | null; form: string | null;
+  price: number; oldPrice: number | null; stock: number | null;
+  pharmacyName: string; address: string | null; lat: string | null; lon: string | null;
+  phone: string | null; isBestPrice: boolean;
+}
+interface FamilyMember {
+  memberId: string; memberUserId: string | null; memberName: string; memberRelation: string;
+  medications: Array<{ id: string; title: string; dosage: string | null; times: unknown; endDate: string | null }>;
+  todayStats: { taken: number; pending: number; total: number };
+}
+interface LogEntry {
+  log: { id: string; scheduleId: string; userId: string; scheduledAt: string; status: string; takenAt: string | null; note: string | null };
+  title: string; dosage: string | null;
+}
+type LogDay = Record<string, LogEntry[]>;
+type TabKey = 'meds' | 'add' | 'log' | 'pharmacy' | 'family';
+
+interface Props {
+  initialSchedule: ScheduleItem[];
+  initialStats: MedStats | null;
+  initialMedications: MedicationRow[];
+  locale: string;
+}
+
+// ─── Toggle ───────────────────────────────────────────────────────────────────
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button
-      onClick={() => onChange(!value)}
+    <button onClick={() => onChange(!value)}
       className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-      style={{ background: value ? '#9c5e6c' : '#d0ccc8' }}
-    >
-      <span
-        className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-        style={{ left: value ? 'calc(100% - 22px)' : '2px' }}
-      />
+      style={{ background: value ? C.accent : '#d0ccc8' }}>
+      <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+        style={{ left: value ? 'calc(100% - 22px)' : '2px' }} />
     </button>
   );
 }
 
-// ─── Field ────────────────────────────────────────────────────────────────────
-
-function Field({ label, children, className }: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
       <label className="text-[12px] font-medium block mb-1.5" style={{ color: '#666' }}>{label}</label>
@@ -129,15 +147,6 @@ function Field({ label, children, className }: {
 // Main component
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type TabKey = 'meds' | 'add' | 'log' | 'pharmacy' | 'family';
-
-interface Props {
-  initialSchedule: ScheduleItem[];
-  initialStats: MedStats | null;
-  initialMedications: MedicationRow[];
-  locale: string;
-}
-
 export function MedicationsClient({ initialSchedule, initialStats, initialMedications, locale }: Props) {
   const [tab, setTab] = useState<TabKey>('meds');
   const [schedule, setSchedule] = useState<ScheduleItem[]>(initialSchedule);
@@ -149,22 +158,19 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
     { key: 'meds',     label: '💊 Лекарства' },
     { key: 'add',      label: '➕ Добавить'   },
     { key: 'log',      label: '📅 Журнал'     },
-    { key: 'pharmacy', label: '🏪 Аптеки'     },
+    { key: 'pharmacy', label: '🔍 Аптеки'     },
     { key: 'family',   label: '👨‍👩‍👧 Семья'    },
   ];
 
   async function handleTake(scheduleId: string, time: string) {
     const r = await fetch(`/api/proxy/medications/${scheduleId}/take`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ time }),
     });
     if (r.ok) {
-      setSchedule((prev) => prev.map((s) =>
+      setSchedule(prev => prev.map(s =>
         s.scheduleId === scheduleId && s.time === time
-          ? { ...s, status: 'taken', takenAt: new Date().toISOString() }
-          : s,
-      ));
+          ? { ...s, status: 'taken', takenAt: new Date().toISOString() } : s));
       setCelebration(true);
       setTimeout(() => setCelebration(false), 2000);
       const sr = await fetch('/api/proxy/medications/stats');
@@ -177,131 +183,54 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
 
   async function handleSkip(scheduleId: string, time: string) {
     const r = await fetch(`/api/proxy/medications/${scheduleId}/skip`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ time }),
     });
     if (r.ok) {
-      setSchedule((prev) => prev.map((s) =>
-        s.scheduleId === scheduleId && s.time === time
-          ? { ...s, status: 'skipped' }
-          : s,
-      ));
+      setSchedule(prev => prev.map(s =>
+        s.scheduleId === scheduleId && s.time === time ? { ...s, status: 'skipped' } : s));
     }
   }
 
   return (
-    <div style={{ background: '#f4f3ef', minHeight: '100vh' }}>
+    <div style={{ background: C.bg, minHeight: '100vh' }}>
+      <style>{TOOLTIP_CSS}</style>
 
-      {/* Streak banner */}
-      {stats && stats.currentStreak > 0 && (
-        <div
-          className="mx-4 mt-4 rounded-2xl px-4 py-3 flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg, #9c5e6c 0%, #c47a8a 100%)', color: '#fff' }}
-        >
-          <span className="text-2xl">🔥</span>
-          <div>
-            <p className="text-sm font-bold">{stats.currentStreak} дней без пропуска!</p>
-            <p className="text-xs opacity-80">Лучший: {stats.longestStreak} дней</p>
-          </div>
-          {stats.streakBadges && stats.streakBadges.length > 0 && (
-            <div className="ml-auto flex gap-1">
-              {stats.streakBadges.slice(-3).map((b) => (
-                <span key={b.id} className="text-lg" title={b.name}>{b.icon}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Stats ring */}
-      {stats && (
-        <div
-          className="mx-4 mt-3 rounded-2xl bg-white p-4 flex items-center gap-4"
-          style={{ border: '1px solid #e8e4dc' }}
-        >
-          <svg width="56" height="56" viewBox="0 0 56 56">
-            <circle cx="28" cy="28" r="22" fill="none" stroke="#f0ede8" strokeWidth="6" />
-            <circle cx="28" cy="28" r="22" fill="none" stroke="#9c5e6c" strokeWidth="6"
-              strokeDasharray={`${(stats.percent / 100) * 138.2} 138.2`}
-              strokeLinecap="round" strokeDashoffset="34.6" transform="rotate(-90 28 28)" />
-            <text x="28" y="32" textAnchor="middle" fontSize="13" fontWeight="700" fill="#9c5e6c">
-              {stats.percent}%
-            </text>
-          </svg>
-          <div className="flex-1">
-            <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>Соблюдение курса</p>
-            <p className="text-[12px]" style={{ color: '#9a96a8' }}>за 7 дней</p>
-            <div className="flex gap-3 mt-1.5">
-              <span className="text-[11px] text-green-600 font-medium">✓ {stats.taken} принято</span>
-              <span className="text-[11px] text-red-500 font-medium">✗ {stats.missed} пропущено</span>
-            </div>
-          </div>
-          <button
-            onClick={async () => {
-              const r = await fetch('/api/proxy/medications/export-pdf', { method: 'POST' });
-              if (r.ok) {
-                const json = await r.json() as { data?: { html?: string; filename?: string } };
-                const htmlContent = json.data?.html;
-                if (htmlContent) {
-                  const blob = new Blob([htmlContent], { type: 'text/html' });
-                  const url = URL.createObjectURL(blob);
-                  window.open(url, '_blank');
-                }
-              }
-            }}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: '#f4f3ef', color: '#9c5e6c', border: '1px solid #e8e4dc' }}
-          >
-            <span>📋</span>
-            <span>PDF</span>
-          </button>
-        </div>
-      )}
-
-      {/* Tab bar */}
-      <div className="flex gap-1 mx-4 mt-4 p-1 rounded-2xl" style={{ background: '#eae8e3' }}>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="flex-1 py-2 rounded-xl text-[11px] font-semibold transition-all whitespace-nowrap"
-            style={{
-              background: tab === t.key ? '#fff' : 'transparent',
-              color: tab === t.key ? '#9c5e6c' : '#9a96a8',
-              boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >
-            {t.label}
-          </button>
+      {/* ── Sticky tab bar ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: 'rgba(244,243,239,.95)', backdropFilter: 'blur(10px)',
+        display: 'flex', justifyContent: 'center', gap: 6,
+        padding: '10px 12px', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap',
+      }}>
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
+            padding: '7px 14px', borderRadius: 10, fontFamily: 'inherit',
+            border: `2px solid ${tab === t.key ? C.accent : 'transparent'}`,
+            background: tab === t.key ? 'rgba(156,94,108,.06)' : 'rgba(42,37,64,.03)',
+            color: tab === t.key ? C.accent : C.t3,
+            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+          }}>{t.label}</button>
         ))}
       </div>
 
-      {/* Panels */}
-      <div className="mt-4 pb-8">
+      {/* ── Content ── */}
+      <div style={{ paddingBottom: 80 }}>
         {tab === 'meds' && (
           <TabMeds
-            schedule={schedule}
-            medications={medications}
-            onTake={handleTake}
-            onSkip={handleSkip}
-            locale={locale}
+            schedule={schedule} medications={medications} stats={stats}
+            onTake={handleTake} onSkip={handleSkip}
+            onSetTab={setTab} locale={locale}
           />
         )}
         {tab === 'add' && (
-          <TabAdd
-            onAdded={(med) => {
-              setMedications((prev) => [med, ...prev]);
-              setTab('meds');
-            }}
-          />
+          <TabAdd onAdded={(med) => { setMedications(prev => [med, ...prev]); setTab('meds'); }} />
         )}
         {tab === 'log'      && <TabLog />}
         {tab === 'pharmacy' && <TabPharmacy />}
         {tab === 'family'   && <TabFamily />}
       </div>
 
-      {/* Celebration */}
       {celebration && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-7xl animate-bounce drop-shadow-lg">✅</div>
@@ -312,27 +241,41 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TAB 1 — Лекарства (today schedule + all courses)
+// TAB 1 — Лекарства
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TabMeds({ schedule, medications, onTake, onSkip, locale }: {
+function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, locale }: {
   schedule: ScheduleItem[];
   medications: MedicationRow[];
+  stats: MedStats | null;
   onTake: (id: string, time: string) => Promise<void>;
   onSkip: (id: string, time: string) => Promise<void>;
+  onSetTab: (t: TabKey) => void;
   locale: string;
 }) {
+  const [alertDismissed, setAlertDismissed] = useState(false);
   const [infoPopup, setInfoPopup] = useState<ScheduleItem | null>(null);
-  const [identifyMode, setIdentifyMode] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
   const [identifyResult, setIdentifyResult] = useState<{
     name: string | null; description: string; confidence: string;
     sideEffects: string[]; contraindications: string[];
   } | null>(null);
-  const [identifying, setIdentifying] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const periods = ['morning', 'afternoon', 'evening'] as const;
-  const periodLabels = { morning: '🌅 Утро', afternoon: '☀️ День', evening: '🌙 Вечер' };
+  // Group schedule items by scheduleId
+  const scheduleMap = schedule.reduce<Record<string, ScheduleItem[]>>((acc, item) => {
+    (acc[item.scheduleId] ??= []).push(item);
+    return acc;
+  }, {});
+
+  // Merge: medications with schedule + scheduled meds not in medications list
+  const allMedIds = new Set(medications.map(m => m.id));
+  const extraScheduleIds = Object.keys(scheduleMap).filter(id => !allMedIds.has(id));
+
+  // Alert banner: any schedule item with side effects
+  const sideEffectItem = !alertDismissed
+    ? schedule.find(s => s.sideEffects && s.sideEffects.length > 0)
+    : null;
 
   async function handleIdentify(file: File) {
     setIdentifying(true);
@@ -340,8 +283,7 @@ function TabMeds({ schedule, medications, onTake, onSkip, locale }: {
     try {
       const base64 = await fileToBase64(file);
       const r = await fetch('/api/proxy/medications/identify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageData: base64, mediaType: file.type }),
       });
       if (r.ok) {
@@ -353,249 +295,296 @@ function TabMeds({ schedule, medications, onTake, onSkip, locale }: {
     }
   }
 
-  const hasTodaySchedule = schedule.length > 0;
+  async function exportPdf() {
+    const r = await fetch('/api/proxy/medications/export-pdf', { method: 'POST' });
+    if (r.ok) {
+      const json = await r.json() as { data?: { html?: string } };
+      if (json.data?.html) {
+        const blob = new Blob([json.data.html], { type: 'text/html' });
+        window.open(URL.createObjectURL(blob), '_blank');
+      }
+    }
+  }
 
   return (
-    <div className="px-4 space-y-4">
+    <div>
+      {/* ── TopBar ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>💊 Мои лекарства</h1>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="tt-btn" style={{
+            padding: '8px 12px', borderRadius: 12, border: `1px solid ${C.border}`,
+            background: C.card, display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 11, fontWeight: 600, cursor: 'pointer', color: C.t2, fontFamily: 'inherit',
+          }}>
+            <span>↔️</span> Совместимость
+            <span className="tt">Проверить совместимость лекарств</span>
+          </button>
+          <button className="tt-btn" onClick={() => void exportPdf()} style={{
+            padding: '8px 12px', borderRadius: 12, border: `1px solid ${C.border}`,
+            background: C.card, display: 'flex', alignItems: 'center', gap: 4,
+            fontSize: 11, fontWeight: 600, cursor: 'pointer', color: C.t2, fontFamily: 'inherit',
+          }}>
+            <span>📋</span> PDF
+            <span className="tt">Скачать PDF для врача</span>
+          </button>
+        </div>
+      </div>
 
-      {/* Today schedule by period */}
-      {hasTodaySchedule ? (
-        periods.map((period) => {
-          const items = schedule.filter((s) => s.period === period);
-          if (items.length === 0) return null;
-          return (
-            <div key={period}>
-              <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: '#9a96a8' }}>
-                {periodLabels[period]}
-              </p>
-              <div className="space-y-2">
-                {items.map((item, i) => (
-                  <MedCard
-                    key={i}
-                    item={item}
-                    onTake={onTake}
-                    onSkip={onSkip}
-                    onInfo={() => setInfoPopup(item)}
-                  />
-                ))}
-              </div>
+      {/* ── Stats chips ── */}
+      {stats && (
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto' }}>
+          {/* Активных */}
+          <div style={{
+            flexShrink: 0, padding: '8px 14px', borderRadius: 14,
+            background: C.card, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: C.t1,
+          }}>
+            💊 Активных: <span style={{ fontWeight: 800, color: C.accent }}>{medications.length}</span>
+          </div>
+          {/* Сегодня */}
+          <div style={{
+            flexShrink: 0, padding: '8px 14px', borderRadius: 14,
+            background: C.card, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: C.t1,
+          }}>
+            ✅ Сегодня: <span style={{ fontWeight: 800, color: C.accent }}>{stats.taken}/{schedule.length}</span>
+          </div>
+          {/* Streak */}
+          {stats.currentStreak > 0 && (
+            <div style={{
+              flexShrink: 0, padding: '8px 14px', borderRadius: 14,
+              background: `linear-gradient(135deg, ${C.greenBg}, #c8e8cc)`,
+              border: '1px solid #b8d8bc',
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: C.t1,
+            }}>
+              🔥 <span style={{ fontWeight: 800, color: C.green }}>{stats.currentStreak} дней без пропуска!</span>
             </div>
-          );
-        })
-      ) : (
-        <div className="rounded-2xl bg-white p-6 text-center" style={{ border: '1px solid #e8e4dc' }}>
-          <p className="text-3xl mb-2">💊</p>
-          <p className="text-[14px] font-semibold" style={{ color: '#2a2540' }}>На сегодня приёмов нет</p>
-          <p className="text-[12px] mt-1" style={{ color: '#9a96a8' }}>Добавьте лекарства во вкладке «Добавить»</p>
+          )}
+          {/* Выполнение */}
+          <div style={{
+            flexShrink: 0, padding: '8px 14px', borderRadius: 14,
+            background: C.card, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: C.t1,
+          }}>
+            📊 Выполнение: <span style={{ fontWeight: 800, color: C.accent }}>{stats.percent}%</span>
+          </div>
         </div>
       )}
 
-      {/* All courses list */}
-      {medications.length > 0 && (
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: '#9a96a8' }}>
-            📦 Все курсы
+      {/* ── Alert banner (side effects) ── */}
+      {sideEffectItem && (
+        <div style={{
+          margin: '0 16px 10px', padding: '14px 16px', borderRadius: 14,
+          borderLeft: `4px solid ${C.orange}`, background: C.orangeBg, position: 'relative',
+        }}>
+          <button onClick={() => setAlertDismissed(true)} style={{
+            position: 'absolute', top: 10, right: 10, background: 'none', border: 'none',
+            color: '#856404', cursor: 'pointer', fontSize: 16,
+          }}>×</button>
+          <h4 style={{ fontSize: 13, fontWeight: 800, color: '#856404', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ⚠️ {sideEffectItem.title} — побочные эффекты
+          </h4>
+          <p style={{ fontSize: 12, color: '#6a5a20', lineHeight: 1.5, marginTop: 4 }}>
+            {sideEffectItem.sideEffects.slice(0, 3).join(', ')}
           </p>
-          <div className="space-y-2">
-            {medications.map((med) => {
-              const prog = courseProgress(med);
-              return (
-                <div key={med.id} className="rounded-2xl bg-white p-4"
-                  style={{ border: '1px solid #e8e4dc' }}>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>{med.title}</p>
-                      {med.dosage && (
-                        <p className="text-[12px]" style={{ color: '#9a96a8' }}>{med.dosage}</p>
-                      )}
-                    </div>
-                    <div className="flex gap-1.5 flex-shrink-0">
-                      {med.remainingPills !== null && (
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                          med.remainingPills >= 7
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-600'
-                        }`}>
-                          {med.remainingPills} шт
-                        </span>
-                      )}
-                      {med.createdBy === 'doctor' && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
-                          🩺 Врач
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {prog && (
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-[11px]" style={{ color: '#9a96a8' }}>{prog.text}</p>
-                        <p className="text-[11px] font-semibold" style={{ color: '#9c5e6c' }}>{prog.percent}%</p>
-                      </div>
-                      <div className="h-1.5 rounded-full" style={{ background: '#f0ede8' }}>
-                        <div
-                          className="h-1.5 rounded-full transition-all"
-                          style={{ width: `${prog.percent}%`, background: '#9c5e6c' }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {med.foodInstruction && FOOD_LABELS[med.foodInstruction] && (
-                      <span
-                        className="text-[11px] px-2 py-0.5 rounded-full font-medium"
-                        style={{ background: FOOD_LABELS[med.foodInstruction].color, color: '#555' }}
-                      >
-                        {FOOD_LABELS[med.foodInstruction].label}
-                      </span>
-                    )}
-                  </div>
-
-                  {med.remainingPills !== null && med.remainingPills < 7 && (
-                    <button
-                      onClick={() => {
-                        (document.querySelector('[data-tab="pharmacy"]') as HTMLElement)?.click();
-                      }}
-                      className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold"
-                      style={{ color: '#9c5e6c' }}
-                    >
-                      🛒 Купить в аптеке →
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
-      {/* Identify pill card */}
-      <div className="rounded-2xl p-4" style={{ background: '#fff', border: '1px solid #e8e4dc' }}>
-        <button
-          onClick={() => setIdentifyMode(!identifyMode)}
-          className="w-full flex items-center gap-3 text-left"
-        >
-          <span className="text-2xl">📸</span>
-          <div>
-            <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>Что за таблетка?</p>
-            <p className="text-[12px]" style={{ color: '#9a96a8' }}>AI определит название и состав</p>
+      {/* ── Medication cards ── */}
+      {medications.length === 0 && extraScheduleIds.length === 0 && (
+        <div style={{ margin: '0 16px 10px', padding: '24px 16px', borderRadius: 18, background: C.card, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, marginBottom: 8 }}>💊</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>Нет активных лекарств</p>
+          <p style={{ fontSize: 12, color: C.t3, marginTop: 4 }}>Добавьте лекарства во вкладке «Добавить»</p>
+        </div>
+      )}
+
+      {medications.map((med, idx) => {
+        const items = scheduleMap[med.id] ?? [];
+        return (
+          <MedGroupCard
+            key={med.id}
+            med={med}
+            items={items}
+            colorBg={MED_COLORS[idx % MED_COLORS.length].bg}
+            onTake={onTake}
+            onSkip={onSkip}
+            onInfo={(item) => setInfoPopup(item)}
+            onBuy={() => onSetTab('pharmacy')}
+          />
+        );
+      })}
+
+      {/* Extra schedule items not in medications list */}
+      {extraScheduleIds.map((sid, idx) => {
+        const items = scheduleMap[sid] ?? [];
+        if (items.length === 0) return null;
+        const first = items[0];
+        const fakeMed: MedicationRow = {
+          id: sid, title: first.title, dosage: first.dosage,
+          frequency: '', times: items.map(i => i.time),
+          instructions: first.instructions, sideEffects: first.sideEffects,
+          contraindications: first.contraindications, foodInstruction: first.foodInstruction,
+          remainingPills: first.remainingPills, persistentReminder: false,
+          source: first.createdBy, startDate: '', endDate: null, durationDays: null,
+          isActive: true, createdBy: first.createdBy, doctorId: first.doctorId,
+          reminderEnabled: true, reminderMinutesBefore: 10,
+        };
+        return (
+          <MedGroupCard
+            key={sid}
+            med={fakeMed}
+            items={items}
+            colorBg={MED_COLORS[(medications.length + idx) % MED_COLORS.length].bg}
+            onTake={onTake}
+            onSkip={onSkip}
+            onInfo={(item) => setInfoPopup(item)}
+            onBuy={() => onSetTab('pharmacy')}
+          />
+        );
+      })}
+
+      {/* ── Streak card ── */}
+      {stats && stats.currentStreak > 0 && (
+        <div style={{
+          margin: '0 16px 10px', padding: 16, borderRadius: 18,
+          background: `linear-gradient(135deg, #d4e8d8, #c8e8cc)`,
+          border: '1px solid #b8d8bc', display: 'flex', alignItems: 'center', gap: 14,
+        }}>
+          <div style={{ fontSize: 36, fontWeight: 900, color: C.green, lineHeight: 1 }}>
+            {stats.currentStreak}
           </div>
-          <span className="ml-auto text-lg" style={{ color: '#9a96a8' }}>
-            {identifyMode ? '↑' : '›'}
-          </span>
-        </button>
-
-        {identifyMode && (
-          <div className="mt-3 space-y-3">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.[0]) void handleIdentify(e.target.files[0]);
-              }}
-            />
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={identifying}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: 'var(--accent)' }}
-            >
-              {identifying ? '🔍 Определяю...' : '📷 Сфотографировать'}
-            </button>
-
-            {identifyResult && (
-              <div className="rounded-xl p-3 space-y-2" style={{ background: '#f8f7f5', border: '1px solid #e8e4dc' }}>
-                <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>
-                  {identifyResult.name ?? 'Не удалось определить'}
-                </p>
-                <p className="text-[12px]" style={{ color: '#666' }}>{identifyResult.description}</p>
-                {identifyResult.sideEffects.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-red-500 mb-0.5">Побочные эффекты:</p>
-                    <p className="text-[11px]" style={{ color: '#666' }}>{identifyResult.sideEffects.join(', ')}</p>
-                  </div>
-                )}
-                <p className="text-[10px]" style={{ color: '#9a96a8' }}>
-                  Уверенность: {
-                    identifyResult.confidence === 'high' ? 'высокая'
-                      : identifyResult.confidence === 'medium' ? 'средняя'
-                        : 'низкая'
-                  }
-                </p>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 800, color: '#2a5a3a' }}>
+              🔥 {stats.currentStreak} дней без пропуска!
+            </h4>
+            <p style={{ fontSize: 11, color: '#4a7a5a' }}>
+              Лучший результат: {stats.longestStreak} дней
+            </p>
+            {stats.streakBadges.length > 0 && (
+              <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                {stats.streakBadges.slice(0, 2).map(b => (
+                  <div key={b.id} style={{
+                    width: 24, height: 24, borderRadius: 8, background: '#ffc107',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+                  }} title={b.name}>{b.icon}</div>
+                ))}
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: '#c8c8c8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🥈</div>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(42,37,64,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🔒</div>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(42,37,64,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🔒</div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Adherence block ── */}
+      {medications.length > 0 && (
+        <div style={{ margin: '0 16px 10px', padding: 16, borderRadius: 16, background: C.card, border: `1px solid ${C.border}` }}>
+          <h4 style={{ fontSize: 13, fontWeight: 800, color: C.t1, marginBottom: 12 }}>📊 Выполнение за неделю</h4>
+          {medications.slice(0, 5).map(med => {
+            const items = scheduleMap[med.id] ?? [];
+            const taken = items.filter(i => i.status === 'taken').length;
+            const pct = items.length > 0 ? Math.round((taken / items.length) * 100) : (stats?.percent ?? 0);
+            const barColor = pct >= 90 ? C.green : pct >= 60 ? C.orange : C.red;
+            return (
+              <div key={med.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
+                  <span style={{ color: C.t2 }}>{med.title}</span>
+                  <span style={{ fontWeight: 800, color: barColor }}>{pct}%</span>
+                </div>
+                <div style={{ height: 8, borderRadius: 4, background: 'rgba(42,37,64,.06)', overflow: 'hidden', marginBottom: 10 }}>
+                  <div style={{ height: '100%', borderRadius: 4, width: `${pct}%`, background: barColor }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Identify card ── */}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={e => { if (e.target.files?.[0]) void handleIdentify(e.target.files[0]); }} />
+      <div
+        onClick={() => fileRef.current?.click()}
+        style={{
+          margin: '0 16px 10px', padding: 20, borderRadius: 18,
+          background: `linear-gradient(135deg, ${C.purpleBg}, ${C.blueBg})`,
+          textAlign: 'center', cursor: 'pointer', transition: 'transform .15s, box-shadow .15s',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(42,37,64,.06)'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
+      >
+        <span style={{ fontSize: 36, display: 'block', marginBottom: 8 }}>📸</span>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.t1, marginBottom: 4 }}>Что за таблетка?</h3>
+        <p style={{ fontSize: 12, color: C.t2 }}>
+          {identifying ? '🔍 Определяю...' : 'Сфотографируйте — AI определит название и дозировку'}
+        </p>
+        {identifyResult && (
+          <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: 'rgba(255,255,255,.7)', textAlign: 'left' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{identifyResult.name ?? 'Не удалось определить'}</p>
+            <p style={{ fontSize: 12, color: C.t2, marginTop: 4 }}>{identifyResult.description}</p>
           </div>
         )}
       </div>
 
-      {/* Info bottom sheet */}
+      {/* ── Export PDF ── */}
+      <button onClick={() => void exportPdf()} style={{
+        margin: '0 16px 10px', padding: 14, borderRadius: 14,
+        background: C.card, border: `1px solid ${C.border}`,
+        width: 'calc(100% - 32px)', fontSize: 13, fontWeight: 700, color: C.t2,
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        fontFamily: 'inherit',
+      }}>
+        📋 Экспорт истории приёма для врача (PDF)
+      </button>
+
+      {/* ── Info popup ── */}
       {infoPopup && (
-        <div
-          className="fixed inset-0 z-50 flex items-end"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setInfoPopup(null)}
-        >
-          <div
-            className="w-full max-w-[480px] mx-auto rounded-t-3xl p-6 space-y-4"
-            style={{ background: '#fff' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setInfoPopup(null)}>
+          <div className="w-full max-w-[480px] mx-auto rounded-t-3xl p-6 space-y-4"
+            style={{ background: '#fff' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[16px] font-bold" style={{ color: '#2a2540' }}>{infoPopup.title}</p>
-                {infoPopup.dosage && (
-                  <p className="text-[13px]" style={{ color: '#9a96a8' }}>{infoPopup.dosage}</p>
-                )}
+                <p style={{ fontSize: 16, fontWeight: 700, color: C.t1 }}>{infoPopup.title}</p>
+                {infoPopup.dosage && <p style={{ fontSize: 13, color: C.t3 }}>{infoPopup.dosage}</p>}
               </div>
-              <button
-                onClick={() => setInfoPopup(null)}
+              <button onClick={() => setInfoPopup(null)}
                 className="text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full"
-                style={{ color: '#9a96a8', background: '#f4f3ef' }}
-              >×</button>
+                style={{ color: C.t3, background: C.bg }}>×</button>
             </div>
             {infoPopup.foodInstruction && FOOD_LABELS[infoPopup.foodInstruction] && (
               <div>
-                <p className="text-[12px] font-semibold mb-1" style={{ color: '#555' }}>Приём с едой</p>
-                <span
-                  className="text-[12px] px-3 py-1 rounded-full font-medium"
-                  style={{ background: FOOD_LABELS[infoPopup.foodInstruction].color, color: '#555' }}
-                >
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Приём с едой</p>
+                <span style={{ fontSize: 12, padding: '3px 12px', borderRadius: 20, fontWeight: 500, background: FOOD_LABELS[infoPopup.foodInstruction].color, color: '#555' }}>
                   {FOOD_LABELS[infoPopup.foodInstruction].label}
                 </span>
               </div>
             )}
             {infoPopup.sideEffects.length > 0 && (
               <div>
-                <p className="text-[12px] font-semibold mb-1" style={{ color: '#e05555' }}>Побочные эффекты</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {infoPopup.sideEffects.map((s, i) => (
-                    <li key={i} className="text-[12px]" style={{ color: '#666' }}>{s}</li>
-                  ))}
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#e05555', marginBottom: 4 }}>Побочные эффекты</p>
+                <ul style={{ listStyle: 'disc', paddingLeft: 16 }}>
+                  {infoPopup.sideEffects.map((s, i) => <li key={i} style={{ fontSize: 12, color: '#666' }}>{s}</li>)}
                 </ul>
               </div>
             )}
             {infoPopup.contraindications.length > 0 && (
               <div>
-                <p className="text-[12px] font-semibold mb-1" style={{ color: '#c07000' }}>Противопоказания</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {infoPopup.contraindications.map((s, i) => (
-                    <li key={i} className="text-[12px]" style={{ color: '#666' }}>{s}</li>
-                  ))}
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#c07000', marginBottom: 4 }}>Противопоказания</p>
+                <ul style={{ listStyle: 'disc', paddingLeft: 16 }}>
+                  {infoPopup.contraindications.map((s, i) => <li key={i} style={{ fontSize: 12, color: '#666' }}>{s}</li>)}
                 </ul>
               </div>
             )}
             {infoPopup.instructions && (
               <div>
-                <p className="text-[12px] font-semibold mb-1" style={{ color: '#555' }}>Инструкции</p>
-                <p className="text-[12px]" style={{ color: '#666' }}>{infoPopup.instructions}</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Инструкции</p>
+                <p style={{ fontSize: 12, color: '#666' }}>{infoPopup.instructions}</p>
               </div>
             )}
-            <div className="h-safe-area-inset-bottom" />
           </div>
         </div>
       )}
@@ -603,73 +592,207 @@ function TabMeds({ schedule, medications, onTake, onSkip, locale }: {
   );
 }
 
-// ─── Med card (today's schedule item) ────────────────────────────────────────
+// ─── Grouped Med Card ─────────────────────────────────────────────────────────
 
-function MedCard({ item, onTake, onSkip, onInfo }: {
-  item: ScheduleItem;
+function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy }: {
+  med: MedicationRow;
+  items: ScheduleItem[];
+  colorBg: string;
   onTake: (id: string, time: string) => Promise<void>;
   onSkip: (id: string, time: string) => Promise<void>;
-  onInfo: () => void;
+  onInfo: (item: ScheduleItem) => void;
+  onBuy: () => void;
 }) {
-  const [loading, setLoading] = useState<'take' | 'skip' | null>(null);
-  const isTaken   = item.status === 'taken';
-  const isSkipped = item.status === 'skipped';
-  const isMissed  = item.status === 'missed';
+  const [loading, setLoading] = useState<string | null>(null);
+  const prog = courseProgress(med);
+
+  const allDone = items.length > 0 && items.every(i => i.status === 'taken' || i.status === 'skipped');
+  const pendingItems = items.filter(i => i.status === 'pending' || i.status === 'missed');
+
+  // Determine if any slot is "now" (time has passed or is current)
+  const isNow = pendingItems.some(i => slotStatus(i) === 'nw');
+  const isDone = allDone;
+
+  const lowPills = med.remainingPills !== null && med.remainingPills < 7;
+
+  // First schedule item for info popup
+  const firstItem = items[0] ?? null;
+
+  const cardStyle: React.CSSProperties = {
+    margin: '0 16px 10px', padding: 16, borderRadius: 18,
+    background: C.card, position: 'relative',
+    border: isNow
+      ? `1.5px solid ${C.accent}`
+      : `1px solid ${C.border}`,
+    boxShadow: isNow ? `0 0 0 3px ${C.accentBg}` : 'none',
+    opacity: isDone ? 0.65 : 1,
+    transition: 'all .2s',
+  };
 
   return (
-    <div className="rounded-2xl bg-white overflow-hidden" style={{ border: '1px solid #e8e4dc' }}>
-      <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${
-          isTaken ? 'bg-green-100' : isMissed ? 'bg-red-100' : 'bg-[#f4f3ef]'
-        }`}>
-          {isTaken ? '✅' : isMissed ? '⚠️' : '💊'}
+    <div style={cardStyle}>
+      {/* Remaining pills badge */}
+      {med.remainingPills !== null && (
+        <div style={{
+          position: 'absolute', top: 12, right: 12,
+          fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 8,
+          background: lowPills ? C.redBg : C.greenBg,
+          color: lowPills ? C.red : C.green,
+        }}>
+          {lowPills ? `⚠️ ${med.remainingPills} шт` : `${med.remainingPills} шт`}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-[14px] font-bold truncate" style={{ color: '#2a2540' }}>{item.title}</p>
-            {item.foodInstruction && FOOD_LABELS[item.foodInstruction] && (
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: FOOD_LABELS[item.foodInstruction].color, color: '#555' }}
-              >
-                {FOOD_LABELS[item.foodInstruction].label}
-              </span>
-            )}
-          </div>
-          <p className="text-[12px]" style={{ color: '#9a96a8' }}>
-            {item.time}{item.dosage ? ` · ${item.dosage}` : ''}
-            {isTaken && item.takenAt && (
-              ` · принято в ${new Date(item.takenAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
-            )}
-          </p>
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 20, flexShrink: 0, background: colorBg,
+        }}>💊</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 800, color: C.t1, margin: 0 }}>{med.title}</h3>
+          {med.dosage && (
+            <div style={{ fontSize: 12, color: C.t2, marginTop: 1 }}>
+              {med.dosage}
+              {med.createdBy === 'doctor' && <span style={{ marginLeft: 6, fontSize: 10, background: C.blueBg, color: C.blue, padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>🩺 Врач</span>}
+            </div>
+          )}
         </div>
-        <button
-          onClick={onInfo}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-          style={{ background: '#f4f3ef', color: '#9a96a8' }}
-        >ℹ</button>
       </div>
 
-      {!isTaken && !isSkipped && (
-        <div className="flex gap-2 px-4 pb-3">
-          <button
-            onClick={async () => { setLoading('take'); await onTake(item.scheduleId, item.time); setLoading(null); }}
-            disabled={loading !== null}
-            className="flex-1 py-2 rounded-xl text-[13px] font-semibold text-white disabled:opacity-60"
-            style={{ background: '#3a7a5a' }}
-          >
-            {loading === 'take' ? '…' : '✓ Принял'}
-          </button>
-          <button
-            onClick={async () => { setLoading('skip'); await onSkip(item.scheduleId, item.time); setLoading(null); }}
-            disabled={loading !== null}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold disabled:opacity-60"
-            style={{ background: '#f4f3ef', color: '#9a96a8', border: '1px solid #e8e4dc' }}
-          >
-            Пропустить
+      {/* Course progress */}
+      {prog && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+          padding: '6px 10px', borderRadius: 10,
+          background: prog.permanent ? 'rgba(107,163,214,.06)' : 'rgba(42,37,64,.02)',
+        }}>
+          <span style={{ fontSize: 11, color: prog.permanent ? C.blue : C.t2, whiteSpace: 'nowrap' }}>
+            📅 {prog.permanent ? 'Постоянный приём' : 'Курс:'}
+          </span>
+          {!prog.permanent && (
+            <>
+              <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(42,37,64,.06)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: 3,
+                  width: `${prog.percent}%`,
+                  background: prog.warn ? C.red : prog.percent >= 80 ? C.green : C.blue,
+                }} />
+              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: prog.warn ? C.red : prog.percent >= 80 ? C.green : C.blue,
+              }}>{prog.text}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Time slot tags */}
+      {items.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {items.map((item, i) => {
+            const st = slotStatus(item);
+            const styles = {
+              dn: { background: C.greenBg, color: C.green, textDecoration: 'line-through' as const },
+              nw: { background: C.accentBg, color: C.accent, animation: 'pulse-opacity 2s infinite' },
+              up: { background: 'rgba(42,37,64,.04)', color: C.t3, textDecoration: 'none' as const },
+            };
+            const s = styles[st];
+            return (
+              <span key={i} style={{ padding: '5px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700, ...s }}>
+                {st === 'dn' ? `✓ ${item.time}` : st === 'nw' ? `⏰ ${item.time} — сейчас!` : item.time}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Food tags */}
+      {med.foodInstruction && FOOD_TAGS[med.foodInstruction] && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            padding: '3px 8px', borderRadius: 8, fontSize: 10, fontWeight: 700,
+            background: FOOD_TAGS[med.foodInstruction].bg,
+            color: FOOD_TAGS[med.foodInstruction].color,
+          }}>
+            {FOOD_TAGS[med.foodInstruction].label}
+          </span>
+        </div>
+      )}
+
+      {/* Action buttons — only for pending */}
+      {pendingItems.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {pendingItems.slice(0, 1).map(item => (
+            <button key={item.time} className="tt-btn"
+              disabled={loading !== null}
+              onClick={async () => { setLoading('take_' + item.time); await onTake(item.scheduleId, item.time); setLoading(null); }}
+              style={{
+                padding: '8px 14px', borderRadius: 12, border: 'none',
+                background: C.green, color: '#fff', fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit', opacity: loading ? 0.6 : 1,
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+              ✓ Принял
+              <span className="tt">Отметить приём</span>
+            </button>
+          ))}
+          {pendingItems.slice(0, 1).map(item => (
+            <button key={'skip_' + item.time} className="tt-btn"
+              disabled={loading !== null}
+              onClick={async () => { setLoading('skip_' + item.time); await onSkip(item.scheduleId, item.time); setLoading(null); }}
+              style={{
+                padding: '8px 14px', borderRadius: 12, border: 'none',
+                background: 'rgba(42,37,64,.06)', color: C.t2, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit', opacity: loading ? 0.6 : 1,
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+              Пропустить
+              <span className="tt">Пропустить этот приём</span>
+            </button>
+          ))}
+          {lowPills && (
+            <button className="tt-btn" onClick={onBuy} style={{
+              padding: '8px 14px', borderRadius: 12, border: 'none',
+              background: C.blueBg, color: C.blue, fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              🛒 Купить
+              <span className="tt">Найти в аптеках</span>
+            </button>
+          )}
+          {firstItem && (
+            <button className="tt-btn" onClick={() => onInfo(firstItem)} style={{
+              padding: '8px 14px', borderRadius: 12, border: 'none',
+              background: C.purpleBg, color: C.purple, fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              ℹ️
+              <span className="tt">Подробнее о лекарстве</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Info button when no pending */}
+      {pendingItems.length === 0 && firstItem && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="tt-btn" onClick={() => onInfo(firstItem)} style={{
+            padding: '4px 10px', borderRadius: 10, border: 'none',
+            background: C.bg, color: C.t3, fontSize: 11, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            ℹ️ <span className="tt">Подробнее о лекарстве</span>
           </button>
         </div>
       )}
+
+      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.6}}`}</style>
     </div>
   );
 }
@@ -703,35 +826,24 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
       });
       if (r.ok) {
         const json = await r.json() as { data: Array<Omit<ParsedMed, 'selected'>> };
-        setReceiptParsed((json.data || []).map((m) => ({ ...m, selected: true })));
+        setReceiptParsed((json.data || []).map(m => ({ ...m, selected: true })));
         setMode('receipt');
       }
-    } finally {
-      setParsing(false);
-    }
+    } finally { setParsing(false); }
   }
 
   async function addReceiptMeds() {
-    const selected = receiptParsed.filter((m) => m.selected);
+    const selected = receiptParsed.filter(m => m.selected);
     if (selected.length === 0) return;
     setSaving(true);
     try {
       for (const med of selected) {
         await fetch('/api/proxy/medications', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: med.name, dosage: med.dosage, frequency: med.frequency,
-            times: med.times, durationDays: med.durationDays,
-            foodInstruction: med.foodInstruction, instructions: med.instructions,
-            source: 'receipt_ocr',
-          }),
+          body: JSON.stringify({ title: med.name, dosage: med.dosage, frequency: med.frequency, times: med.times, durationDays: med.durationDays, foodInstruction: med.foodInstruction, instructions: med.instructions, source: 'receipt_ocr' }),
         });
       }
-    } finally {
-      setSaving(false);
-      setMode('menu');
-      setReceiptParsed([]);
-    }
+    } finally { setSaving(false); setMode('menu'); setReceiptParsed([]); }
   }
 
   async function addManual() {
@@ -754,294 +866,176 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
         const json = await r.json() as { data: MedicationRow };
         onAdded(json.data);
       }
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
-  // ── Receipt mode ────────────────────────────────────────────────────────────
+  // Receipt mode
   if (mode === 'receipt') {
     return (
-      <div className="px-4 space-y-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setMode('menu')} className="text-[13px] font-medium" style={{ color: '#9c5e6c' }}>
-            ← Назад
-          </button>
-          <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>Распознано из рецепта</p>
+      <div style={{ padding: '0 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 0', borderBottom: `1px solid ${C.border}`, marginBottom: 12 }}>
+          <button onClick={() => setMode('menu')} style={{ fontSize: 13, fontWeight: 600, color: C.accent, background: 'none', border: 'none', cursor: 'pointer' }}>← Назад</button>
+          <p style={{ fontSize: 15, fontWeight: 700, color: C.t1 }}>AI нашёл {receiptParsed.length} лекарств</p>
         </div>
 
-        {receiptParsed.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm" style={{ color: '#9a96a8' }}>Ничего не найдено на фото</p>
+        <div style={{ margin: '0 0 12px', padding: 16, borderRadius: 16, border: `2px dashed ${C.green}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.green }}>
+            <span>🤖</span> AI нашёл {receiptParsed.length} лекарств в рецепте:
           </div>
-        ) : (
-          <div className="space-y-2">
-            {receiptParsed.map((med, i) => (
-              <label
-                key={i}
-                className="flex items-start gap-3 rounded-2xl bg-white p-4 cursor-pointer"
-                style={{ border: '1px solid #e8e4dc' }}
-              >
-                <input
-                  type="checkbox"
-                  checked={med.selected}
-                  onChange={(e) => setReceiptParsed((prev) => prev.map((m, j) =>
-                    j === i ? { ...m, selected: e.target.checked } : m,
-                  ))}
-                  className="mt-0.5 w-4 h-4 accent-[#9c5e6c]"
-                />
-                <div className="flex-1">
-                  <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>{med.name}</p>
-                  <p className="text-[12px]" style={{ color: '#9a96a8' }}>
-                    {med.dosage}{med.frequency ? ` · ${med.frequency}` : ''}
-                    {med.durationDays ? ` · ${med.durationDays} дней` : ''}
-                  </p>
-                  {med.foodInstruction && FOOD_LABELS[med.foodInstruction] && (
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block"
-                      style={{ background: FOOD_LABELS[med.foodInstruction].color, color: '#555' }}
-                    >
-                      {FOOD_LABELS[med.foodInstruction].label}
-                    </span>
-                  )}
-                </div>
-              </label>
-            ))}
-          </div>
-        )}
-
-        <button
-          onClick={() => void addReceiptMeds()}
-          disabled={saving || !receiptParsed.some((m) => m.selected)}
-          className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
-        >
-          {saving ? 'Добавляю...' : `Добавить выбранные (${receiptParsed.filter((m) => m.selected).length})`}
-        </button>
+          {receiptParsed.map((med, i) => (
+            <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, background: C.greenBg, marginBottom: 6, cursor: 'pointer' }}>
+              <input type="checkbox" checked={med.selected} style={{ width: 18, height: 18, accentColor: C.green }}
+                onChange={e => setReceiptParsed(prev => prev.map((m, j) => j === i ? { ...m, selected: e.target.checked } : m))} />
+              <div>
+                <h5 style={{ fontSize: 13, fontWeight: 700, color: C.t1 }}>{med.name}</h5>
+                <p style={{ fontSize: 11, color: C.t2 }}>{med.dosage}{med.frequency ? ` · ${med.frequency}` : ''}{med.durationDays ? ` · ${med.durationDays} дней` : ''}</p>
+              </div>
+            </label>
+          ))}
+          <button onClick={() => void addReceiptMeds()} disabled={saving || !receiptParsed.some(m => m.selected)}
+            style={{ width: '100%', marginTop: 10, padding: 12, borderRadius: 14, background: C.green, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Добавляю...' : `✓ Добавить все в список`}
+          </button>
+        </div>
       </div>
     );
   }
 
-  // ── Manual form ─────────────────────────────────────────────────────────────
+  // Manual form
   if (mode === 'manual') {
     return (
       <div className="px-4 space-y-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => setMode('menu')} className="text-[13px] font-medium" style={{ color: '#9c5e6c' }}>
-            ← Назад
-          </button>
-          <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>Добавить вручную</p>
+          <button onClick={() => setMode('menu')} className="text-[13px] font-medium" style={{ color: C.accent }}>← Назад</button>
+          <p className="text-[15px] font-bold" style={{ color: C.t1 }}>Добавить вручную</p>
         </div>
-
-        <div className="rounded-2xl bg-white p-5 space-y-4" style={{ border: '1px solid #e8e4dc' }}>
+        <div className="rounded-2xl bg-white p-5 space-y-4" style={{ border: `1px solid ${C.border}` }}>
           <Field label="Название *">
-            <input
-              type="text" placeholder="Парацетамол, Аспирин..." value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none"
-              style={{ borderColor: '#e8e4dc' }}
-            />
+            <input type="text" placeholder="Парацетамол, Аспирин..." value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none" style={{ borderColor: C.border }} />
           </Field>
-
           <Field label="Дозировка">
-            <input
-              type="text" placeholder="500 мг, 1 таблетка..." value={form.dosage}
-              onChange={(e) => setForm((f) => ({ ...f, dosage: e.target.value }))}
-              className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none"
-              style={{ borderColor: '#e8e4dc' }}
-            />
+            <input type="text" placeholder="500 мг, 1 таблетка..." value={form.dosage}
+              onChange={e => setForm(f => ({ ...f, dosage: e.target.value }))}
+              className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none" style={{ borderColor: C.border }} />
           </Field>
-
           <Field label="Частота">
-            <select
-              value={form.frequency}
-              onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}
-              className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none bg-white"
-              style={{ borderColor: '#e8e4dc' }}
-            >
-              {['1 раз в день','2 раза в день','3 раза в день','По необходимости','Постоянно'].map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
+            <select value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
+              className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none bg-white" style={{ borderColor: C.border }}>
+              {['1 раз в день','2 раза в день','3 раза в день','По необходимости','Постоянно'].map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </Field>
-
           <Field label="Время приёма">
             <div className="flex flex-wrap gap-2">
               {form.times.map((t, i) => (
                 <div key={i} className="flex items-center gap-1">
-                  <input
-                    type="time" value={t}
-                    onChange={(e) => setForm((f) => ({
-                      ...f, times: f.times.map((tt, j) => j === i ? e.target.value : tt),
-                    }))}
-                    className="text-sm border rounded-xl px-2 py-1.5 focus:outline-none"
-                    style={{ borderColor: '#e8e4dc' }}
-                  />
+                  <input type="time" value={t} onChange={e => setForm(f => ({ ...f, times: f.times.map((tt, j) => j === i ? e.target.value : tt) }))}
+                    className="text-sm border rounded-xl px-2 py-1.5 focus:outline-none" style={{ borderColor: C.border }} />
                   {form.times.length > 1 && (
-                    <button
-                      onClick={() => setForm((f) => ({ ...f, times: f.times.filter((_, j) => j !== i) }))}
-                      className="text-red-400 text-sm w-5 h-5"
-                    >✕</button>
+                    <button onClick={() => setForm(f => ({ ...f, times: f.times.filter((_, j) => j !== i) }))} className="text-red-400 text-sm w-5 h-5">✕</button>
                   )}
                 </div>
               ))}
               {form.times.length < 4 && (
-                <button
-                  onClick={() => setForm((f) => ({ ...f, times: [...f.times, '12:00'] }))}
-                  className="text-[12px] px-2 py-1 rounded-lg"
-                  style={{ background: '#f4f3ef', color: '#9c5e6c' }}
-                >+ Время</button>
+                <button onClick={() => setForm(f => ({ ...f, times: [...f.times, '12:00'] }))}
+                  className="text-[12px] px-2 py-1 rounded-lg" style={{ background: C.bg, color: C.accent }}>+ Время</button>
               )}
             </div>
           </Field>
-
           <div className="flex gap-3">
             <Field label="Начало курса" className="flex-1">
-              <input
-                type="date" value={form.startDate}
-                onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none"
-                style={{ borderColor: '#e8e4dc' }}
-              />
+              <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none" style={{ borderColor: C.border }} />
             </Field>
             <Field label="Дней курса" className="flex-1">
-              <input
-                type="number" placeholder="14" value={form.durationDays}
-                onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
-                className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none"
-                style={{ borderColor: '#e8e4dc' }}
-              />
+              <input type="number" placeholder="14" value={form.durationDays} onChange={e => setForm(f => ({ ...f, durationDays: e.target.value }))}
+                className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none" style={{ borderColor: C.border }} />
             </Field>
           </div>
-
           <Field label="Приём с едой">
             <div className="flex flex-wrap gap-2">
-              {(['', 'before', 'after', 'during', 'no_alcohol'] as const).map((v) => (
-                <button
-                  key={v || 'none'}
-                  onClick={() => setForm((f) => ({ ...f, foodInstruction: v }))}
-                  className="px-3 py-1.5 rounded-xl text-[12px] font-medium border transition-all"
-                  style={{
-                    background: form.foodInstruction === v ? 'var(--accent)' : '#f4f3ef',
+              {(['', 'before', 'after', 'during', 'no_alcohol'] as const).map(v => (
+                <button key={v || 'none'} onClick={() => setForm(f => ({ ...f, foodInstruction: v }))}
+                  className="px-3 py-1.5 rounded-xl text-[12px] font-medium border transition-all" style={{
+                    background: form.foodInstruction === v ? C.accent : C.bg,
                     color: form.foodInstruction === v ? '#fff' : '#666',
-                    borderColor: form.foodInstruction === v ? 'var(--accent)' : '#e8e4dc',
-                  }}
-                >
-                  {v === '' ? 'Не указано' : FOOD_LABELS[v].label}
+                    borderColor: form.foodInstruction === v ? C.accent : C.border,
+                  }}>
+                  {v === '' ? 'Не указано' : FOOD_TAGS[v]?.label}
                 </button>
               ))}
             </div>
           </Field>
-
           <Field label="Остаток таблеток">
-            <input
-              type="number" placeholder="20" value={form.remainingPills}
-              onChange={(e) => setForm((f) => ({ ...f, remainingPills: e.target.value }))}
-              className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none"
-              style={{ borderColor: '#e8e4dc' }}
-            />
+            <input type="number" placeholder="20" value={form.remainingPills} onChange={e => setForm(f => ({ ...f, remainingPills: e.target.value }))}
+              className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none" style={{ borderColor: C.border }} />
           </Field>
-
           <div className="flex items-center justify-between py-1">
             <div>
-              <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>Напоминания</p>
-              <p className="text-[11px]" style={{ color: '#9a96a8' }}>Уведомления в выбранное время</p>
+              <p className="text-[13px] font-semibold" style={{ color: C.t1 }}>Напоминания</p>
+              <p className="text-[11px]" style={{ color: C.t3 }}>Уведомления в выбранное время</p>
             </div>
-            <Toggle value={form.reminderEnabled}
-              onChange={(v) => setForm((f) => ({ ...f, reminderEnabled: v }))} />
+            <Toggle value={form.reminderEnabled} onChange={v => setForm(f => ({ ...f, reminderEnabled: v }))} />
           </div>
-
           {form.reminderEnabled && (
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>Настойчивые напоминания</p>
-                <p className="text-[11px]" style={{ color: '#9a96a8' }}>Повтор через 15 и 30 мин</p>
+                <p className="text-[13px] font-semibold" style={{ color: C.t1 }}>Настойчивые напоминания</p>
+                <p className="text-[11px]" style={{ color: C.t3 }}>Повтор через 15 и 30 мин</p>
               </div>
-              <Toggle value={form.persistentReminder}
-                onChange={(v) => setForm((f) => ({ ...f, persistentReminder: v }))} />
+              <Toggle value={form.persistentReminder} onChange={v => setForm(f => ({ ...f, persistentReminder: v }))} />
             </div>
           )}
-
           <Field label="Доп. инструкции">
-            <textarea
-              placeholder="Особые указания..." value={form.instructions}
-              onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))}
-              rows={2}
-              className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none resize-none"
-              style={{ borderColor: '#e8e4dc' }}
-            />
+            <textarea placeholder="Особые указания..." value={form.instructions} onChange={e => setForm(f => ({ ...f, instructions: e.target.value }))}
+              rows={2} className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none resize-none" style={{ borderColor: C.border }} />
           </Field>
         </div>
-
-        <button
-          onClick={() => void addManual()}
-          disabled={saving || !form.title.trim()}
+        <button onClick={() => void addManual()} disabled={saving || !form.title.trim()}
           className="w-full py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
-        >
+          style={{ background: C.accent }}>
           {saving ? 'Сохраняю...' : 'Добавить лекарство'}
         </button>
       </div>
     );
   }
 
-  // ── Menu ────────────────────────────────────────────────────────────────────
+  // Menu — 2x3 grid
   return (
-    <div className="px-4 space-y-3">
-      <input
-        ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
-        onChange={(e) => { if (e.target.files?.[0]) void handleReceiptPhoto(e.target.files[0]); }}
-      />
-
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={parsing}
-        className="w-full flex items-center gap-4 rounded-2xl bg-white p-4"
-        style={{ border: '1px solid #e8e4dc', textAlign: 'left' }}
-      >
-        <span className="text-3xl">📷</span>
-        <div className="flex-1">
-          <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>
-            {parsing ? 'Распознаю рецепт...' : 'Фото рецепта'}
-          </p>
-          <p className="text-[12px]" style={{ color: '#9a96a8' }}>AI распознает все лекарства из рецепта</p>
-        </div>
-        <span className="text-lg" style={{ color: '#9a96a8' }}>›</span>
-      </button>
-
-      <button
-        onClick={() => setMode('manual')}
-        className="w-full flex items-center gap-4 rounded-2xl bg-white p-4"
-        style={{ border: '1px solid #e8e4dc', textAlign: 'left' }}
-      >
-        <span className="text-3xl">✏️</span>
-        <div className="flex-1">
-          <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>Добавить вручную</p>
-          <p className="text-[12px]" style={{ color: '#9a96a8' }}>Название, дозировка, расписание</p>
-        </div>
-        <span className="text-lg" style={{ color: '#9a96a8' }}>›</span>
-      </button>
-
-      <div className="w-full flex items-center gap-4 rounded-2xl bg-white p-4 opacity-50"
-        style={{ border: '1px solid #e8e4dc' }}>
-        <span className="text-3xl">💬</span>
-        <div className="flex-1">
-          <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>Из чата с врачом</p>
-          <p className="text-[12px]" style={{ color: '#9a96a8' }}>Скоро: назначения из переписки</p>
-        </div>
-        <span className="text-[11px] px-2 py-0.5 rounded-full font-bold"
-          style={{ background: '#e8e4dc', color: '#9a96a8' }}>Скоро</span>
+    <div>
+      <div style={{ padding: '14px 20px' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>➕ Добавить лекарство</h1>
       </div>
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={e => { if (e.target.files?.[0]) void handleReceiptPhoto(e.target.files[0]); }} />
 
-      <div className="w-full flex items-center gap-4 rounded-2xl bg-white p-4 opacity-50"
-        style={{ border: '1px solid #e8e4dc' }}>
-        <span className="text-3xl">🏥</span>
-        <div className="flex-1">
-          <p className="text-[15px] font-bold" style={{ color: '#2a2540' }}>Из клиники</p>
-          <p className="text-[12px]" style={{ color: '#9a96a8' }}>Подключите клинику через MedSoft</p>
-        </div>
-        <span className="text-[11px] px-2 py-0.5 rounded-full font-bold"
-          style={{ background: '#e8e4dc', color: '#9a96a8' }}>Скоро</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px' }}>
+        {[
+          { em: '📷', title: 'Фото рецепта', sub: 'AI распознает автоматически', action: () => fileRef.current?.click(), disabled: parsing },
+          { em: '📎', title: 'Файл рецепта', sub: 'PDF или фото из галереи', action: () => fileRef.current?.click() },
+          { em: '💬', title: 'Из чата с врачом', sub: 'Принять назначение', soon: true },
+          { em: '🏥', title: 'Из клиники', sub: 'Автоматически из MedSoft', soon: true },
+          { em: '✏️', title: 'Вручную', sub: 'Название и дозировку', action: () => setMode('manual') },
+          { em: '🔍', title: 'Поиск', sub: 'Найти в базе лекарств', soon: true },
+        ].map((item, i) => (
+          <div key={i}
+            onClick={item.action && !item.soon ? item.action : undefined}
+            style={{
+              padding: '18px 14px', borderRadius: 16, background: C.card, border: `1px solid ${C.border}`,
+              textAlign: 'center', cursor: item.soon ? 'default' : 'pointer',
+              opacity: item.soon ? 0.5 : 1, transition: 'all .15s',
+            }}
+            onMouseEnter={e => { if (!item.soon) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(42,37,64,.06)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; (e.currentTarget as HTMLDivElement).style.transform = ''; }}
+          >
+            <span style={{ fontSize: 28, display: 'block', marginBottom: 8 }}>{item.em}</span>
+            <h4 style={{ fontSize: 13, fontWeight: 700, color: C.t1, marginBottom: 2 }}>
+              {parsing && item.em === '📷' ? 'Распознаю...' : item.title}
+            </h4>
+            <p style={{ fontSize: 10, color: C.t3 }}>{item.soon ? 'Скоро' : item.sub}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1053,9 +1047,7 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
 
 function TabLog() {
   const [logData, setLogData] = useState<LogDay>({});
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0],
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
 
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -1070,103 +1062,102 @@ function TabLog() {
       try {
         const r = await fetch('/api/proxy/medications/log');
         if (r.ok) setLogData((await r.json() as { data: LogDay }).data ?? {});
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     })();
   }, []);
 
-  function dayStatus(date: string): 'good' | 'bad' | 'mixed' | 'empty' {
+  function getDayDots(date: string): Array<{ color: string }> {
     const entries = logData[date] ?? [];
-    if (entries.length === 0) return 'empty';
-    const taken = entries.filter((e) => e.log.status === 'taken').length;
-    if (taken === entries.length) return 'good';
-    if (taken === 0) return 'bad';
-    return 'mixed';
+    return entries.slice(0, 3).map(e => ({
+      color: e.log.status === 'taken' ? C.green
+        : e.log.status === 'missed' ? C.red
+        : C.t3,
+    }));
   }
 
+  const today = new Date().toISOString().split('T')[0];
   const dayEntries = logData[selectedDate] ?? [];
 
   return (
-    <div className="px-4 space-y-4">
-      {/* 7-day strip */}
-      <div className="rounded-2xl bg-white p-4" style={{ border: '1px solid #e8e4dc' }}>
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-3" style={{ color: '#9a96a8' }}>
-          Последние 7 дней
-        </p>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {days.map((date) => {
-            const status = dayStatus(date);
-            const isSelected = date === selectedDate;
-            const d = new Date(date);
+    <div>
+      <div style={{ padding: '14px 20px' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>📅 Журнал приёма</h1>
+      </div>
+
+      {/* Calendar strip */}
+      <div style={{ display: 'flex', gap: 6, padding: '0 16px 12px', overflowX: 'auto' }}>
+        {days.map(date => {
+          const isSelected = date === selectedDate;
+          const isToday = date === today;
+          const d = new Date(date + 'T12:00:00');
+          const dots = getDayDots(date);
+          return (
+            <button key={date} onClick={() => setSelectedDate(date)} style={{
+              width: 44, flexShrink: 0, padding: '8px 0', borderRadius: 14, textAlign: 'center',
+              cursor: 'pointer', border: `1px solid ${isSelected || isToday ? C.accent : C.border}`,
+              background: isSelected || isToday ? C.accentBg : C.card,
+              fontFamily: 'inherit',
+            }}>
+              <div style={{ fontSize: 10, color: C.t3, fontWeight: 600 }}>
+                {d.toLocaleDateString('ru-RU', { weekday: 'short' })}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.t1 }}>{d.getDate()}</div>
+              <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 4 }}>
+                {dots.length > 0 ? dots.map((dot, i) => (
+                  <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: dot.color }} />
+                )) : (
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(42,37,64,.1)' }} />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected day label */}
+      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: C.t3, padding: '8px 20px' }}>
+        {new Date(selectedDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' })}
+      </div>
+
+      {/* Timeline */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 14, color: C.t3 }}>Загружаю...</div>
+      ) : dayEntries.length === 0 ? (
+        <div style={{ margin: '0 16px', padding: 24, borderRadius: 16, background: C.card, border: `1px solid ${C.border}`, textAlign: 'center', fontSize: 13, color: C.t3 }}>Нет записей за этот день</div>
+      ) : (
+        <div style={{ background: C.card, margin: '0 16px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+          {dayEntries.map((entry, i) => {
+            const timeStr = entry.log.scheduledAt
+              ? new Date(entry.log.scheduledAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+              : '—';
+            const isTaken = entry.log.status === 'taken';
+            const isMissed = entry.log.status === 'missed';
+            const isPending = entry.log.status === 'pending';
             return (
-              <button
-                key={date}
-                onClick={() => setSelectedDate(date)}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 px-3 py-2.5 rounded-xl transition-all"
-                style={{
-                  background: isSelected ? 'var(--accent)' : '#f8f7f5',
-                  minWidth: 48,
-                }}
-              >
-                <span className="text-[10px]"
-                  style={{ color: isSelected ? 'rgba(255,255,255,0.75)' : '#9a96a8' }}>
-                  {d.toLocaleDateString('ru-RU', { weekday: 'short' })}
-                </span>
-                <span className="text-[15px] font-bold"
-                  style={{ color: isSelected ? '#fff' : '#2a2540' }}>
-                  {d.getDate()}
-                </span>
-                <div className={`w-2 h-2 rounded-full ${
-                  status === 'good'  ? 'bg-green-400' :
-                  status === 'bad'   ? 'bg-red-400'   :
-                  status === 'mixed' ? 'bg-amber-400'  :
-                  isSelected ? 'bg-white opacity-40' : 'bg-gray-200'
-                }`} />
-              </button>
+              <div key={i} style={{
+                display: 'flex', gap: 12, padding: '12px 16px',
+                borderBottom: i < dayEntries.length - 1 ? `1px solid ${C.border}` : 'none',
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, width: 50, flexShrink: 0, color: isTaken ? C.green : isPending ? C.accent : C.t3 }}>
+                  {timeStr}
+                </div>
+                <div>
+                  <h5 style={{ fontSize: 13, fontWeight: 700, color: isTaken ? C.t1 : isPending ? C.accent : C.t3 }}>
+                    {isTaken ? '✅' : isMissed ? '❌' : isPending ? '⏰' : '🕐'} {entry.title}
+                  </h5>
+                  <p style={{ fontSize: 11, color: C.t3 }}>
+                    {isTaken && entry.log.takenAt
+                      ? `Принято в ${new Date(entry.log.takenAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+                      : isMissed ? 'Пропущено'
+                      : isPending ? 'Ожидает приёма'
+                      : 'Вечером'}
+                  </p>
+                </div>
+              </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Day detail */}
-      <div>
-        <p className="text-[13px] font-bold mb-2" style={{ color: '#2a2540' }}>
-          {new Date(selectedDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-        </p>
-        {loading ? (
-          <div className="text-center py-8 text-sm" style={{ color: '#9a96a8' }}>Загружаю...</div>
-        ) : dayEntries.length === 0 ? (
-          <div className="rounded-2xl bg-white p-6 text-center" style={{ border: '1px solid #e8e4dc' }}>
-            <p className="text-sm" style={{ color: '#9a96a8' }}>Нет записей за этот день</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {dayEntries.map((entry, i) => (
-              <div key={i} className="rounded-xl bg-white flex items-center gap-3 px-4 py-3"
-                style={{ border: '1px solid #e8e4dc' }}>
-                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${STATUS_DOT[entry.log.status] ?? 'bg-gray-200'}`} />
-                <div className="flex-1">
-                  <p className="text-[13px] font-semibold" style={{ color: '#2a2540' }}>{entry.title}</p>
-                  {entry.dosage && (
-                    <p className="text-[11px]" style={{ color: '#9a96a8' }}>{entry.dosage}</p>
-                  )}
-                </div>
-                <span className="text-[12px] font-medium" style={{
-                  color: entry.log.status === 'taken' ? '#3a7a5a'
-                    : entry.log.status === 'missed' ? '#c0392b'
-                      : '#9a96a8',
-                }}>
-                  {entry.log.status === 'taken' ? '✓ Принял'
-                    : entry.log.status === 'skipped' ? '— Пропустил'
-                      : entry.log.status === 'missed' ? '✗ Пропущено'
-                        : 'Ожидает'}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -1184,7 +1175,7 @@ function TabPharmacy() {
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserPos({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        pos => setUserPos({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
         () => {},
       );
     }
@@ -1192,11 +1183,8 @@ function TabPharmacy() {
 
   function distanceKm(lat: string | null, lon: string | null): number | null {
     if (!userPos || !lat || !lon) return null;
-    const R = 6371;
-    const lat1 = userPos.lat * (Math.PI / 180);
-    const lat2 = parseFloat(lat) * (Math.PI / 180);
-    const dLat = lat2 - lat1;
-    const dLon = (parseFloat(lon) - userPos.lon) * (Math.PI / 180);
+    const R = 6371, lat1 = userPos.lat * (Math.PI / 180), lat2 = parseFloat(lat) * (Math.PI / 180);
+    const dLat = lat2 - lat1, dLon = (parseFloat(lon) - userPos.lon) * (Math.PI / 180);
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
@@ -1207,116 +1195,71 @@ function TabPharmacy() {
     try {
       const r = await fetch(`/api/proxy/medications/pharmacy/search?drug=${encodeURIComponent(query.trim())}`);
       if (r.ok) setResults((await r.json() as { data: PharmacyResult[] }).data ?? []);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   return (
-    <div className="px-4 space-y-4">
-      <div className="flex gap-2">
+    <div>
+      <div style={{ padding: '14px 20px' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>🔍 Цены в аптеках</h1>
+      </div>
+      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
         <input
-          type="text"
-          placeholder="Поиск лекарства в аптеках..."
+          placeholder="Название лекарства..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') void search(); }}
-          className="flex-1 text-sm border rounded-2xl px-4 py-3 focus:outline-none"
-          style={{ borderColor: '#e8e4dc', background: '#fff' }}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') void search(); }}
+          style={{
+            flex: 1, padding: '12px 16px', borderRadius: 14,
+            border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit',
+            outline: 'none', background: C.card,
+          }}
         />
-        <button
-          onClick={() => void search()}
-          disabled={loading || query.trim().length < 2}
-          className="px-5 py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
-        >
-          {loading ? '⏳' : '🔍'}
-        </button>
+        <button onClick={() => void search()} disabled={loading || query.trim().length < 2}
+          style={{
+            padding: '12px 16px', borderRadius: 14, background: C.accent, color: '#fff',
+            border: 'none', fontSize: 14, cursor: 'pointer', opacity: loading || query.trim().length < 2 ? 0.5 : 1,
+          }}>🔍</button>
       </div>
 
       {results.length === 0 && !loading && query.trim().length >= 2 && (
-        <div className="rounded-2xl bg-white p-6 text-center" style={{ border: '1px solid #e8e4dc' }}>
-          <p className="text-sm" style={{ color: '#9a96a8' }}>Ничего не найдено</p>
-          <p className="text-xs mt-1" style={{ color: '#c0bdb8' }}>Попробуйте другое название или МНН</p>
+        <div style={{ margin: '0 16px', padding: 24, borderRadius: 16, background: C.card, border: `1px solid ${C.border}`, textAlign: 'center', fontSize: 13, color: C.t3 }}>
+          Ничего не найдено
         </div>
       )}
 
-      <div className="space-y-2">
-        {results.map((r, i) => {
-          const dist = distanceKm(r.lat, r.lon);
-          return (
-            <div
-              key={i}
-              className="rounded-2xl bg-white p-4 space-y-2"
-              style={{ border: r.isBestPrice ? '2px solid #3a7a5a' : '1px solid #e8e4dc' }}
-            >
-              {r.isBestPrice && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: '#e8f4ee', color: '#3a7a5a' }}>
-                  🏆 ЛУЧШАЯ ЦЕНА
-                </span>
-              )}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>{r.productName}</p>
-                  {(r.dosage || r.form) && (
-                    <p className="text-[12px]" style={{ color: '#9a96a8' }}>
-                      {[r.dosage, r.form].filter(Boolean).join(' · ')}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-[16px] font-bold" style={{ color: '#9c5e6c' }}>{formatPrice(r.price)}</p>
-                  {r.oldPrice && r.oldPrice > r.price && (
-                    <p className="text-[11px] line-through" style={{ color: '#9a96a8' }}>{formatPrice(r.oldPrice)}</p>
-                  )}
-                </div>
+      {results.map((r, i) => {
+        const dist = distanceKm(r.lat, r.lon);
+        return (
+          <div key={i} style={{
+            margin: '0 16px 10px', padding: 14, borderRadius: 16,
+            background: r.isBestPrice ? C.greenBg : C.card,
+            border: `1px solid ${r.isBestPrice ? C.green : C.border}`,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: r.isBestPrice ? '#b8d8bc' : C.greenBg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+            }}>
+              {r.isBestPrice ? '🏆' : '💊'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>
+                {r.pharmacyName}
+                {r.isBestPrice && <span style={{ marginLeft: 6, fontSize: 10, color: C.green, fontWeight: 800 }}>ЛУЧШАЯ ЦЕНА</span>}
               </div>
-
-              <div className="flex items-center gap-2 text-[12px]" style={{ color: '#666' }}>
-                <span>🏪 {r.pharmacyName}</span>
-                {r.address && (
-                  <span>· 📍 {r.address.length > 35 ? r.address.slice(0, 35) + '…' : r.address}</span>
-                )}
-              </div>
-
-              {dist !== null && (
-                <p className="text-[11px]" style={{ color: '#9a96a8' }}>
-                  📏 {dist < 1 ? `${Math.round(dist * 1000)} м` : `${dist.toFixed(1)} км`} от вас
-                </p>
-              )}
-
-              {r.stock !== null && r.stock > 0 && r.stock <= 5 && (
-                <p className="text-[11px] font-medium" style={{ color: '#c07000' }}>
-                  ⚠️ Осталось {r.stock} шт
-                </p>
-              )}
-
-              <div className="flex gap-2 mt-1">
-                {r.lat && r.lon && (
-                  <a
-                    href={`https://maps.google.com/?q=${r.lat},${r.lon}`}
-                    target="_blank" rel="noreferrer"
-                    className="flex-1 py-2 rounded-xl text-[12px] font-semibold text-center"
-                    style={{ background: '#f0f4ff', color: '#4466aa', border: '1px solid #dde4f0' }}
-                  >
-                    📍 На карте
-                  </a>
-                )}
-                {r.phone && (
-                  <a
-                    href={`tel:${r.phone}`}
-                    className="flex-1 py-2 rounded-xl text-[12px] font-semibold text-center"
-                    style={{ background: '#f0faf4', color: '#3a7a5a', border: '1px solid #c0e8d0' }}
-                  >
-                    📞 Позвонить
-                  </a>
-                )}
+              <div style={{ fontSize: 11, color: C.t3 }}>{r.address ?? ''}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: C.green }}>{formatPrice(r.price)}</div>
+              <div style={{ fontSize: 10, color: C.t3 }}>
+                {dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)} м` : `${dist.toFixed(1)} км`) : ''}
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1325,141 +1268,103 @@ function TabPharmacy() {
 // TAB 5 — Семья
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const FAMILY_AVATARS = [C.accentBg, C.blueBg, C.purpleBg, C.orangeBg, C.greenBg];
+const FAMILY_EMOJIS = ['👩', '👦', '👧', '👴', '👵'];
+
 function TabFamily() {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
       try {
         const r = await fetch('/api/proxy/medications/family');
         if (r.ok) setMembers((await r.json() as { data: FamilyMember[] }).data ?? []);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     })();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <p className="text-sm" style={{ color: '#9a96a8' }}>Загружаю...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 0', fontSize: 14, color: C.t3 }}>
+      Загружаю...
+    </div>
+  );
 
-  if (members.length === 0) {
-    return (
-      <div className="px-4">
-        <div className="rounded-2xl bg-white p-8 text-center" style={{ border: '1px solid #e8e4dc' }}>
-          <span className="text-4xl block mb-3">👨‍👩‍👧</span>
-          <p className="text-[15px] font-bold mb-1" style={{ color: '#2a2540' }}>Нет членов семьи</p>
-          <p className="text-[13px]" style={{ color: '#9a96a8' }}>Добавьте семью в разделе «Семья»</p>
-          <Link href="/family"
-            className="inline-block mt-3 text-[13px] font-semibold"
-            style={{ color: '#9c5e6c' }}>
-            Перейти →
-          </Link>
-        </div>
+  if (members.length === 0) return (
+    <div style={{ padding: '14px 16px' }}>
+      <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1, marginBottom: 16 }}>👨‍👩‍👦 Семейный контроль</h1>
+      <div style={{ padding: 32, borderRadius: 16, background: C.card, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+        <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>👨‍👩‍👧</span>
+        <p style={{ fontSize: 15, fontWeight: 700, color: C.t1, marginBottom: 4 }}>Нет членов семьи</p>
+        <p style={{ fontSize: 13, color: C.t3, marginBottom: 12 }}>Добавьте семью в разделе «Семья»</p>
+        <Link href="/family" style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>Перейти →</Link>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="px-4 space-y-3">
-      {members.map((m) => {
-        const allTaken = m.todayStats.total > 0
-          && m.todayStats.taken === m.todayStats.total;
-        const isExpanded = expanded === m.memberId;
+    <div>
+      <div style={{ padding: '14px 20px' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>👨‍👩‍👦 Семейный контроль</h1>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: C.t3, padding: '0 20px 8px' }}>Сегодня</div>
+
+      {members.map((m, idx) => {
+        const allTaken = m.todayStats.total > 0 && m.todayStats.taken === m.todayStats.total;
+        const hasPending = m.todayStats.pending > 0;
+        const avatarBg = FAMILY_AVATARS[idx % FAMILY_AVATARS.length];
+        const avatarEm = FAMILY_EMOJIS[idx % FAMILY_EMOJIS.length];
+
+        const statusText = m.todayStats.total === 0
+          ? { text: '✅ Нет активных лекарств', color: C.green }
+          : allTaken
+          ? { text: `✅ Все лекарства приняты (${m.todayStats.taken}/${m.todayStats.total})`, color: C.green }
+          : hasPending
+          ? { text: `⚠️ Принял ${m.todayStats.taken}/${m.todayStats.total} — ждём`, color: C.orange }
+          : { text: `❌ Пропущено: ${m.todayStats.total - m.todayStats.taken}`, color: C.red };
+
+        const needsReminder = hasPending && m.memberUserId;
+        const btnStyle = hasPending
+          ? { bg: C.orangeBg, color: '#856404', text: 'Напомнить' }
+          : { bg: C.blueBg, color: C.blue, text: 'Детали' };
 
         return (
-          <div key={m.memberId} className="rounded-2xl bg-white overflow-hidden"
-            style={{ border: '1px solid #e8e4dc' }}>
-            <button
-              className="w-full flex items-center gap-3 px-4 py-3"
-              onClick={() => setExpanded(isExpanded ? null : m.memberId)}
-            >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
-              >
-                {m.memberName.slice(0, 2).toUpperCase()}
+          <div key={m.memberId} style={{
+            margin: '0 16px 10px', padding: 14, borderRadius: 16,
+            background: C.card, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+              background: avatarBg, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 18,
+            }}>{avatarEm}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>
+                {m.memberName} <span style={{ fontSize: 11, color: C.t3, fontWeight: 400 }}>({m.memberRelation})</span>
               </div>
-              <div className="flex-1 text-left">
-                <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>{m.memberName}</p>
-                <p className="text-[12px]" style={{ color: '#9a96a8' }}>{m.memberRelation}</p>
+              <div style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, color: statusText.color }}>
+                {statusText.text}
               </div>
-              <div className="text-right mr-2">
-                {m.todayStats.total === 0 ? (
-                  <span className="text-[11px]" style={{ color: '#9a96a8' }}>нет лекарств</span>
-                ) : allTaken ? (
-                  <span className="text-[11px] font-bold text-green-600">✓ Все приняты</span>
-                ) : m.todayStats.pending > 0 ? (
-                  <span className="text-[11px] font-bold" style={{ color: '#c07000' }}>
-                    {m.todayStats.pending} ожидает
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-bold text-red-500">
-                    {m.todayStats.total - m.todayStats.taken} пропущено
-                  </span>
-                )}
-              </div>
-              <svg
-                className={`w-4 h-4 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                style={{ color: '#9a96a8' }}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isExpanded && (
-              <div className="border-t px-4 pb-3 pt-2 space-y-2" style={{ borderColor: '#f0ede8' }}>
-                {m.medications.length === 0 ? (
-                  <p className="text-[12px]" style={{ color: '#9a96a8' }}>Нет активных лекарств</p>
-                ) : (
-                  m.medications.map((med) => (
-                    <div key={med.id} className="flex items-center gap-2">
-                      <span className="text-sm">💊</span>
-                      <div className="flex-1">
-                        <p className="text-[13px] font-medium" style={{ color: '#2a2540' }}>{med.title}</p>
-                        {med.dosage && (
-                          <p className="text-[11px]" style={{ color: '#9a96a8' }}>{med.dosage}</p>
-                        )}
-                      </div>
-                      {med.endDate && (
-                        <span className="text-[11px]" style={{ color: '#9a96a8' }}>
-                          до {new Date(med.endDate).toLocaleDateString('ru-RU', {
-                            day: 'numeric', month: 'short',
-                          })}
-                        </span>
-                      )}
-                    </div>
-                  ))
-                )}
-
-                {m.memberUserId && m.todayStats.pending > 0 && (
-                  <button
-                    onClick={async () => {
-                      await fetch('/api/proxy/notifications/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          userId: m.memberUserId,
-                          type: 'medication_reminder',
-                          message: `Не забудь принять лекарства! Осталось: ${m.todayStats.pending}`,
-                        }),
-                      }).catch(() => {});
-                      alert(`Напоминание отправлено ${m.memberName}`);
-                    }}
-                    className="w-full mt-1 py-2 rounded-xl text-[12px] font-semibold"
-                    style={{ background: '#f4f3ef', color: '#9c5e6c', border: '1px solid #e8e4dc' }}
-                  >
-                    🔔 Напомнить {m.memberName}
-                  </button>
-                )}
-              </div>
+            </div>
+            {(hasPending || m.todayStats.total > 0) && (
+              <button
+                onClick={async () => {
+                  if (needsReminder) {
+                    await fetch('/api/proxy/notifications/send', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: m.memberUserId, type: 'medication_reminder', message: `Не забудь принять лекарства! Осталось: ${m.todayStats.pending}` }),
+                    }).catch(() => {});
+                    alert(`Напоминание отправлено ${m.memberName}`);
+                  }
+                }}
+                style={{
+                  padding: '6px 12px', borderRadius: 10, border: 'none',
+                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  background: btnStyle.bg, color: btnStyle.color, fontFamily: 'inherit',
+                }}>
+                {btnStyle.text}
+              </button>
             )}
           </div>
         );
