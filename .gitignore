@@ -16,3 +16,11 @@ Thumbs.db
 /packages/db/migrations/meta/
 drizzle/
 .github/workflows/
+
+# Expo / React Native
+.expo/
+apps/mobile-patient/.expo/
+apps/mobile-doctor/.expo/
+*.apk
+*.ipa
+*.aab
