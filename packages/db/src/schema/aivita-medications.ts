@@ -54,6 +54,8 @@ export const medicationSchedule = pgTable(
     // true = напоминать каждые 15 мин пока не отметит
 
     // Статус и источник
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    // 'active' | 'paused' | 'completed'
     isActive: boolean('is_active').notNull().default(true),
     createdBy: varchar('created_by', { length: 20 }).notNull().default('patient'),
     // 'patient' | 'doctor'

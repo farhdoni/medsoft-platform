@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
-import { aiChatMessages, platformSettings } from '@medsoft/db';
-import { eq, desc, and, gte, count } from 'drizzle-orm';
+import { aiChatMessages, aiChatArchives, platformSettings } from '@medsoft/db';
+import { eq, desc, asc, and, gte, count } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const aiChatRouter = new Hono();
@@ -51,7 +51,6 @@ aiChatRouter.get('/history', async (c) => {
     .orderBy(desc(aiChatMessages.seq))
     .limit(limit);
 
-  // Return in chronological order (oldest first)
   return c.json({ data: rows.reverse() });
 });
 
@@ -83,10 +82,108 @@ aiChatRouter.post(
   }
 );
 
-// ─── DELETE /ai-chat/history ──────────────────────────────────────────────────
+// ─── DELETE /ai-chat/message/:id — удалить одно сообщение ────────────────────
+
+aiChatRouter.delete('/message/:id', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const id = c.req.param('id');
+
+  const [existing] = await db.select({ id: aiChatMessages.id })
+    .from(aiChatMessages)
+    .where(and(eq(aiChatMessages.id, id), eq(aiChatMessages.userId, userId)))
+    .limit(1);
+
+  if (!existing) return c.json({ error: 'Not found' }, 404);
+
+  await db.delete(aiChatMessages).where(eq(aiChatMessages.id, id));
+  return c.json({ data: { deleted: true } });
+});
+
+// ─── DELETE /ai-chat/history — очистить всю историю ──────────────────────────
 
 aiChatRouter.delete('/history', async (c) => {
   const userId = c.get('aivitaUserId');
   await db.delete(aiChatMessages).where(eq(aiChatMessages.userId, userId));
   return c.json({ data: { cleared: true } });
+});
+
+// ─── POST /ai-chat/archive — архивировать текущий чат ────────────────────────
+
+aiChatRouter.post('/archive', async (c) => {
+  const userId = c.get('aivitaUserId');
+
+  const rows = await db.select()
+    .from(aiChatMessages)
+    .where(eq(aiChatMessages.userId, userId))
+    .orderBy(asc(aiChatMessages.seq));
+
+  if (rows.length === 0) return c.json({ error: 'No messages to archive' }, 400);
+
+  // Generate title from first user message (truncated)
+  const firstUser = rows.find(r => r.role === 'user');
+  const rawTitle  = firstUser?.content ?? 'Архив чата';
+  const title     = rawTitle.length > 80 ? rawTitle.slice(0, 80) + '…' : rawTitle;
+
+  const [archive] = await db.insert(aiChatArchives).values({
+    userId,
+    title,
+    messages:     rows.map(r => ({ role: r.role, content: r.content })),
+    messageCount: rows.length,
+  }).returning();
+
+  // Clear current chat
+  await db.delete(aiChatMessages).where(eq(aiChatMessages.userId, userId));
+
+  return c.json({ data: archive }, 201);
+});
+
+// ─── GET /ai-chat/archives — список архивов ──────────────────────────────────
+
+aiChatRouter.get('/archives', async (c) => {
+  const userId = c.get('aivitaUserId');
+
+  const rows = await db.select({
+    id:           aiChatArchives.id,
+    title:        aiChatArchives.title,
+    messageCount: aiChatArchives.messageCount,
+    createdAt:    aiChatArchives.createdAt,
+  })
+    .from(aiChatArchives)
+    .where(eq(aiChatArchives.userId, userId))
+    .orderBy(desc(aiChatArchives.createdAt))
+    .limit(50);
+
+  return c.json({ data: rows });
+});
+
+// ─── GET /ai-chat/archives/:id — конкретный архив ────────────────────────────
+
+aiChatRouter.get('/archives/:id', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const id     = parseInt(c.req.param('id'), 10);
+
+  const [row] = await db.select()
+    .from(aiChatArchives)
+    .where(and(eq(aiChatArchives.id, id), eq(aiChatArchives.userId, userId)))
+    .limit(1);
+
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json({ data: row });
+});
+
+// ─── DELETE /ai-chat/archives/:id — удалить архив ────────────────────────────
+
+aiChatRouter.delete('/archives/:id', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const id     = parseInt(c.req.param('id'), 10);
+
+  const [existing] = await db.select({ id: aiChatArchives.id })
+    .from(aiChatArchives)
+    .where(and(eq(aiChatArchives.id, id), eq(aiChatArchives.userId, userId)))
+    .limit(1);
+
+  if (!existing) return c.json({ error: 'Not found' }, 404);
+
+  await db.delete(aiChatArchives).where(eq(aiChatArchives.id, id));
+  return c.json({ data: { deleted: true } });
 });

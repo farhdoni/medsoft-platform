@@ -1094,6 +1094,23 @@ export const aiChatMessages = pgTable(
   })
 );
 
+// ─── AI Chat Archives ─────────────────────────────────────────────────────────
+
+export const aiChatArchives = pgTable(
+  'ai_chat_archives',
+  {
+    id:           serial('id').primaryKey(),
+    userId:       uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    title:        varchar('title', { length: 200 }).notNull(),
+    messages:     jsonb('messages').$type<Array<{ role: string; content: string }>>().notNull().default([]),
+    messageCount: integer('message_count').notNull().default(0),
+    createdAt:    timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index('ai_chat_archives_user_idx').on(table.userId, table.createdAt),
+  })
+);
+
 // ─── Agent Alerts ─────────────────────────────────────────────────────────────
 
 export const agentAlerts = pgTable(

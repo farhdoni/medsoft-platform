@@ -10,7 +10,7 @@ import {
   pharmacyBranches,
   pharmacies,
 } from '@medsoft/db';
-import { eq, and, desc, asc, gte, lte, ilike, or } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, ilike, or, ne, inArray } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -20,16 +20,29 @@ aivitaMedicationsRouter.use('*', requireAivitaAuth);
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ─── GET / — мои лекарства (активные) ────────────────────────────────────────
+// ─── GET / — лекарства (фильтр по status) ───────────────────────────────────
+// ?status=active            → активные (default)
+// ?status=paused,completed  → завершённые/на паузе
+// ?status=all               → все
 
 aivitaMedicationsRouter.get('/', async (c) => {
-  const userId = c.get('aivitaUserId');
+  const userId     = c.get('aivitaUserId');
+  const statusParam = c.req.query('status') ?? 'active';
+
+  const allowedStatuses = ['active', 'paused', 'completed'];
+  const statuses: string[] = statusParam === 'all'
+    ? allowedStatuses
+    : statusParam.split(',').filter(s => allowedStatuses.includes(s));
+
   const data = await db.select().from(medicationSchedule)
     .where(and(
       eq(medicationSchedule.userId, userId),
-      eq(medicationSchedule.isActive, true),
+      statuses.length === 1
+        ? eq(medicationSchedule.status, statuses[0]!)
+        : inArray(medicationSchedule.status, statuses),
     ))
     .orderBy(asc(medicationSchedule.createdAt));
+
   return c.json({ data });
 });
 
@@ -126,6 +139,11 @@ aivitaMedicationsRouter.put('/:id', async (c) => {
   delete body.createdBy;
   delete body.doctorId;
   (body as Record<string, unknown>).updatedAt = new Date();
+
+  // Sync isActive with status for backwards compatibility
+  if (typeof body.status === 'string') {
+    (body as Record<string, unknown>).isActive = body.status === 'active';
+  }
 
   const [updated] = await db.update(medicationSchedule)
     .set(body as never)
