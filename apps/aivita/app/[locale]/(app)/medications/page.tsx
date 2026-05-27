@@ -55,6 +55,7 @@ export interface MedicationRow {
   doctorId: string | null;
   reminderEnabled: boolean;
   reminderMinutesBefore: number;
+  status?: string;  // 'active' | 'paused' | 'completed'
 }
 
 export default async function MedicationsPage({

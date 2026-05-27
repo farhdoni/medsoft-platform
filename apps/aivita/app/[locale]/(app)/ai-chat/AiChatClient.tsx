@@ -4,7 +4,7 @@ import {
   useState, useEffect, useRef, useCallback,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Send, Paperclip, Camera, Image, Mic, MicOff, X, Play, Pause } from 'lucide-react';
+import { ChevronLeft, Send, Paperclip, Camera, Image, Mic, MicOff, X, Play, Pause, MoreHorizontal } from 'lucide-react';
 import { AiDocumentModal, type ParsedMedical } from '@/components/medical/AiDocumentModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -236,6 +236,14 @@ export function AiChatClient({ locale }: { locale: string }) {
 
   // ── Medical document modal ──────────────────────────────────────────────────
   const [medModal, setMedModal] = useState<ParsedMedical | null>(null);
+
+  // ── Menu (⋯) ──────────────────────────────────────────────────────────────
+  const [menuOpen,   setMenuOpen]   = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  // ── Swipe-to-delete ────────────────────────────────────────────────────────
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const touchStartXRef = useRef(0);
 
   // ── AI conversation history (sent to /api/ai/chat) ──────────────────────────
   const [apiHistory, setApiHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
@@ -574,6 +582,35 @@ export function AiChatClient({ locale }: { locale: string }) {
 
   const canSend = text.trim().length > 0 || attachments.length > 0;
 
+  // ── Chat management actions ──────────────────────────────────────────────────
+
+  function handleClearHistory() {
+    setMenuOpen(false);
+    if (messages.length === 0) return;
+    setConfirmClear(true);
+  }
+
+  async function doClearHistory() {
+    try { await fetch('/api/proxy/ai-chat/history', { method: 'DELETE' }); } catch { /* ignore */ }
+    setMessages([]);
+    setApiHistory([]);
+    setConfirmClear(false);
+  }
+
+  async function handleArchive() {
+    setMenuOpen(false);
+    if (messages.length === 0) return;
+    try { await fetch('/api/proxy/ai-chat/archive', { method: 'POST' }); } catch { /* ignore */ }
+    setMessages([]);
+    setApiHistory([]);
+  }
+
+  async function deleteMessage(id: string) {
+    setSwipedId(null);
+    try { await fetch(`/api/proxy/ai-chat/message/${id}`, { method: 'DELETE' }); } catch { /* ignore */ }
+    setMessages(prev => prev.filter(m => m.id !== id));
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
@@ -605,78 +642,160 @@ export function AiChatClient({ locale }: { locale: string }) {
             <p className="text-[10px]" style={{ color: '#9a96a8' }}>AIVITA</p>
           </div>
         </div>
+
+        {/* ⋯ Menu */}
+        <div className="relative flex-shrink-0">
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
+            style={{ background: menuOpen ? '#e8e4dc' : '#f4f3ef' }}
+            aria-label="Меню"
+          >
+            <MoreHorizontal className="w-5 h-5" style={{ color: '#2a2540' }} aria-hidden="true" />
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div
+                className="absolute right-0 top-full mt-1 z-20 rounded-2xl overflow-hidden"
+                style={{ background: '#fff', border: '1px solid #e8e4dc', boxShadow: '0 8px 24px rgba(0,0,0,0.14)', minWidth: 210 }}
+              >
+                <button
+                  onClick={handleClearHistory}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-[14px] transition-colors hover:bg-[#fdf4f5]"
+                  style={{ color: '#c0392b' }}
+                >
+                  🗑 Очистить историю
+                </button>
+                <button
+                  onClick={() => void handleArchive()}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-[14px] transition-colors hover:bg-[#f4f3ef]"
+                  style={{ color: '#2a2540', borderTop: '1px solid #f0ece8' }}
+                >
+                  📥 Архивировать чат
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); router.push(`/${locale}/ai-chat/archives`); }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-left text-[14px] transition-colors hover:bg-[#f4f3ef]"
+                  style={{ color: '#2a2540', borderTop: '1px solid #f0ece8' }}
+                >
+                  📂 Архивы
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
       {/* ── Messages ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3" onClick={() => { if (swipedId) setSwipedId(null); }}>
         {messages.length === 0 && !typing && historyLoaded
           ? <WelcomeScreen onChip={t => void sendMessage(t)} locale={locale} />
           : (
             <>
-              {messages.map(m => (
-                <div
-                  key={m.id}
-                  className={`flex items-end gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                  {m.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-sm mb-1" style={{ background: '#e8e4f8' }}>
-                      🤖
+              {messages.map(m => {
+                const isSwiped = swipedId === m.id;
+                return (
+                  <div
+                    key={m.id}
+                    className="relative rounded-xl"
+                    onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
+                    onTouchMove={(e) => {
+                      const dx = touchStartXRef.current - e.touches[0].clientX;
+                      if (dx > 60 && swipedId !== m.id) setSwipedId(m.id);
+                      else if (dx < -10 && swipedId === m.id) setSwipedId(null);
+                    }}
+                  >
+                    {/* Delete button — revealed on swipe-left */}
+                    <div
+                      className="absolute right-0 top-1 bottom-1 flex items-center justify-center rounded-xl"
+                      style={{
+                        width: 72,
+                        background: '#ef4444',
+                        opacity: isSwiped ? 1 : 0,
+                        transition: 'opacity 0.2s',
+                        pointerEvents: isSwiped ? 'auto' : 'none',
+                      }}
+                    >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); void deleteMessage(m.id); }}
+                        className="flex flex-col items-center gap-0.5"
+                        aria-label="Удалить сообщение"
+                      >
+                        <span className="text-xl">🗑</span>
+                        <span className="text-[10px] text-white font-semibold">Удалить</span>
+                      </button>
                     </div>
-                  )}
 
-                  <div className={`flex flex-col gap-1 max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    {/* Attachments */}
-                    {m.attachments?.map((a, i) => (
-                      <div key={i}>
-                        {a.kind === 'photo' && a.dataUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={a.dataUrl} alt="" className="rounded-xl max-w-[240px] max-h-[200px] object-cover" />
-                        )}
-                        {a.kind === 'audio' && a.url && (
-                          <AudioPlayer url={a.url} duration={a.duration} />
-                        )}
-                        {a.kind === 'file' && a.name && (
+                    {/* Message row — slides left when swiped */}
+                    <div
+                      className={`flex items-end gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                      style={{
+                        transform: isSwiped ? 'translateX(-72px)' : 'translateX(0)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                    >
+                      {m.role === 'assistant' && (
+                        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-sm mb-1" style={{ background: '#e8e4f8' }}>
+                          🤖
+                        </div>
+                      )}
+
+                      <div className={`flex flex-col gap-1 max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        {/* Attachments */}
+                        {m.attachments?.map((a, i) => (
+                          <div key={i}>
+                            {a.kind === 'photo' && a.dataUrl && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={a.dataUrl} alt="" className="rounded-xl max-w-[240px] max-h-[200px] object-cover" />
+                            )}
+                            {a.kind === 'audio' && a.url && (
+                              <AudioPlayer url={a.url} duration={a.duration} />
+                            )}
+                            {a.kind === 'file' && a.name && (
+                              <div
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                                style={{ background: m.role === 'user' ? 'rgba(255,255,255,0.2)' : '#f4f3ef' }}
+                              >
+                                <span className="text-xl">📄</span>
+                                <div className="min-w-0">
+                                  <p className="text-[12px] font-semibold truncate max-w-[160px]" style={{ color: m.role === 'user' ? '#fff' : '#2a2540' }}>{a.name}</p>
+                                  {a.size != null && <p className="text-[10px] opacity-70">{fmtSize(a.size)}</p>}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Text bubble */}
+                        {m.text && (
                           <div
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl"
-                            style={{ background: m.role === 'user' ? 'rgba(255,255,255,0.2)' : '#f4f3ef' }}
+                            className={`px-4 py-2.5 ${m.role === 'user' ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
+                            style={m.role === 'user'
+                              ? { background: 'var(--accent, #9c5e6c)', color: '#fff' }
+                              : { background: '#fff', border: '1px solid #e8e4dc', color: '#2a2540' }
+                            }
                           >
-                            <span className="text-xl">📄</span>
-                            <div className="min-w-0">
-                              <p className="text-[12px] font-semibold truncate max-w-[160px]" style={{ color: m.role === 'user' ? '#fff' : '#2a2540' }}>{a.name}</p>
-                              {a.size != null && <p className="text-[10px] opacity-70">{fmtSize(a.size)}</p>}
-                            </div>
+                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                            {m.medicalData && (
+                              <button
+                                onClick={() => setMedModal(m.medicalData!)}
+                                className="mt-2 w-full rounded-xl py-2 text-[13px] font-semibold transition hover:opacity-90 active:scale-95"
+                                style={{ background: '#e0d8f0', color: '#6a3a8a' }}
+                              >
+                                Добавить в профиль
+                              </button>
+                            )}
                           </div>
                         )}
-                      </div>
-                    ))}
 
-                    {/* Text bubble */}
-                    {m.text && (
-                      <div
-                        className={`px-4 py-2.5 ${m.role === 'user' ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
-                        style={m.role === 'user'
-                          ? { background: 'var(--accent, #9c5e6c)', color: '#fff' }
-                          : { background: '#fff', border: '1px solid #e8e4dc', color: '#2a2540' }
-                        }
-                      >
-                        <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{m.text}</p>
-                        {m.medicalData && (
-                          <button
-                            onClick={() => setMedModal(m.medicalData!)}
-                            className="mt-2 w-full rounded-xl py-2 text-[13px] font-semibold transition hover:opacity-90 active:scale-95"
-                            style={{ background: '#e0d8f0', color: '#6a3a8a' }}
-                          >
-                            Добавить в профиль
-                          </button>
-                        )}
+                        {/* Timestamp */}
+                        <p className="text-[10px] px-1" style={{ color: '#9a96a8' }}>{fmtTime(m.ts)}</p>
                       </div>
-                    )}
-
-                    {/* Timestamp */}
-                    <p className="text-[10px] px-1" style={{ color: '#9a96a8' }}>{fmtTime(m.ts)}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {typing && <TypingIndicator />}
               <div ref={messagesEndRef} />
@@ -873,6 +992,41 @@ export function AiChatClient({ locale }: { locale: string }) {
           40%            { transform: translateY(-6px); }
         }
       `}</style>
+
+      {/* ── Confirm: clear history ──────────────────────────────────────────── */}
+      {confirmClear && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => setConfirmClear(false)}
+        >
+          <div
+            className="w-full max-w-[480px] rounded-t-3xl px-6 pt-6 pb-10 space-y-4"
+            style={{ background: '#fff' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-2" />
+            <h3 className="text-[18px] font-extrabold text-center" style={{ color: '#2a2540' }}>Удалить историю?</h3>
+            <p className="text-[14px] text-center" style={{ color: '#9a96a8' }}>
+              Все сообщения будут удалены безвозвратно.
+            </p>
+            <button
+              onClick={() => void doClearHistory()}
+              className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white transition active:scale-95"
+              style={{ background: '#ef4444' }}
+            >
+              🗑 Удалить все сообщения
+            </button>
+            <button
+              onClick={() => setConfirmClear(false)}
+              className="w-full py-3.5 rounded-2xl text-[15px] font-bold transition active:scale-95"
+              style={{ background: '#f4f3ef', color: '#2a2540' }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Medical document modal ──────────────────────────────────────────── */}
       {medModal && (

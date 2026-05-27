@@ -246,6 +246,11 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
             schedule={schedule} medications={medications} stats={stats}
             onTake={handleTake} onSkip={handleSkip}
             onSetTab={setTab} locale={locale}
+            onRemoveMed={(id) => setMedications(prev => prev.filter(m => m.id !== id))}
+            onUpsertMed={(med) => setMedications(prev => {
+              const exists = prev.some(m => m.id === med.id);
+              return exists ? prev.map(m => m.id === med.id ? med : m) : [med, ...prev];
+            })}
           />
         )}
         {tab === 'add' && (
@@ -269,7 +274,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
 // TAB 1 — Лекарства
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, locale }: {
+function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, locale, onRemoveMed, onUpsertMed }: {
   schedule: ScheduleItem[];
   medications: MedicationRow[];
   stats: MedStats | null;
@@ -277,6 +282,8 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
   onSkip: (id: string, time: string) => Promise<void>;
   onSetTab: (t: TabKey) => void;
   locale: string;
+  onRemoveMed: (id: string) => void;
+  onUpsertMed: (med: MedicationRow) => void;
 }) {
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [infoPopup, setInfoPopup] = useState<ScheduleItem | null>(null);
@@ -286,6 +293,124 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
     sideEffects: string[]; contraindications: string[];
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── Medication management state ────────────────────────────────────────────
+  const [menuMed,        setMenuMed]        = useState<MedicationRow | null>(null);
+  const [editingMed,     setEditingMed]     = useState<MedicationRow | null>(null);
+  const [completedMeds,  setCompletedMeds]  = useState<MedicationRow[]>([]);
+  const [showCompleted,  setShowCompleted]  = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [actionLoading,  setActionLoading]  = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '', dosage: '', frequency: '1 раз в день', times: ['08:00'],
+    durationDays: '', startDate: '', foodInstruction: '', reminderEnabled: true,
+    remainingPills: '', instructions: '',
+  });
+
+  // Load paused/completed meds on mount
+  useEffect(() => {
+    fetch('/api/proxy/medications?status=paused,completed')
+      .then(r => r.ok ? r.json() as Promise<{ data: MedicationRow[] }> : null)
+      .then(json => { if (json?.data) setCompletedMeds(json.data); })
+      .catch(() => { /* ignore */ });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handlePause(id: string) {
+    setActionLoading(true);
+    try {
+      const r = await fetch(`/api/proxy/medications/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'paused' }),
+      });
+      if (r.ok) {
+        const med = medications.find(m => m.id === id);
+        onRemoveMed(id);
+        if (med) setCompletedMeds(prev => [{ ...med, status: 'paused' }, ...prev]);
+      }
+    } finally { setActionLoading(false); setMenuMed(null); }
+  }
+
+  async function handleComplete(id: string) {
+    setActionLoading(true);
+    try {
+      const r = await fetch(`/api/proxy/medications/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+      if (r.ok) {
+        const med = medications.find(m => m.id === id);
+        onRemoveMed(id);
+        if (med) setCompletedMeds(prev => [{ ...med, status: 'completed' }, ...prev]);
+      }
+    } finally { setActionLoading(false); setMenuMed(null); }
+  }
+
+  async function handleDeleteMed(id: string) {
+    setActionLoading(true);
+    try {
+      const r = await fetch(`/api/proxy/medications/${id}`, { method: 'DELETE' });
+      if (r.ok) {
+        onRemoveMed(id);
+        setCompletedMeds(prev => prev.filter(m => m.id !== id));
+      }
+    } finally { setActionLoading(false); setConfirmDeleteId(null); setMenuMed(null); }
+  }
+
+  async function handleResume(id: string) {
+    setActionLoading(true);
+    try {
+      const r = await fetch(`/api/proxy/medications/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      });
+      if (r.ok) {
+        const json = await r.json() as { data: MedicationRow };
+        setCompletedMeds(prev => prev.filter(m => m.id !== id));
+        onUpsertMed(json.data);
+      }
+    } finally { setActionLoading(false); }
+  }
+
+  function openEdit(med: MedicationRow) {
+    setEditForm({
+      title: med.title,
+      dosage: med.dosage ?? '',
+      frequency: med.frequency,
+      times: Array.isArray(med.times) && med.times.length ? med.times : ['08:00'],
+      durationDays: med.durationDays?.toString() ?? '',
+      startDate: med.startDate ?? '',
+      foodInstruction: med.foodInstruction ?? '',
+      reminderEnabled: med.reminderEnabled,
+      remainingPills: med.remainingPills?.toString() ?? '',
+      instructions: med.instructions ?? '',
+    });
+    setMenuMed(null);
+    setEditingMed(med);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingMed || !editForm.title.trim()) return;
+    setActionLoading(true);
+    try {
+      const r = await fetch(`/api/proxy/medications/${editingMed.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editForm.title, dosage: editForm.dosage || null,
+          frequency: editForm.frequency, times: editForm.times,
+          durationDays: editForm.durationDays ? parseInt(editForm.durationDays) : null,
+          startDate: editForm.startDate || null,
+          foodInstruction: editForm.foodInstruction || null,
+          reminderEnabled: editForm.reminderEnabled,
+          remainingPills: editForm.remainingPills ? parseInt(editForm.remainingPills) : null,
+          instructions: editForm.instructions || null,
+        }),
+      });
+      if (r.ok) {
+        const json = await r.json() as { data: MedicationRow };
+        onUpsertMed(json.data);
+      }
+    } finally { setActionLoading(false); setEditingMed(null); }
+  }
 
   // Group schedule items by scheduleId
   const scheduleMap = schedule.reduce<Record<string, ScheduleItem[]>>((acc, item) => {
@@ -437,6 +562,7 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
             onSkip={onSkip}
             onInfo={(item) => setInfoPopup(item)}
             onBuy={() => onSetTab('pharmacy')}
+            onMenu={(m) => setMenuMed(m)}
           />
         );
       })}
@@ -466,6 +592,7 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
             onSkip={onSkip}
             onInfo={(item) => setInfoPopup(item)}
             onBuy={() => onSetTab('pharmacy')}
+            onMenu={(m) => setMenuMed(m)}
           />
         );
       })}
@@ -565,6 +692,239 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
         📋 Экспорт истории приёма для врача (PDF)
       </button>
 
+      {/* ── Завершённые курсы ── */}
+      {completedMeds.length > 0 && (
+        <div style={{ margin: '0 16px 10px' }}>
+          <button
+            onClick={() => setShowCompleted(v => !v)}
+            style={{
+              width: '100%', padding: '12px 16px', borderRadius: 14,
+              background: C.card, border: `1px solid ${C.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: C.t2,
+            }}
+          >
+            <span>📦 Завершённые курсы ({completedMeds.length})</span>
+            <span style={{ fontSize: 16, transform: showCompleted ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>▾</span>
+          </button>
+          {showCompleted && (
+            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {completedMeds.map(med => (
+                <div key={med.id} style={{
+                  padding: '12px 14px', borderRadius: 14,
+                  background: C.card, border: `1px solid ${C.border}`, opacity: 0.8,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>💊</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: C.t1, margin: 0 }}>{med.title}</p>
+                    {med.dosage && <p style={{ fontSize: 11, color: C.t3 }}>{med.dosage}</p>}
+                    <span style={{
+                      display: 'inline-block', marginTop: 3, padding: '2px 8px', borderRadius: 6,
+                      fontSize: 10, fontWeight: 700,
+                      background: med.status === 'paused' ? C.orangeBg : C.greenBg,
+                      color: med.status === 'paused' ? C.orange : C.green,
+                    }}>
+                      {med.status === 'paused' ? '⏸ Пауза' : '✅ Завершён'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => void handleResume(med.id)}
+                      disabled={actionLoading}
+                      style={{
+                        padding: '6px 12px', borderRadius: 10, border: 'none',
+                        background: C.green, color: '#fff', fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'inherit', opacity: actionLoading ? 0.6 : 1,
+                      }}
+                    >▶ Продолжить</button>
+                    <button
+                      onClick={() => setConfirmDeleteId(med.id)}
+                      style={{
+                        width: 30, height: 30, borderRadius: 10, border: 'none',
+                        background: C.redBg, color: C.red, cursor: 'pointer', fontFamily: 'inherit',
+                        fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >🗑</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Menu bottom sheet ── */}
+      {menuMed && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => setMenuMed(null)}
+        >
+          <div
+            className="w-full max-w-[480px] rounded-t-3xl px-5 pt-4 pb-10"
+            style={{ background: '#fff' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e0dcd8', margin: '0 auto 16px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '0 4px' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: C.accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>💊</div>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 800, color: C.t1, margin: 0 }}>{menuMed.title}</p>
+                {menuMed.dosage && <p style={{ fontSize: 12, color: C.t3 }}>{menuMed.dosage}</p>}
+              </div>
+            </div>
+            {[
+              { icon: '✏️', label: 'Редактировать', action: () => openEdit(menuMed), color: C.t1 },
+              { icon: '⏸', label: 'Приостановить', action: () => void handlePause(menuMed.id), color: C.orange },
+              { icon: '✅', label: 'Завершить курс', action: () => void handleComplete(menuMed.id), color: C.green },
+              { icon: '🗑', label: 'Удалить', action: () => { setConfirmDeleteId(menuMed.id); }, color: C.red },
+            ].map(item => (
+              <button
+                key={item.label}
+                onClick={item.action}
+                disabled={actionLoading}
+                style={{
+                  width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none',
+                  background: 'none', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 15, fontWeight: 600, color: item.color,
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  borderTop: item.label === 'Редактировать' ? 'none' : `1px solid ${C.border}`,
+                  opacity: actionLoading ? 0.6 : 1,
+                }}
+              >
+                <span style={{ fontSize: 20, width: 28, textAlign: 'center' }}>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm delete ── */}
+      {confirmDeleteId !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="w-full max-w-[480px] rounded-t-3xl px-6 pt-6 pb-10 space-y-4"
+            style={{ background: '#fff' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e0dcd8', margin: '0 auto 8px' }} />
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: C.t1, textAlign: 'center' }}>Удалить лекарство?</h3>
+            <p style={{ fontSize: 14, color: C.t3, textAlign: 'center' }}>Это действие нельзя отменить.</p>
+            <button
+              onClick={() => void handleDeleteMed(confirmDeleteId)}
+              disabled={actionLoading}
+              style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: C.red, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: actionLoading ? 0.6 : 1 }}
+            >{actionLoading ? '...' : '🗑 Удалить'}</button>
+            <button
+              onClick={() => setConfirmDeleteId(null)}
+              style={{ width: '100%', padding: '14px', borderRadius: 16, border: 'none', background: C.bg, color: C.t1, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >Отмена</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit bottom sheet ── */}
+      {editingMed && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => setEditingMed(null)}
+        >
+          <div
+            className="w-full max-w-[480px] rounded-t-3xl"
+            style={{ background: '#fff', maxHeight: '90dvh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ position: 'sticky', top: 0, background: '#fff', padding: '16px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e0dcd8', margin: '0 auto 12px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontSize: 16, fontWeight: 800, color: C.t1 }}>✏️ Редактировать</p>
+                <button onClick={() => setEditingMed(null)} style={{ fontSize: 22, color: C.t3, background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
+              </div>
+            </div>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Название *">
+                <input type="text" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none" style={{ borderColor: C.border }} />
+              </Field>
+              <Field label="Дозировка">
+                <input type="text" placeholder="500 мг..." value={editForm.dosage} onChange={e => setEditForm(f => ({ ...f, dosage: e.target.value }))}
+                  className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none" style={{ borderColor: C.border }} />
+              </Field>
+              <Field label="Частота">
+                <select value={editForm.frequency} onChange={e => setEditForm(f => ({ ...f, frequency: e.target.value }))}
+                  className="w-full text-sm border rounded-xl px-3 py-2.5 focus:outline-none bg-white" style={{ borderColor: C.border }}>
+                  {['1 раз в день','2 раза в день','3 раза в день','По необходимости','Постоянно'].map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </Field>
+              <Field label="Время приёма">
+                <div className="flex flex-wrap gap-2">
+                  {editForm.times.map((t, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <input type="time" value={t} onChange={e => setEditForm(f => ({ ...f, times: f.times.map((tt, j) => j === i ? e.target.value : tt) }))}
+                        className="text-sm border rounded-xl px-2 py-1.5 focus:outline-none" style={{ borderColor: C.border }} />
+                      {editForm.times.length > 1 && (
+                        <button onClick={() => setEditForm(f => ({ ...f, times: f.times.filter((_, j) => j !== i) }))} style={{ color: C.red, background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                      )}
+                    </div>
+                  ))}
+                  {editForm.times.length < 4 && (
+                    <button onClick={() => setEditForm(f => ({ ...f, times: [...f.times, '12:00'] }))}
+                      className="text-[12px] px-2 py-1 rounded-lg" style={{ background: C.bg, color: C.accent, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>+ Время</button>
+                  )}
+                </div>
+              </Field>
+              <div className="flex gap-3">
+                <Field label="Дней курса" className="flex-1">
+                  <input type="number" placeholder="14" value={editForm.durationDays} onChange={e => setEditForm(f => ({ ...f, durationDays: e.target.value }))}
+                    className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none" style={{ borderColor: C.border }} />
+                </Field>
+                <Field label="Остаток таблеток" className="flex-1">
+                  <input type="number" placeholder="20" value={editForm.remainingPills} onChange={e => setEditForm(f => ({ ...f, remainingPills: e.target.value }))}
+                    className="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none" style={{ borderColor: C.border }} />
+                </Field>
+              </div>
+              <Field label="Приём с едой">
+                <div className="flex flex-wrap gap-2">
+                  {(['', 'before', 'after', 'during', 'no_alcohol'] as const).map(v => (
+                    <button key={v || 'none'} onClick={() => setEditForm(f => ({ ...f, foodInstruction: v }))}
+                      className="px-3 py-1.5 rounded-xl text-[12px] font-medium border transition-all" style={{
+                        background: editForm.foodInstruction === v ? C.accent : C.bg,
+                        color: editForm.foodInstruction === v ? '#fff' : '#666',
+                        borderColor: editForm.foodInstruction === v ? C.accent : C.border,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      {v === '' ? 'Не указано' : FOOD_TAGS[v]?.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <div className="flex items-center justify-between py-1">
+                <p className="text-[13px] font-semibold" style={{ color: C.t1 }}>Напоминания</p>
+                <Toggle value={editForm.reminderEnabled} onChange={v => setEditForm(f => ({ ...f, reminderEnabled: v }))} />
+              </div>
+            </div>
+            <div style={{ padding: '0 20px 40px', display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => void handleSaveEdit()}
+                disabled={actionLoading || !editForm.title.trim()}
+                style={{ flex: 1, padding: '14px', borderRadius: 16, border: 'none', background: C.accent, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: (actionLoading || !editForm.title.trim()) ? 0.6 : 1 }}
+              >{actionLoading ? 'Сохраняю...' : '✓ Сохранить'}</button>
+              <button
+                onClick={() => setEditingMed(null)}
+                style={{ padding: '14px 20px', borderRadius: 16, border: 'none', background: C.bg, color: C.t1, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Info popup ── */}
       {infoPopup && (
         <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }}
@@ -619,7 +979,7 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
 
 // ─── Grouped Med Card ─────────────────────────────────────────────────────────
 
-function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy }: {
+function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy, onMenu }: {
   med: MedicationRow;
   items: ScheduleItem[];
   colorBg: string;
@@ -627,6 +987,7 @@ function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy }: {
   onSkip: (id: string, time: string) => Promise<void>;
   onInfo: (item: ScheduleItem) => void;
   onBuy: () => void;
+  onMenu: (med: MedicationRow) => void;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
   const prog = courseProgress(med);
@@ -656,27 +1017,26 @@ function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy }: {
 
   return (
     <div style={cardStyle}>
-      {/* Remaining pills badge */}
-      {med.remainingPills !== null && (
-        <div style={{
-          position: 'absolute', top: 12, right: 12,
-          fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 8,
-          background: lowPills ? C.redBg : C.greenBg,
-          color: lowPills ? C.red : C.green,
-        }}>
-          {lowPills ? `⚠️ ${med.remainingPills} шт` : `${med.remainingPills} шт`}
-        </div>
-      )}
-
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <div style={{
           width: 44, height: 44, borderRadius: 14,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 20, flexShrink: 0, background: colorBg,
         }}>💊</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 800, color: C.t1, margin: 0 }}>{med.title}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.t1, margin: 0 }}>{med.title}</h3>
+            {med.remainingPills !== null && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 7, flexShrink: 0,
+                background: lowPills ? C.redBg : C.greenBg,
+                color: lowPills ? C.red : C.green,
+              }}>
+                {lowPills ? `⚠️ ${med.remainingPills} шт` : `${med.remainingPills} шт`}
+              </span>
+            )}
+          </div>
           {med.dosage && (
             <div style={{ fontSize: 12, color: C.t2, marginTop: 1 }}>
               {med.dosage}
@@ -684,6 +1044,18 @@ function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy }: {
             </div>
           )}
         </div>
+        {/* ⋯ management button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onMenu(med); }}
+          style={{
+            width: 30, height: 30, borderRadius: 10, border: 'none',
+            background: 'rgba(42,37,64,.06)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, color: C.t2, flexShrink: 0, fontFamily: 'inherit',
+            letterSpacing: 1,
+          }}
+          aria-label="Управление"
+        >⋯</button>
       </div>
 
       {/* Course progress */}
