@@ -48,9 +48,7 @@ const MED_COLORS = [
   { bg: C.orangeBg }, { bg: C.purpleBg },
 ];
 
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('ru-RU').format(p) + ' сум';
-}
+
 
 function courseProgress(med: MedicationRow): { text: string; percent: number; permanent?: boolean; warn?: boolean } | null {
   if (!med.startDate) return null;
@@ -121,12 +119,6 @@ async function compressImageToBase64(file: File, maxSide = 1200, quality = 0.78)
 interface ParsedMed {
   name: string; dosage: string; frequency: string; durationDays: number | null;
   times: string[]; foodInstruction: string | null; instructions: string | null; selected: boolean;
-}
-interface PharmacyResult {
-  productId: number; productName: string; dosage: string | null; form: string | null;
-  price: number; oldPrice: number | null; stock: number | null;
-  pharmacyName: string; address: string | null; lat: string | null; lon: string | null;
-  phone: string | null; isBestPrice: boolean;
 }
 interface FamilyMember {
   memberId: string; memberUserId: string | null; memberName: string; memberRelation: string;
@@ -1583,99 +1575,186 @@ function TabLog() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabPharmacy() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<PharmacyResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [userPos, setUserPos] = useState<{ lat: number; lon: number } | null>(null);
+  const [query, setQuery]       = useState('');
+  const [searched, setSearched] = useState('');   // last submitted query
+  const [city, setCity]         = useState('Ташкент');
+  const [locating, setLocating] = useState(false);
 
+  // Resolve city once via geolocation + Nominatim
   useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => setUserPos({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => {},
-      );
-    }
+    if (typeof window === 'undefined' || !navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`,
+            { headers: { 'Accept-Language': 'ru' } },
+          );
+          if (r.ok) {
+            const j = await r.json() as { address?: { city?: string; town?: string; village?: string; county?: string } };
+            const detected = j?.address?.city ?? j?.address?.town ?? j?.address?.village ?? j?.address?.county;
+            if (detected) setCity(detected);
+          }
+        } catch { /* keep fallback */ }
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { timeout: 6000 },
+    );
   }, []);
 
-  function distanceKm(lat: string | null, lon: string | null): number | null {
-    if (!userPos || !lat || !lon) return null;
-    const R = 6371, lat1 = userPos.lat * (Math.PI / 180), lat2 = parseFloat(lat) * (Math.PI / 180);
-    const dLat = lat2 - lat1, dLon = (parseFloat(lon) - userPos.lon) * (Math.PI / 180);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  function doSearch() {
+    const q = query.trim();
+    if (q.length < 2) return;
+    setSearched(q);
   }
 
-  async function search() {
-    if (query.trim().length < 2) return;
-    setLoading(true);
-    try {
-      const r = await fetch(`/api/proxy/medications/pharmacy/search?drug=${encodeURIComponent(query.trim())}`);
-      if (r.ok) setResults((await r.json() as { data: PharmacyResult[] }).data ?? []);
-    } finally { setLoading(false); }
-  }
+  const mapsQuery  = encodeURIComponent(`аптека ${city}`);
+  const tabletkaUrl = searched
+    ? `https://tabletka.uz/search?q=${encodeURIComponent(searched)}`
+    : null;
+  const mapsUrl = `https://www.google.com/maps/search/${mapsQuery}`;
 
   return (
-    <div>
-      <div style={{ padding: '14px 20px' }}>
+    <div style={{ paddingBottom: 32 }}>
+      {/* Header */}
+      <div style={{ padding: '14px 20px 10px' }}>
         <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>🔍 Цены в аптеках</h1>
+        {locating && (
+          <p style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>📍 Определяем ваш город…</p>
+        )}
+        {!locating && (
+          <p style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>📍 Город: <b style={{ color: C.t1 }}>{city}</b></p>
+        )}
       </div>
-      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
+
+      {/* Search bar */}
+      <div style={{ padding: '0 16px 16px', display: 'flex', gap: 8 }}>
         <input
           placeholder="Название лекарства..."
           value={query}
           onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') void search(); }}
+          onKeyDown={e => { if (e.key === 'Enter') doSearch(); }}
           style={{
             flex: 1, padding: '12px 16px', borderRadius: 14,
             border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit',
             outline: 'none', background: C.card,
           }}
         />
-        <button onClick={() => void search()} disabled={loading || query.trim().length < 2}
+        <button
+          onClick={doSearch}
+          disabled={query.trim().length < 2}
           style={{
-            padding: '12px 16px', borderRadius: 14, background: C.accent, color: '#fff',
-            border: 'none', fontSize: 14, cursor: 'pointer', opacity: loading || query.trim().length < 2 ? 0.5 : 1,
-          }}>🔍</button>
+            width: 48, height: 48, borderRadius: 14, background: C.accent,
+            border: 'none', fontSize: 18, cursor: 'pointer', flexShrink: 0,
+            opacity: query.trim().length < 2 ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >🔍</button>
       </div>
 
-      {results.length === 0 && !loading && query.trim().length >= 2 && (
-        <div style={{ margin: '0 16px', padding: 24, borderRadius: 16, background: C.card, border: `1px solid ${C.border}`, textAlign: 'center', fontSize: 13, color: C.t3 }}>
-          Ничего не найдено
+      {/* Result card after search */}
+      {searched && tabletkaUrl && (
+        <div style={{ margin: '0 16px 12px', borderRadius: 20, background: C.card, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+          {/* Title row */}
+          <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 13, color: C.t3, marginBottom: 4 }}>Результат поиска</p>
+            <p style={{ fontSize: 15, fontWeight: 800, color: C.t1 }}>
+              🔍 <span style={{ color: C.accent }}>{searched}</span> — поиск по аптекам {city}
+            </p>
+          </div>
+
+          {/* tabletka.uz button */}
+          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
+            <button
+              onClick={() => window.open(tabletkaUrl, '_blank', 'noopener')}
+              style={{
+                width: '100%', padding: '14px 16px', borderRadius: 14,
+                background: 'linear-gradient(135deg, #27ae60, #219a52)',
+                border: 'none', color: '#fff', fontSize: 14, fontWeight: 700,
+                cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                fontFamily: 'inherit',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>💊</span>
+              <span style={{ flex: 1 }}>Посмотреть цены на tabletka.uz →</span>
+              <span style={{ fontSize: 12, opacity: 0.8 }}>↗</span>
+            </button>
+            <p style={{ fontSize: 11, color: C.t3, marginTop: 6, textAlign: 'center' }}>
+              Актуальные цены в аптеках Узбекистана
+            </p>
+          </div>
+
+          {/* Google Maps link */}
+          <div style={{ padding: '12px 16px' }}>
+            <button
+              onClick={() => window.open(mapsUrl, '_blank', 'noopener')}
+              style={{
+                width: '100%', padding: '13px 16px', borderRadius: 14,
+                background: C.blueBg, border: `1px solid ${C.border}`,
+                color: C.t1, fontSize: 14, fontWeight: 700,
+                cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                fontFamily: 'inherit',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>📍</span>
+              <span style={{ flex: 1 }}>Ближайшие аптеки на карте →</span>
+              <span style={{ fontSize: 12, color: C.t3 }}>↗</span>
+            </button>
+            <p style={{ fontSize: 11, color: C.t3, marginTop: 6, textAlign: 'center' }}>
+              Google Maps · аптеки рядом с вами
+            </p>
+          </div>
         </div>
       )}
 
-      {results.map((r, i) => {
-        const dist = distanceKm(r.lat, r.lon);
-        return (
-          <div key={i} style={{
-            margin: '0 16px 10px', padding: 14, borderRadius: 16,
-            background: r.isBestPrice ? C.greenBg : C.card,
-            border: `1px solid ${r.isBestPrice ? C.green : C.border}`,
-            display: 'flex', alignItems: 'center', gap: 12,
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-              background: r.isBestPrice ? '#b8d8bc' : C.greenBg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-            }}>
-              {r.isBestPrice ? '🏆' : '💊'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>
-                {r.pharmacyName}
-                {r.isBestPrice && <span style={{ marginLeft: 6, fontSize: 10, color: C.green, fontWeight: 800 }}>ЛУЧШАЯ ЦЕНА</span>}
-              </div>
-              <div style={{ fontSize: 11, color: C.t3 }}>{r.address ?? ''}</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: C.green }}>{formatPrice(r.price)}</div>
-              <div style={{ fontSize: 10, color: C.t3 }}>
-                {dist !== null ? (dist < 1 ? `${Math.round(dist * 1000)} м` : `${dist.toFixed(1)} км`) : ''}
-              </div>
-            </div>
+      {/* Empty state before search */}
+      {!searched && (
+        <div style={{ margin: '0 16px 12px', padding: '24px 20px', borderRadius: 20, background: C.card, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+          <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>🏥</span>
+          <p style={{ fontSize: 14, fontWeight: 700, color: C.t1, marginBottom: 6 }}>Найдите лекарство в аптеках</p>
+          <p style={{ fontSize: 12, color: C.t3, lineHeight: 1.5 }}>
+            Введите название препарата и нажмите 🔍 — мы покажем цены и адреса аптек в вашем городе
+          </p>
+        </div>
+      )}
+
+      {/* Quick search chips */}
+      {!searched && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            Популярные запросы
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {['Амоксициллин', 'Парацетамол', 'Омепразол', 'Ибупрофен', 'Цетиризин'].map(drug => (
+              <button
+                key={drug}
+                onClick={() => { setQuery(drug); setSearched(drug); }}
+                style={{
+                  padding: '7px 14px', borderRadius: 20, border: `1px solid ${C.border}`,
+                  background: C.card, fontSize: 13, color: C.t1, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {drug}
+              </button>
+            ))}
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {/* Coming soon banner */}
+      <div style={{
+        margin: '0 16px', padding: '14px 16px', borderRadius: 16,
+        background: 'linear-gradient(135deg, #f0eefc, #ece4f8)',
+        border: '1px solid rgba(156,94,108,0.15)',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <span style={{ fontSize: 24, flexShrink: 0 }}>💡</span>
+        <p style={{ fontSize: 13, color: C.t2, lineHeight: 1.5, margin: 0 }}>
+          <b>Скоро:</b> цены от аптек-партнёров AIVITA прямо в приложении
+        </p>
+      </div>
     </div>
   );
 }
