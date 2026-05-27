@@ -3,6 +3,8 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 FROM base AS builder
 WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/aivita/package.json apps/aivita/
 COPY packages/db/package.json packages/db/
