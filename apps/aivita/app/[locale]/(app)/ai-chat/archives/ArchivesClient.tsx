@@ -31,10 +31,6 @@ function fmtDate(iso: string) {
   });
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-}
-
 // ─── ArchivesClient ───────────────────────────────────────────────────────────
 
 export function ArchivesClient({ locale }: { locale: string }) {
