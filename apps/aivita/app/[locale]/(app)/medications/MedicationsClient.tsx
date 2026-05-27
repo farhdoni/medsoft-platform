@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 
@@ -171,6 +171,45 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
   const [medications, setMedications] = useState<MedicationRow[]>(initialMedications);
   const [celebration, setCelebration] = useState(false);
 
+  // ── Custom order (persisted in localStorage) ────────────────────────────────
+  const [medOrder, setMedOrder] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('aivita_med_order');
+      return saved ? (JSON.parse(saved) as string[]) : [];
+    } catch { return []; }
+  });
+
+  const orderedMedications = useMemo(() => {
+    if (medOrder.length === 0) return medications;
+    const orderMap = new Map(medOrder.map((id, i) => [id, i]));
+    return [...medications].sort((a, b) => {
+      const ai = orderMap.get(a.id) ?? 9999;
+      const bi = orderMap.get(b.id) ?? 9999;
+      return ai - bi;
+    });
+  }, [medications, medOrder]);
+
+  function handleMoveUp(id: string) {
+    const ids = orderedMedications.map(m => m.id);
+    const idx = ids.indexOf(id);
+    if (idx <= 0) return;
+    const next = [...ids];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    setMedOrder(next);
+    localStorage.setItem('aivita_med_order', JSON.stringify(next));
+  }
+
+  function handleMoveDown(id: string) {
+    const ids = orderedMedications.map(m => m.id);
+    const idx = ids.indexOf(id);
+    if (idx < 0 || idx >= ids.length - 1) return;
+    const next = [...ids];
+    [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+    setMedOrder(next);
+    localStorage.setItem('aivita_med_order', JSON.stringify(next));
+  }
+
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'meds',     label: '💊 Лекарства' },
     { key: 'add',      label: '➕ Добавить'   },
@@ -235,7 +274,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
       <div style={{ paddingBottom: 80 }}>
         {tab === 'meds' && (
           <TabMeds
-            schedule={schedule} medications={medications} stats={stats}
+            schedule={schedule} medications={orderedMedications} stats={stats}
             onTake={handleTake} onSkip={handleSkip}
             onSetTab={setTab} locale={locale}
             onRemoveMed={(id) => setMedications(prev => prev.filter(m => m.id !== id))}
@@ -243,6 +282,8 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
               const exists = prev.some(m => m.id === med.id);
               return exists ? prev.map(m => m.id === med.id ? med : m) : [med, ...prev];
             })}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
           />
         )}
         {tab === 'add' && (
@@ -266,7 +307,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
 // TAB 1 — Лекарства
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, locale, onRemoveMed, onUpsertMed }: {
+function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, locale, onRemoveMed, onUpsertMed, onMoveUp, onMoveDown }: {
   schedule: ScheduleItem[];
   medications: MedicationRow[];
   stats: MedStats | null;
@@ -276,6 +317,8 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
   locale: string;
   onRemoveMed: (id: string) => void;
   onUpsertMed: (med: MedicationRow) => void;
+  onMoveUp: (id: string) => void;
+  onMoveDown: (id: string) => void;
 }) {
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [infoPopup, setInfoPopup] = useState<ScheduleItem | null>(null);
@@ -555,6 +598,10 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
             onInfo={(item) => setInfoPopup(item)}
             onBuy={() => onSetTab('pharmacy')}
             onMenu={(m) => setMenuMed(m)}
+            isFirst={idx === 0}
+            isLast={idx === medications.length - 1}
+            onMoveUp={() => onMoveUp(med.id)}
+            onMoveDown={() => onMoveDown(med.id)}
           />
         );
       })}
@@ -971,7 +1018,7 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
 
 // ─── Grouped Med Card ─────────────────────────────────────────────────────────
 
-function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy, onMenu }: {
+function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy, onMenu, isFirst, isLast, onMoveUp, onMoveDown }: {
   med: MedicationRow;
   items: ScheduleItem[];
   colorBg: string;
@@ -980,6 +1027,10 @@ function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy, onMe
   onInfo: (item: ScheduleItem) => void;
   onBuy: () => void;
   onMenu: (med: MedicationRow) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
   const prog = courseProgress(med);
@@ -1035,6 +1086,35 @@ function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy, onMe
               {med.createdBy === 'doctor' && <span style={{ marginLeft: 6, fontSize: 10, background: C.blueBg, color: C.blue, padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>🩺 Врач</span>}
             </div>
           )}
+        </div>
+        {/* ↑↓ reorder buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
+            disabled={isFirst}
+            style={{
+              width: 26, height: 22, borderRadius: 7, border: 'none',
+              background: isFirst ? 'rgba(42,37,64,.03)' : 'rgba(42,37,64,.07)',
+              cursor: isFirst ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, color: isFirst ? C.t3 : C.t2, fontFamily: 'inherit',
+              transition: 'background .15s',
+            }}
+            aria-label="Переместить вверх"
+          >▲</button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
+            disabled={isLast}
+            style={{
+              width: 26, height: 22, borderRadius: 7, border: 'none',
+              background: isLast ? 'rgba(42,37,64,.03)' : 'rgba(42,37,64,.07)',
+              cursor: isLast ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, color: isLast ? C.t3 : C.t2, fontFamily: 'inherit',
+              transition: 'background .15s',
+            }}
+            aria-label="Переместить вниз"
+          >▼</button>
         </div>
         {/* ⋯ management button */}
         <button
