@@ -9,6 +9,39 @@ import { AiDocumentModal, type ParsedMedical } from '@/components/medical/AiDocu
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// AI Action types
+interface MedicationActionItem {
+  name: string;
+  dosage?: string;
+  frequency?: string;
+  times?: string[];
+  durationDays?: number | null;
+  foodInstruction?: string | null;
+}
+
+interface ParsedActions {
+  cleanText: string;
+  medicationsAction: MedicationActionItem[] | null;
+}
+
+/** Strip [MEDICATIONS_ACTION]...[/MEDICATIONS_ACTION] from text, return parsed data */
+function parseActions(text: string): ParsedActions {
+  // Full block: both opening and closing tags present
+  const FULL_RE = /\[MEDICATIONS_ACTION\]([\s\S]*?)\[\/MEDICATIONS_ACTION\]/;
+  const full = FULL_RE.exec(text);
+  if (full) {
+    let meds: MedicationActionItem[] | null = null;
+    try {
+      const j = JSON.parse(full[1].trim()) as { medications?: MedicationActionItem[] };
+      if (Array.isArray(j?.medications) && j.medications.length > 0) meds = j.medications;
+    } catch { /* malformed JSON — show nothing */ }
+    return { cleanText: text.replace(FULL_RE, '').replace(/\n{3,}/g, '\n\n').trim(), medicationsAction: meds };
+  }
+  // Partial block during streaming — hide from [MEDICATIONS_ACTION onward
+  const PARTIAL_RE = /\[MEDICATIONS_ACTION[\s\S]*/;
+  return { cleanText: text.replace(PARTIAL_RE, '').trim(), medicationsAction: null };
+}
+
 type AttachKind = 'photo' | 'file' | 'audio';
 
 interface AttachPhoto { kind: 'photo'; file: File; dataUrl: string; id: string }
@@ -244,6 +277,10 @@ export function AiChatClient({ locale }: { locale: string }) {
   // ── Swipe-to-delete ────────────────────────────────────────────────────────
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const touchStartXRef = useRef(0);
+
+  // ── AI Actions (medications bulk-add) ──────────────────────────────────────
+  const [addedActions,   setAddedActions]   = useState<Set<string>>(new Set());
+  const [addingActionId, setAddingActionId] = useState<string | null>(null);
 
   // ── AI conversation history (sent to /api/ai/chat) ──────────────────────────
   const [apiHistory, setApiHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
@@ -611,6 +648,20 @@ export function AiChatClient({ locale }: { locale: string }) {
     setMessages(prev => prev.filter(m => m.id !== id));
   }
 
+  async function addMedicationsAction(msgId: string, meds: MedicationActionItem[]) {
+    setAddingActionId(msgId);
+    try {
+      const r = await fetch('/api/proxy/medications/bulk-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ medications: meds }),
+      });
+      if (r.ok) setAddedActions(prev => new Set([...prev, msgId]));
+    } finally {
+      setAddingActionId(null);
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
@@ -768,26 +819,85 @@ export function AiChatClient({ locale }: { locale: string }) {
                         ))}
 
                         {/* Text bubble */}
-                        {m.text && (
-                          <div
-                            className={`px-4 py-2.5 ${m.role === 'user' ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
-                            style={m.role === 'user'
-                              ? { background: 'var(--accent, #9c5e6c)', color: '#fff' }
-                              : { background: '#fff', border: '1px solid #e8e4dc', color: '#2a2540' }
-                            }
-                          >
-                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{m.text}</p>
-                            {m.medicalData && (
-                              <button
-                                onClick={() => setMedModal(m.medicalData!)}
-                                className="mt-2 w-full rounded-xl py-2 text-[13px] font-semibold transition hover:opacity-90 active:scale-95"
-                                style={{ background: '#e0d8f0', color: '#6a3a8a' }}
-                              >
-                                Добавить в профиль
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        {m.text && (() => {
+                          const { cleanText, medicationsAction } = parseActions(m.text);
+                          return (
+                            <>
+                              {cleanText && (
+                                <div
+                                  className={`px-4 py-2.5 ${m.role === 'user' ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'}`}
+                                  style={m.role === 'user'
+                                    ? { background: 'var(--accent, #9c5e6c)', color: '#fff' }
+                                    : { background: '#fff', border: '1px solid #e8e4dc', color: '#2a2540' }
+                                  }
+                                >
+                                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{cleanText}</p>
+                                  {m.medicalData && (
+                                    <button
+                                      onClick={() => setMedModal(m.medicalData!)}
+                                      className="mt-2 w-full rounded-xl py-2 text-[13px] font-semibold transition hover:opacity-90 active:scale-95"
+                                      style={{ background: '#e0d8f0', color: '#6a3a8a' }}
+                                    >
+                                      Добавить в профиль
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Medications Action Card */}
+                              {medicationsAction && medicationsAction.length > 0 && (
+                                <div
+                                  className="rounded-2xl overflow-hidden w-full"
+                                  style={{ border: '1px solid #b8d8bc', background: '#f2faf3', minWidth: 240 }}
+                                >
+                                  <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid #c8e4cc', background: '#e4f4e8' }}>
+                                    <span className="text-base">💊</span>
+                                    <p className="text-[13px] font-bold" style={{ color: '#2a5a3a' }}>
+                                      Найдено {medicationsAction.length} лекарств
+                                    </p>
+                                  </div>
+                                  <div className="px-4 py-2 space-y-1.5">
+                                    {medicationsAction.slice(0, 5).map((med, i) => (
+                                      <div key={i} className="flex items-baseline gap-1.5">
+                                        <span className="text-[11px]" style={{ color: '#6a7a6a' }}>•</span>
+                                        <div>
+                                          <span className="text-[13px] font-semibold" style={{ color: '#1a3a2a' }}>{med.name}</span>
+                                          {(med.dosage || med.frequency) && (
+                                            <span className="text-[11px] ml-1.5" style={{ color: '#7a9a7a' }}>
+                                              {[med.dosage, med.frequency].filter(Boolean).join(' · ')}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {medicationsAction.length > 5 && (
+                                      <p className="text-[11px]" style={{ color: '#7a9a7a' }}>и ещё {medicationsAction.length - 5}...</p>
+                                    )}
+                                  </div>
+                                  <div className="px-3 pb-3">
+                                    {addedActions.has(m.id) ? (
+                                      <div
+                                        className="w-full py-2.5 rounded-xl text-[13px] font-bold text-center"
+                                        style={{ background: '#c8e4cc', color: '#2a5a3a' }}
+                                      >
+                                        ✅ Добавлено {medicationsAction.length} лекарств
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => void addMedicationsAction(m.id, medicationsAction)}
+                                        disabled={addingActionId === m.id}
+                                        className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white transition active:scale-95 disabled:opacity-60"
+                                        style={{ background: '#3a7a4a' }}
+                                      >
+                                        {addingActionId === m.id ? '⏳ Добавляю...' : `➕ Добавить все в мои лекарства`}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
 
                         {/* Timestamp */}
                         <p className="text-[10px] px-1" style={{ color: '#9a96a8' }}>{fmtTime(m.ts)}</p>

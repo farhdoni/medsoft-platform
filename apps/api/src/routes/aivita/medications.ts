@@ -174,6 +174,54 @@ aivitaMedicationsRouter.delete('/:id', async (c) => {
   return c.json({ data: { success: true, deleted: true } });
 });
 
+// ─── POST /bulk-add — добавить список лекарств из AI-чата ───────────────────
+
+aivitaMedicationsRouter.post('/bulk-add', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const body = await c.req.json() as {
+    medications: Array<{
+      name: string;
+      dosage?: string;
+      frequency?: string;
+      times?: string[];
+      durationDays?: number | null;
+      foodInstruction?: string | null;
+    }>;
+  };
+
+  if (!Array.isArray(body.medications) || body.medications.length === 0) {
+    return c.json({ error: 'medications array is required' }, 400);
+  }
+
+  const startDate = new Date().toISOString().split('T')[0];
+  const added: Array<{ id: string; name: string }> = [];
+
+  for (const med of body.medications.slice(0, 20)) {
+    if (!med.name?.trim()) continue;
+    try {
+      const [row] = await db.insert(medicationSchedule).values({
+        userId,
+        title: med.name.trim(),
+        dosage: med.dosage ?? null,
+        frequency: med.frequency ?? '1 раз в день',
+        times: Array.isArray(med.times) ? med.times : [],
+        durationDays: med.durationDays ?? null,
+        startDate,
+        foodInstruction: med.foodInstruction ?? null,
+        source: 'chat',
+        createdBy: 'patient',
+        reminderEnabled: true,
+        reminderMinutesBefore: 5,
+        sideEffects: [],
+        contraindications: [],
+      }).returning();
+      added.push({ id: row.id, name: row.title });
+    } catch { /* skip individual failures */ }
+  }
+
+  return c.json({ data: { added: added.length, medications: added } }, 201);
+});
+
 // ─── GET /today — расписание на сегодня ──────────────────────────────────────
 
 aivitaMedicationsRouter.get('/today', async (c) => {
