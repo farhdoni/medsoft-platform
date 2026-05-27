@@ -38,6 +38,41 @@ interface Message {
 
 function uid() { return Math.random().toString(36).slice(2); }
 
+/** Compress + resize an image File to max 1200px, return data URL (data:image/jpeg;base64,...) */
+async function compressImageToDataUrl(file: File, maxSide = 1200, quality = 0.78): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxSide || height > maxSide) {
+        if (width >= height) { height = Math.round(height * maxSide / width); width = maxSide; }
+        else { width = Math.round(width * maxSide / height); height = maxSide; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        // Fallback: read as-is
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
 function fmtTime(d: Date) {
   return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
 }
@@ -261,19 +296,16 @@ export function AiChatClient({ locale }: { locale: string }) {
 
   // ── Attachments ────────────────────────────────────────────────────────────
 
-  function addPhotoFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachments(prev => [...prev, { kind: 'photo', file, dataUrl: reader.result as string, id: uid() }]);
-    };
-    reader.readAsDataURL(file);
+  async function addPhotoFile(file: File) {
+    const dataUrl = await compressImageToDataUrl(file);
+    setAttachments(prev => [...prev, { kind: 'photo', file, dataUrl, id: uid() }]);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     files.forEach(f => {
       if (f.type.startsWith('image/') || f.type.startsWith('video/')) {
-        addPhotoFile(f);
+        void addPhotoFile(f);
       } else {
         setAttachments(prev => [...prev, { kind: 'file', file: f, id: uid() }]);
       }

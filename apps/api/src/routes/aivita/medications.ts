@@ -530,8 +530,8 @@ aivitaMedicationsRouter.post('/parse-receipt', async (c) => {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 1500,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
       messages: [{
         role: 'user',
         content: [
@@ -541,42 +541,59 @@ aivitaMedicationsRouter.post('/parse-receipt', async (c) => {
           },
           {
             type: 'text',
-            text: `Это фотография медицинского рецепта или выписки. Извлеки все назначенные лекарства.
+            text: `Это фото медицинского рецепта. Прочти КАЖДУЮ строку внимательно, включая рукописный текст.
 
-Для каждого лекарства укажи:
-- name: название препарата
-- dosage: дозировка (например "500мг", "1 таблетка")
-- frequency: частота приёма (например "2 раза в день", "утром и вечером")
-- durationDays: продолжительность курса в днях (число или null)
-- times: массив времён приёма в формате ["08:00", "20:00"] (вычисли из частоты)
-- foodInstruction: инструкция по отношению к еде (one of: "before", "after", "during", "no_alcohol", or null)
-- instructions: дополнительные инструкции (или null)
+Рукописные названия лекарств часто выглядят как: торговые названия (Зугрель, Тромбопол, Конкор, Роксера, Амлодипин, Эринит, Ношпалгин) или дозировки (10мг, 75мг, 2.5мг, 1 мад, 1 таб, 2 кап и т.д.).
 
-Верни ТОЛЬКО JSON массив объектов без пояснений:
-[{"name":"...","dosage":"...","frequency":"...","durationDays":null,"times":[],"foodInstruction":null,"instructions":null}]`,
+Для каждого лекарства извлеки:
+- name: точное название как написано
+- dosage: дозировка ("10мг", "1 таблетка", "1 мад", "2 кап" и т.д.)
+- frequency: частота ("1 раз в день", "2 раза в день", "утром и вечером" и т.д.)
+- durationDays: курс в днях (число или null если не указано)
+- times: массив времён ["08:00"] вычисленных из частоты
+- foodInstruction: одно из "before" | "after" | "during" | "no_alcohol" | null
+- instructions: прочие указания или null
+
+Верни ТОЛЬКО JSON массив без пояснений и без markdown блоков:
+[{"name":"...","dosage":"...","frequency":"...","durationDays":null,"times":["08:00"],"foodInstruction":null,"instructions":null}]
+
+Если слово нечитаемо — добавь запись с name "[нечитаемо]".
+Если рецепт содержит 0 лекарств — верни пустой массив [].`,
           },
         ],
       }],
     });
 
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return c.json({ data: [], raw: text });
+    const rawText = response.content[0]?.type === 'text' ? response.content[0].text : '';
 
-    const parsed = JSON.parse(jsonMatch[0]) as Array<{
-      name: string;
-      dosage: string;
-      frequency: string;
-      durationDays: number | null;
-      times: string[];
-      foodInstruction: string | null;
-      instructions: string | null;
-    }>;
+    // Strip markdown code fences if present
+    const text = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '').trim();
 
-    return c.json({ data: parsed });
+    type MedItem = { name: string; dosage: string; frequency: string; durationDays: number | null; times: string[]; foodInstruction: string | null; instructions: string | null };
+    let parsed: MedItem[] = [];
+
+    // Try direct parse first (Claude returned clean JSON)
+    try {
+      const direct = JSON.parse(text) as MedItem[] | { medications?: MedItem[]; data?: MedItem[] };
+      if (Array.isArray(direct)) {
+        parsed = direct;
+      } else if (Array.isArray(direct?.medications)) {
+        parsed = direct.medications as MedItem[];
+      } else if (Array.isArray((direct as { data?: MedItem[] })?.data)) {
+        parsed = (direct as { data: MedItem[] }).data;
+      }
+    } catch {
+      // Fallback: regex extract array
+      const arrMatch = text.match(/\[[\s\S]*\]/);
+      if (arrMatch) {
+        try { parsed = JSON.parse(arrMatch[0]) as MedItem[]; } catch { parsed = []; }
+      }
+    }
+
+    return c.json({ data: parsed, raw: parsed.length === 0 ? rawText : undefined });
   } catch (err) {
     console.error('parse-receipt error:', err);
-    return c.json({ error: 'AI recognition failed' }, 500);
+    return c.json({ error: 'AI recognition failed', detail: String(err) }, 500);
   }
 });
 
@@ -594,7 +611,7 @@ aivitaMedicationsRouter.post('/identify', async (c) => {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 800,
       messages: [{
         role: 'user',

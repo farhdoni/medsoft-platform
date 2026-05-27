@@ -91,6 +91,31 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/** Compress + resize image to max 1200px and return raw base64 (no data: prefix). */
+async function compressImageToBase64(file: File, maxSide = 1200, quality = 0.78): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxSide || height > maxSide) {
+        if (width >= height) { height = Math.round(height * maxSide / width); width = maxSide; }
+        else { width = Math.round(width * maxSide / height); height = maxSide; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { fileToBase64(file).then(resolve); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(dataUrl.split(',')[1] ?? dataUrl);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); fileToBase64(file).then(resolve); };
+    img.src = objectUrl;
+  });
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ParsedMed {
@@ -806,6 +831,7 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
   const [receiptParsed, setReceiptParsed] = useState<ParsedMed[]>([]);
   const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [parseError, setParseError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -818,17 +844,27 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
 
   async function handleReceiptPhoto(file: File) {
     setParsing(true);
+    setParseError('');
     try {
-      const base64 = await fileToBase64(file);
+      // Compress image to max 1200px / JPEG 0.78 → keeps base64 under ~800KB
+      const base64 = await compressImageToBase64(file);
       const r = await fetch('/api/proxy/medications/parse-receipt', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageData: base64, mediaType: file.type }),
+        body: JSON.stringify({ imageData: base64, mediaType: 'image/jpeg' }),
       });
       if (r.ok) {
-        const json = await r.json() as { data: Array<Omit<ParsedMed, 'selected'>> };
-        setReceiptParsed((json.data || []).map(m => ({ ...m, selected: true })));
+        const json = await r.json() as { data: Array<Omit<ParsedMed, 'selected'>>; raw?: string };
+        if (!json.data || json.data.length === 0) {
+          setParseError('AI не смог найти лекарства на фото. Убедитесь что фото чёткое и рецепт хорошо виден.');
+          return;
+        }
+        setReceiptParsed(json.data.map(m => ({ ...m, selected: true })));
         setMode('receipt');
+      } else {
+        setParseError('Ошибка распознавания. Попробуйте снова с более чётким фото.');
       }
+    } catch {
+      setParseError('Ошибка сети. Проверьте подключение и попробуйте снова.');
     } finally { setParsing(false); }
   }
 
@@ -1009,6 +1045,14 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
       </div>
       <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={e => { if (e.target.files?.[0]) void handleReceiptPhoto(e.target.files[0]); }} />
+
+      {parseError && (
+        <div style={{ margin: '0 16px 12px', padding: '12px 14px', borderRadius: 12, background: '#fde8e8', border: '1px solid #dc3545', fontSize: 13, color: '#c0392b', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span>⚠️</span>
+          <span>{parseError}</span>
+          <button onClick={() => setParseError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px' }}>
         {[
