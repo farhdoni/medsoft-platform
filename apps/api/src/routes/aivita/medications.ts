@@ -657,7 +657,14 @@ aivitaMedicationsRouter.post('/parse-receipt', async (c) => {
     }
 
     return c.json({ data: parsed, raw: parsed.length === 0 ? rawText : undefined });
-  } catch (err) {
+  } catch (err: unknown) {
+    // Anthropic bad-request (e.g. corrupt image, "Could not process image") →
+    // return empty list so frontend shows "no meds found" instead of error banner
+    const status = (err as { status?: number })?.status;
+    if (status === 400 || status === 422) {
+      console.warn('parse-receipt: Anthropic rejected image (400/422):', String(err));
+      return c.json({ data: [], raw: undefined });
+    }
     console.error('parse-receipt error:', err);
     return c.json({ error: 'AI recognition failed', detail: String(err) }, 500);
   }
@@ -722,7 +729,12 @@ aivitaMedicationsRouter.post('/identify', async (c) => {
     };
 
     return c.json({ data: parsed });
-  } catch (err) {
+  } catch (err: unknown) {
+    const status = (err as { status?: number })?.status;
+    if (status === 400 || status === 422) {
+      console.warn('identify: Anthropic rejected image:', String(err));
+      return c.json({ data: null });
+    }
     console.error('identify error:', err);
     return c.json({ error: 'AI identification failed' }, 500);
   }
