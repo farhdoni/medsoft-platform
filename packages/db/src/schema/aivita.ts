@@ -1190,3 +1190,98 @@ export const healthAnalysis = pgTable(
     userCreatedIdx: index('health_analysis_user_created_idx').on(table.userId, table.createdAt),
   })
 );
+
+// ─── symptomSessions ──────────────────────────────────────────────────────────
+
+export const symptomSessions = pgTable(
+  'symptom_sessions',
+  {
+    id:           serial('id').primaryKey(),
+    userId:       uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    sessionId:    uuid('session_id').notNull().defaultRandom(),
+    mainSymptom:  varchar('main_symptom', { length: 200 }).notNull(),
+    bodyArea:     varchar('body_area', { length: 50 }),
+    answers:      jsonb('answers').$type<Array<{ question: string; answer: string }>>().notNull().default([]),
+    results:      jsonb('results').$type<Array<{ condition: string; probability: string; description: string; specialist: string; urgency: string }>>(),
+    createdAt:    timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userIdx: index('symptom_sessions_user_id_idx').on(table.userId) })
+);
+
+// ─── nutritionLogs ────────────────────────────────────────────────────────────
+
+export const nutritionLogs = pgTable(
+  'nutrition_logs',
+  {
+    id:            serial('id').primaryKey(),
+    userId:        uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    date:          date('date').notNull(),
+    meal:          varchar('meal', { length: 20 }).notNull(),
+    dishes:        jsonb('dishes').$type<Array<{ name: string; calories: number; protein?: number; fat?: number; carbs?: number }>>().notNull().default([]),
+    totalCalories: integer('total_calories').notNull().default(0),
+    totalProtein:  numeric('total_protein', { precision: 6, scale: 2 }).notNull().default('0'),
+    totalFat:      numeric('total_fat', { precision: 6, scale: 2 }).notNull().default('0'),
+    totalCarbs:    numeric('total_carbs', { precision: 6, scale: 2 }).notNull().default('0'),
+    createdAt:     timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userDateIdx: index('nutrition_logs_user_date_idx').on(table.userId, table.date) })
+);
+
+// ─── nutritionPlans ───────────────────────────────────────────────────────────
+
+export const nutritionPlans = pgTable(
+  'nutrition_plans',
+  {
+    id:        serial('id').primaryKey(),
+    userId:    uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    goal:      varchar('goal', { length: 20 }).notNull(),
+    plan:      jsonb('plan').$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userIdx: index('nutrition_plans_user_id_idx').on(table.userId) })
+);
+
+// ─── moodLogs ─────────────────────────────────────────────────────────────────
+
+export const moodLogs = pgTable(
+  'mood_logs',
+  {
+    id:        serial('id').primaryKey(),
+    userId:    uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    mood:      integer('mood').notNull(),
+    factors:   jsonb('factors').$type<string[]>().notNull().default([]),
+    note:      text('note'),
+    date:      date('date').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userDateIdx: index('mood_logs_user_date_idx').on(table.userId, table.date) })
+);
+
+// ─── mentalActivities ─────────────────────────────────────────────────────────
+
+export const mentalActivities = pgTable(
+  'mental_activities',
+  {
+    id:              serial('id').primaryKey(),
+    userId:          uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    type:            varchar('type', { length: 20 }).notNull(),
+    exerciseId:      varchar('exercise_id', { length: 50 }),
+    durationSeconds: integer('duration_seconds'),
+    createdAt:       timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userIdx: index('mental_activities_user_idx').on(table.userId) })
+);
+
+// ─── mentalTherapistMessages ──────────────────────────────────────────────────
+
+export const mentalTherapistMessages = pgTable(
+  'mental_therapist_messages',
+  {
+    id:        serial('id').primaryKey(),
+    userId:    uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    role:      varchar('role', { length: 10 }).notNull(),
+    content:   text('content').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userIdx: index('mental_therapist_user_idx').on(table.userId) })
+);

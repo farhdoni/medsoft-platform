@@ -51,6 +51,26 @@ export default async function HomePage({
         {/* ── Referral Banner ─────────────────────────────────────────────── */}
         <ReferralBanner locale={locale} />
 
+        {/* ── Quick access cards — new features ───────────────────────────── */}
+        <section className="px-4 pb-3 sm:px-7">
+          <div className="grid grid-cols-2 gap-3">
+            <Link href={`/${locale}/symptom-checker`}
+              className="rounded-2xl p-4 block transition hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #f0d4dc 0%, #f8e8ec 100%)', border: '1px solid rgba(156,94,108,0.2)' }}>
+              <div className="text-3xl mb-2">🩺</div>
+              <p className="text-[13px] font-bold" style={{ color: '#2a2540' }}>Проверить симптомы</p>
+              <p className="text-[11px] mt-0.5" style={{ color: '#9a96a8' }}>AI-диагностика</p>
+            </Link>
+            <Link href={`/${locale}/mental-health`}
+              className="rounded-2xl p-4 block transition hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #e0d8f0 0%, #ede8f8 100%)', border: '1px solid rgba(139,106,174,0.2)' }}>
+              <div className="text-3xl mb-2">🧘</div>
+              <p className="text-[13px] font-bold" style={{ color: '#2a2540' }}>Ментальное здоровье</p>
+              <p className="text-[11px] mt-0.5" style={{ color: '#9a96a8' }}>Настроение · Медитации</p>
+            </Link>
+          </div>
+        </section>
+
         {/* ── AI Checkup CTA ──────────────────────────────────────────────── */}
         <section className="px-4 pb-6 sm:px-7">
           <div

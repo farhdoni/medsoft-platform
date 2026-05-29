@@ -126,7 +126,7 @@ export default async function SettingsPage({
       title: t('sectionApp'),
       items: [
         { icon: Globe, label: t('language'),      sub: localeLabel,                 href: '#', value: localeLabel,                                       bg: '#d4dff0',               color: '#5e75a8' },
-        { icon: Bell,  label: t('notifications'), sub: t('notificationsSub'),       href: '#', value: notificationsOn ? t('notifOn') : t('notifOff'),    bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
+        { icon: Bell,  label: t('notifications'), sub: t('notificationsSub'),       href: `/${locale}/settings/notifications`, value: notificationsOn ? t('notifOn') : t('notifOff'),    bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
         { icon: Lock,  label: t('privacy'),       sub: t('privacySub'),             href: `/${locale}/privacy`,                                          bg: '#d4e8d8',               color: '#548068' },
       ],
     },
