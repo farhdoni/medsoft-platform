@@ -91,6 +91,14 @@
     color: rgb(var(--text-primary));
     font-family: var(--font-manrope), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* Eliminate 300ms tap delay globally — makes ALL buttons instant in WebView */
+    touch-action: manipulation;
+  }
+
+  /* All interactive elements: instant tap response, no grey flash on mobile */
+  a, button, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

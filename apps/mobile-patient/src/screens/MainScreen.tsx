@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Share,
   Linking,
-  ScrollView,
   RefreshControl,
   Dimensions,
   Platform,
@@ -22,7 +21,7 @@ import { registerForPushNotifications, sendPushTokenToServer } from '../services
 import { takePhoto, pickFromGallery } from '../services/camera';
 import type { Screen } from '../../App';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: _SCREEN_HEIGHT } = Dimensions.get('window'); // kept for potential future use
 
 type Props = {
   onNavigate: (screen: Screen) => void;
@@ -234,51 +233,44 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        scrollEnabled={false}
-        bounces={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#c87d8a"
-            colors={['#c87d8a']}
-            enabled={webViewAtTop}
-          />
-        }
-      >
-        <WebView
-          ref={webViewRef}
-          source={{ uri: webUrl }}
-          style={{ height: SCREEN_HEIGHT }}
-          injectedJavaScript={injectedJavaScript}
-          onMessage={handleMessage}
-          onLoadEnd={handleLoadEnd}
-          onError={handleError}
-          sharedCookiesEnabled
-          thirdPartyCookiesEnabled
-          domStorageEnabled
-          javaScriptEnabled
-          allowsBackForwardNavigationGestures
-          // Allow inline media & microphone access
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          // Grant mic/camera permission requests automatically (user already approved natively)
-          mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
-          // ── Scroll fixes ──────────────────────────────────────────────────
-          // Disable Android over-scroll glow so it doesn't compete with CSS scroll
-          overScrollMode="never"
-          // Allow nested scrollable web content (chat messages, lists, etc.)
-          nestedScrollEnabled
-        />
-      </ScrollView>
+      {/* Pull-to-refresh: use a separate View above WebView, only visible when pulling.
+          Do NOT wrap WebView in ScrollView with RefreshControl — it intercepts taps. */}
+      {refreshing && (
+        <View style={styles.refreshIndicator}>
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#c87d8a" colors={['#c87d8a']} />
+        </View>
+      )}
+      <WebView
+        ref={webViewRef}
+        source={{ uri: webUrl }}
+        style={styles.webview}
+        injectedJavaScript={injectedJavaScript}
+        onMessage={handleMessage}
+        onLoadEnd={handleLoadEnd}
+        onError={handleError}
+        sharedCookiesEnabled
+        thirdPartyCookiesEnabled
+        domStorageEnabled
+        javaScriptEnabled
+        allowsBackForwardNavigationGestures
+        // Allow inline media & microphone access
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        // Grant mic/camera permission requests automatically
+        mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
+        // Disable Android over-scroll glow (web page handles scroll internally)
+        overScrollMode="never"
+        // Allow nested scrollable web content (chat messages, lists, etc.)
+        nestedScrollEnabled
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container:        { flex: 1 },
+  webview:          { flex: 1 },
+  refreshIndicator: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   offlineContainer: {
     flex: 1,
     alignItems: 'center',

@@ -47,6 +47,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  // user-scalable=no eliminates the 300ms tap delay in WebView (no double-tap zoom check)
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
