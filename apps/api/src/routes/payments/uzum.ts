@@ -3,6 +3,7 @@ import { db } from '@medsoft/db';
 import { payments } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
 import { verifyUzumSignature, uzumCreatePayment, uzumCardCreate, uzumCardVerify, uzumCardCharge } from '../../lib/uzum.js';
+import { activateSubscription } from '../aivita/payments.js';
 
 export const uzumRouter = new Hono();
 
@@ -37,14 +38,34 @@ uzumRouter.post('/callback', async (c) => {
     amount: number;
   };
 
+  const orderId = parseInt(body.order_id);
+  const [payment] = await db.select().from(payments).where(eq(payments.id, orderId)).limit(1);
+  if (!payment) return c.json({ error: 'Order not found' }, 404);
+  if (Math.round(body.amount) !== payment.amount) {
+    return c.json({ error: 'Incorrect amount' }, 400);
+  }
+
   if (body.status === 'SUCCESS') {
-    await db.update(payments)
-      .set({ status: 'completed', completedAt: new Date(), providerTransactionId: body.transaction_id })
-      .where(eq(payments.id, parseInt(body.order_id)));
-  } else {
+    // Idempotent: only complete + activate once.
+    if (payment.status !== 'completed') {
+      await db.update(payments)
+        .set({ status: 'completed', completedAt: new Date(), provider: 'uzum', providerTransactionId: body.transaction_id })
+        .where(eq(payments.id, orderId));
+
+      const meta = payment.metadata as Record<string, unknown> | null;
+      const planId = meta && typeof meta.planId === 'number' ? meta.planId : undefined;
+      if (payment.type === 'subscription' && planId) {
+        try {
+          await activateSubscription(payment.userId, planId, payment.paymentMethodId ?? null);
+        } catch {
+          // Payment stays completed; activation can be retried out of band.
+        }
+      }
+    }
+  } else if (payment.status !== 'completed') {
     await db.update(payments)
       .set({ status: 'failed' })
-      .where(eq(payments.id, parseInt(body.order_id)));
+      .where(eq(payments.id, orderId));
   }
 
   return c.json({ received: true });
