@@ -1,24 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { saveAge } from './actions';
 
 const C = {
   bg: '#f4f3ef', card: '#ffffff', border: '#e8e4dc', accent: '#9c5e6c', soft: '#f3e7ea',
   text: '#2a2540', text2: '#6a6580', muted: '#9a96a8',
 };
-const OPTIONS = [
-  { value: '18-29', emoji: '🌱' },
-  { value: '30-44', emoji: '⚡' },
-  { value: '45-59', emoji: '🌿' },
-  { value: '60+', emoji: '🌳' },
-];
+const MIN_AGE = 12;
+const MAX_AGE = 90;
+const clamp = (n: number) => Math.max(MIN_AGE, Math.min(MAX_AGE, n));
 
 export default function OnboardingAgePage() {
   const t = useTranslations('app.onboarding');
-  const labels = t.raw('age.opts') as Array<{ label: string; sub: string }>;
-  const [selected, setSelected] = useState<string | null>(null);
+  const locale = useLocale();
+  const [age, setAge] = useState(30);
+  const [pending, startTransition] = useTransition();
+
+  function submit() {
+    startTransition(() => { void saveAge(locale, age); });
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Outfit', system-ui, sans-serif", color: C.text }}>
@@ -37,42 +40,30 @@ export default function OnboardingAgePage() {
         <h1 style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.2, margin: '0 0 6px' }}>
           {t('age.title')} <span style={{ fontStyle: 'italic', color: C.accent, fontWeight: 500 }}>{t('age.titleEm')}</span>
         </h1>
-        <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.5, margin: '0 0 20px' }}>{t('age.sub')}</p>
+        <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.5, margin: '0 0 24px' }}>{t('age.sub')}</p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-          {OPTIONS.map((o, i) => {
-            const on = selected === o.value;
-            return (
-              <button key={o.value} onClick={() => setSelected(o.value)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 14, height: 64, padding: '0 16px', borderRadius: 18, cursor: 'pointer',
-                  fontFamily: 'inherit', border: `1px solid ${on ? C.accent : C.border}`, background: on ? C.soft : C.card, transition: 'all .15s',
-                }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center', fontSize: 20, background: on ? '#fff' : '#f0ece5' }}>{o.emoji}</div>
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{labels[i]?.label}</div>
-                  <div style={{ fontSize: 12, color: C.text2 }}>{labels[i]?.sub}</div>
-                </div>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${on ? C.accent : '#d8d2c8'}`, display: 'grid', placeItems: 'center' }}>
-                  {on && <div style={{ width: 9, height: 9, borderRadius: '50%', background: C.accent }} />}
-                </div>
-              </button>
-            );
-          })}
+        {/* Stepper */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+          <div style={{ fontSize: 40 }}>🎂</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+            <button onClick={() => setAge((a) => clamp(a - 1))} aria-label="−"
+              style={{ width: 52, height: 52, borderRadius: 16, border: `1px solid ${C.border}`, background: C.card, fontSize: 26, color: C.text, cursor: 'pointer' }}>−</button>
+            <div style={{ minWidth: 96, textAlign: 'center' }}>
+              <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1 }}>{age}</div>
+              <div style={{ fontSize: 13, color: C.muted, fontWeight: 600, marginTop: 4 }}>{t('age.unit')}</div>
+            </div>
+            <button onClick={() => setAge((a) => clamp(a + 1))} aria-label="+"
+              style={{ width: 52, height: 52, borderRadius: 16, border: `1px solid ${C.border}`, background: C.card, fontSize: 26, color: C.text, cursor: 'pointer' }}>+</button>
+          </div>
+          <input type="range" min={MIN_AGE} max={MAX_AGE} value={age} onChange={(e) => setAge(clamp(Number(e.target.value)))}
+            style={{ width: '100%', maxWidth: 300, accentColor: C.accent }} aria-label={t('age.title')} />
         </div>
 
         <div style={{ marginTop: 24 }}>
-          <Link href={selected ? '../onboarding/anamnesis' : '#'}
-            onClick={(e) => { if (!selected) e.preventDefault(); }}
-            style={{
-              width: '100%', height: 54, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, fontWeight: 600, textDecoration: 'none', color: '#fff',
-              background: selected ? C.accent : '#cdbcc2',
-              boxShadow: selected ? '0 10px 24px rgba(156,94,108,.32)' : 'none',
-              pointerEvents: selected ? 'auto' : 'none',
-            }}>
+          <button onClick={submit} disabled={pending}
+            style={{ width: '100%', height: 54, border: 'none', borderRadius: 16, background: C.accent, color: '#fff', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, cursor: pending ? 'default' : 'pointer', boxShadow: '0 10px 24px rgba(156,94,108,.32)', opacity: pending ? 0.7 : 1 }}>
             {t('age.cont')}
-          </Link>
+          </button>
         </div>
       </div>
     </div>
