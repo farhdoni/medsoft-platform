@@ -51,6 +51,8 @@ aivitaHealthProfileRouter.put(
     smokingStatus: z.string().optional(),
     alcoholFrequency: z.string().optional(),
     exerciseFrequency: z.string().optional(),
+    sleepHoursPerNight: z.string().optional(),
+    nutritionType: z.string().optional(),
     passportIssuedBy: z.string().optional(),
     passportIssuedDate: z.string().optional(),
     passportExpires: z.string().optional(),

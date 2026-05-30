@@ -80,13 +80,13 @@ export default function OnboardingAnamnesisPage() {
 
         <div className="space-y-2 mt-auto">
           <Link
-            href="../onboarding/result"
+            href="../onboarding/lifestyle"
             className="w-full flex items-center justify-center h-14 bg-gradient-pink-blue-mint text-white font-bold rounded-2xl shadow-pink hover:shadow-pink-strong hover:-translate-y-0.5 transition-all text-sm"
           >
             Продолжить
           </Link>
           <Link
-            href="../onboarding/result"
+            href="../onboarding/lifestyle"
             className="w-full flex items-center justify-center h-12 text-[rgb(var(--text-secondary))] text-sm hover:text-navy transition-colors"
           >
             Ничего из этого нет →
