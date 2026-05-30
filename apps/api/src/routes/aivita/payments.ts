@@ -16,7 +16,7 @@ export const aivitaPromoRouter = new Hono();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function activateSubscription(userId: string, planId: number, paymentMethodId: number | null) {
+export async function activateSubscription(userId: string, planId: number, paymentMethodId: number | null) {
   const plan = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, planId)).limit(1);
   if (!plan.length) throw new Error('Plan not found');
 
