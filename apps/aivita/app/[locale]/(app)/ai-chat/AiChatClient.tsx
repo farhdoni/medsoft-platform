@@ -739,7 +739,17 @@ export function AiChatClient({ locale }: { locale: string }) {
       </header>
 
       {/* ── Messages ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3" onClick={() => { if (swipedId) setSwipedId(null); }}>
+      {/* min-height:0 is required for overflow-y:auto to work inside flex in iOS WebView */}
+      <div
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-3"
+        style={{
+          minHeight: 0,
+          WebkitOverflowScrolling: 'touch',   // iOS smooth inertia scroll
+          overscrollBehavior: 'contain',       // don't propagate scroll to parent
+          touchAction: 'pan-y',               // allow vertical swipe in WebView
+        }}
+        onClick={() => { if (swipedId) setSwipedId(null); }}
+      >
         {messages.length === 0 && !typing && historyLoaded
           ? <WelcomeScreen onChip={t => void sendMessage(t)} locale={locale} />
           : (

@@ -266,6 +266,11 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           mediaPlaybackRequiresUserAction={false}
           // Grant mic/camera permission requests automatically (user already approved natively)
           mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
+          // ── Scroll fixes ──────────────────────────────────────────────────
+          // Disable Android over-scroll glow so it doesn't compete with CSS scroll
+          overScrollMode="never"
+          // Allow nested scrollable web content (chat messages, lists, etc.)
+          nestedScrollEnabled
         />
       </ScrollView>
     </View>

@@ -1285,3 +1285,40 @@ export const mentalTherapistMessages = pgTable(
   },
   (table) => ({ userIdx: index('mental_therapist_user_idx').on(table.userId) })
 );
+
+// ─── reminderSettings ─────────────────────────────────────────────────────────
+
+export const reminderSettings = pgTable(
+  'reminder_settings',
+  {
+    id:                 serial('id').primaryKey(),
+    userId:             uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    settings:           jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
+    quietHoursStart:    text('quiet_hours_start').notNull().default('23:00'),
+    quietHoursEnd:      text('quiet_hours_end').notNull().default('07:00'),
+    globalVoiceEnabled: boolean('global_voice_enabled').notNull().default(true),
+    globalSoundEnabled: boolean('global_sound_enabled').notNull().default(true),
+    globalVolume:       integer('global_volume').notNull().default(80),
+    createdAt:          timestamp('created_at').notNull().defaultNow(),
+    updatedAt:          timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({ userIdx: index('reminder_settings_user_idx').on(table.userId) })
+);
+
+// ─── customReminders ──────────────────────────────────────────────────────────
+
+export const customReminders = pgTable(
+  'custom_reminders',
+  {
+    id:           serial('id').primaryKey(),
+    userId:       uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    title:        varchar('title', { length: 200 }).notNull(),
+    time:         text('time').notNull(),
+    repeat:       varchar('repeat', { length: 20 }).notNull().default('daily'),
+    voiceEnabled: boolean('voice_enabled').notNull().default(false),
+    voiceText:    varchar('voice_text', { length: 300 }),
+    isActive:     boolean('is_active').notNull().default(true),
+    createdAt:    timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({ userIdx: index('custom_reminders_user_idx').on(table.userId) })
+);

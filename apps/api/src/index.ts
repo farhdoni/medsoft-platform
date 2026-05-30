@@ -101,6 +101,7 @@ import { agentsRouter } from './routes/aivita/agents.js';
 import { healthAnalysisRouter } from './routes/aivita/health-analysis.js';
 import { symptomCheckerRouter } from './routes/aivita/symptom-checker.js';
 import { mentalHealthRouter } from './routes/aivita/mental-health.js';
+import { remindersRouter } from './routes/aivita/reminders.js';
 
 const app = new Hono();
 
@@ -181,6 +182,7 @@ app.route('/v1/aivita/agents', agentsRouter);
 app.route('/v1/aivita/health-analysis', healthAnalysisRouter);
 app.route('/v1/aivita/symptom-checker', symptomCheckerRouter);
 app.route('/v1/aivita/mental', mentalHealthRouter);
+app.route('/v1/aivita/reminders', remindersRouter);
 // Payment gateways (webhooks + card binding)
 app.route('/v1/payments/click', clickRouter);
 app.route('/v1/payments/payme', paymeRouter);

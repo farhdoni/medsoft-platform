@@ -77,6 +77,12 @@ async function runReminderCheck(): Promise<void> {
 
         if (!shouldRemind) continue;
 
+        // Build voice text for speech synthesis on client
+        const doseStr = [med.dosage, med.foodInstruction as string | undefined].filter(Boolean).join(', ');
+        const voiceText = reminderCount === 0
+          ? `Время принять ${med.title}${doseStr ? '. ' + doseStr : ''}`
+          : undefined;
+
         // Send notification
         await sendDeviceNotification(med.userId, {
           title: reminderCount === 0 ? `💊 Время принять ${med.title}` : `⏰ Напоминание: ${med.title}`,
@@ -85,7 +91,14 @@ async function runReminderCheck(): Promise<void> {
             : reminderCount === 1
               ? 'Вы ещё не отметили приём. Не забудьте!'
               : 'Последнее напоминание. Примите или пропустите лекарство.',
-          data: { scheduleId: med.id, time, action: 'medication_reminder' },
+          data: {
+            scheduleId: med.id,
+            time,
+            action: 'medication_reminder',
+            voiceText,
+            persistent: med.persistentReminder ?? false,
+            sound: 'medication',
+          },
         });
 
         pendingReminders.set(key, reminderCount + 1);
