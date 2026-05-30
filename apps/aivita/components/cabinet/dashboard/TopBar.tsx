@@ -50,7 +50,7 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
             className="brand-mark flex items-center gap-1.5 transition hover:opacity-80 active:scale-95"
             aria-label="На главную"
           >
-            <img src="/logo.png" alt="AIVITA" style={{ height: 28, width: 'auto', display: 'block' }} />
+            <img src="/logo.png" alt="AIVITA" style={{ height: 28, width: 'auto', display: 'block', mixBlendMode: 'multiply' }} />
           </Link>
           {role === 'doctor' && (
             <span

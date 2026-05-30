@@ -60,8 +60,13 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
         key={tab.id}
         type="button"
         onClick={() => go(tab.id)}
-        className="flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition sm:px-3 sm:py-2"
-        style={isActive ? { background: 'var(--accent-light)' } : undefined}
+        className="flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition active:scale-95 sm:px-3 sm:py-2"
+        style={{
+          touchAction: 'manipulation',  // eliminates 300ms tap delay in WebView
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
+          ...(isActive ? { background: 'var(--accent-light)' } : {}),
+        }}
         aria-current={isActive ? "page" : undefined}
       >
         <Icon name={tab.icon} size={22} />
@@ -76,7 +81,7 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
   }
 
   return (
-    <nav className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 max-w-[calc(100vw-24px)]">
+    <nav className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 max-w-[calc(100vw-24px)]">
       <div className="flex items-end gap-1 rounded-[28px] bg-white px-2 pb-2 pt-2 shadow-dropdown">
         {/* Left tabs */}
         {leftTabs.map(renderTab)}
@@ -87,6 +92,7 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
           aria-label={t('aiAssistant')}
           onClick={openAiChat}
           className="relative -mt-4 mx-1 flex-shrink-0 transition-transform active:scale-95 hover:scale-105"
+          style={{ touchAction: 'manipulation', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
         >
           {/* Pulse ring */}
           <span
