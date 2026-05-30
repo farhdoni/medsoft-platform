@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type CSSProperties } from 'react';
+import { computeHealthSnapshot, birthDateFromPinfl } from '@medsoft/shared';
 import { completeOnboarding } from './actions';
 
 const C = {
@@ -21,12 +22,46 @@ export interface Snapshot {
   actions: Action[];
 }
 
+export interface Profile {
+  birthDate?: string | null;
+  pinfl?: string | null;
+  heightCm?: number | null;
+  weightKg?: number | string | null;
+  sleepHoursPerNight?: string | null;
+  stressLevel?: string | null;
+  exerciseFrequency?: string | null;
+  nutritionType?: string | null;
+  smokingStatus?: string | null;
+  alcoholFrequency?: string | null;
+}
+
 const DEFAULT_SNAPSHOT: Snapshot = {
   totalScore: 70, realAge: null, healthAge: null,
   factors: { sleep: 70, stress: 70, activity: 70, nutrition: 70 },
   insight: 'Твоя картина здоровья готова. Давай начнём с малого и будем улучшать её шаг за шагом.',
   growthZone: 'Старт', actions: [{ key: 'chat', title: 'Спросить AI-доктора', subtitle: 'Любой вопрос о здоровье' }],
 };
+
+/** Compute the score on-device from the profile, so the reveal is instant and works offline. */
+function computeInitial(profile: Profile | null): Snapshot {
+  if (!profile) return DEFAULT_SNAPSHOT;
+  const passportBd = birthDateFromPinfl(profile.pinfl ?? null);
+  const cs = computeHealthSnapshot({
+    birthDate: passportBd ?? profile.birthDate ?? null,
+    heightCm: profile.heightCm ?? null,
+    weightKg: profile.weightKg ?? null,
+    sleepHoursPerNight: profile.sleepHoursPerNight ?? null,
+    stressLevel: profile.stressLevel ?? null,
+    exerciseFrequency: profile.exerciseFrequency ?? null,
+    nutritionType: profile.nutritionType ?? null,
+    smokingStatus: profile.smokingStatus ?? null,
+    alcoholFrequency: profile.alcoholFrequency ?? null,
+  });
+  return {
+    totalScore: cs.totalScore, realAge: cs.realAge, healthAge: cs.healthAge,
+    factors: cs.factors, insight: '', growthZone: '', actions: [],
+  };
+}
 
 const FACTOR_META: Record<keyof Factors, { icon: string; label: string; bg: string; fg: string }> = {
   sleep: { icon: '😴', label: 'Сон', bg: '#e0d8f0', fg: '#8b6aae' },
@@ -42,13 +77,44 @@ const ACTION_ICON: Record<string, { icon: string; bg: string }> = {
 
 const STEPS = ['✓ Возраст и образ жизни', '✓ Сон и активность', '✓ Анамнез и риски', '✓ Считаю Health Score…'];
 
-export function ResultClient({ locale, snapshot }: { locale: string; snapshot: Snapshot | null }) {
-  const data = snapshot ?? DEFAULT_SNAPSHOT;
+export function ResultClient({ locale, profile }: { locale: string; profile: Profile | null }) {
+  const [data, setData] = useState<Snapshot>(() => computeInitial(profile));
   const [phase, setPhase] = useState<'analyzing' | 'result'>('analyzing');
   const [stepIdx, setStepIdx] = useState(0);
   const [count, setCount] = useState(0);
   const [ringReady, setRingReady] = useState(false);
   const [barsReady, setBarsReady] = useState(false);
+
+  // Score is already computed on-device above. Fetch the AI insight, persist the
+  // snapshot, and reconcile the authoritative passport age in the background.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch('/api/proxy/onboarding/snapshot', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ locale }),
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as { data?: Snapshot };
+        if (alive && json.data) {
+          const s = json.data;
+          setData((prev) => ({
+            totalScore: s.totalScore ?? prev.totalScore,
+            realAge: s.realAge ?? prev.realAge,
+            healthAge: s.healthAge ?? prev.healthAge,
+            factors: s.factors ?? prev.factors,
+            insight: s.insight || prev.insight,
+            growthZone: s.growthZone || prev.growthZone,
+            actions: s.actions?.length ? s.actions : prev.actions,
+          }));
+        }
+      } catch {
+        // Keep the on-device values.
+      }
+    })();
+    return () => { alive = false; };
+  }, [locale]);
 
   // analyzing → result sequence
   useEffect(() => {
@@ -78,6 +144,10 @@ export function ResultClient({ locale, snapshot }: { locale: string; snapshot: S
   const RADIUS = 76;
   const CIRC = 2 * Math.PI * RADIUS;
   const offset = ringReady ? CIRC - (CIRC * data.totalScore) / 100 : CIRC;
+
+  // Until the background AI call returns, show safe defaults rather than blanks.
+  const insight = data.insight || DEFAULT_SNAPSHOT.insight;
+  const actions = data.actions.length ? data.actions : DEFAULT_SNAPSHOT.actions;
 
   const wrap: CSSProperties = { minHeight: '100vh', background: C.bg, fontFamily: "'Outfit', system-ui, sans-serif", color: C.text };
   const inner: CSSProperties = { maxWidth: 480, margin: '0 auto', padding: '54px 22px 28px' };
@@ -159,12 +229,12 @@ export function ResultClient({ locale, snapshot }: { locale: string; snapshot: S
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: .6, textTransform: 'uppercase', color: C.accent, background: '#fff', border: '1px solid #efe2e6', padding: '4px 9px', borderRadius: 20, marginBottom: 9 }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.accent, boxShadow: '0 0 0 3px #f3e7ea' }} />AIVITA AI
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.55, color: C.text }}>{data.insight}</div>
+          <div style={{ fontSize: 14, lineHeight: 1.55, color: C.text }}>{insight}</div>
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-          {data.actions.map((a, i) => {
+          {actions.map((a, i) => {
             const ic = ACTION_ICON[a.key] ?? ACTION_ICON.chat;
             return (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '11px 13px' }}>
