@@ -45,9 +45,13 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
     <>
       <header className="flex items-center justify-between px-4 pt-5 pb-2 sm:px-7 sm:pt-7">
         <div className="flex items-center gap-2">
-          <div className="brand-mark text-[20px] font-bold tracking-tight text-app-t1">
-            aivita
-          </div>
+          <Link
+            href={`/${locale}/home`}
+            className="brand-mark flex items-center gap-1.5 transition hover:opacity-80 active:scale-95"
+            aria-label="На главную"
+          >
+            <img src="/logo.png" alt="AIVITA" style={{ height: 28, width: 'auto', display: 'block' }} />
+          </Link>
           {role === 'doctor' && (
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
