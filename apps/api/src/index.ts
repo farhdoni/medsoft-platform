@@ -239,15 +239,23 @@ async function runMigrationsAndSeed() {
       const sqlFiles = fs.readdirSync(migrationsFolder)
         .filter((f: string) => f.endsWith('.sql'))
         .sort();
+      let applied = 0, skipped = 0;
       for (const file of sqlFiles) {
-        const sql = fs.readFileSync(path.join(migrationsFolder, file), 'utf-8');
-        // Split on drizzle statement-breakpoint marker and execute each statement
-        const statements = sql.split('--> statement-breakpoint').map((s: string) => s.trim()).filter(Boolean);
-        for (const stmt of statements) {
-          await client.unsafe(stmt);
+        try {
+          const sql = fs.readFileSync(path.join(migrationsFolder, file), 'utf-8');
+          // Split on drizzle statement-breakpoint marker and execute each statement
+          const statements = sql.split('--> statement-breakpoint').map((s: string) => s.trim()).filter(Boolean);
+          for (const stmt of statements) {
+            await client.unsafe(stmt);
+          }
+          applied++;
+        } catch (fileErr) {
+          // Already applied / column exists / etc — not fatal, continue with next file
+          logger.warn({ file, err: fileErr }, 'Migration skipped (already applied or non-fatal error)');
+          skipped++;
         }
       }
-      logger.info({ count: sqlFiles.length }, 'Migrations applied.');
+      logger.info({ applied, skipped, total: sqlFiles.length }, 'Migrations complete.');
     }
 
     // Seed superadmin (idempotent — only creates if email doesn't exist yet)
