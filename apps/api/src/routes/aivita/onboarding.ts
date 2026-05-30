@@ -15,6 +15,7 @@ import {
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { computeHealthSnapshot, birthDateFromPinfl, ageFromBirthDate, FACTOR_LABELS_RU, type HealthSnapshot } from '@medsoft/shared';
+import { cachedAI } from '../../lib/ai-cache.js';
 
 export const aivitaOnboardingRouter = new Hono();
 aivitaOnboardingRouter.use('*', requireAivitaAuth);
@@ -119,7 +120,10 @@ aivitaOnboardingRouter.post('/snapshot', async (c) => {
   const ageVerified = passportAge !== null;
   const ageMismatch = selfAge !== null && passportAge !== null && Math.abs(selfAge - passportAge) > 1;
 
-  const ai = (await generateSnapshotInsight(snap, locale)) ?? fallbackInsight(snap, locale);
+  const f = snap.factors;
+  const insightKey = `ai:onb-insight:v1:${locale}:s${snap.totalScore}:f${f.sleep}-${f.stress}-${f.activity}-${f.nutrition}:w${[...snap.lowestFactors].sort().join('-')}`;
+  const ai = (await cachedAI<Insight>(insightKey, 60 * 60 * 24 * 7, () => generateSnapshotInsight(snap, locale)))
+    ?? fallbackInsight(snap, locale);
 
   await db.insert(healthScores).values({
     userId,
