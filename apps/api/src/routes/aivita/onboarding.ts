@@ -14,7 +14,7 @@ import {
 } from '@medsoft/db';
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
-import { computeHealthSnapshot, birthDateFromPinfl, ageFromBirthDate, FACTOR_LABELS_RU, type HealthSnapshot } from '../../lib/health-snapshot.js';
+import { computeHealthSnapshot, birthDateFromPinfl, ageFromBirthDate, FACTOR_LABELS_RU, type HealthSnapshot } from '@medsoft/shared';
 
 export const aivitaOnboardingRouter = new Hono();
 aivitaOnboardingRouter.use('*', requireAivitaAuth);
