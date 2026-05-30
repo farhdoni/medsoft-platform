@@ -89,6 +89,16 @@ aivitaOnboardingRouter.post('/snapshot', async (c) => {
   const passportBirthDate = birthDateFromPinfl(profile.pinfl);
   const effectiveBirthDate = passportBirthDate ?? profile.birthDate;
 
+  // Single source of truth: health_profiles.birthDate powers the profile DOB
+  // field, the medical card, and the Score. If the user hasn't set a date but
+  // the passport gives one, fill it so everything stays consistent. On conflict
+  // we don't overwrite a user-entered date — we surface ageMismatch instead.
+  if (passportBirthDate && !profile.birthDate) {
+    await db.update(healthProfiles)
+      .set({ birthDate: passportBirthDate, updatedAt: new Date() })
+      .where(eq(healthProfiles.userId, userId));
+  }
+
   const snap = computeHealthSnapshot({
     birthDate: effectiveBirthDate,
     heightCm: profile.heightCm,
