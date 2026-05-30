@@ -49,12 +49,41 @@ function scoreNutrition(v?: string | null): number {
   switch (v) { case 'balanced': return 92; case 'vegetarian': return 85; case 'vegan': return 80; case 'fastfood': return 42; default: return 65; }
 }
 
-function ageFromBirthDate(birthDate?: string | null): number | null {
+export function ageFromBirthDate(birthDate?: string | null): number | null {
   if (!birthDate) return null;
   const d = new Date(birthDate);
   if (Number.isNaN(d.getTime())) return null;
   const years = (Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000);
   return years > 0 && years < 130 ? Math.floor(years) : null;
+}
+
+/**
+ * Derive ISO birth date from an Uzbekistan PINFL (ЖШШИР), 14 digits:
+ *   [1] century+sex index · [2-7] DDMMYY · [8-9] region · [10-13] serial · [14] check.
+ * Century by first digit: 1/2→1800s, 3/4→1900s, 5/6→2000s, 7/8→2100s.
+ * Returns null if the PINFL is malformed or the resulting date is implausible.
+ */
+export function birthDateFromPinfl(pinfl?: string | null): string | null {
+  if (!pinfl) return null;
+  const s = pinfl.replace(/\D/g, '');
+  if (s.length !== 14) return null;
+  const century = s[0];
+  const dd = parseInt(s.slice(1, 3), 10);
+  const mm = parseInt(s.slice(3, 5), 10);
+  const yy = parseInt(s.slice(5, 7), 10);
+  const base = (century === '1' || century === '2') ? 1800
+    : (century === '3' || century === '4') ? 1900
+    : (century === '5' || century === '6') ? 2000
+    : (century === '7' || century === '8') ? 2100
+    : null;
+  if (base === null || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  const year = base + yy;
+  const iso = `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+  const dt = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(dt.getTime()) || dt.getUTCMonth() + 1 !== mm || dt.getUTCDate() !== dd) return null;
+  const age = (Date.now() - dt.getTime()) / (365.25 * 24 * 3600 * 1000);
+  if (age < 0 || age > 120) return null;
+  return iso;
 }
 
 function computeBmi(heightCm?: number | null, weightKg?: number | string | null): number | null {

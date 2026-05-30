@@ -14,7 +14,7 @@ import {
 } from '@medsoft/db';
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
-import { computeHealthSnapshot, FACTOR_LABELS_RU, type HealthSnapshot } from '../../lib/health-snapshot.js';
+import { computeHealthSnapshot, birthDateFromPinfl, ageFromBirthDate, FACTOR_LABELS_RU, type HealthSnapshot } from '../../lib/health-snapshot.js';
 
 export const aivitaOnboardingRouter = new Hono();
 aivitaOnboardingRouter.use('*', requireAivitaAuth);
@@ -85,8 +85,12 @@ aivitaOnboardingRouter.post('/snapshot', async (c) => {
     .limit(1);
   if (!profile) return c.json({ error: 'Health profile not found' }, 404);
 
+  // Age from passport (PINFL) is authoritative; self-reported is the fallback.
+  const passportBirthDate = birthDateFromPinfl(profile.pinfl);
+  const effectiveBirthDate = passportBirthDate ?? profile.birthDate;
+
   const snap = computeHealthSnapshot({
-    birthDate: profile.birthDate,
+    birthDate: effectiveBirthDate,
     heightCm: profile.heightCm,
     weightKg: profile.weightKg,
     sleepHoursPerNight: profile.sleepHoursPerNight,
@@ -96,6 +100,13 @@ aivitaOnboardingRouter.post('/snapshot', async (c) => {
     smokingStatus: profile.smokingStatus,
     alcoholFrequency: profile.alcoholFrequency,
   });
+
+  // Cross-check self-reported vs passport-derived age.
+  const selfAge = ageFromBirthDate(profile.birthDate);
+  const passportAge = ageFromBirthDate(passportBirthDate);
+  const ageSource = passportAge !== null ? 'passport' : selfAge !== null ? 'self' : 'unknown';
+  const ageVerified = passportAge !== null;
+  const ageMismatch = selfAge !== null && passportAge !== null && Math.abs(selfAge - passportAge) > 1;
 
   const ai = (await generateSnapshotInsight(snap, locale)) ?? fallbackInsight(snap, locale);
 
@@ -114,6 +125,9 @@ aivitaOnboardingRouter.post('/snapshot', async (c) => {
       totalScore: snap.totalScore,
       realAge: snap.realAge,
       healthAge: snap.healthAge,
+      ageSource,
+      ageVerified,
+      ageMismatch,
       factors: snap.factors,
       insight: ai.insight,
       growthZone: ai.growthZone,
