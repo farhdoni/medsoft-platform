@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { compressImageToDataUrl } from '@/lib/image/compress';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const C = {
@@ -91,28 +92,24 @@ export default function NutritionPage() {
 
   // ── Photo recognition ────────────────────────────────────────────────────────
   const handlePhotoCapture = async (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setCapturedPhoto(base64);
-      setRecognizing(true);
-      setRecognized(null);
-      try {
-        const res = await fetch('/api/proxy/nutrition/recognize', {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ image: base64 }),
-        });
-        const json = await res.json() as { data?: { dishes: Dish[] } };
-        if (json.data?.dishes) {
-          setRecognized(json.data.dishes);
-          // Pre-fill form with first dish
-          const d = json.data.dishes[0];
-          if (d) setAddForm(f => ({ ...f, name: d.name, calories: String(d.calories), protein: String(d.protein ?? ''), fat: String(d.fat ?? ''), carbs: String(d.carbs ?? '') }));
-        }
-      } catch { setMsg('Ошибка распознавания'); }
-      finally { setRecognizing(false); }
-    };
-    reader.readAsDataURL(file);
+    const base64 = await compressImageToDataUrl(file);
+    setCapturedPhoto(base64);
+    setRecognizing(true);
+    setRecognized(null);
+    try {
+      const res = await fetch('/api/proxy/nutrition/recognize', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+      });
+      const json = await res.json() as { data?: { dishes: Dish[] } };
+      if (json.data?.dishes) {
+        setRecognized(json.data.dishes);
+        // Pre-fill form with first dish
+        const d = json.data.dishes[0];
+        if (d) setAddForm(f => ({ ...f, name: d.name, calories: String(d.calories), protein: String(d.protein ?? ''), fat: String(d.fat ?? ''), carbs: String(d.carbs ?? '') }));
+      }
+    } catch { setMsg('Ошибка распознавания'); }
+    finally { setRecognizing(false); }
   };
 
   // ── Save meal ────────────────────────────────────────────────────────────────

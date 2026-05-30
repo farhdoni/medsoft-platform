@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MedicalCardData } from './page';
+import { compressImageFile } from '@/lib/image/compress';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -490,7 +491,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
     if (!file) return;
     setParsing(true);
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append('file', await compressImageFile(file));
     try {
       const res = await fetch('/api/proxy/medical/parse-document', { method: 'POST', body: fd });
       const j = await res.json() as { data: ParsedMedical };

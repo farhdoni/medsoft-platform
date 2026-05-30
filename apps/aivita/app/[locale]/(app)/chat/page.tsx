@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import { PlanLimitModal } from '@/components/shared/PlanLimitModal';
+import { compressImageToDataUrl } from '@/lib/image/compress';
 
 type MessageAttachment = {
   name: string;
@@ -179,9 +180,7 @@ export default function ChatPage() {
     setAttachedFile(file);
 
     if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setAttachedPreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
+      void compressImageToDataUrl(file).then(setAttachedPreview);
     } else {
       setAttachedPreview(null);
     }
