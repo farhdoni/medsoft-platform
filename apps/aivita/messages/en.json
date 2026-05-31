@@ -208,6 +208,7 @@
       "aiPlaceholder": "Ask AI about health…",
       "askButton": "Ask",
       "healthIndex": "Health Index",
+      "noScoreYet": "Take the test\nto see your index",
       "takeTest": "Take test →",
       "promptAnalyses": "Lab tests",
       "promptSleep": "Sleep",
@@ -345,6 +346,55 @@
       "aiAssistantSub": "Diagnoses, analyses",
       "chats": "Chats",
       "chatsSub": "Patient messages"
+    },
+    "onboarding": {
+      "age": {
+        "eyebrow": "About you",
+        "title": "How old",
+        "titleEm": "are you?",
+        "sub": "Age is the basis for risk and personalized advice",
+        "cont": "Continue",
+        "opts": [
+          {
+            "label": "18–29",
+            "sub": "Youth"
+          },
+          {
+            "label": "30–44",
+            "sub": "Active age"
+          },
+          {
+            "label": "45–59",
+            "sub": "Maturity"
+          },
+          {
+            "label": "60+",
+            "sub": "Experience"
+          }
+        ],
+        "unit": "years old"
+      },
+      "ana": {
+        "eyebrow": "Chronic conditions",
+        "title": "What's in",
+        "titleEm": "your past?",
+        "sub": "Several or none",
+        "cont": "Continue",
+        "skip": "None of these →",
+        "privacy": "Your data is encrypted and visible only to you. No insurance companies.",
+        "chips": [
+          "Hypertension",
+          "Gastritis",
+          "Diabetes",
+          "Asthma",
+          "Allergies",
+          "Heart",
+          "Thyroid",
+          "Anemia",
+          "Migraine",
+          "Other"
+        ]
+      }
     }
   }
 }

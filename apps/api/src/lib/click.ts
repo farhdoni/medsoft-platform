@@ -3,6 +3,12 @@ import { env } from '../env.js';
 
 const MOCK = !env.CLICK_MERCHANT_ID || !env.CLICK_SECRET_KEY;
 
+function safeEqualHex(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
+
 export function verifyClickSign(params: {
   clickTransId: string;
   serviceId: string;
@@ -12,7 +18,9 @@ export function verifyClickSign(params: {
   signTime: string;
   sign: string;
 }): boolean {
-  if (MOCK) return true;
+  // Never accept the mock bypass in production — fail closed if creds are missing.
+  if (MOCK) return env.NODE_ENV !== 'production';
+  if (!params.sign) return false;
   const raw = [
     params.clickTransId,
     params.serviceId,
@@ -23,7 +31,7 @@ export function verifyClickSign(params: {
     params.signTime,
   ].join('');
   const expected = crypto.createHash('md5').update(raw).digest('hex');
-  return expected === params.sign;
+  return safeEqualHex(expected, params.sign);
 }
 
 export async function clickCardCreate(cardNumber: string, expiry: string): Promise<{ cardToken: string; phone?: string }> {
@@ -82,7 +90,7 @@ export async function clickCardCharge(params: {
     body: JSON.stringify({
       service_id: env.CLICK_SERVICE_ID,
       card_token: params.cardToken,
-      amount: params.amount / 100,
+      amount: params.amount,
       transaction_param: params.merchantTransId,
     }),
   });

@@ -3,6 +3,7 @@ import { db } from '@medsoft/db';
 import { payments, userPaymentMethods } from '@medsoft/db';
 import { eq, and } from 'drizzle-orm';
 import { verifyClickSign, clickCardCreate, clickCardVerify, clickCardCharge } from '../../lib/click.js';
+import { activateSubscription } from '../aivita/payments.js';
 import { env } from '../../env.js';
 
 export const clickRouter = new Hono();
@@ -25,12 +26,15 @@ clickRouter.post('/prepare', async (c) => {
 
   if (!ok) return c.json({ error: -1, error_note: 'Invalid signature' });
 
-  const payment = await db.select().from(payments).where(eq(payments.id, parseInt(merchant_trans_id))).limit(1);
-  if (!payment.length) return c.json({ error: -5, error_note: 'Payment not found' });
-  if (payment[0].status === 'completed') return c.json({ error: -4, error_note: 'Already paid' });
+  const [payment] = await db.select().from(payments).where(eq(payments.id, parseInt(merchant_trans_id))).limit(1);
+  if (!payment) return c.json({ error: -5, error_note: 'Payment not found' });
+  if (payment.status === 'completed') return c.json({ error: -4, error_note: 'Already paid' });
+  if (Math.round(parseFloat(amount)) !== payment.amount) {
+    return c.json({ error: -2, error_note: 'Incorrect amount' });
+  }
 
   await db.update(payments)
-    .set({ status: 'processing', providerTransactionId: click_trans_id })
+    .set({ status: 'processing', provider: 'click', providerTransactionId: click_trans_id })
     .where(eq(payments.id, parseInt(merchant_trans_id)));
 
   return c.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
@@ -54,16 +58,39 @@ clickRouter.post('/complete', async (c) => {
 
   if (!ok) return c.json({ error: -1, error_note: 'Invalid signature' });
 
+  const orderId = parseInt(merchant_trans_id);
+  const [payment] = await db.select().from(payments).where(eq(payments.id, orderId)).limit(1);
+  if (!payment) return c.json({ error: -5, error_note: 'Payment not found' });
+  if (Math.round(parseFloat(amount)) !== payment.amount) {
+    return c.json({ error: -2, error_note: 'Incorrect amount' });
+  }
+
   if (parseInt(clickError) < 0) {
-    await db.update(payments)
-      .set({ status: 'failed' })
-      .where(eq(payments.id, parseInt(merchant_trans_id)));
+    if (payment.status !== 'completed') {
+      await db.update(payments).set({ status: 'failed' }).where(eq(payments.id, orderId));
+    }
     return c.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Cancelled' });
+  }
+
+  // Idempotent: already completed → success without re-activating.
+  if (payment.status === 'completed') {
+    return c.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
   }
 
   await db.update(payments)
     .set({ status: 'completed', completedAt: new Date(), providerTransactionId: click_trans_id })
-    .where(and(eq(payments.id, parseInt(merchant_trans_id)), eq(payments.status, 'processing')));
+    .where(and(eq(payments.id, orderId), eq(payments.status, 'processing')));
+
+  // Activate the subscription tied to this payment, if any.
+  const meta = payment.metadata as Record<string, unknown> | null;
+  const planId = meta && typeof meta.planId === 'number' ? meta.planId : undefined;
+  if (payment.type === 'subscription' && planId) {
+    try {
+      await activateSubscription(payment.userId, planId, payment.paymentMethodId ?? null);
+    } catch {
+      // Payment stays completed; activation can be retried out of band.
+    }
+  }
 
   return c.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });
 });

@@ -1,16 +1,24 @@
 import { env } from '../env.js';
+import { timingSafeEqual } from 'node:crypto';
 
 const MOCK = !env.PAYME_MERCHANT_ID || !env.PAYME_SECRET_KEY;
+
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
 
 export function getPaymeBasicAuth(): string {
   return Buffer.from(`${env.PAYME_MERCHANT_ID}:${env.PAYME_SECRET_KEY}`).toString('base64');
 }
 
 export function verifyPaymeAuth(authHeader: string | null): boolean {
-  if (MOCK) return true;
+  // Never accept the mock bypass in production — fail closed if creds are missing,
+  // so a misconfigured prod can't leave the merchant webhook wide open.
+  if (MOCK) return env.NODE_ENV !== 'production';
   if (!authHeader) return false;
-  const expected = `Basic ${getPaymeBasicAuth()}`;
-  return authHeader === expected;
+  return safeEqual(authHeader, `Basic ${getPaymeBasicAuth()}`);
 }
 
 export async function paymeCardCreate(cardNumber: string, expiry: string): Promise<{ cardToken: string; phone?: string }> {

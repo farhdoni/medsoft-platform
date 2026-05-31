@@ -3,13 +3,21 @@ import { env } from '../env.js';
 
 const MOCK = !env.UZUM_MERCHANT_ID || !env.UZUM_SECRET_KEY;
 
+function safeEqualHex(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
+
 export function verifyUzumSignature(body: string, signature: string): boolean {
-  if (MOCK) return true;
+  // Never accept the mock bypass in production — fail closed if creds are missing.
+  if (MOCK) return env.NODE_ENV !== 'production';
+  if (!signature) return false;
   const expected = crypto
     .createHmac('sha256', env.UZUM_SECRET_KEY ?? '')
     .update(body)
     .digest('hex');
-  return expected === signature;
+  return safeEqualHex(expected, signature);
 }
 
 export async function uzumCreatePayment(params: {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "AIVITA",
     "slug": "aivita-patient",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "aivita",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#9c5e6c"
+      "backgroundColor": "#0c1a27"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,9 +21,10 @@
     },
     "android": {
       "package": "uz.aivita.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#c87d8a"
+        "backgroundColor": "#0c1a27"
       },
       "permissions": [
         "android.permission.INTERNET",
@@ -40,7 +41,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#c87d8a"
         }
       ],

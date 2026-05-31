@@ -17,10 +17,11 @@ const AGENT_ICONS: Record<string, string> = {
   document_parser: '📄',
 };
 
-const SEVERITY_STYLES: Record<string, { border: string; icon: string; iconColor: string }> = {
-  info:     { border: 'border-blue-100',   icon: 'ℹ️',  iconColor: 'text-blue-500'  },
-  warning:  { border: 'border-amber-100',  icon: '⚠️',  iconColor: 'text-amber-500' },
-  critical: { border: 'border-red-100',    icon: '🚨',  iconColor: 'text-red-500'   },
+// Soft Clay Matte severity palette
+const SEVERITY_STYLES: Record<string, { border: string; icon: string }> = {
+  info:     { border: '#d8d4f0', icon: 'ℹ️'  },
+  warning:  { border: '#ffe4a0', icon: '⚠️'  },
+  critical: { border: '#ffc5c5', icon: '🚨'  },
 };
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -75,8 +76,8 @@ export function HealthAgentsClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI-агенты здоровья</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Автоматический мониторинг 24/7</p>
+          <h1 className="text-2xl font-bold text-[#2a2540]">AI-агенты здоровья</h1>
+          <p className="text-sm text-[#9a96a8] mt-0.5">Автоматический мониторинг 24/7</p>
         </div>
         {unread > 0 && (
           <span className="px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: 'var(--accent)' }}>
@@ -86,16 +87,16 @@ export function HealthAgentsClient({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-[#f4f3ef] rounded-xl p-1">
         <button
           onClick={() => setActiveTab('alerts')}
-          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'alerts' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'alerts' ? 'bg-white shadow-sm text-[#2a2540]' : 'text-[#9a96a8]'}`}
         >
           Уведомления {unread > 0 && <span className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold">{unread}</span>}
         </button>
         <button
           onClick={() => setActiveTab('settings')}
-          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'settings' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'settings' ? 'bg-white shadow-sm text-[#2a2540]' : 'text-[#9a96a8]'}`}
         >
           Настройки агентов
         </button>
@@ -115,8 +116,8 @@ export function HealthAgentsClient({
           {alerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 text-center">
               <span className="text-4xl mb-3">🤖</span>
-              <h3 className="text-base font-semibold text-gray-700 mb-1">Всё под контролем</h3>
-              <p className="text-sm text-gray-400">AI-агенты следят за вашим здоровьем. Уведомления появятся здесь.</p>
+              <h3 className="text-base font-semibold text-[#2a2540] mb-1">Всё под контролем</h3>
+              <p className="text-sm text-[#9a96a8]">AI-агенты следят за вашим здоровьем. Уведомления появятся здесь.</p>
             </div>
           ) : (
             alerts.map((alert) => {
@@ -124,24 +125,25 @@ export function HealthAgentsClient({
               return (
                 <div
                   key={alert.id}
-                  className={`rounded-xl border p-4 bg-white transition-opacity ${style.border} ${alert.isRead ? 'opacity-70' : ''}`}
+                  className={`rounded-xl border p-4 bg-white transition-opacity ${alert.isRead ? 'opacity-70' : ''}`}
+                  style={{ borderColor: style.border }}
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-xl flex-shrink-0 mt-0.5">{style.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className={`text-sm font-semibold ${alert.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
+                          <p className={`text-sm font-semibold ${alert.isRead ? 'text-[#6a6580]' : 'text-[#2a2540]'}`}>
                             {alert.title}
                             {!alert.isRead && <span className="ml-2 inline-block w-2 h-2 rounded-full bg-[var(--accent)] align-middle" />}
                           </p>
-                          <p className="text-xs text-gray-400 mt-0.5">
+                          <p className="text-xs text-[#9a96a8] mt-0.5">
                             {AGENT_ICONS[alert.agentType]} {AGENT_LABELS[alert.agentType] ?? alert.agentType} · {new Date(alert.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                         <button
                           onClick={() => void dismissAlert(alert.id)}
-                          className="text-gray-300 hover:text-gray-500 flex-shrink-0"
+                          className="text-[#c8c4cc] hover:text-[#9a96a8] flex-shrink-0"
                           aria-label="Dismiss"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -150,11 +152,11 @@ export function HealthAgentsClient({
                         </button>
                       </div>
                       {alert.description && (
-                        <p className="text-sm text-gray-600 mt-1.5">{alert.description}</p>
+                        <p className="text-sm text-[#6a6580] mt-1.5">{alert.description}</p>
                       )}
                       {alert.recommendation && (
-                        <div className="mt-2 rounded-lg bg-gray-50 px-3 py-2">
-                          <p className="text-sm text-gray-700">💡 {alert.recommendation}</p>
+                        <div className="mt-2 rounded-lg bg-[#f8f7f4] px-3 py-2">
+                          <p className="text-sm text-[#2a2540]">💡 {alert.recommendation}</p>
                         </div>
                       )}
                     </div>
@@ -174,9 +176,9 @@ export function HealthAgentsClient({
           )}
 
           {/* Agent toggles */}
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-50">
-              <p className="text-sm font-semibold text-gray-700">Активные агенты</p>
+          <div className="rounded-2xl border border-[#e8e4dc] bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-[#f0ece4]">
+              <p className="text-sm font-semibold text-[#2a2540]">Активные агенты</p>
             </div>
             {[
               { key: 'vitalsMonitorEnabled' as const, label: 'Мониторинг показателей', desc: 'Проверяет пульс, давление, SpO2 каждые 30 минут', icon: '❤️' },
@@ -184,12 +186,12 @@ export function HealthAgentsClient({
               { key: 'weeklyCheckupEnabled' as const, label: 'Еженедельный чекап', desc: 'Напоминание о чекапе каждый понедельник', icon: '📋' },
               { key: 'documentParserEnabled' as const, label: 'Анализ документов', desc: 'AI-разбор медицинских документов', icon: '📄' },
             ].map(({ key, label, desc, icon }) => (
-              <div key={key} className="flex items-center justify-between px-5 py-4 border-b border-gray-50 last:border-b-0">
+              <div key={key} className="flex items-center justify-between px-5 py-4 border-b border-[#f0ece4] last:border-b-0">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span className="text-xl">{icon}</span>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{label}</p>
-                    <p className="text-xs text-gray-400">{desc}</p>
+                    <p className="text-sm font-medium text-[#2a2540]">{label}</p>
+                    <p className="text-xs text-[#9a96a8]">{desc}</p>
                   </div>
                 </div>
                 <Toggle
@@ -201,10 +203,10 @@ export function HealthAgentsClient({
           </div>
 
           {/* Vitals thresholds */}
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-50">
-              <p className="text-sm font-semibold text-gray-700">Пороги для показателей</p>
-              <p className="text-xs text-gray-400 mt-0.5">Оставьте пустым для стандартных значений</p>
+          <div className="rounded-2xl border border-[#e8e4dc] bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-[#f0ece4]">
+              <p className="text-sm font-semibold text-[#2a2540]">Пороги для показателей</p>
+              <p className="text-xs text-[#9a96a8] mt-0.5">Оставьте пустым для стандартных значений</p>
             </div>
             <div className="p-5 space-y-4">
               {[
@@ -215,7 +217,7 @@ export function HealthAgentsClient({
                 { label: 'Температура (°C)', low: 'temp_low' as const, high: 'temp_high' as const, defaultLow: 36.0, defaultHigh: 37.5 },
               ].map(({ label, low, high, defaultLow, defaultHigh }) => (
                 <div key={label}>
-                  <p className="text-xs font-medium text-gray-600 mb-1.5">{label}</p>
+                  <p className="text-xs font-medium text-[#6a6580] mb-1.5">{label}</p>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <input
@@ -250,7 +252,7 @@ export function HealthAgentsClient({
               ))}
               {/* SpO2 only has a low threshold */}
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-1.5">SpO2 (%)</p>
+                <p className="text-xs font-medium text-[#6a6580] mb-1.5">SpO2 (%)</p>
                 <input
                   type="number"
                   placeholder="Мин (94)"

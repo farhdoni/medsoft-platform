@@ -107,7 +107,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'var(--font-manrope)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-app)', 'Inter', 'system-ui', 'sans-serif'],
         serif: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },

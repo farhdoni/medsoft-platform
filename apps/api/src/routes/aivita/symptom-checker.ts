@@ -5,6 +5,7 @@ import { db } from '@medsoft/db';
 import { symptomSessions } from '@medsoft/db';
 import { eq, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { cachedAI } from '../../lib/ai-cache.js';
 
 export const symptomCheckerRouter = new Hono();
 
@@ -74,29 +75,33 @@ ${isLastStep ? `{
 
 Пиши по-русски. Давай 3-5 возможных состояний в results. Вопросы конкретные и понятные пациенту.`;
 
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: system }],
-      }),
-    });
+  const cacheKey = `ai:symptom:v1:${mainSymptom.toLowerCase().trim()}|${(bodyArea ?? '').toLowerCase().trim()}|a${age}|${gender}|s${step}|${answers.map((a) => a.answer).join('>')}`;
+  const cached = await cachedAI<ClaudeQuestionResponse>(cacheKey, 60 * 60 * 24 * 14, async () => {
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: system }],
+        }),
+      });
 
-    if (!resp.ok) return buildMockQuestion(step);
-    const data = await resp.json() as { content: Array<{ type: string; text: string }> };
-    const raw = data.content?.[0]?.text ?? '';
-    const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
-    return JSON.parse(cleaned) as ClaudeQuestionResponse;
-  } catch {
-    return buildMockQuestion(step);
-  }
+      if (!resp.ok) return null;
+      const data = await resp.json() as { content: Array<{ type: string; text: string }> };
+      const raw = data.content?.[0]?.text ?? '';
+      const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+      return JSON.parse(cleaned) as ClaudeQuestionResponse;
+    } catch {
+      return null;
+    }
+  });
+  return cached ?? buildMockQuestion(step);
 }
 
 function buildMockQuestion(step: number): ClaudeQuestionResponse {

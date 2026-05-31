@@ -89,7 +89,7 @@
   body {
     background: rgb(var(--bg-base-1));
     color: rgb(var(--text-primary));
-    font-family: var(--font-manrope), system-ui, sans-serif;
+    font-family: var(--font-app), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     /* Eliminate 300ms tap delay globally — makes ALL buttons instant in WebView */
     touch-action: manipulation;

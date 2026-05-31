@@ -10,12 +10,146 @@ import {
   medicalCards,
   familyMembers,
   cardClaimRequests,
+  healthScores,
 } from '@medsoft/db';
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { computeHealthSnapshot, birthDateFromPinfl, ageFromBirthDate, FACTOR_LABELS_RU, type HealthSnapshot } from '@medsoft/shared';
+import { cachedAI } from '../../lib/ai-cache.js';
 
 export const aivitaOnboardingRouter = new Hono();
 aivitaOnboardingRouter.use('*', requireAivitaAuth);
+
+// ─── Onboarding Health Snapshot (the "hook") ──────────────────────────────────
+// Computes a baseline Health Score from onboarding data and an AI-personalized
+// insight, persists it to health_scores (trigger=onboarding), and returns the
+// full payload for the result screen. AI uses claude-sonnet with a mock fallback.
+
+type Insight = { insight: string; growthZone: string; actions: Array<{ key: string; title: string; subtitle: string }> };
+
+async function generateSnapshotInsight(snap: HealthSnapshot, locale: string): Promise<Insight | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const lang = locale === 'uz' ? "o'zbek tilida" : locale === 'en' ? 'in English' : 'на русском';
+  const system = `Ты — AI-помощник здоровья AIVITA. По метрикам пользователя верни ТОЛЬКО валидный JSON без markdown-блоков:
+{"insight": string, "growthZone": string, "actions": [{"key": "sleep"|"stress"|"activity"|"nutrition"|"chat", "title": string, "subtitle": string}]}
+insight: 2-3 коротких предложения, тёплый тон, обращение на «ты». Назови главную зону роста, на сколько примерно вырастет Score если её поправить, и закончи вовлекающим вопросом.
+growthZone: короткий ярлык зоны роста, 1-3 слова.
+actions: 2-3 конкретных шага; key соответствует слабому фактору (или "chat" для вопроса AI-доктору).
+Весь текст пиши ${lang}.`;
+  const user = `Score: ${snap.totalScore}/100. Реальный возраст: ${snap.realAge ?? '?'}, возраст здоровья: ${snap.healthAge ?? '?'}. Факторы 0-100 — сон ${snap.factors.sleep}, стресс ${snap.factors.stress}, активность ${snap.factors.activity}, питание ${snap.factors.nutrition}. Самые слабые: ${snap.lowestFactors.join(', ') || 'нет явных'}.`;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 700, system, messages: [{ role: 'user', content: user }] }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json() as { content: Array<{ type: string; text: string }> };
+    const raw = data.content?.[0]?.text ?? '';
+    const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(cleaned) as Insight;
+    if (!parsed?.insight || !Array.isArray(parsed.actions)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function fallbackInsight(snap: HealthSnapshot, locale: string): Insight {
+  const weak = snap.lowestFactors;
+  const label = (k: string) => FACTOR_LABELS_RU[k] ?? k;
+  const zoneRu = weak.length ? weak.map(label).join(' и ') : 'Поддержание формы';
+  const actionsByKey: Record<string, { title: string; subtitle: string }> = {
+    sleep: { title: 'Настроить режим сна', subtitle: 'Персональный план на 21 день' },
+    stress: { title: 'Дыхание 4-7-8', subtitle: '3 минуты перед сном' },
+    activity: { title: 'Цель по шагам', subtitle: 'Трекер + мягкие напоминания' },
+    nutrition: { title: 'Сбалансировать рацион', subtitle: 'Подсказки по питанию' },
+  };
+  const actions = (weak.length ? weak : ['sleep']).slice(0, 2).map((k) => ({ key: k, ...(actionsByKey[k] ?? actionsByKey.sleep) }));
+  actions.push({ key: 'chat', title: 'Спросить AI-доктора', subtitle: 'Любой вопрос о здоровье' });
+  const insight = weak.length
+    ? `Твоя главная зона роста — ${zoneRu.toLowerCase()}. Если поработать над этим, Score вырастет примерно до ${Math.min(99, snap.totalScore + 10)} за несколько недель. Начнём с малого?`
+    : `Отличная база — ключевые факторы в норме! Давай удержим результат и добавим лёгкие привычки. Готов начать?`;
+  return { insight, growthZone: zoneRu, actions };
+}
+
+aivitaOnboardingRouter.post('/snapshot', async (c) => {
+  const userId = c.get('aivitaUserId');
+  const body = await c.req.json().catch(() => ({})) as { locale?: string };
+  const locale = body.locale === 'uz' || body.locale === 'en' ? body.locale : 'ru';
+
+  const [profile] = await db
+    .select()
+    .from(healthProfiles)
+    .where(eq(healthProfiles.userId, userId))
+    .limit(1);
+  if (!profile) return c.json({ error: 'Health profile not found' }, 404);
+
+  // Age from passport (PINFL) is authoritative; self-reported is the fallback.
+  const passportBirthDate = birthDateFromPinfl(profile.pinfl);
+  const effectiveBirthDate = passportBirthDate ?? profile.birthDate;
+
+  // Single source of truth: health_profiles.birthDate powers the profile DOB
+  // field, the medical card, and the Score. Passport (PINFL) is authoritative —
+  // when it yields a valid date that differs from the stored one, it overwrites
+  // it (the official document wins). ageMismatch still records that a correction
+  // happened, e.g. to notify the user that their date was adjusted.
+  if (passportBirthDate && passportBirthDate !== profile.birthDate) {
+    await db.update(healthProfiles)
+      .set({ birthDate: passportBirthDate, updatedAt: new Date() })
+      .where(eq(healthProfiles.userId, userId));
+  }
+
+  const snap = computeHealthSnapshot({
+    birthDate: effectiveBirthDate,
+    heightCm: profile.heightCm,
+    weightKg: profile.weightKg,
+    sleepHoursPerNight: profile.sleepHoursPerNight,
+    stressLevel: profile.stressLevel,
+    exerciseFrequency: profile.exerciseFrequency,
+    nutritionType: profile.nutritionType,
+    smokingStatus: profile.smokingStatus,
+    alcoholFrequency: profile.alcoholFrequency,
+  });
+
+  // Cross-check self-reported vs passport-derived age.
+  const selfAge = ageFromBirthDate(profile.birthDate);
+  const passportAge = ageFromBirthDate(passportBirthDate);
+  const ageSource = passportAge !== null ? 'passport' : selfAge !== null ? 'self' : 'unknown';
+  const ageVerified = passportAge !== null;
+  const ageMismatch = selfAge !== null && passportAge !== null && Math.abs(selfAge - passportAge) > 1;
+
+  const f = snap.factors;
+  const insightKey = `ai:onb-insight:v1:${locale}:s${snap.totalScore}:f${f.sleep}-${f.stress}-${f.activity}-${f.nutrition}:w${[...snap.lowestFactors].sort().join('-')}`;
+  const ai = (await cachedAI<Insight>(insightKey, 60 * 60 * 24 * 7, () => generateSnapshotInsight(snap, locale)))
+    ?? fallbackInsight(snap, locale);
+
+  await db.insert(healthScores).values({
+    userId,
+    totalScore: snap.totalScore,
+    healthAge: snap.healthAge ?? undefined,
+    growthZone: ai.growthZone,
+    sleepScore: snap.factors.sleep,
+    mentalScore: snap.factors.stress,
+    trigger: 'onboarding',
+  });
+
+  return c.json({
+    data: {
+      totalScore: snap.totalScore,
+      realAge: snap.realAge,
+      healthAge: snap.healthAge,
+      ageSource,
+      ageVerified,
+      ageMismatch,
+      factors: snap.factors,
+      insight: ai.insight,
+      growthZone: ai.growthZone,
+      actions: ai.actions,
+    },
+  });
+});
 
 // ─── Card code generator (AI-{year}-{seq}) ────────────────────────────────────
 

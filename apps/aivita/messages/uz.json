@@ -208,6 +208,7 @@
       "aiPlaceholder": "Sog'liq haqida AI ga savol bering…",
       "askButton": "So'rash",
       "healthIndex": "Salomatlik indeksi",
+      "noScoreYet": "Indeksingizni bilish\nuchun testni o'ting",
       "takeTest": "Testni boshlash →",
       "promptAnalyses": "Tahlillar",
       "promptSleep": "Uyqu",
@@ -345,6 +346,55 @@
       "aiAssistantSub": "Tashxislar, tahlillar",
       "chats": "Chatlar",
       "chatsSub": "Bemor xabarlari"
+    },
+    "onboarding": {
+      "age": {
+        "eyebrow": "Sen haqingda",
+        "title": "Yoshing",
+        "titleEm": "nechada?",
+        "sub": "Yosh — xavf va shaxsiy tavsiyalar uchun asos",
+        "cont": "Davom etish",
+        "opts": [
+          {
+            "label": "18–29",
+            "sub": "Yoshlik"
+          },
+          {
+            "label": "30–44",
+            "sub": "Faol yosh"
+          },
+          {
+            "label": "45–59",
+            "sub": "Yetuklik"
+          },
+          {
+            "label": "60+",
+            "sub": "Tajriba"
+          }
+        ],
+        "unit": "yosh"
+      },
+      "ana": {
+        "eyebrow": "Surunkali kasalliklar",
+        "title": "O‘tmishda",
+        "titleEm": "nima bo‘lgan?",
+        "sub": "Bir nechta yoki hech narsa",
+        "cont": "Davom etish",
+        "skip": "Hech narsa yo‘q →",
+        "privacy": "Maʼlumotlar shifrlanadi va faqat senga ochiq. Hech qanday sugʻurta kompaniyasi yoʻq.",
+        "chips": [
+          "Gipertoniya",
+          "Gastrit",
+          "Diabet",
+          "Astma",
+          "Allergiya",
+          "Yurak",
+          "Qalqonsimon bez",
+          "Kamqonlik",
+          "Migren",
+          "Boshqa"
+        ]
+      }
     }
   }
 }

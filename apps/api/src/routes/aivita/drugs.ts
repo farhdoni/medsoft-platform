@@ -3,6 +3,7 @@ import { db } from '@medsoft/db';
 import { drugInteractions, medicationSchedule } from '@medsoft/db';
 import { eq, and, ilike, or } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { cachedAI } from '../../lib/ai-cache.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 export const aivitaDrugsRouter = new Hono();
@@ -37,27 +38,35 @@ async function askClaude(drug1: string, drug2: string): Promise<{
     };
   }
 
-  const client = new Anthropic({ apiKey });
-  try {
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: `Проверь совместимость лекарств "${drug1}" и "${drug2}". Ответь строго JSON без markdown: {"severity":"critical|major|moderate|minor|none","description":"краткое описание взаимодействия на русском","recommendation":"что делать пациенту на русском"}`,
-      }],
-    });
-    const text = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : '';
-    const json = JSON.parse(text) as { severity: string; description: string; recommendation: string };
-    if (!json.severity || !json.description) throw new Error('bad json');
-    return json;
-  } catch {
-    return {
-      severity: 'none',
-      description: 'Не удалось получить данные о взаимодействии.',
-      recommendation: 'Проконсультируйтесь с врачом или фармацевтом.',
-    };
-  }
+  const [a, b] = [drug1.toLowerCase().trim(), drug2.toLowerCase().trim()].sort();
+  const cached = await cachedAI<{ severity: string; description: string; recommendation: string }>(
+    `ai:drug-pair:v1:${a}|${b}`,
+    60 * 60 * 24 * 30,
+    async () => {
+      const client = new Anthropic({ apiKey });
+      try {
+        const msg = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 512,
+          messages: [{
+            role: 'user',
+            content: `Проверь совместимость лекарств "${drug1}" и "${drug2}". Ответь строго JSON без markdown: {"severity":"critical|major|moderate|minor|none","description":"краткое описание взаимодействия на русском","recommendation":"что делать пациенту на русском"}`,
+          }],
+        });
+        const text = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : '';
+        const json = JSON.parse(text) as { severity: string; description: string; recommendation: string };
+        if (!json.severity || !json.description) return null;
+        return json;
+      } catch {
+        return null;
+      }
+    },
+  );
+  return cached ?? {
+    severity: 'none',
+    description: 'Не удалось получить данные о взаимодействии.',
+    recommendation: 'Проконсультируйтесь с врачом или фармацевтом.',
+  };
 }
 
 function buildSummary(pairs: Array<{ severity: string; drug1: string; drug2: string }>) {
