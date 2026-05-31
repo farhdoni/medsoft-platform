@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#9c5e6c"
+      "backgroundColor": "#0c1a27"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -24,7 +24,7 @@
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#c87d8a"
+        "backgroundColor": "#0c1a27"
       },
       "permissions": [
         "android.permission.INTERNET",
@@ -41,7 +41,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#c87d8a"
         }
       ],
