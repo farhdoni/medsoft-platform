@@ -79,23 +79,31 @@ function getCardData(
 
   switch (key) {
     case 'heart_rate': {
-      const bpm = fresh
-        ? (row!.value as { value?: number }).value
-        : metrics.heartRate.bpm;
-      return { value: bpm != null ? `${bpm}` : '—', meta: 'bpm' };
+      if (fresh) {
+        const bpm = (row!.value as { value?: number }).value;
+        return { value: bpm != null && bpm > 0 ? `${bpm}` : '—', meta: 'bpm' };
+      }
+      // Fallback from metrics: show "—" when no real measurement (bpm=0 means no data)
+      const bpm = metrics.heartRate.bpm;
+      return { value: bpm > 0 ? `${bpm}` : '—', meta: 'bpm' };
     }
     case 'water_ml': {
       if (fresh) {
         const ml = (row!.value as { value?: number }).value;
-        return { value: ml != null ? `${ml}` : '—', meta: units.water };
+        return { value: ml != null && ml > 0 ? `${ml}` : '—', meta: units.water };
       }
-      return { value: `${metrics.water.liters}л`, meta: `${metrics.water.liters}/${metrics.water.goalLiters}` };
+      const liters = metrics.water.liters;
+      if (liters <= 0) return { value: '—', meta: units.water };
+      return { value: `${liters}л`, meta: `${liters}/${metrics.water.goalLiters}` };
     }
     case 'steps': {
-      const count = fresh
-        ? (row!.value as { value?: number }).value
-        : metrics.steps.count;
-      if (count == null) return { value: '—', meta: units.steps };
+      if (fresh) {
+        const count = (row!.value as { value?: number }).value;
+        if (count == null || count === 0) return { value: '—', meta: units.steps };
+        return { value: count >= 1000 ? `${(count / 1000).toFixed(1)}K` : `${count}`, meta: units.steps };
+      }
+      const count = metrics.steps.count;
+      if (count === 0) return { value: '—', meta: units.steps };
       return { value: count >= 1000 ? `${(count / 1000).toFixed(1)}K` : `${count}`, meta: units.steps };
     }
     case 'habits': {

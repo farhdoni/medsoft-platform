@@ -77,12 +77,12 @@ export function HeroSection({ user, metrics }: Props) {
             }}
             className="mt-6 flex max-w-md items-center gap-2 rounded-chip bg-white/95 p-1.5 pl-4 shadow-card"
           >
-            <span aria-hidden className="text-[18px]">💬</span>
+            <span aria-hidden className="text-[18px] flex-shrink-0">💬</span>
             <input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t('aiPlaceholder')}
-              className="flex-1 bg-transparent py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none"
+              className="flex-1 min-w-0 bg-transparent py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none"
               disabled={submitting}
             />
             <button
@@ -113,45 +113,47 @@ export function HeroSection({ user, metrics }: Props) {
           <div className="text-center text-[12px] font-medium text-text-secondary">
             {t('healthIndex')}
           </div>
-          <div className="relative mx-auto mt-3 grid h-[100px] w-[100px] place-items-center md:h-[140px] md:w-[140px]">
-            <svg width="100" height="100" viewBox="0 0 140 140" className="-rotate-90 md:hidden absolute inset-0 w-full h-full">
-              <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
-              <circle cx="70" cy="70" r="56" fill="none" stroke="url(#ring-grad-sm)" strokeWidth="10"
-                strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
-              <defs>
-                <linearGradient id="ring-grad-sm" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor='var(--accent)' />
-                  <stop offset="100%" stopColor="#80b094" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90 hidden md:block absolute inset-0 w-full h-full">
-              <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
-              <circle
-                cx="70"
-                cy="70"
-                r="56"
-                fill="none"
-                stroke="url(#ring-grad)"
-                strokeWidth="10"
-                strokeLinecap="round"
-                strokeDasharray={`${dash} ${C}`}
-              />
-              <defs>
-                <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor='var(--accent)' />
-                  <stop offset="55%" stopColor="var(--accent)" />
-                  <stop offset="100%" stopColor="#80b094" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute text-center">
-              <div className="text-[24px] font-extrabold leading-none md:text-[34px]">
-                {metrics.healthIndex.score}
+          {ringPct > 0 ? (
+            <div className="relative mx-auto mt-3 grid h-[100px] w-[100px] place-items-center md:h-[140px] md:w-[140px]">
+              <svg width="100" height="100" viewBox="0 0 140 140" className="-rotate-90 md:hidden absolute inset-0 w-full h-full">
+                <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
+                <circle cx="70" cy="70" r="56" fill="none" stroke="url(#ring-grad-sm)" strokeWidth="10"
+                  strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
+                <defs>
+                  <linearGradient id="ring-grad-sm" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor='var(--accent)' />
+                    <stop offset="100%" stopColor="#80b094" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90 hidden md:block absolute inset-0 w-full h-full">
+                <circle cx="70" cy="70" r="56" fill="none" stroke='var(--accent-light)' strokeWidth="10" />
+                <circle cx="70" cy="70" r="56" fill="none" stroke="url(#ring-grad)" strokeWidth="10"
+                  strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
+                <defs>
+                  <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor='var(--accent)' />
+                    <stop offset="55%" stopColor="var(--accent)" />
+                    <stop offset="100%" stopColor="#80b094" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute text-center">
+                <div className="text-[24px] font-extrabold leading-none md:text-[34px]">
+                  {metrics.healthIndex.score}
+                </div>
+                <div className="text-[10px] font-medium text-text-muted">/100</div>
               </div>
-              <div className="text-[10px] font-medium text-text-muted">/100</div>
             </div>
-          </div>
+          ) : (
+            // No health score yet — prompt user to take the test
+            <div className="mt-3 flex flex-col items-center gap-1 py-4">
+              <span className="text-[32px]">🧬</span>
+              <p className="text-[11px] text-center text-text-muted leading-snug">
+                {t('noScoreYet')}
+              </p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => router.push(`/${locale}/test`)}

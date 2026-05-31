@@ -22,7 +22,7 @@ export function TopHeader({ session, locale }: TopHeaderProps) {
         {/* Logo */}
         <Link href={`/${locale}/home`} className="flex items-center group">
           <img
-            src="/logo.png"
+            src="/brand/aivita-logo-transparent.png"
             alt="AIVITA"
             className="h-8 w-auto transition-opacity group-hover:opacity-80"
           />

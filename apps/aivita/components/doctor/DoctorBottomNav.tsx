@@ -99,7 +99,13 @@ export function DoctorBottomNav({ locale = 'ru' }: { locale?: string }) {
   useEffect(() => { setMoreOpen(false); }, [pathname]);
 
   const isActive = useCallback(
-    (href: string) => !!pathname?.includes(href),
+    (href: string): boolean => {
+      // Strip locale prefix (/ru, /uz, /en) before comparing
+      const norm = (pathname ?? '/').replace(/^\/(?:ru|uz|en)(?=\/|$)/, '') || '/';
+      // Exact match for the home-equivalent; prefix match for sub-routes
+      if (href === '/doctor-home') return norm === '/doctor-home';
+      return norm === href || norm.startsWith(href + '/');
+    },
     [pathname]
   );
 

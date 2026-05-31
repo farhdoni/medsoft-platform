@@ -208,6 +208,7 @@
       "aiPlaceholder": "Ask AI about health…",
       "askButton": "Ask",
       "healthIndex": "Health Index",
+      "noScoreYet": "Take the test\nto see your index",
       "takeTest": "Take test →",
       "promptAnalyses": "Lab tests",
       "promptSleep": "Sleep",

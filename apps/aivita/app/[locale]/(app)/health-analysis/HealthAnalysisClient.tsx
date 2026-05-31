@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import type { HealthAnalysisData } from './page';
 
-const SEVERITY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  low:      { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500'  },
-  medium:   { bg: 'bg-amber-50',  text: 'text-amber-700',  dot: 'bg-amber-500'  },
-  high:     { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-  critical: { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500'    },
+// Soft Clay Matte severity palette — no alien Tailwind greens/blues
+const SEVERITY_COLORS: Record<string, { bg: string; border: string; textColor: string; dot: string }> = {
+  low:      { bg: '#eef8f2', border: '#b8e8c8', textColor: '#2a7a50', dot: '#3aa86a' },
+  medium:   { bg: '#fffbec', border: '#ffe4a0', textColor: '#8a6000', dot: '#e8a000' },
+  high:     { bg: '#fff4ec', border: '#ffd0a0', textColor: '#a04010', dot: '#f97316' },
+  critical: { bg: '#fff0f0', border: '#ffc5c5', textColor: '#c00030', dot: '#ff4444' },
 };
 
 const PROB_LABELS: Record<string, string> = {
@@ -31,7 +32,7 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth={14} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e8e4dc" strokeWidth={14} />
         <circle
           cx={cx} cy={cy} r={r} fill="none"
           stroke={color} strokeWidth={14}
@@ -42,7 +43,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute flex flex-col items-center justify-center" style={{ marginTop: -size / 2 - 20 }}>
         <span className="text-4xl font-bold" style={{ color }}>{score}</span>
-        <span className="text-xs text-gray-400 mt-0.5">/ 100</span>
+        <span className="text-xs text-[#9a96a8] mt-0.5">/ 100</span>
       </div>
     </div>
   );
@@ -65,7 +66,7 @@ function ScoreRingStacked({ score }: { score: number }) {
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth={14} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e8e4dc" strokeWidth={14} />
         <circle
           cx={cx} cy={cy} r={r} fill="none"
           stroke={color} strokeWidth={14}
@@ -75,7 +76,7 @@ function ScoreRingStacked({ score }: { score: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-4xl font-bold" style={{ color }}>{score}</span>
-        <span className="text-xs text-gray-400">/ 100</span>
+        <span className="text-xs text-[#9a96a8]">/ 100</span>
       </div>
     </div>
   );
@@ -125,9 +126,9 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI-анализ здоровья</h1>
+          <h1 className="text-2xl font-bold text-[#2a2540]">AI-анализ здоровья</h1>
           {analysis && (
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-[#9a96a8] mt-0.5">
               {new Date(analysis.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
@@ -160,8 +161,8 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/>
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Нет данных для анализа</h2>
-          <p className="text-sm text-gray-500 max-w-xs">
+          <h2 className="text-lg font-semibold text-[#2a2540] mb-2">Нет данных для анализа</h2>
+          <p className="text-sm text-[#9a96a8] max-w-xs">
             Нажмите «Запустить анализ», чтобы AI-врач проанализировал ваши данные и создал персональный план здоровья.
           </p>
         </div>
@@ -175,7 +176,7 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 001.357 2.067L19.5 14.5M14.25 3.104c.251.023.501.05.75.082M19.5 14.5l-1.5 5.243a2.25 2.25 0 01-2.156 1.632H8.156a2.25 2.25 0 01-2.156-1.632L4.5 14.5m15 0H4.5"/>
             </svg>
           </div>
-          <p className="text-sm text-gray-500 text-center max-w-xs">
+          <p className="text-sm text-[#9a96a8] text-center max-w-xs">
             AI-врач анализирует ваши данные здоровья. Это займёт 10-30 секунд...
           </p>
         </div>
@@ -210,7 +211,7 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                  activeTab === tab ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
+                  activeTab === tab ? 'bg-white shadow-sm text-[#2a2540]' : 'text-[#9a96a8]'
                 }`}
               >
                 {tab === 'problems' ? `Проблемы (${analysis.currentProblems?.length ?? 0})` :
@@ -224,25 +225,25 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
           {activeTab === 'problems' && (
             <div className="space-y-3">
               {(analysis.currentProblems ?? []).length === 0 ? (
-                <p className="text-center text-sm text-gray-400 py-8">Проблем не обнаружено 🎉</p>
+                <p className="text-center text-sm text-[#9a96a8] py-8">Проблем не обнаружено 🎉</p>
               ) : (
                 (analysis.currentProblems ?? []).map((p, i) => {
                   const colors = SEVERITY_COLORS[p.severity] ?? SEVERITY_COLORS.medium;
                   return (
-                    <div key={i} className={`rounded-xl p-4 ${colors.bg}`}>
+                    <div key={i} className="rounded-xl p-4 border" style={{ background: colors.bg, borderColor: colors.border }}>
                       <div className="flex items-start gap-3">
-                        <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${colors.dot}`} />
+                        <span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0" style={{ background: colors.dot }} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <p className={`font-semibold text-sm ${colors.text}`}>{p.title}</p>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colors.bg} ${colors.text} border border-current/20`}>
+                            <p className="font-semibold text-sm" style={{ color: colors.textColor }}>{p.title}</p>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium border" style={{ background: colors.bg, color: colors.textColor, borderColor: colors.border }}>
                               {p.severity === 'low' ? 'Лёгкая' : p.severity === 'medium' ? 'Средняя' : p.severity === 'high' ? 'Высокая' : 'Критическая'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">{p.description}</p>
-                          <p className="text-sm font-medium text-gray-700 mt-2">💡 {p.recommendation}</p>
+                          <p className="text-sm mt-1" style={{ color: '#6a6580' }}>{p.description}</p>
+                          <p className="text-sm font-medium mt-2" style={{ color: '#2a2540' }}>💡 {p.recommendation}</p>
                           {p.suggestedDoctor && (
-                            <p className="text-xs text-gray-500 mt-1">👨‍⚕️ Рекомендуется: {p.suggestedDoctor}</p>
+                            <p className="text-xs text-[#9a96a8] mt-1">👨‍⚕️ Рекомендуется: {p.suggestedDoctor}</p>
                           )}
                         </div>
                       </div>
@@ -257,12 +258,12 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
           {activeTab === 'risks' && (
             <div className="space-y-3">
               {(analysis.futureRisks ?? []).length === 0 ? (
-                <p className="text-center text-sm text-gray-400 py-8">Значимых рисков не выявлено ✅</p>
+                <p className="text-center text-sm text-[#9a96a8] py-8">Значимых рисков не выявлено ✅</p>
               ) : (
                 (analysis.futureRisks ?? []).map((r, i) => (
                   <div key={i} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <p className="font-semibold text-sm text-gray-900">{r.title}</p>
+                      <p className="font-semibold text-sm text-[#2a2540]">{r.title}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                         r.probability === 'high' ? 'bg-red-50 text-red-600' :
                         r.probability === 'medium' ? 'bg-amber-50 text-amber-600' :
@@ -271,7 +272,7 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
                         {PROB_LABELS[r.probability]}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 mb-1">📅 {r.timeframe}</p>
+                    <p className="text-xs text-[#9a96a8] mb-1">📅 {r.timeframe}</p>
                     <p className="text-sm text-gray-600">{r.preventionPlan}</p>
                   </div>
                 ))
@@ -297,8 +298,8 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
                             {done && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${done ? 'text-green-700 line-through' : 'text-gray-800'}`}>{g.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{g.metric}: {g.target}</p>
+                            <p className={`text-sm font-medium ${done ? 'text-green-700 line-through' : 'text-[#2a2540]'}`}>{g.title}</p>
+                            <p className="text-xs text-[#9a96a8] mt-0.5">{g.metric}: {g.target}</p>
                           </div>
                         </div>
                       );
@@ -362,7 +363,7 @@ export function HealthAnalysisClient({ initialAnalysis }: { initialAnalysis: Hea
           )}
 
           {activeTab === 'plan' && !analysis.healthPlan && (
-            <p className="text-center text-sm text-gray-400 py-8">
+            <p className="text-center text-sm text-[#9a96a8] py-8">
               Личный план будет доступен после следующего анализа.
             </p>
           )}

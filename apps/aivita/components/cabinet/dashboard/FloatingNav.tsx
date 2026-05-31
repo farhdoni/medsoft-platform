@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
 
@@ -33,10 +33,29 @@ export function saveNavConfig(cfg: { left: string[]; right: string[] }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function FloatingNav({ active = "home" }: { active?: string }) {
+/** Strip the leading locale segment (/ru, /uz, /en) from a pathname. */
+function stripLocale(pathname: string): string {
+  return pathname.replace(/^\/(?:ru|uz|en)(?=\/|$)/, '') || '/';
+}
+
+/**
+ * Exactly ONE tab active at a time:
+ * - exact match for "home" (avoids lighting up home for every sub-route)
+ * - prefix match for others (e.g. /vitals/entry/42 → vitals active)
+ */
+function computeActive(pathname: string, id: string): boolean {
+  const norm = stripLocale(pathname);
+  if (id === 'home') return norm === '/home' || norm === '/';
+  return norm === `/${id}` || norm.startsWith(`/${id}/`);
+}
+
+// FloatingNav no longer accepts an `active` prop — it derives active state
+// from the real URL so that multiple instances never disagree.
+export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string }) {
   const t = useTranslations('app.nav');
   const router = useRouter();
   const params = useParams();
+  const pathname = usePathname();
   const locale = (params?.locale as string) || "ru";
 
   const [navConfig, setNavConfig] = useState(DEFAULT_NAV);
@@ -54,7 +73,7 @@ export function FloatingNav({ active = "home" }: { active?: string }) {
   const rightTabs = navConfig.right.map(id => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
 
   function renderTab(tab: (typeof ALL_NAV_OPTIONS)[0]) {
-    const isActive = tab.id === active;
+    const isActive = computeActive(pathname ?? '/', tab.id);
     return (
       <button
         key={tab.id}

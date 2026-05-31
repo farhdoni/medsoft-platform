@@ -208,6 +208,7 @@
       "aiPlaceholder": "Задай вопрос AI о здоровье…",
       "askButton": "Спросить",
       "healthIndex": "Индекс здоровья",
+      "noScoreYet": "Пройдите тест,\nчтобы узнать ваш индекс",
       "takeTest": "Пройти тест →",
       "promptAnalyses": "Анализы",
       "promptSleep": "Сон",

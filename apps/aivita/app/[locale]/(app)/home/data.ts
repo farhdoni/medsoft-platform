@@ -157,23 +157,26 @@ export async function loadHomeData(): Promise<{
   const score = apiHealthScore?.totalScore ?? 0;
 
   // ─── Vitals — heart rate (latest today) ───────────────────────────────────
-  const hrBpm = vitalsHR && vitalsHR.length > 0
-    ? numericVitalValue(vitalsHR[0])
-    : 0;
+  // Use null when no real data exists so MetricsRow shows "—" instead of "0"
+  const hrRaw = vitalsHR && vitalsHR.length > 0 ? numericVitalValue(vitalsHR[0]) : null;
+  const hrBpm = hrRaw ?? 0;
 
   // ─── Vitals — water (sum today, ml → liters) ──────────────────────────────
-  const waterMlTotal = vitalsWater
+  const waterMlTotal = vitalsWater && vitalsWater.length > 0
     ? vitalsWater.reduce((sum, v) => sum + numericVitalValue(v), 0)
+    : null;
+  const waterLiters = waterMlTotal != null
+    ? Math.round((waterMlTotal / 1000) * 10) / 10
     : 0;
-  const waterLiters = Math.round((waterMlTotal / 1000) * 10) / 10;
 
   // ─── Vitals — steps (latest for today = last item for today) ──────────────
   const todayStepsVitals = vitalsSteps?.filter(v =>
     v.recordedAt.startsWith(today)
   ) ?? [];
-  const stepsToday = todayStepsVitals.length > 0
+  const stepsTodayRaw = todayStepsVitals.length > 0
     ? numericVitalValue(todayStepsVitals[0])
-    : 0;
+    : null;
+  const stepsToday = stepsTodayRaw ?? 0;
 
   // ─── Habits — count done today ─────────────────────────────────────────────
   const allHabits = apiHabits ?? [];
