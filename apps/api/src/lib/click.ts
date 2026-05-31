@@ -90,7 +90,7 @@ export async function clickCardCharge(params: {
     body: JSON.stringify({
       service_id: env.CLICK_SERVICE_ID,
       card_token: params.cardToken,
-      amount: params.amount / 100,
+      amount: params.amount,
       transaction_param: params.merchantTransId,
     }),
   });
