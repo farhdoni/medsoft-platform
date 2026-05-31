@@ -149,7 +149,7 @@ export function ResultClient({ locale, profile }: { locale: string; profile: Pro
   const insight = data.insight || DEFAULT_SNAPSHOT.insight;
   const actions = data.actions.length ? data.actions : DEFAULT_SNAPSHOT.actions;
 
-  const wrap: CSSProperties = { minHeight: '100vh', background: C.bg, fontFamily: "'Outfit', system-ui, sans-serif", color: C.text };
+  const wrap: CSSProperties = { minHeight: '100vh', background: C.bg, fontFamily: "var(--font-app), system-ui, sans-serif", color: C.text };
   const inner: CSSProperties = { maxWidth: 480, margin: '0 auto', padding: '54px 22px 28px' };
 
   if (phase === 'analyzing') {

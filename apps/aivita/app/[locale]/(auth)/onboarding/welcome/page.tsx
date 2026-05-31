@@ -32,7 +32,7 @@ export default function OnboardingWelcomePage() {
     setSelected(code);
   }
 
-  const wrap: CSSProperties = { minHeight: '100vh', background: C.bg, fontFamily: "'Outfit', system-ui, sans-serif", color: C.text };
+  const wrap: CSSProperties = { minHeight: '100vh', background: C.bg, fontFamily: "var(--font-app), system-ui, sans-serif", color: C.text };
   const inner: CSSProperties = { maxWidth: 480, margin: '0 auto', padding: '24px 20px 32px', display: 'flex', flexDirection: 'column', minHeight: '100vh' };
 
   // ── Stage 1: language picker ──

@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Manrope, Instrument_Serif } from 'next/font/google';
+import { Nunito, Instrument_Serif } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 
-const manrope = Manrope({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['200', '300', '400', '500', '600', '700', '800'],
-  variable: '--font-manrope',
+const appFont = Nunito({
+  subsets: ['latin', 'cyrillic', 'latin-ext'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-app',
   display: 'swap',
 });
 
@@ -53,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" suppressHydrationWarning className={`${manrope.variable} ${instrumentSerif.variable}`}>
+    <html lang="ru" suppressHydrationWarning className={`${appFont.variable} ${instrumentSerif.variable}`}>
       <head>
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
