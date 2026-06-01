@@ -42,7 +42,8 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#c87d8a"
+          "color": "#c87d8a",
+          "sounds": ["./assets/sounds/aivita_magic_soft_mono.wav"]
         }
       ],
       "expo-secure-store",

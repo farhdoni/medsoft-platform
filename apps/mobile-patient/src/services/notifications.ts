@@ -32,6 +32,17 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#c87d8a',
     });
+    // Dedicated channel for medication reminders — brand sound + high importance
+    await Notifications.setNotificationChannelAsync('medications', {
+      name: 'Напоминания о лекарствах',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'aivita_magic_soft_mono',  // filename without extension (from assets/sounds)
+      vibrationPattern: [0, 400, 200, 400],
+      lightColor: '#c87d8a',
+      enableLights: true,
+      enableVibrate: true,
+      showBadge: true,
+    });
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync();
