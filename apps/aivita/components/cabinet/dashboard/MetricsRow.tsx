@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { DailyMetrics } from '@/lib/cabinet-types';
@@ -246,16 +246,20 @@ export function MetricsRow({ metrics, vitalsLatest }: Props) {
   const [latestOverride, setLatestOverride] = useState<LatestVitals>(vitalsLatest);
   const [showSettings, setShowSettings] = useState(false);
   const [activeVital, setActiveVital] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   useEffect(() => { setConfig(loadConfig()); }, []);
 
   function handleCardClick(key: string) {
     if (key === 'habits') {
-      router.push(`/${locale}/habits`);
+      // Hard nav avoids React #482 concurrent-render conflict in Next.js 15
+      window.location.href = `/${locale}/habits`;
       return;
     }
     if (VITAL_CONFIG[key]) {
-      setActiveVital(key);
+      // startTransition defers the setState so it doesn't conflict with
+      // any ongoing RSC render, fixing React error #482 on the home page.
+      startTransition(() => setActiveVital(key));
     }
   }
 

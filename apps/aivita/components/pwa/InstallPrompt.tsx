@@ -54,7 +54,7 @@ export function InstallPrompt() {
     <div
       style={{
         position: 'fixed',
-        bottom: 88,
+        bottom: 120,
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(100% - 32px)',
