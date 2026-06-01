@@ -669,7 +669,7 @@ export function AiChatClient({ locale }: { locale: string }) {
   return (
     <div
       className="flex flex-col bg-[rgb(var(--bg-base-1))]"
-      style={{ height: '100dvh', maxWidth: 480, margin: '0 auto' }}
+      style={{ height: '100%', maxWidth: 480, margin: '0 auto' }}
     >
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header
