@@ -6,21 +6,34 @@
  *  - Web push subscriptions (JSON with {endpoint, keys}) → VAPID / web-push
  */
 
-import webPush from 'web-push';
+// web-push is an optional dependency — load lazily so the API starts even
+// if the package is not yet installed in the container (e.g. stale Docker layer).
 import { db } from '@medsoft/db';
 import { aivitaDeviceTokens } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
 
-// ─── VAPID setup ──────────────────────────────────────────────────────────────
+// ─── VAPID setup (lazy) ───────────────────────────────────────────────────────
 
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  ?? '';
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY ?? '';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT     ?? 'mailto:support@aivita.uz';
 
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
-} else {
-  console.warn('[Push] VAPID keys not configured — web push notifications disabled');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _webPush: any = null;
+
+async function getWebPush() {
+  if (_webPush) return _webPush;
+  try {
+    // Dynamic import — safe even if web-push is not installed
+    _webPush = (await import('web-push')).default;
+    if (VAPID_PUBLIC && VAPID_PRIVATE) {
+      _webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+    }
+  } catch {
+    console.warn('[Push] web-push module not available — web push notifications disabled');
+    _webPush = null;
+  }
+  return _webPush;
 }
 
 // ─── Expo push ────────────────────────────────────────────────────────────────
@@ -104,9 +117,15 @@ export async function sendWebPushNotification(
 ): Promise<void> {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
 
-  let sub: webPush.PushSubscription;
+  const wp = await getWebPush();
+  if (!wp) {
+    console.warn('[WebPush] Skipping — web-push not available');
+    return;
+  }
+
+  let sub: { endpoint: string; keys: { p256dh: string; auth: string } };
   try {
-    sub = JSON.parse(subscriptionJson) as webPush.PushSubscription;
+    sub = JSON.parse(subscriptionJson);
   } catch {
     console.error('[WebPush] Invalid subscription JSON:', subscriptionJson.slice(0, 80));
     return;
@@ -115,7 +134,7 @@ export async function sendWebPushNotification(
   const payload = JSON.stringify({ title, body, data });
 
   try {
-    await webPush.sendNotification(sub, payload);
+    await wp.sendNotification(sub, payload);
   } catch (err) {
     const e = err as { statusCode?: number };
     if (e.statusCode === 410 || e.statusCode === 404) {
