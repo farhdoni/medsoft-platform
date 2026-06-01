@@ -14,7 +14,10 @@ type SessionPayload = {
   plan?: 'free' | 'plus' | 'pro';
 };
 
-export type LoginState = { error: string | null };
+// redirectTo is returned to the client so it can navigate imperatively —
+// avoids the Next.js 15 / React 18 bug where redirect() inside useActionState
+// causes the spinner to hang indefinitely.
+export type LoginState = { error: string | null; redirectTo?: string };
 
 export async function loginAction(
   locale: string,
@@ -44,16 +47,23 @@ export async function loginAction(
 
   if (!res.ok || !json.data?.session) {
     if (json.error === 'email_not_verified' && json.userId) {
+      // redirect() is safe here because we are NOT returning to useActionState
       redirect(`/${locale}/verify-email?userId=${json.userId}`);
     }
     if (json.error === 'account_locked') return { error: 'account_locked' };
     return { error: 'invalid_credentials' };
   }
 
-  // Pass apiToken to setSession so it gets stored as aivita_api cookie
+  // Set session cookies server-side
   await setSession({ ...json.data.session, apiToken: json.data.apiToken });
 
+  // Return the destination URL — client will navigate via window.location
   const { role, onboardingCompleted } = json.data.session;
-  if (role === 'doctor') redirect(`/${locale}/doctor-home`);
-  redirect(onboardingCompleted ? `/${locale}/home` : `/${locale}/onboarding/welcome`);
+  const dest = role === 'doctor'
+    ? `/${locale}/doctor-home`
+    : onboardingCompleted
+      ? `/${locale}/home`
+      : `/${locale}/onboarding/welcome`;
+
+  return { error: null, redirectTo: dest };
 }

@@ -1,6 +1,6 @@
 'use client';
 // build: 2026-05-03
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -126,6 +126,16 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const boundAction = loginAction.bind(null, locale);
   const [state, action, pending] = useActionState(boundAction, { error: null });
+
+  // Fix: redirect() inside useActionState hangs in Next.js 15 / React 18.
+  // Instead, the action returns { redirectTo } and we navigate imperatively.
+  useEffect(() => {
+    if (state.redirectTo) {
+      // Use window.location for a hard navigation so the new session cookie
+      // is picked up cleanly by the middleware on the first request.
+      window.location.href = state.redirectTo;
+    }
+  }, [state.redirectTo]);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-6 py-12 overflow-hidden">
