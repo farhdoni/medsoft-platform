@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { VitalRow, LatestVitals } from './types';
 import Modal from '@/components/ui/Modal';
@@ -462,6 +462,21 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<string>('heart_rate');
   const [, startTransition] = useTransition();
+
+  // Open the add-vital modal automatically when navigated from the home page
+  // quick-stats cards via ?add=heart_rate etc.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const addType = params.get('add');
+    if (addType) {
+      setModalType(addType);
+      setShowModal(true);
+      // Clean up the query param without a full reload
+      const clean = window.location.pathname;
+      window.history.replaceState({}, '', clean);
+    }
+  }, []);
 
   function handleSaved() {
     startTransition(() => router.refresh());
