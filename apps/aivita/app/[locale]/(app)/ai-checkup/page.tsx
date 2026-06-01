@@ -1,3 +1,4 @@
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { CheckupClient } from './CheckupClient';
 
 export default async function AiCheckupPage({
@@ -6,5 +7,9 @@ export default async function AiCheckupPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  return <CheckupClient locale={locale} />;
+  return (
+    <PageShell active="ai-checkup" locale={locale}>
+      <CheckupClient locale={locale} />
+    </PageShell>
+  );
 }
