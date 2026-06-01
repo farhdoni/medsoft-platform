@@ -162,6 +162,27 @@ function Field({ label, children, className }: { label: string; children: React.
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Main component
+// ─── WebView bridge: sync local notification schedule ─────────────────────────
+
+function syncMedicationsToNative(meds: MedicationRow[]): void {
+  if (typeof window === 'undefined') return;
+  const rnwv = (window as unknown as Record<string, unknown>).ReactNativeWebView as
+    { postMessage: (s: string) => void } | undefined;
+  if (!rnwv) return; // not inside a React Native WebView
+
+  const payload = meds
+    .filter(m => m.isActive && m.reminderEnabled)
+    .map(m => ({
+      id: m.id,
+      title: m.title,
+      dosage: m.dosage,
+      times: Array.isArray(m.times) ? m.times as string[] : [],
+      reminderMinutesBefore: m.reminderMinutesBefore,
+    }));
+
+  rnwv.postMessage(JSON.stringify({ type: 'sync-medications', data: payload }));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function MedicationsClient({ initialSchedule, initialStats, initialMedications, locale }: Props) {
@@ -170,6 +191,9 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
   const [stats, setStats] = useState<MedStats | null>(initialStats);
   const [medications, setMedications] = useState<MedicationRow[]>(initialMedications);
   const [celebration, setCelebration] = useState(false);
+
+  // Sync to native WebView whenever the medications list changes (add/remove/update)
+  useEffect(() => { syncMedicationsToNative(medications); }, [medications]);
 
   // ── Custom order (persisted in localStorage) ────────────────────────────────
   const [medOrder, setMedOrder] = useState<string[]>(() => {

@@ -17,7 +17,14 @@ import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { WEB_URL } from '../constants/config';
-import { registerForPushNotifications, sendPushTokenToServer } from '../services/notifications';
+import {
+  registerForPushNotifications,
+  sendPushTokenToServer,
+  scheduleMedicationReminders,
+  registerNotificationCategories,
+  addMedicationResponseListener,
+  type MedScheduleForNotif,
+} from '../services/notifications';
 import { takePhoto, pickFromGallery } from '../services/camera';
 import type { Screen } from '../../App';
 
@@ -59,6 +66,7 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   }, [initialDeepLink]);
 
   useEffect(() => {
+    // Register push token + notification categories
     registerForPushNotifications().then(async (token) => {
       if (token) {
         setPushToken(token);
@@ -66,11 +74,16 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         await sendPushTokenToServer(token, deviceId).catch(() => {});
       }
     });
+    registerNotificationCategories().catch(() => {});
 
-    // Handle notification tap → navigate WebView
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const url = response.notification.request.content.data?.url as string | undefined;
-      if (url) {
+    // Generic notification tap → navigate WebView (non-medication notifications)
+    const navSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data ?? {};
+      const type = (data as Record<string, unknown>).type as string | undefined;
+      // Medication actions are handled by addMedicationResponseListener below
+      if (type === 'medication') return;
+      const url = (data as Record<string, unknown>).url as string | undefined;
+      if (url && response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
         const path = deepLinkToPath(url);
         if (path) {
           webViewRef.current?.injectJavaScript(
@@ -80,7 +93,12 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
       }
     });
 
-    return () => sub.remove();
+    // Medication take/snooze action buttons
+    const medSub = addMedicationResponseListener((js) => {
+      webViewRef.current?.injectJavaScript(js);
+    });
+
+    return () => { navSub.remove(); medSub.remove(); };
   }, []);
 
   // Re-inject push token into WebView when it becomes available
@@ -128,6 +146,15 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
       }
 
       switch (msg.type) {
+        case 'sync-medications': {
+          // Web cabinet sends active medication list → re-schedule local notifications
+          const meds = msg.data as MedScheduleForNotif[] | undefined;
+          if (Array.isArray(meds)) {
+            await scheduleMedicationReminders(meds).catch(() => {});
+          }
+          break;
+        }
+
         case '__scroll__':
           setWebViewAtTop(msg.y === 0);
           break;

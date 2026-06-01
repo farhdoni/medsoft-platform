@@ -10,7 +10,7 @@ import cron from 'node-cron';
 import { db } from '@medsoft/db';
 import { aivitaUsers, aivitaDeviceTokens, habitLogs, habits, medicationSchedule, medicationLog } from '@medsoft/db';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import { sendPushNotification } from '../lib/push-notifications.js';
+import { sendPushNotification, sendWebPushNotification } from '../lib/push-notifications.js';
 import { logger } from '../lib/logger.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -159,18 +159,27 @@ async function sendMedicationReminders() {
 
         if (existingLog && (existingLog.status === 'taken' || existingLog.status === 'skipped')) continue;
 
-        // Get user device tokens
-        const tokens = await db.select({ pushToken: aivitaDeviceTokens.pushToken })
+        // ДЕДУП: мобильные (ios/android) устройства планируют напоминания локально.
+        // Серверный push отправляем ТОЛЬКО web-подпискам (VAPID).
+        const tokens = await db
+          .select({
+            pushToken: aivitaDeviceTokens.pushToken,
+            platform:  aivitaDeviceTokens.platform,
+          })
           .from(aivitaDeviceTokens)
           .where(eq(aivitaDeviceTokens.userId, med.userId));
 
-        if (tokens.length === 0) continue;
+        const webTokens = tokens.filter(t => t.platform === 'web');
+        if (webTokens.length === 0) continue;
 
-        await sendPushNotification(
-          tokens.map(t => t.pushToken),
-          `💊 ${med.title}`,
-          `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${time}`,
-          { scheduleId: med.id, time, url: '/ru/medications' },
+        const notifData = { scheduleId: med.id, time, url: '/ru/medications' };
+        const notifTitle = `💊 ${med.title}`;
+        const notifBody = `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${time}`;
+
+        await Promise.all(
+          webTokens.map(t =>
+            sendWebPushNotification(t.pushToken, notifTitle, notifBody, notifData)
+          )
         );
         sent++;
       }
