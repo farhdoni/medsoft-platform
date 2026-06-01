@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
 
@@ -53,7 +53,6 @@ function computeActive(pathname: string, id: string): boolean {
 // from the real URL so that multiple instances never disagree.
 export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string }) {
   const t = useTranslations('app.nav');
-  const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
   const locale = (params?.locale as string) || "ru";
@@ -62,11 +61,13 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
   useEffect(() => { setNavConfig(loadNavConfig()); }, []);
 
   function go(id: string) {
-    router.push(`/${locale}/${id}`);
+    // Use hard navigation to avoid React #482 concurrent-render conflict
+    // between usePathname() RSC updates and router.push() in Next.js 15.
+    window.location.href = `/${locale}/${id}`;
   }
 
   function openAiChat() {
-    router.push(`/${locale}/ai-chat`);
+    window.location.href = `/${locale}/ai-chat`;
   }
 
   const leftTabs  = navConfig.left.map(id  => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
