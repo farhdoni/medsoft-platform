@@ -18,12 +18,27 @@ export async function GET() {
   }
 }
 
-// POST /api/notifications/read-all
+// POST /api/notifications/read-all — mark all as read
 export async function POST() {
   const authHeaders = await getProxyAuthHeaders();
   try {
     const res = await fetch(`${API_BASE}/v1/aivita/notifications/read-all`, {
       method: 'POST',
+      headers: authHeaders,
+    });
+    const json = await res.json().catch(() => ({ ok: true }));
+    return NextResponse.json(json, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: 'Network error' }, { status: 502 });
+  }
+}
+
+// DELETE /api/notifications — clear all notifications
+export async function DELETE() {
+  const authHeaders = await getProxyAuthHeaders();
+  try {
+    const res = await fetch(`${API_BASE}/v1/aivita/notifications`, {
+      method: 'DELETE',
       headers: authHeaders,
     });
     const json = await res.json().catch(() => ({ ok: true }));

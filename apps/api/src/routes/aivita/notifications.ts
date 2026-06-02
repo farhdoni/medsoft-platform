@@ -141,6 +141,13 @@ aivitaNotificationsRouter.post('/read-all', async (c) => {
   return c.json({ data: { success: true } });
 });
 
+// ─── DELETE / (clear all) ─────────────────────────────────────────────────────
+aivitaNotificationsRouter.delete('/', async (c) => {
+  const userId = c.get('aivitaUserId');
+  await db.delete(notifications).where(eq(notifications.userId, userId));
+  return c.json({ data: { cleared: true } });
+});
+
 // ─── DELETE /:id ───────────────────────────────────────────────────────────────
 aivitaNotificationsRouter.delete('/:id', async (c) => {
   const userId = c.get('aivitaUserId');

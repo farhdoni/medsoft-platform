@@ -1,6 +1,6 @@
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { loadNotificationsData } from './data';
-import { MarkAllReadButton } from './MarkAllReadButton';
+import { NotificationsActions } from './NotificationsActions';
 import { NotificationItem } from './NotificationItem';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ export default async function NotificationsPage({
               {unreadCount > 0 ? `${unreadCount} новых` : 'Всё прочитано'}
             </h1>
           </div>
-          {unreadCount > 0 && <MarkAllReadButton />}
+          <NotificationsActions unreadCount={unreadCount} totalCount={notifications.length} />
         </div>
 
         {/* ── Empty state ─────────────────────────────────────────────────────── */}
