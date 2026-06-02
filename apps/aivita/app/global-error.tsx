@@ -1,20 +1,15 @@
 'use client';
 
-// Catches unhandled React errors (including React #482 from RSC prefetch
-// failures in Next.js 15) so they show a recoverable UI instead of a blank page.
+// Global error boundary — catches unhandled React errors so the user
+// sees a friendly recovery UI instead of a blank/white page.
+// NO auto-reload: calling window.location.reload() during render or in
+// a useEffect without a stable guard causes infinite reload loops.
 export default function GlobalError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Auto-reload once on RSC-related errors (digest starts with NEXT_)
-  if (typeof window !== 'undefined' && error?.digest?.startsWith('NEXT_')) {
-    window.location.reload();
-    return null;
-  }
-
   return (
     <html lang="ru">
       <body>
@@ -38,21 +33,38 @@ export default function GlobalError({
           <p style={{ fontSize: 14, color: '#9a96a8', marginBottom: 24, maxWidth: 280 }}>
             Произошла ошибка при загрузке страницы.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              background: 'linear-gradient(135deg, #9c5e6c, #7a3848)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 14,
-              padding: '12px 28px',
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Обновить страницу
-          </button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={reset}
+              style={{
+                background: '#f4f3ef',
+                color: '#9c5e6c',
+                border: '1.5px solid #9c5e6c',
+                borderRadius: 14,
+                padding: '12px 24px',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Попробовать снова
+            </button>
+            <button
+              onClick={() => { window.location.href = '/ru/home'; }}
+              style={{
+                background: 'linear-gradient(135deg, #9c5e6c, #7a3848)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 14,
+                padding: '12px 24px',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              На главную
+            </button>
+          </div>
         </div>
       </body>
     </html>

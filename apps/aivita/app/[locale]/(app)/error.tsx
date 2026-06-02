@@ -1,27 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
-
-// Catches client-side errors in the cabinet (RSC #482, etc.) and reloads
-// automatically — avoids the blank "Application error" screen on fresh loads.
+// Cabinet error boundary — catches client-side errors without auto-reloading.
+// Previous version had window.location.reload() in useEffect which caused
+// infinite reload loops whenever React #482 fired on page load.
 export default function CabinetError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    // For RSC-related errors: silently reload once
-    if (error?.message?.includes('482') || error?.digest?.startsWith('NEXT_')) {
-      window.location.reload();
-    }
-  }, [error]);
-
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '60vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -32,25 +23,45 @@ export default function CabinetError({
         textAlign: 'center',
       }}
     >
-      <div style={{ fontSize: 48, marginBottom: 16 }}>🔄</div>
-      <p style={{ fontSize: 15, color: '#9a96a8', marginBottom: 20 }}>
-        Загружаем кабинет...
+      <div style={{ fontSize: 40, marginBottom: 12 }}>😔</div>
+      <p style={{ fontSize: 15, fontWeight: 600, color: '#2a2540', marginBottom: 8 }}>
+        Не удалось загрузить страницу
       </p>
-      <button
-        onClick={() => window.location.reload()}
-        style={{
-          background: '#9c5e6c',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 12,
-          padding: '10px 24px',
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        Обновить
-      </button>
+      <p style={{ fontSize: 13, color: '#9a96a8', marginBottom: 20 }}>
+        Попробуйте обновить или вернуться на главную
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          onClick={reset}
+          style={{
+            background: '#f4f3ef',
+            color: '#9c5e6c',
+            border: '1.5px solid #9c5e6c',
+            borderRadius: 12,
+            padding: '10px 20px',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Повторить
+        </button>
+        <button
+          onClick={() => { window.location.href = '/ru/home'; }}
+          style={{
+            background: '#9c5e6c',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 12,
+            padding: '10px 20px',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          На главную
+        </button>
+      </div>
     </div>
   );
 }

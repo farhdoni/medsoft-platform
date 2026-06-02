@@ -5,7 +5,6 @@
 // the TopBar (logo, SOS, bell, account) and FloatingNav.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const C = {
