@@ -279,8 +279,10 @@ export function AiChatClient({ locale }: { locale: string }) {
   const touchStartXRef = useRef(0);
 
   // ── AI Actions (medications bulk-add) ──────────────────────────────────────
-  const [addedActions,   setAddedActions]   = useState<Set<string>>(new Set());
-  const [addingActionId, setAddingActionId] = useState<string | null>(null);
+  const [addedActions,    setAddedActions]    = useState<Set<string>>(new Set());
+  const [addingActionId,  setAddingActionId]  = useState<string | null>(null);
+  const [actionErrors,    setActionErrors]    = useState<Record<string, string>>({});
+  const [actionCounts,    setActionCounts]    = useState<Record<string, number>>({});
 
   // ── AI conversation history (sent to /api/ai/chat) ──────────────────────────
   const [apiHistory, setApiHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
@@ -650,13 +652,30 @@ export function AiChatClient({ locale }: { locale: string }) {
 
   async function addMedicationsAction(msgId: string, meds: MedicationActionItem[]) {
     setAddingActionId(msgId);
+    // Clear previous error for this message
+    setActionErrors(prev => { const n = { ...prev }; delete n[msgId]; return n; });
     try {
       const r = await fetch('/api/proxy/medications/bulk-add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ medications: meds }),
       });
-      if (r.ok) setAddedActions(prev => new Set([...prev, msgId]));
+      if (r.ok) {
+        const json = await r.json() as { data?: { added?: number } };
+        const added = json.data?.added ?? meds.length;
+        setActionCounts(prev => ({ ...prev, [msgId]: added }));
+        setAddedActions(prev => new Set([...prev, msgId]));
+      } else {
+        setActionErrors(prev => ({
+          ...prev,
+          [msgId]: 'Не удалось добавить. Попробуйте ещё раз.',
+        }));
+      }
+    } catch {
+      setActionErrors(prev => ({
+        ...prev,
+        [msgId]: 'Ошибка сети. Проверьте подключение.',
+      }));
     } finally {
       setAddingActionId(null);
     }
@@ -884,13 +903,22 @@ export function AiChatClient({ locale }: { locale: string }) {
                                       <p className="text-[11px]" style={{ color: '#7a9a7a' }}>и ещё {medicationsAction.length - 5}...</p>
                                     )}
                                   </div>
-                                  <div className="px-3 pb-3">
+                                  <div className="px-3 pb-3 space-y-2">
+                                    {/* Error message */}
+                                    {actionErrors[m.id] && (
+                                      <div
+                                        className="w-full py-2 rounded-xl text-[12px] font-semibold text-center"
+                                        style={{ background: '#fde8e8', color: '#c0392b' }}
+                                      >
+                                        ⚠️ {actionErrors[m.id]}
+                                      </div>
+                                    )}
                                     {addedActions.has(m.id) ? (
                                       <div
                                         className="w-full py-2.5 rounded-xl text-[13px] font-bold text-center"
                                         style={{ background: '#c8e4cc', color: '#2a5a3a' }}
                                       >
-                                        ✅ Добавлено {medicationsAction.length} лекарств
+                                        ✅ Добавлено {actionCounts[m.id] ?? medicationsAction.length} лекарств
                                       </div>
                                     ) : (
                                       <button
