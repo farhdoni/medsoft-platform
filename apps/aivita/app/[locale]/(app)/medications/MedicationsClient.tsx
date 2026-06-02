@@ -1307,7 +1307,8 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
   const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [parseError, setParseError] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileRef    = useRef<HTMLInputElement>(null);
+  const fileRefPdf = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     title: '', dosage: '', frequency: '1 раз в день',
@@ -1317,27 +1318,78 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
     persistentReminder: false, instructions: '', remainingPills: '',
   });
 
+  // ─── shared OCR error parser ────────────────────────────────────────────────
+
+  async function parseOcrResponse(
+    r: Response,
+    isPdf: boolean,
+  ): Promise<Array<Omit<ParsedMed, 'selected'>> | null> {
+    if (r.ok) {
+      const json = await r.json() as { data?: Array<Omit<ParsedMed, 'selected'>>; raw?: string };
+      if (!json.data?.length) {
+        setParseError(isPdf
+          ? 'Лекарства в PDF не найдены. Убедитесь, что документ содержит рецепт с назначениями.'
+          : 'AI не смог найти лекарства. Убедитесь что рецепт чёткий и полностью виден.');
+        return null;
+      }
+      return json.data;
+    }
+    // Error responses — show distinct messages per cause
+    const errJson = await r.json().catch(() => ({} as { error?: string }));
+    if (r.status === 400 && errJson.error === 'bad_format') {
+      setParseError(isPdf
+        ? 'PDF не удалось прочитать. Проверьте, что файл не зашифрован и не повреждён.'
+        : 'Формат изображения не поддерживается. Используйте JPG, PNG или PDF.');
+    } else if (r.status === 503) {
+      setParseError('Сервис распознавания временно недоступен. Попробуйте позже.');
+    } else if (r.status === 413) {
+      setParseError('Файл слишком большой. Сожмите изображение и попробуйте снова.');
+    } else {
+      setParseError('Не удалось распознать рецепт. Попробуйте ещё раз или введите лекарства вручную.');
+    }
+    return null;
+  }
+
+  // ─── Camera / gallery: image only ──────────────────────────────────────────
+
   async function handleReceiptPhoto(file: File) {
     setParsing(true);
     setParseError('');
     try {
-      // Compress image to max 1200px / JPEG 0.78 → keeps base64 under ~800KB
+      // Compress to max 1200px / JPEG 0.78 → keeps base64 under ~800 KB
       const base64 = await compressImageToBase64(file);
       const r = await fetch('/api/proxy/medications/parse-receipt', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageData: base64, mediaType: 'image/jpeg' }),
       });
-      if (r.ok) {
-        const json = await r.json() as { data: Array<Omit<ParsedMed, 'selected'>>; raw?: string };
-        if (!json.data || json.data.length === 0) {
-          setParseError('AI не смог найти лекарства на фото. Убедитесь что фото чёткое и рецепт хорошо виден.');
-          return;
-        }
-        setReceiptParsed(json.data.map(m => ({ ...m, selected: true })));
-        setMode('receipt');
-      } else {
-        setParseError('Ошибка распознавания. Попробуйте снова с более чётким фото.');
+      const data = await parseOcrResponse(r, false);
+      if (data) { setReceiptParsed(data.map(m => ({ ...m, selected: true }))); setMode('receipt'); }
+    } catch {
+      setParseError('Ошибка сети. Проверьте подключение и попробуйте снова.');
+    } finally { setParsing(false); }
+  }
+
+  // ─── File picker: image OR PDF ───────────────────────────────────────────────
+
+  async function handleReceiptFile(file: File) {
+    setParsing(true);
+    setParseError('');
+    try {
+      const isPdf = file.type === 'application/pdf';
+      if (isPdf && file.size > 20 * 1024 * 1024) {
+        setParseError('PDF слишком большой (макс. 20 МБ). Попробуйте меньший файл.');
+        return;
       }
+      // PDF → no compression (send as-is); image → compress
+      const base64 = isPdf ? await fileToBase64(file) : await compressImageToBase64(file);
+      const mediaType = isPdf ? 'application/pdf' : 'image/jpeg';
+
+      const r = await fetch('/api/proxy/medications/parse-receipt', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData: base64, mediaType }),
+      });
+      const data = await parseOcrResponse(r, isPdf);
+      if (data) { setReceiptParsed(data.map(m => ({ ...m, selected: true }))); setMode('receipt'); }
     } catch {
       setParseError('Ошибка сети. Проверьте подключение и попробуйте снова.');
     } finally { setParsing(false); }
@@ -1518,8 +1570,12 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
       <div style={{ padding: '14px 20px' }}>
         <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>➕ Добавить лекарство</h1>
       </div>
+      {/* Camera: image only (with capture) */}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={e => { if (e.target.files?.[0]) void handleReceiptPhoto(e.target.files[0]); }} />
+      {/* File picker: image or PDF, no capture */}
+      <input ref={fileRefPdf} type="file" accept="image/*,.pdf" className="hidden"
+        onChange={e => { if (e.target.files?.[0]) void handleReceiptFile(e.target.files[0]); }} />
 
       {parseError && (
         <div style={{ margin: '0 16px 12px', padding: '12px 14px', borderRadius: 12, background: '#fde8e8', border: '1px solid #dc3545', fontSize: 13, color: '#c0392b', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -1532,7 +1588,7 @@ function TabAdd({ onAdded }: { onAdded: (med: MedicationRow) => void }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px' }}>
         {[
           { em: '📷', title: 'Фото рецепта', sub: 'AI распознает автоматически', action: () => fileRef.current?.click(), disabled: parsing },
-          { em: '📎', title: 'Файл рецепта', sub: 'PDF или фото из галереи', action: () => fileRef.current?.click() },
+          { em: '📎', title: 'Файл рецепта', sub: 'PDF или фото из галереи', action: () => fileRefPdf.current?.click(), disabled: parsing },
           { em: '💬', title: 'Из чата с врачом', sub: 'Принять назначение', soon: true },
           { em: '🏥', title: 'Из клиники', sub: 'Автоматически из MedSoft', soon: true },
           { em: '✏️', title: 'Вручную', sub: 'Название и дозировку', action: () => setMode('manual') },

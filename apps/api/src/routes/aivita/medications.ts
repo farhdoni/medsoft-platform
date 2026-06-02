@@ -586,13 +586,20 @@ aivitaMedicationsRouter.get('/stats', async (c) => {
 
 aivitaMedicationsRouter.post('/parse-receipt', async (c) => {
   const body = await c.req.json() as {
-    imageData: string;     // base64
-    mediaType?: string;    // 'image/jpeg' | 'image/png' | 'image/webp'
+    imageData: string;
+    mediaType?: string;    // 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf'
   };
 
   if (!body.imageData) return c.json({ error: 'imageData is required' }, 400);
 
-  const mediaType = (body.mediaType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp';
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+  type ImageMediaType = typeof ALLOWED_IMAGE_TYPES[number];
+
+  const rawType = body.mediaType ?? 'image/jpeg';
+  const isPdf   = rawType === 'application/pdf';
+  const mediaType = isPdf
+    ? 'application/pdf'
+    : (ALLOWED_IMAGE_TYPES.includes(rawType as ImageMediaType) ? rawType : 'image/jpeg') as ImageMediaType;
 
   try {
     const response = await anthropic.messages.create({
@@ -601,10 +608,15 @@ aivitaMedicationsRouter.post('/parse-receipt', async (c) => {
       messages: [{
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: body.imageData },
-          },
+          isPdf
+            ? {
+                type: 'document' as const,
+                source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: body.imageData },
+              }
+            : {
+                type: 'image' as const,
+                source: { type: 'base64' as const, media_type: mediaType as ImageMediaType, data: body.imageData },
+              },
           {
             type: 'text',
             text: `Это фото медицинского рецепта. Прочти КАЖДУЮ строку внимательно, включая рукописный текст.
@@ -658,15 +670,19 @@ aivitaMedicationsRouter.post('/parse-receipt', async (c) => {
 
     return c.json({ data: parsed, raw: parsed.length === 0 ? rawText : undefined });
   } catch (err: unknown) {
-    // Anthropic bad-request (e.g. corrupt image, "Could not process image") →
-    // return empty list so frontend shows "no meds found" instead of error banner
     const status = (err as { status?: number })?.status;
     if (status === 400 || status === 422) {
-      console.warn('parse-receipt: Anthropic rejected image (400/422):', String(err));
-      return c.json({ data: [], raw: undefined });
+      // Anthropic: bad image format / corrupt file / could not process
+      console.warn('parse-receipt: Anthropic rejected content (400/422):', String(err));
+      return c.json({ error: 'bad_format', data: [] }, 400);
+    }
+    if (status === 401) {
+      // Missing or invalid API key
+      console.error('parse-receipt: Anthropic auth error — check ANTHROPIC_API_KEY');
+      return c.json({ error: 'service_unavailable' }, 503);
     }
     console.error('parse-receipt error:', err);
-    return c.json({ error: 'AI recognition failed', detail: String(err) }, 500);
+    return c.json({ error: 'server_error', detail: String(err) }, 500);
   }
 });
 
