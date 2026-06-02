@@ -579,7 +579,7 @@ export function ChatClient({ convId, myUserId, isDoctor }: {
     <div className="fixed inset-0 flex flex-col max-w-[480px] mx-auto" style={{ background: '#f4f3ef' }}>
 
       {/* ── TopBar ──────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-12 pb-3 bg-white border-b"
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-3 pb-3 bg-white border-b"
         style={{ borderColor: '#e8e4dc' }}>
         <button type="button" onClick={() => router.push(`/${locale}/${isDoctor ? 'doctor-chats' : 'chats'}`)}
           className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"

@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import { ChatPageShell } from '@/components/cabinet/dashboard/ChatPageShell';
 import { ChatClient } from './ChatClient';
 
 export default async function ChatPage({
@@ -15,10 +15,12 @@ export default async function ChatPage({
   const isDoctor = session.role === 'doctor';
 
   return (
-    <ChatClient
-      convId={id}
-      myUserId={session.userId}
-      isDoctor={isDoctor}
-    />
+    <ChatPageShell active="chats" locale={locale}>
+      <ChatClient
+        convId={id}
+        myUserId={session.userId}
+        isDoctor={isDoctor}
+      />
+    </ChatPageShell>
   );
 }

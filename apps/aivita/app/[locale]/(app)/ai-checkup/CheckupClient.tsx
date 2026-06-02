@@ -441,50 +441,30 @@ function ResultScreen({ result, locale }: { result: CheckupResult; locale: strin
   const agePositive = ageDiff > 0;
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: '#f4f3ef' }}>
-      {/* Header */}
-      <header
-        className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b"
-        style={{ background: '#fff', borderColor: '#e8e4dc' }}
-      >
-        <button
-          onClick={() => router.push(`/${locale}/home`)}
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: '#f4f3ef' }}
-          aria-label="Домой"
-        >
-          <ChevronLeft className="w-5 h-5" style={{ color: '#2a2540' }} />
-        </button>
-        <div className="flex-1">
+    <div style={{ background: '#f4f3ef' }}>
+      {/* Actions row — replaces the removed header (back via TopBar logo, kept print/share) */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
           <p className="text-[14px] font-bold" style={{ color: '#2a2540' }}>AI Чекап</p>
-          <p className="text-[10px]" style={{ color: '#9a96a8' }}>
+          <p className="text-[11px]" style={{ color: '#9a96a8' }}>
             {new Date(result.createdAt).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: '#f4f3ef' }}
-          aria-label="Скачать PDF"
-          title="Скачать PDF"
-        >
-          <Download className="w-4 h-4" style={{ color: '#6a6580' }} />
-        </button>
-        <button
-          onClick={() => {
-            if (navigator.share) {
-              void navigator.share({ title: 'AI Чекап AIVITA', url: window.location.href });
-            }
-          }}
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: '#f4f3ef' }}
-          aria-label="Поделиться"
-        >
-          <Share2 className="w-4 h-4" style={{ color: '#6a6580' }} />
-        </button>
-      </header>
+        <div className="flex gap-2">
+          <button onClick={() => window.print()}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: '#f4f3ef' }} aria-label="Распечатать PDF">
+            <Download className="w-4 h-4" style={{ color: '#6a6580' }} />
+          </button>
+          <button onClick={() => { if (navigator.share) void navigator.share({ title: 'AI Чекап AIVITA', url: window.location.href }); }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: '#f4f3ef' }} aria-label="Поделиться">
+            <Share2 className="w-4 h-4" style={{ color: '#6a6580' }} />
+          </button>
+        </div>
+      </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-4" id="report-content">
+      <div className="space-y-4" id="report-content">
 
         {/* Summary card */}
         <div
@@ -621,7 +601,6 @@ function ResultScreen({ result, locale }: { result: CheckupResult; locale: strin
         </button>
       </div>
 
-      <FloatingNav active="home" />
     </div>
   );
 }

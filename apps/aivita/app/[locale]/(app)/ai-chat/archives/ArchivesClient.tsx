@@ -80,7 +80,7 @@ export function ArchivesClient({ locale }: { locale: string }) {
     return (
       <div
         className="flex flex-col bg-[rgb(var(--bg-base-1))]"
-        style={{ height: '100dvh', maxWidth: 480, margin: '0 auto' }}
+        style={{ height: '100%', maxWidth: 480, margin: '0 auto' }}
       >
         <header
           className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b"

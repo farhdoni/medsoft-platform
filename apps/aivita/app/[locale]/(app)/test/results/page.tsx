@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Share2 } from 'lucide-react';
-import { AppHeader } from '@/components/app/app-header';
+import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { HealthScoreCircle } from '@/components/shared/health-score-circle';
 import { loadTestData } from '../data';
 
@@ -61,10 +61,8 @@ export default async function TestResultsPage({
   const delta = prevScore ? score.totalScore - prevScore.totalScore : null;
 
   return (
-    <div className="min-h-screen">
-      <AppHeader name="Результаты теста" />
-
-      <div className="px-5 space-y-4 pb-6">
+    <PageShell active="test" locale={locale}>
+      <div className="space-y-4">
         {/* Header */}
         <div className="text-center pt-2">
           <span className="text-3xl mb-2 inline-block">🎉</span>
@@ -190,6 +188,6 @@ export default async function TestResultsPage({
           </Link>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
