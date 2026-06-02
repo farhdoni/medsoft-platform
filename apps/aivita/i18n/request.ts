@@ -22,24 +22,39 @@ async function fetchDbOverrides(locale: string): Promise<Record<string, Record<s
 }
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  // Primary: URL locale set by next-intl middleware (e.g. /ru/, /uz/, /en/)
-  const urlLocale = await requestLocale;
-  const cookieStore = await cookies();
-  const localeCookie = cookieStore.get('NEXT_LOCALE')?.value;
-  // URL locale takes priority; cookie is fallback for non-routed pages
-  const raw = urlLocale ?? localeCookie;
-  const locale = raw && ['ru', 'uz', 'en'].includes(raw) ? raw : 'ru';
+  try {
+    // Primary: URL locale set by next-intl middleware (e.g. /ru/, /uz/, /en/)
+    const urlLocale = await requestLocale;
+    const cookieStore = await cookies();
+    const localeCookie = cookieStore.get('NEXT_LOCALE')?.value;
+    // URL locale takes priority; cookie is fallback for non-routed pages
+    const raw = urlLocale ?? localeCookie;
+    const locale = raw && ['ru', 'uz', 'en'].includes(raw) ? raw : 'ru';
 
-  // Base messages from JSON (always present)
-  const base = (await import(`../messages/${locale}.json`)).default;
+    // Base messages from JSON (always present)
+    const base = (await import(`../messages/${locale}.json`)).default;
 
-  // Overlay with DB content (fails silently → JSON is the fallback)
-  const overrides = await fetchDbOverrides(locale);
-  const messages = overrides
-    ? mergeDeep(base, overrides)
-    : base;
+    // Overlay with DB content (fails silently → JSON is the fallback)
+    let overrides: Awaited<ReturnType<typeof fetchDbOverrides>> = null;
+    try {
+      overrides = await fetchDbOverrides(locale);
+    } catch (fetchErr) {
+      console.error('[i18n/request] fetchDbOverrides threw:', (fetchErr as Error)?.stack ?? fetchErr);
+    }
 
-  return { locale, messages };
+    let messages: Record<string, unknown>;
+    try {
+      messages = overrides ? mergeDeep(base, overrides) : base;
+    } catch (mergeErr) {
+      console.error('[i18n/request] mergeDeep threw:', (mergeErr as Error)?.stack ?? mergeErr);
+      messages = base;
+    }
+
+    return { locale, messages };
+  } catch (err) {
+    console.error('[i18n/request] getRequestConfig threw:', (err as Error)?.stack ?? err);
+    throw err;
+  }
 });
 
 /** Deep merge: overlay values override base, nested objects are merged. */
