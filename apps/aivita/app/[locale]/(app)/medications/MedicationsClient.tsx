@@ -820,13 +820,17 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
       {/* ── Menu bottom sheet ── */}
       {menuMed && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
+          className="fixed inset-0 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)', zIndex: 60 }}
           onClick={() => setMenuMed(null)}
         >
           <div
-            className="w-full max-w-[480px] rounded-t-3xl px-5 pt-4 pb-10"
-            style={{ background: '#fff' }}
+            className="w-full max-w-[480px] rounded-t-3xl px-5 pt-4"
+            style={{
+              background: '#fff',
+              /* pb = FloatingNav height (~64px) + its bottom offset (24px) + safe-area */
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e0dcd8', margin: '0 auto 16px' }} />
@@ -867,13 +871,16 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
       {/* ── Confirm delete ── */}
       {confirmDeleteId !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
+          className="fixed inset-0 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)', zIndex: 60 }}
           onClick={() => setConfirmDeleteId(null)}
         >
           <div
-            className="w-full max-w-[480px] rounded-t-3xl px-6 pt-6 pb-10 space-y-4"
-            style={{ background: '#fff' }}
+            className="w-full max-w-[480px] rounded-t-3xl px-6 pt-6 space-y-4"
+            style={{
+              background: '#fff',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ width: 40, height: 4, borderRadius: 2, background: '#e0dcd8', margin: '0 auto 8px' }} />
@@ -895,8 +902,8 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
       {/* ── Edit bottom sheet ── */}
       {editingMed && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
+          className="fixed inset-0 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)', zIndex: 60 }}
           onClick={() => setEditingMed(null)}
         >
           <div
