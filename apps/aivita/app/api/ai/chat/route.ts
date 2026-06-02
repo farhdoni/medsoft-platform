@@ -393,7 +393,8 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
     });
-  } catch {
+  } catch (err) {
+    console.error('[ai/chat] Anthropic SDK threw:', err);
     const lastMsg = messages?.[messages.length - 1]?.content ?? '';
     const mockFn = MOCK[lang] ?? MOCK.ru;
     return new Response(

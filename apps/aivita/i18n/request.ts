@@ -42,7 +42,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
       console.error('[i18n/request] fetchDbOverrides threw:', (fetchErr as Error)?.stack ?? fetchErr);
     }
 
-    let messages: Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let messages: any;
     try {
       messages = overrides ? mergeDeep(base, overrides) : base;
     } catch (mergeErr) {
