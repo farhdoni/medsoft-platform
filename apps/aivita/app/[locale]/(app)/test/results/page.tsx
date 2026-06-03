@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Share2 } from 'lucide-react';
+import { ShareButton } from './ShareButton';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { HealthScoreCircle } from '@/components/shared/health-score-circle';
 import { loadTestData } from '../data';
@@ -163,12 +164,7 @@ export default async function TestResultsPage({
                 Поделись результатом с друзьями — пусть тоже узнают свой{' '}
                 <em className="font-serif italic text-pink-500">Health Score</em>
               </p>
-              <Link
-                href={`/${locale}/test/results/share`}
-                className="inline-flex items-center gap-1 mt-2 text-xs text-pink-500 font-semibold hover:text-pink-600"
-              >
-                Поделиться →
-              </Link>
+              <ShareButton />
             </div>
           </div>
         </div>

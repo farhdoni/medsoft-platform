@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import {
   Crown, Calendar, CreditCard, Check, Loader2,
   ChevronRight, XCircle, Zap, Users, Shield, Star,
@@ -247,6 +248,7 @@ function DowngradeConfirmModal({ sub, onConfirm, onClose, cancelling }: {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function SubscriptionClient({ showSuccess }: { showSuccess: boolean }) {
+  const { locale = 'ru' } = useParams<{ locale: string }>() ?? {};
   const [sub, setSub]           = useState<Sub>(null);
   const [plans, setPlans]       = useState<Plan[]>([]);
   const [methods, setMethods]   = useState<PaymentMethod[]>([]);
@@ -464,14 +466,14 @@ export function SubscriptionClient({ showSuccess }: { showSuccess: boolean }) {
                       {' '}*{defaultMethod.cardLastFour ?? '????'}
                     </p>
                   ) : (
-                    <Link href="/settings/payment-methods" className="text-[13px] font-semibold text-[#9c5e6c]">
+                    <Link href={`/${locale}/settings/payment-methods`} className="text-[13px] font-semibold text-[#9c5e6c]">
                       Привязать карту →
                     </Link>
                   )}
                 </div>
               </div>
               {defaultMethod && (
-                <Link href="/settings/payment-methods" className="text-[12px] text-[#9c5e6c] font-medium">
+                <Link href={`/${locale}/settings/payment-methods`} className="text-[12px] text-[#9c5e6c] font-medium">
                   Изменить
                 </Link>
               )}
@@ -521,9 +523,7 @@ export function SubscriptionClient({ showSuccess }: { showSuccess: boolean }) {
         <div className="mt-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[14px] font-bold text-[#2a2540]">История оплат</h2>
-            <Link href="/settings/payment-history" className="text-[12px] text-[#9c5e6c] font-medium">
-              Показать все
-            </Link>
+            {/* TODO: создать /settings/payment-history страницу */}
           </div>
           <div className="rounded-xl border border-[#e8e4dc] bg-white divide-y divide-[#f4f3ef]">
             {payments.map(p => (

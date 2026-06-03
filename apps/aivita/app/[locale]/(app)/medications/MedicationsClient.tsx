@@ -315,7 +315,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
         )}
         {tab === 'log'      && <TabLog />}
         {tab === 'pharmacy' && <TabPharmacy />}
-        {tab === 'family'   && <TabFamily />}
+        {tab === 'family'   && <TabFamily locale={locale} />}
       </div>
 
       {celebration && (
@@ -1933,7 +1933,7 @@ function TabPharmacy() {
 const FAMILY_AVATARS = [C.accentBg, C.blueBg, C.purpleBg, C.orangeBg, C.greenBg];
 const FAMILY_EMOJIS = ['👩', '👦', '👧', '👴', '👵'];
 
-function TabFamily() {
+function TabFamily({ locale }: { locale: string }) {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1959,7 +1959,7 @@ function TabFamily() {
         <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>👨‍👩‍👧</span>
         <p style={{ fontSize: 15, fontWeight: 700, color: C.t1, marginBottom: 4 }}>Нет членов семьи</p>
         <p style={{ fontSize: 13, color: C.t3, marginBottom: 12 }}>Добавьте семью в разделе «Семья»</p>
-        <Link href="/family" style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>Перейти →</Link>
+        <Link href={`/${locale}/family`} style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>Перейти →</Link>
       </div>
     </div>
   );
