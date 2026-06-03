@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Icon3D, type Icon3DName } from './icons/Icon3D';
@@ -103,34 +104,26 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
     window.location.href = `/${locale}/sign-in`;
   };
 
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        onClick={handleToggle}
-        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-90 transition-opacity sm:w-10 sm:h-10 select-none"
-        style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
-        aria-label={t('ariaLabel')}
-      >
-        {initials}
-      </button>
+  // Portal target — renders outside any overflow:hidden ancestor (fixes iOS WebView clipping)
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => { setMounted(true); }, []);
 
-      {open && (
-        <div
-          ref={menuRef}
-          style={{
-            position: 'fixed',
-            top: pos.top,
-            right: pos.right,
-            zIndex: 9999,
-            width: 280,
-            background: 'white',
-            borderRadius: 16,
-            border: '1px solid #e8e4dc',
-            boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
-            overflow: 'hidden',
-          }}
-        >
+  const dropdown = open ? (
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: pos.top,
+        right: pos.right,
+        zIndex: 9999,
+        width: 280,
+        background: 'white',
+        borderRadius: 16,
+        border: '1px solid #e8e4dc',
+        boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
+        overflow: 'hidden',
+      }}
+    >
           {/* Header */}
           <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid #e8e4dc' }}>
             <div
@@ -249,7 +242,21 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
             </button>
           </div>
         </div>
-      )}
+  ) : null;
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={handleToggle}
+        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-90 transition-opacity sm:w-10 sm:h-10 select-none"
+        style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)' }}
+        aria-label={t('ariaLabel')}
+      >
+        {initials}
+      </button>
+      {/* Portal renders dropdown at document.body — escapes overflow:hidden ancestors (iOS WebView fix) */}
+      {mounted && dropdown && createPortal(dropdown, document.body)}
     </>
   );
 }
