@@ -3,6 +3,32 @@ import type { User, DailyMetrics, ActivityPoint, Report } from '@/lib/cabinet-ty
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
+// ─── Doctor preview (fetched server-side, passed as props to HomeDashboard) ──
+
+export interface DoctorPreview {
+  userId: string;
+  name: string;
+  specialization?: string;
+  rating?: number;
+  photoUrl?: string;
+  avatarUrl?: string;
+  verificationStatus?: string;
+  experienceStartDate?: string;
+}
+
+async function getFeaturedDoctors(): Promise<DoctorPreview[]> {
+  try {
+    const res = await fetch(`${API_BASE}/v1/aivita/catalog?sort=rating&limit=3`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return (json.data as DoctorPreview[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 // All aivita API responses are { data: T } — unwrap automatically
 async function authFetch<T>(path: string): Promise<T | null> {
   try {
@@ -109,6 +135,7 @@ export async function loadHomeData(): Promise<{
   activity: ActivityPoint[];
   report: Report | null;
   vitalsLatest: Record<string, ApiVital | null>;
+  doctors: DoctorPreview[];
 }> {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
@@ -125,6 +152,7 @@ export async function loadHomeData(): Promise<{
     apiHabitLogs,
     apiReports,
     apiVitalsLatest,
+    doctors,
   ] = await Promise.all([
     authFetch<ApiUser>('/v1/aivita/users'),
     authFetch<ApiHealthScore>('/v1/aivita/health-score'),
@@ -136,6 +164,7 @@ export async function loadHomeData(): Promise<{
     authFetch<ApiHabitLog[]>(`/v1/aivita/habits/logs/range?from=${today}&to=${today}`),
     authFetch<ApiReport[]>('/v1/aivita/reports'),
     authFetch<Record<string, ApiVital | null>>('/v1/aivita/vitals/latest'),
+    getFeaturedDoctors(),
   ]);
 
   // ─── User ──────────────────────────────────────────────────────────────────
@@ -250,5 +279,5 @@ export async function loadHomeData(): Promise<{
 
   const vitalsLatest: Record<string, ApiVital | null> = apiVitalsLatest ?? {};
 
-  return { user, metrics, activity, report, vitalsLatest };
+  return { user, metrics, activity, report, vitalsLatest, doctors: doctors ?? [] };
 }

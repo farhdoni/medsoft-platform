@@ -22,7 +22,7 @@ export default async function HomePage({
     console.error('[home/page] SSR crash:', (err as Error)?.stack ?? err);
     throw err;
   }
-  const { user, metrics, activity, report, vitalsLatest } = homeData;
+  const { user, metrics, activity, report, vitalsLatest, doctors } = homeData;
 
   const vitals = vitalsLatest as Record<string, { recordedAt: string; value: Record<string, unknown> } | null>;
 
@@ -41,6 +41,7 @@ export default async function HomePage({
           activity={activity}
           report={report}
           vitals={vitals}
+          doctors={doctors}
         />
       </div>
 

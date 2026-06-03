@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { ActivityChart } from '@/components/cabinet/dashboard/ActivityChart';
 import { ReportCard } from '@/components/cabinet/dashboard/ReportCard';
 import { AiMonitor } from '@/components/cabinet/dashboard/AiMonitor';
-import { DoctorsHomeBlock } from '@/components/doctors/DoctorsHomeBlock';
 import { ReferralBanner } from './ReferralBanner';
 import type { DailyMetrics, ActivityPoint, Report, User } from '@/lib/cabinet-types';
+import type { DoctorPreview } from './data';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +20,7 @@ interface Props {
   activity: ActivityPoint[];
   report: Report | null;
   vitals: LatestVitals;
+  doctors: DoctorPreview[];
 }
 
 // ─── Block definitions ────────────────────────────────────────────────────────
@@ -204,7 +205,7 @@ function HiddenBlocksPanel({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function HomeDashboard({ locale, activity, report, vitals }: Props) {
+export function HomeDashboard({ locale, activity, report, vitals, doctors }: Props) {
   const [blockOrder,  setBlockOrder]  = useState<string[]>(HOME_BLOCKS.map(b => b.id));
   const [hiddenBlocks, setHiddenBlocks] = useState<string[]>([]);
   const [editMode,    setEditMode]    = useState(false);
@@ -312,9 +313,52 @@ export function HomeDashboard({ locale, activity, report, vitals }: Props) {
           </div>
         );
       case 'doctors':
-        return (
+        return doctors.length === 0 ? null : (
           <section className="px-4 pb-4 sm:px-7">
-            <DoctorsHomeBlock locale={locale} />
+            <div className="rounded-2xl p-4 border" style={{ background: '#fff', borderColor: '#e8e4dc' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[15px] font-bold" style={{ color: '#2a2540' }}>🩺 Врачи AIVITA</h3>
+                <Link href={`/${locale}/doctors`} className="text-[12px] font-semibold" style={{ color: 'var(--accent-dark, #9c5e6c)' }}>
+                  Все врачи →
+                </Link>
+              </div>
+              <div className="space-y-2.5">
+                {doctors.map(doc => {
+                  const exp = doc.experienceStartDate
+                    ? Math.floor((Date.now() - new Date(doc.experienceStartDate).getTime()) / 31557600000)
+                    : null;
+                  const ini = (doc.name ?? '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  return (
+                    <Link key={doc.userId} href={`/${locale}/doctors/${doc.userId}`}>
+                      <div className="flex items-center gap-3 py-1 active:opacity-70 transition-opacity">
+                        {doc.photoUrl || doc.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={doc.photoUrl ?? doc.avatarUrl} alt={doc.name ?? ''} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                            style={{ background: 'linear-gradient(135deg, #6BA3D6, #3a6fa0)' }}>
+                            {ini}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold truncate" style={{ color: '#2a2540' }}>
+                            Dr. {doc.name}
+                            {doc.verificationStatus === 'verified' && (
+                              <span className="ml-1 text-[10px]" style={{ color: '#4A7FB5' }}>✅</span>
+                            )}
+                          </p>
+                          <p className="text-[11px] truncate" style={{ color: '#9a96a8' }}>
+                            {doc.specialization}{exp ? ` · ${exp} лет` : ''}
+                            {doc.rating ? ` · ★ ${doc.rating}` : ''}
+                          </p>
+                        </div>
+                        <span style={{ color: '#9a96a8', fontSize: 16 }}>›</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </section>
         );
       case 'referral':
