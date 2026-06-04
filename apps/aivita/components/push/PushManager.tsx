@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
-// VAPID public key (set in Coolify env: NEXT_PUBLIC_VAPID_PUBLIC_KEY)
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
+// VAPID public key is fetched at runtime via /api/push/vapid-key (server route).
+// Do NOT read NEXT_PUBLIC_VAPID_PUBLIC_KEY here — it gets baked as '' at build time.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,13 +73,21 @@ export default function PushManager() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
     if (!('Notification' in window)) return;
-    if (!VAPID_PUBLIC_KEY) {
-      console.warn('[PushManager] NEXT_PUBLIC_VAPID_PUBLIC_KEY not set — web push disabled');
-      return;
-    }
 
     async function setup() {
       try {
+        // Fetch VAPID public key from server at runtime — avoids build-time baking
+        const keyRes = await fetch('/api/push/vapid-key').catch(() => null);
+        if (!keyRes?.ok) {
+          console.warn('[PushManager] /api/push/vapid-key unavailable — web push disabled');
+          return;
+        }
+        const { key: vapidKey } = await keyRes.json() as { key: string | null };
+        if (!vapidKey) {
+          console.warn('[PushManager] VAPID_PUBLIC_KEY not configured — web push disabled');
+          return;
+        }
+
         const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
         if (Notification.permission === 'default') {
@@ -97,7 +105,7 @@ export default function PushManager() {
             userVisibleOnly: true,
             // Must be ArrayBuffer/Uint8Array for cross-browser compatibility.
             // Cast .buffer to ArrayBuffer to satisfy TS strict lib typing.
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
           });
         }
 
