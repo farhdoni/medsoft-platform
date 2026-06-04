@@ -14,15 +14,8 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  let homeData: Awaited<ReturnType<typeof loadHomeData>>;
-  let session: Awaited<ReturnType<typeof getSession>>;
-  try {
-    [homeData, session] = await Promise.all([loadHomeData(), getSession()]);
-  } catch (err) {
-    console.error('[home/page] SSR crash:', (err as Error)?.stack ?? err);
-    throw err;
-  }
-  const { user, metrics, activity, report, vitalsLatest, doctors } = homeData;
+  const [{ user, metrics, activity, report, vitalsLatest, doctors }, session] =
+    await Promise.all([loadHomeData(), getSession()]);
 
   const vitals = vitalsLatest as Record<string, { recordedAt: string; value: Record<string, unknown> } | null>;
 
