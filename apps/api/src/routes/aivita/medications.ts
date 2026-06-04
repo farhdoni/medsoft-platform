@@ -957,11 +957,14 @@ aivitaMedicationsRouter.post('/push/register', async (c) => {
   const { token, platform } = await c.req.json() as { token: string; platform: string };
   if (!token || !platform) return c.json({ error: 'token and platform required' }, 400);
 
+  // Normalise platform: accept 'web' explicitly; fall back to 'android' for unknown values
+  const normPlatform = platform === 'web' ? 'web' : platform === 'ios' ? 'ios' : 'android';
+
   await db.insert(aivitaDeviceTokens)
-    .values({ userId, pushToken: token, platform: platform === 'ios' ? 'ios' : 'android' })
+    .values({ userId, pushToken: token, platform: normPlatform })
     .onConflictDoUpdate({
       target: aivitaDeviceTokens.pushToken,
-      set: { userId, platform: platform === 'ios' ? 'ios' : 'android', updatedAt: new Date() },
+      set: { userId, platform: normPlatform, updatedAt: new Date() },
     });
 
   return c.json({ data: { success: true } });
