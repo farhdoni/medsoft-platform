@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import Modal from '@/components/ui/Modal';
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DeviceCatalogItem {
@@ -47,134 +44,9 @@ const METRIC_LABELS: Record<string, string> = {
   water_ml: 'Вода',
 };
 
-function relativeTime(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'только что';
-  if (mins < 60) return `${mins} мин назад`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} ч назад`;
-  return `${Math.floor(hrs / 24)} дн назад`;
-}
-
-// ─── Instructions Modal ────────────────────────────────────────────────────────
-
-function InstructionsModal({
-  device,
-  onClose,
-  onConnect,
-}: {
-  device: DeviceCatalogItem;
-  onClose: () => void;
-  onConnect: (d: DeviceCatalogItem) => void;
-}) {
-  return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title={`${DEVICE_ICONS[device.type] ?? '📡'} ${device.name}`}
-      footer={
-        <div className="space-y-2">
-          {device.connectMethod === 'oauth' ? (
-            <button
-              onClick={() => { onConnect(device); onClose(); }}
-              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: '#4285f4' }}
-            >
-              Войти через Google
-            </button>
-          ) : (
-            <button
-              onClick={() => { onConnect(device); onClose(); }}
-              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-dark))' }}
-            >
-              Подключить через Google Fit
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors hover:bg-app-bg text-app-t3"
-          >
-            Отмена
-          </button>
-        </div>
-      }
-    >
-      <p className="text-xs text-app-t3 mb-4">
-        {device.metrics.map((m) => METRIC_LABELS[m] ?? m).join(' · ')}
-      </p>
-      {device.connectMethod === 'oauth' ? (
-        <p className="text-sm text-app-t2">
-          Подключение через OAuth 2.0. Нажмите кнопку ниже и авторизуйтесь в Google.
-        </p>
-      ) : (
-        <>
-          <p className="text-sm font-semibold text-app-t1 mb-3">Как подключить:</p>
-          <ol className="space-y-2">
-            {device.instructions.map((step, i) => (
-              <li key={i} className="flex gap-3">
-                <span
-                  className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white"
-                  style={{ background: 'var(--accent-dark)' }}
-                >
-                  {i + 1}
-                </span>
-                <p className="text-sm text-app-t2">{step}</p>
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-    </Modal>
-  );
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
-  const [connected, setConnected] = useState<ConnectedDevice[]>(initialConnected);
-  const [selectedDevice, setSelectedDevice] = useState<DeviceCatalogItem | null>(null);
-  const [syncing, setSyncing] = useState<string | null>(null);
-
-  const connectedTypes = new Set(connected.map((d) => d.type));
-
-  async function handleConnect(device: DeviceCatalogItem) {
-    try {
-      const res = await fetch(
-        '/api/proxy/devices',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: device.type, name: device.name }),
-        }
-      );
-      const json = await res.json();
-      if (json.data) {
-        setConnected((prev) => [...prev, json.data as ConnectedDevice]);
-      }
-    } catch {}
-  }
-
-  async function handleSync(id: string) {
-    setSyncing(id);
-    try {
-      await fetch(`/api/proxy/devices/${id}/sync`, { method: 'POST' });
-      setConnected((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, lastSyncAt: new Date().toISOString() } : d))
-      );
-    } catch {} finally {
-      setSyncing(null);
-    }
-  }
-
-  async function handleDisconnect(id: string) {
-    try {
-      await fetch(`/api/proxy/devices/${id}`, { method: 'DELETE' });
-      setConnected((prev) => prev.filter((d) => d.id !== id));
-    } catch {}
-  }
-
+export function GadgetsClient({ catalog, connected }: Props) {
   return (
     <>
       {/* Header */}
@@ -185,66 +57,21 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
         <h1 className="text-[22px] font-extrabold" style={{ color: '#2a2540' }}>Мои гаджеты</h1>
       </div>
 
-      {/* Connected devices */}
+      {/* Stale connected-devices banner — replaces the fake "Подключён · синхр." cards */}
       {connected.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ПОДКЛЮЧЁННЫЕ</h2>
-          <div className="space-y-3">
-            {connected.map((device) => {
-              const catalogItem = catalog.find((c) => c.type === device.type);
-              return (
-                <div
-                  key={device.id}
-                  className="rounded-[20px] bg-white border p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-[28px]">{DEVICE_ICONS[device.type] ?? '📡'}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-bold truncate" style={{ color: '#2a2540' }}>{device.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="w-2 h-2 rounded-full" style={{ background: device.status === 'connected' ? '#688844' : '#9a96a8' }} />
-                        <p className="text-[12px]" style={{ color: '#9a96a8' }}>
-                          {device.status === 'connected' ? 'Подключён' : device.status}
-                          {device.lastSyncAt ? ` · синхр. ${relativeTime(device.lastSyncAt)}` : ''}
-                        </p>
-                      </div>
-                      {catalogItem && (
-                        <p className="text-[11px] mt-1" style={{ color: '#9a96a8' }}>
-                          {catalogItem.metrics.map((m) => METRIC_LABELS[m] ?? m).join(' · ')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => handleSync(device.id)}
-                      disabled={syncing === device.id}
-                      className="flex-1 py-2 rounded-[12px] text-[13px] font-semibold transition-colors hover:bg-[#f4f3ef] disabled:opacity-50"
-                      style={{ border: '1px solid #e8e4dc', color: '#6a6580' }}
-                    >
-                      {syncing === device.id ? 'Синхронизация...' : '🔄 Синхронизировать'}
-                    </button>
-                    <button
-                      onClick={() => handleDisconnect(device.id)}
-                      className="px-3 py-2 rounded-[12px] text-[13px] transition-colors hover:bg-[#f0d4dc]"
-                      style={{ border: '1px solid #e8e4dc', color: 'var(--accent-dark)' }}
-                    >
-                      Отключить
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <div className="rounded-[16px] p-4 flex gap-3 mb-6" style={{ background: '#f0edf8', border: '1px solid #d8cff0' }}>
+          <span className="text-[18px] flex-shrink-0">🔧</span>
+          <p className="text-[12px]" style={{ color: '#5e40a0' }}>
+            Интеграция с устройствами в разработке. Скоро вы сможете подключить Google Fit, Xiaomi Mi Band и другие — данные будут автоматически попадать в биометрию.
+          </p>
+        </div>
       )}
 
-      {/* Available devices catalog */}
+      {/* Devices catalog */}
       <section className="mb-6">
         <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ДОСТУПНЫЕ ГАДЖЕТЫ</h2>
         <div className="rounded-[20px] bg-white border overflow-hidden border-app-border">
           {catalog.map((device, idx) => {
-            const isConnected = connectedTypes.has(device.type);
             const isLast = idx === catalog.length - 1;
             return (
               <div
@@ -259,45 +86,26 @@ export function GadgetsClient({ catalog, connected: initialConnected }: Props) {
                     {device.metrics.map((m) => METRIC_LABELS[m] ?? m).join(', ')}
                   </p>
                 </div>
-                {isConnected ? (
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: '#d4e8d8', color: '#548068' }}>
-                    ✓ Подключён
-                  </span>
-                ) : device.status === 'coming_soon' ? (
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: '#f4f3ef', color: '#9a96a8' }}>
-                    Скоро
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => setSelectedDevice(device)}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors hover:opacity-90"
-                    style={{ background: 'var(--accent-dark)', color: '#ffffff' }}
-                  >
-                    Подключить
-                  </button>
-                )}
+                {/* All devices show "Скоро" — real OAuth/Health Connect not yet implemented */}
+                <span
+                  className="px-3 py-1 rounded-full text-[11px] font-semibold"
+                  style={{ background: '#f4f3ef', color: '#9a96a8' }}
+                >
+                  Скоро
+                </span>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* Info note */}
+      {/* Info note — honest roadmap text */}
       <div className="rounded-[16px] p-4 flex gap-3" style={{ background: '#f4f3ef' }}>
         <span className="text-[18px] flex-shrink-0">ℹ️</span>
         <p className="text-[12px]" style={{ color: '#6a6580' }}>
-          Данные с подключённых гаджетов автоматически попадают в биометрию. Синхронизация происходит каждые 30 минут.
+          Подключение носимых устройств (Health Connect, Google Fit, Xiaomi Mi Band) появится в одном из ближайших обновлений.
         </p>
       </div>
-
-      {/* Instructions modal */}
-      {selectedDevice && (
-        <InstructionsModal
-          device={selectedDevice}
-          onClose={() => setSelectedDevice(null)}
-          onConnect={handleConnect}
-        />
-      )}
     </>
   );
 }
