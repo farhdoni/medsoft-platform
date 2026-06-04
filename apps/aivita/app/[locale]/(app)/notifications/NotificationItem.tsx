@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { NotificationRecord } from './data';
 
@@ -51,6 +52,16 @@ export function NotificationItem({ notification: n, locale }: Props) {
   const router = useRouter();
   const isUnread = !n.isRead && !n.readAt;
 
+  // SSR/hydration fix: relativeTime(Date.now()) differs between server and client.
+  // Render empty string initially (SSR outputs ''), update after mount.
+  const [timeLabel, setTimeLabel] = useState('');
+  useEffect(() => {
+    setTimeLabel(relativeTime(n.createdAt));
+    // Update every minute so the label stays fresh
+    const timer = setInterval(() => setTimeLabel(relativeTime(n.createdAt)), 60_000);
+    return () => clearInterval(timer);
+  }, [n.createdAt]);
+
   async function handleClick() {
     if (isUnread) {
       await fetch(`/api/proxy/notifications/${n.id}/read`, { method: 'PUT' }).catch(() => {});
@@ -88,7 +99,7 @@ export function NotificationItem({ notification: n, locale }: Props) {
           {n.title}
         </p>
         <p className="text-[12px] text-text-secondary mt-0.5 leading-relaxed">{n.body}</p>
-        <p className="text-[11px] text-text-muted mt-1.5">{relativeTime(n.createdAt)}</p>
+        <p className="text-[11px] text-text-muted mt-1.5">{timeLabel}</p>
       </div>
 
       {/* Arrow if has link */}

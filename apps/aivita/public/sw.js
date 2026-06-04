@@ -1,5 +1,5 @@
-const CACHE_NAME = 'aivita-v3';
-const STATIC_CACHE = 'aivita-static-v3';
+const CACHE_NAME = 'aivita-v4';
+const STATIC_CACHE = 'aivita-static-v4';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
@@ -114,6 +114,12 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Skip: non-http(s) schemes (e.g. chrome-extension://) — Cache API rejects them
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+
+  // Skip: cross-origin requests — only cache same-origin responses
+  if (url.origin !== location.origin) return;
 
   // Skip: API calls, external origins, authenticated cabinet routes
   if (

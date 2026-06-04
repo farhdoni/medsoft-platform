@@ -15,8 +15,10 @@ export function HeroSection({ user, metrics }: Props) {
   const t = useTranslations('app.hero');
   const [question, setQuestion] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Avoid SSR/client time mismatch: render neutral default, update after mount
-  const [greeting, setGreeting] = useState(t('greetingDay'));
+  // SSR/client hydration fix: start with '' (renders nothing), update after mount.
+  // Previously used t('greetingDay') as initial value — but if DB-merged messages
+  // differ from the SSR-time value by even one character, React throws #418.
+  const [greeting, setGreeting] = useState('');
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || "ru";
