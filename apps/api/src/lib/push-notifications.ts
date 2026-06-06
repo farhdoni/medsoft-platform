@@ -30,8 +30,9 @@ type ExpoMessage = {
   title: string;
   body: string;
   data?: Record<string, unknown>;
-  sound?: 'default';
+  sound?: string;
   badge?: number;
+  channelId?: string;
 };
 
 type ExpoTicket =
@@ -52,7 +53,8 @@ export async function sendPushNotification(
     to: token,
     title,
     body,
-    sound: 'default',
+    sound: 'aivita_magic_soft_mono',
+    channelId: 'medications',
     data,
   }));
 
