@@ -65,7 +65,13 @@ function postToNative(type: string) {
 
 export function GadgetsClient({ catalog, connected }: Props) {
   const [hcState, setHcState] = useState<HcState>('idle');
-  const [inWebView] = useState(() => isInWebView());
+  const [inWebView, setInWebView] = useState(false);
+
+  // isInWebView() reads window.ReactNativeWebView — undefined during SSR.
+  // Must run client-side only, after hydration.
+  useEffect(() => {
+    setInWebView(isInWebView());
+  }, []);
 
   // Слушаем ответ от нативного слоя после запроса разрешений
   useEffect(() => {
