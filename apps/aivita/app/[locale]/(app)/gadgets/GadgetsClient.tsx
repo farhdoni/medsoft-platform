@@ -73,6 +73,27 @@ export function GadgetsClient({ catalog, connected }: Props) {
     setInWebView(isInWebView());
   }, []);
 
+  // После определения WebView — проверяем доступность HC ПЕРЕД показом кнопки.
+  // Это предотвращает нативный краш: кнопка показывается только если HC точно доступен.
+  useEffect(() => {
+    if (!inWebView) return;
+    postToNative('check-health-connect');
+  }, [inWebView]);
+
+  // Слушаем статус доступности HC (ответ на check-health-connect)
+  useEffect(() => {
+    function onHcStatus(e: Event) {
+      const detail = (e as CustomEvent<{ status: string }>).detail;
+      if (detail?.status === 'ready') {
+        setHcState('idle'); // доступен — показываем кнопку «Подключить»
+      } else if (detail?.status?.startsWith('unavailable') || detail?.status === 'error') {
+        setHcState('unavailable'); // HC не установлен — прячем кнопку
+      }
+    }
+    window.addEventListener('aivita-hc-status', onHcStatus);
+    return () => window.removeEventListener('aivita-hc-status', onHcStatus);
+  }, []);
+
   // Слушаем ответ от нативного слоя после запроса разрешений
   useEffect(() => {
     function onHcConnected(e: Event) {
@@ -81,7 +102,7 @@ export function GadgetsClient({ catalog, connected }: Props) {
         setHcState('connected');
       } else if (detail?.status === 'permission_denied') {
         setHcState('denied');
-      } else if (detail?.status?.startsWith('unavailable')) {
+      } else if (detail?.status?.startsWith('unavailable') || detail?.status === 'error') {
         setHcState('unavailable');
       } else {
         setHcState('idle');

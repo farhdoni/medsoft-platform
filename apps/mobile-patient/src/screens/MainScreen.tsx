@@ -25,7 +25,7 @@ import {
   addMedicationResponseListener,
   type MedScheduleForNotif,
 } from '../services/notifications';
-import { syncToday as hcSyncToday, requestPermissions } from '../services/healthConnect';
+import { syncToday as hcSyncToday, requestPermissions, checkAvailability } from '../services/healthConnect';
 import { takePhoto, pickFromGallery } from '../services/camera';
 import type { Screen } from '../../App';
 
@@ -227,12 +227,27 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           break;
         }
 
+        case 'check-health-connect': {
+          // Веб спрашивает: доступен ли HC на этом устройстве? (без запроса разрешений)
+          const status = await checkAvailability().catch(() => 'error' as const);
+          webViewRef.current?.injectJavaScript(
+            `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-status',{detail:{status:${JSON.stringify(status)}}}));true;})();`
+          );
+          break;
+        }
+
         case 'request-health-connect': {
-          // Пользователь нажал «Подключить» на экране гаджетов — запрашиваем разрешения
-          // requestPermissions() внутри сам проверяет checkAvailability() → безопасно
+          // Пользователь нажал «Подключить» на экране гаджетов — запрашиваем разрешения.
+          // ВАЖНО: сначала проверяем доступность — requestPermission() без HC бросает нативный краш.
+          const avail = await checkAvailability().catch(() => 'error' as const);
+          if (avail !== 'ready') {
+            webViewRef.current?.injectJavaScript(
+              `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-connected',{detail:{status:${JSON.stringify(avail)}}}));true;})();`
+            );
+            break;
+          }
           const granted = await requestPermissions().catch(() => false);
           if (granted) {
-            // Сразу синкаем после выдачи разрешений
             const syncResult = await hcSyncToday().catch((e) => ({ status: 'error' as const, error: String(e) }));
             webViewRef.current?.injectJavaScript(
               `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-connected',{detail:${JSON.stringify(syncResult)}}));true;})();`
