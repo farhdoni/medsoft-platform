@@ -48,7 +48,8 @@ const METRIC_LABELS: Record<string, string> = {
 
 // ─── Health Connect native card ───────────────────────────────────────────────
 
-type HcState = 'idle' | 'connecting' | 'connected' | 'denied' | 'unavailable';
+// 'checking' = ждём ответа от нативного слоя (кнопка скрыта до подтверждения)
+type HcState = 'checking' | 'idle' | 'connecting' | 'connected' | 'denied' | 'unavailable';
 
 function isInWebView(): boolean {
   return typeof window !== 'undefined' && !!(window as Window & { ReactNativeWebView?: unknown }).ReactNativeWebView;
@@ -64,7 +65,9 @@ function postToNative(type: string) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export function GadgetsClient({ catalog, connected }: Props) {
-  const [hcState, setHcState] = useState<HcState>('idle');
+  // Начинаем с 'checking' — кнопка СКРЫТА пока нативный слой не подтвердит доступность HC.
+  // Это предотвращает краш: кнопка появляется только после check-health-connect → ready.
+  const [hcState, setHcState] = useState<HcState>('checking');
   const [inWebView, setInWebView] = useState(false);
 
   // isInWebView() reads window.ReactNativeWebView — undefined during SSR.
@@ -138,8 +141,8 @@ export function GadgetsClient({ catalog, connected }: Props) {
         </div>
       )}
 
-      {/* Health Connect card — shown only inside Android WebView */}
-      {inWebView && (
+      {/* Health Connect card — только в Android WebView и только если HC доступен (не checking) */}
+      {inWebView && hcState !== 'checking' && (
         <section className="mb-6">
           <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ЗДОРОВЬЕ</h2>
           <div className="rounded-[20px] bg-white border border-app-border overflow-hidden">
