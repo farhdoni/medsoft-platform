@@ -1,0 +1,136 @@
+name: Build Android APK
+
+# Auto-build AIVITA mobile APKs (WebView wrappers) via EAS.
+# - On push to main: builds only the app(s) whose files changed.
+# - Manually (workflow_dispatch): pick patient/doctor/both and the profile.
+#
+# Requires repo secret EXPO_TOKEN (Expo account `farhodni`):
+#   Settings → Secrets and variables → Actions → New repository secret.
+# Builds run on EAS cloud; the resulting APK download link appears in the job log
+# and on https://expo.dev (preview profile = APK, production = AAB).
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which app to build"
+        type: choice
+        default: both
+        options:
+          - both
+          - patient
+          - doctor
+      profile:
+        description: "EAS build profile (preview = APK, production = AAB)"
+        type: choice
+        default: preview
+        options:
+          - preview
+          - production
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile-patient/**"
+      - "apps/mobile-doctor/**"
+      - ".github/workflows/build-apk.yml"
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.set.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed apps (push only)
+        id: changes
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            patient:
+              - 'apps/mobile-patient/**'
+            doctor:
+              - 'apps/mobile-doctor/**'
+            workflow:
+              - '.github/workflows/build-apk.yml'
+
+      - name: Build app list
+        id: set
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_APP: ${{ github.event.inputs.app }}
+          CH_PATIENT: ${{ steps.changes.outputs.patient }}
+          CH_DOCTOR: ${{ steps.changes.outputs.doctor }}
+          CH_WORKFLOW: ${{ steps.changes.outputs.workflow }}
+        run: |
+          set -euo pipefail
+          apps=()
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            case "$INPUT_APP" in
+              patient) apps=(patient) ;;
+              doctor)  apps=(doctor) ;;
+              *)       apps=(patient doctor) ;;
+            esac
+          else
+            # On a workflow change, rebuild both to be safe.
+            if [ "$CH_WORKFLOW" = "true" ]; then
+              apps=(patient doctor)
+            else
+              [ "$CH_PATIENT" = "true" ] && apps+=(patient)
+              [ "$CH_DOCTOR" = "true" ] && apps+=(doctor)
+            fi
+          fi
+          json=$(printf '%s\n' "${apps[@]:-}" | sed '/^$/d' | jq -R . | jq -cs .)
+          echo "apps=$json" >> "$GITHUB_OUTPUT"
+          echo "Will build: $json"
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.prepare.outputs.apps) }}
+    defaults:
+      run:
+        working-directory: apps/mobile-${{ matrix.app }}
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify EXPO_TOKEN is set
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "::error::EXPO_TOKEN secret is not set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/mobile-${{ matrix.app }}/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK on EAS
+        run: |
+          eas build \
+            --platform android \
+            --profile "${{ github.event.inputs.profile || 'preview' }}" \
+            --non-interactive
