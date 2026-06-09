@@ -9,6 +9,7 @@ import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 
+import android.content.pm.PackageManager
 import expo.modules.ReactActivityDelegateWrapper
 import dev.matinzd.healthconnect.permissions.HealthConnectPermissionDelegate
 
@@ -24,7 +25,23 @@ class MainActivity : ReactActivity() {
     super.onCreate(null)
     // Required by react-native-health-connect: registers the ActivityResult launcher
     // for the Health Connect permissions dialog. Must be called before onStart().
-    HealthConnectPermissionDelegate.setPermissionDelegate(this)
+    // resolveHcProviderPackage() detects correct package: Android 14+ uses system HC,
+    // Android 9-13 uses standalone com.google.android.apps.healthdata.
+    HealthConnectPermissionDelegate.setPermissionDelegate(this, resolveHcProviderPackage())
+  }
+
+  /**
+   * Detects the correct Health Connect provider package at runtime.
+   * Android 14+ (API 34+): HC is part of the OS → com.android.healthconnect.controller
+   * Android 9-13: standalone app → com.google.android.apps.healthdata
+   * Without this, requestPermission dialog silently returns empty on Android 14+.
+   */
+  private fun resolveHcProviderPackage(): String {
+    for (pkg in listOf("com.google.android.apps.healthdata", "com.android.healthconnect.controller")) {
+      try { packageManager.getPackageInfo(pkg, 0); return pkg }
+      catch (_: PackageManager.NameNotFoundException) { }
+    }
+    return "com.google.android.apps.healthdata"
   }
 
   /**
