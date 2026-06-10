@@ -15,7 +15,7 @@ COPY patches/ patches/
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --filter @medsoft/api...
 ENV NODE_ENV=production
 EXPOSE 3001
 CMD ["/app/node_modules/.bin/tsx", "apps/api/src/index.ts"]
