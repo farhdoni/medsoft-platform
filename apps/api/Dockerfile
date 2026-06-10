@@ -11,6 +11,7 @@ WORKDIR /app
 # Install with devDeps so tsx is available at runtime
 ENV NODE_ENV=development
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
+COPY patches/ patches/
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
 COPY apps/api ./apps/api

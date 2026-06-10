@@ -6,6 +6,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY patches/ patches/
 COPY apps/aivita/package.json apps/aivita/
 COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
