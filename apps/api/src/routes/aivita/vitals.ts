@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
 import { vitals } from '@medsoft/db';
-import { eq, and, desc, asc, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { analyzeHealthChange } from '../../lib/health-monitor.js';
 import { autoReport } from './outbreak.js';
@@ -35,6 +35,17 @@ function getDefaultUnit(type: VitalType): string {
     respiratory_rate: 'rpm',
   };
   return units[type] ?? '';
+}
+
+// Types whose recorded_at is normalized to midnight UTC before insert so that
+// a single UNIQUE(user_id, type, recorded_at) deduplicates daily aggregates.
+const DAILY_AGGREGATE_TYPES = new Set<VitalType>(['steps', 'sleep_hours', 'water_ml']);
+
+function normalizeRecordedAt(type: VitalType, date: Date): Date {
+  if (!DAILY_AGGREGATE_TYPES.has(type)) return date;
+  const d = new Date(date);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
 }
 
 // ─── GET /vitals/latest ────────────────────────────────────────────────────────
@@ -259,15 +270,29 @@ aivitaVitalsRouter.post(
     const rows = await db.insert(vitals).values(
       items.map((e) => {
         const recordedAtRaw = e.recordedAt ?? e.recorded_at;
+        const recordedAt = normalizeRecordedAt(
+          e.type,
+          recordedAtRaw ? new Date(recordedAtRaw) : new Date(),
+        );
         return {
           userId,
           type: e.type,
           value: normalizeVitalValue(e.type, e.value),
           source: e.source,
-          recordedAt: recordedAtRaw ? new Date(recordedAtRaw) : new Date(),
+          recordedAt,
         };
       })
-    ).returning();
+    )
+    .onConflictDoUpdate({
+      target: [vitals.userId, vitals.type, vitals.recordedAt],
+      // On re-sync: update value (aggregate may have grown) and source.
+      // createdAt is intentionally omitted — preserve original insert time.
+      set: {
+        value: sql`excluded.value`,
+        source: sql`excluded.source`,
+      },
+    })
+    .returning();
 
     return c.json({ data: rows }, 201);
   }

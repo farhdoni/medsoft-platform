@@ -314,6 +314,13 @@ export const vitals = pgTable(
   (table) => ({
     userTimeIdx: index('vitals_user_time_idx').on(table.userId, table.recordedAt),
     typeIdx: index('vitals_type_idx').on(table.userId, table.type, table.recordedAt),
+    // Used by onConflictDoUpdate in POST /vitals/batch.
+    // Daily-aggregate types (steps, sleep_hours, water_ml) have recorded_at
+    // normalized to midnight UTC by the API before insert, so this single
+    // constraint deduplicates both daily aggregates and per-sample readings.
+    userTypeRecordedAtUniq: unique('vitals_user_type_recorded_at_uniq').on(
+      table.userId, table.type, table.recordedAt,
+    ),
   })
 );
 
