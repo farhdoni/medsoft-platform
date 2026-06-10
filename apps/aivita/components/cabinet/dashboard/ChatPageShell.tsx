@@ -51,6 +51,15 @@ export async function ChatPageShell({ active, locale = "ru", children }: Props) 
       <div className="flex-shrink-0">
         <FloatingNav active={active} />
       </div>
+
+      {/* Spacer for the fixed FloatingNav: it's position:fixed so the wrapper
+          above collapses to 0 — this div gives the flex layout real height so
+          the chat input is never hidden behind the nav pill. */}
+      <div
+        aria-hidden="true"
+        className="flex-shrink-0"
+        style={{ height: 'calc(84px + env(safe-area-inset-bottom))' }}
+      />
     </div>
   );
 }
