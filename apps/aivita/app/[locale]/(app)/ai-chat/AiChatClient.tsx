@@ -5,6 +5,8 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Send, Paperclip, Camera, Image, Mic, MicOff, X, Play, Pause, MoreHorizontal } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AiDocumentModal, type ParsedMedical } from '@/components/medical/AiDocumentModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -860,7 +862,51 @@ export function AiChatClient({ locale }: { locale: string }) {
                                     : { background: '#fff', border: '1px solid #e8e4dc', color: '#2a2540' }
                                   }
                                 >
-                                  <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{cleanText}</p>
+                                  {m.role === 'user' ? (
+                                    <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{cleanText}</p>
+                                  ) : (
+                                    <div className="ai-markdown text-[14px] leading-relaxed">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      components={{
+                                        table: ({ children }) => (
+                                          <div className="overflow-x-auto my-2 -mx-1">
+                                            <table className="w-full border-collapse text-[12px]">{children}</table>
+                                          </div>
+                                        ),
+                                        th: ({ children }) => (
+                                          <th className="border border-[#e8e4dc] px-2 py-1 text-left font-semibold bg-[#f4f3ef]" style={{ color: '#2a2540' }}>{children}</th>
+                                        ),
+                                        td: ({ children }) => (
+                                          <td className="border border-[#e8e4dc] px-2 py-1" style={{ color: '#4a4560' }}>{children}</td>
+                                        ),
+                                        a: ({ children, href }) => (
+                                          <a href={href} className="underline" style={{ color: 'var(--accent, #9c5e6c)' }} target="_blank" rel="noopener noreferrer">{children}</a>
+                                        ),
+                                        code: ({ children, className }) => {
+                                          const isBlock = className?.includes('language-');
+                                          return isBlock
+                                            ? <code className="block bg-[#f4f3ef] rounded-lg px-3 py-2 text-[12px] overflow-x-auto my-2 font-mono" style={{ color: '#2a2540' }}>{children}</code>
+                                            : <code className="bg-[#f4f3ef] rounded px-1 text-[12px] font-mono" style={{ color: '#2a2540' }}>{children}</code>;
+                                        },
+                                        p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                                        ul: ({ children }) => <ul className="my-1.5 ml-4 space-y-0.5 list-disc">{children}</ul>,
+                                        ol: ({ children }) => <ol className="my-1.5 ml-4 space-y-0.5 list-decimal">{children}</ol>,
+                                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                        h1: ({ children }) => <h1 className="text-[16px] font-bold mt-2 mb-1" style={{ color: '#2a2540' }}>{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-[15px] font-bold mt-2 mb-1" style={{ color: '#2a2540' }}>{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-[14px] font-semibold mt-1.5 mb-0.5" style={{ color: '#2a2540' }}>{children}</h3>,
+                                        strong: ({ children }) => <strong className="font-semibold" style={{ color: '#2a2540' }}>{children}</strong>,
+                                        blockquote: ({ children }) => (
+                                          <blockquote className="border-l-2 pl-3 my-1.5 italic" style={{ borderColor: 'var(--accent, #9c5e6c)', color: '#6a6580' }}>{children}</blockquote>
+                                        ),
+                                        hr: () => <hr className="my-2 border-[#e8e4dc]" />,
+                                      }}
+                                    >
+                                      {cleanText}
+                                    </ReactMarkdown>
+                                    </div>
+                                  )}
                                   {m.medicalData && (
                                     <button
                                       onClick={() => setMedModal(m.medicalData!)}
