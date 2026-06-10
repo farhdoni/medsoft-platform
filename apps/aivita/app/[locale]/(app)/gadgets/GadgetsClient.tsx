@@ -229,9 +229,9 @@ export function GadgetsClient({ catalog, connected }: Props) {
                 </div>
                 <span
                   className="px-3 py-1 rounded-full text-[11px] font-semibold"
-                  style={{ background: '#f4f3ef', color: '#9a96a8' }}
+                  style={{ background: '#eef4ff', color: '#3a5fa0' }}
                 >
-                  Скоро
+                  Через Health Connect
                 </span>
               </div>
             );
@@ -243,7 +243,7 @@ export function GadgetsClient({ catalog, connected }: Props) {
       <div className="rounded-[16px] p-4 flex gap-3" style={{ background: '#f4f3ef' }}>
         <span className="text-[18px] flex-shrink-0">ℹ️</span>
         <p className="text-[12px]" style={{ color: '#6a6580' }}>
-          Подключение носимых устройств (Health Connect, Google Fit, Xiaomi Mi Band) появится в одном из ближайших обновлений.
+          Mi Band, Samsung Watch и Google Fit передают данные через Health Connect — приложение Google для централизованного хранения биометрии на Android 14+.
         </p>
       </div>
     </>
