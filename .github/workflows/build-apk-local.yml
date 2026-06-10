@@ -18,6 +18,9 @@ on:
     branches: [main]
     paths:
       - "apps/mobile-patient/**"
+      - "patches/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - ".github/workflows/build-apk-local.yml"
 
 concurrency:
