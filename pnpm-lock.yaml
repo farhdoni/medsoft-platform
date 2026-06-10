@@ -10,7 +10,7 @@ overrides:
 
 patchedDependencies:
   react-native-health-connect@3.5.3:
-    hash: 80fc3c453f9a2b494266390e609541423eb7501778a7c020f627c3dcd36a7a13
+    hash: dfb7eb9a954e7f4a40907c585e65e1c0c79c2d8d7aaf4ab76c883cb40442094a
     path: patches/react-native-health-connect@3.5.3.patch
 
 importers:
@@ -419,7 +419,7 @@ importers:
         version: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1)
       react-native-health-connect:
         specifier: 3.5.3
-        version: 3.5.3(patch_hash=80fc3c453f9a2b494266390e609541423eb7501778a7c020f627c3dcd36a7a13)(@expo/config-plugins@9.0.17)(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1)
+        version: 3.5.3(patch_hash=dfb7eb9a954e7f4a40907c585e65e1c0c79c2d8d7aaf4ab76c883cb40442094a)(@expo/config-plugins@9.0.17)(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1)
       react-native-safe-area-context:
         specifier: 4.12.0
         version: 4.12.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1)
@@ -1711,7 +1711,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {'0': node >=0.10.0}
+    engines: {node: '>=0.10.0'}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}
@@ -13630,7 +13630,7 @@ snapshots:
 
   react-is@18.3.1: {}
 
-  react-native-health-connect@3.5.3(patch_hash=80fc3c453f9a2b494266390e609541423eb7501778a7c020f627c3dcd36a7a13)(@expo/config-plugins@9.0.17)(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1):
+  react-native-health-connect@3.5.3(patch_hash=dfb7eb9a954e7f4a40907c585e65e1c0c79c2d8d7aaf4ab76c883cb40442094a)(@expo/config-plugins@9.0.17)(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1):
     dependencies:
       '@expo/config-plugins': 9.0.17
       react: 18.3.1
