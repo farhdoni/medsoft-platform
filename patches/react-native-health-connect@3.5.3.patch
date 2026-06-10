@@ -2,9 +2,9 @@ diff --git a/android/src/main/java/dev/matinzd/healthconnect/permissions/HealthC
 index 5ec36418fe8ead600a4896aa6f95e3b7180f33b9..50cf5b4d5710c01fe38289cfb7fbd8b55bc96441 100644
 --- a/android/src/main/java/dev/matinzd/healthconnect/permissions/HealthConnectPermissionDelegate.kt
 +++ b/android/src/main/java/dev/matinzd/healthconnect/permissions/HealthConnectPermissionDelegate.kt
-@@ -1,11 +1,13 @@
+@@ -1,15 +1,17 @@
  package dev.matinzd.healthconnect.permissions
-
+ 
 +import android.os.Build
  import androidx.activity.ComponentActivity
  import androidx.activity.result.ActivityResultLauncher
@@ -17,7 +17,7 @@ index 5ec36418fe8ead600a4896aa6f95e3b7180f33b9..50cf5b4d5710c01fe38289cfb7fbd8b5
  import kotlinx.coroutines.channels.Channel
  import kotlinx.coroutines.launch
 +import kotlinx.coroutines.withContext
-
+ 
  object HealthConnectPermissionDelegate {
    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 @@ -23,7 +27,14 @@ object HealthConnectPermissionDelegate {
@@ -34,11 +34,11 @@ index 5ec36418fe8ead600a4896aa6f95e3b7180f33b9..50cf5b4d5710c01fe38289cfb7fbd8b5
 +      PermissionController.createRequestPermissionResultContract(providerPackageName)
 +    }
      val exerciseRouteRequestContract = ExerciseRouteRequestContract()
-
+ 
      requestPermission = activity.registerForActivityResult(contract) {
-@@ -40,8 +51,16 @@ object HealthConnectPermissionDelegate {
+@@ -40,12 +51,19 @@ object HealthConnectPermissionDelegate {
    }
-
+ 
    suspend fun launchPermissionsDialog(permissions: Set<String>): Set<String> {
 -    requestPermission.launch(permissions)
 +    // ActivityResultLauncher.launch() MUST be called on the main thread.
@@ -49,7 +49,7 @@ index 5ec36418fe8ead600a4896aa6f95e3b7180f33b9..50cf5b4d5710c01fe38289cfb7fbd8b5
 +    }
      return permissionsChannel.receive()
    }
-
+ 
    suspend fun launchExerciseRouteAccessRequestDialog(recordId: String): ExerciseRoute? {
 -    requestRoutePermission.launch(recordId)
 +    withContext(Dispatchers.Main) {
