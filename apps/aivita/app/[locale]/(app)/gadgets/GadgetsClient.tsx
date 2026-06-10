@@ -48,8 +48,10 @@ const METRIC_LABELS: Record<string, string> = {
 
 // ─── Health Connect native card ───────────────────────────────────────────────
 
-// 'checking' = ждём ответа от нативного слоя (кнопка скрыта до подтверждения)
-type HcState = 'checking' | 'idle' | 'connecting' | 'connected' | 'denied' | 'unavailable';
+// 'checking'    = ждём ответа от нативного слоя (кнопка скрыта до подтверждения)
+// 'unavailable' = Health Connect реально недоступен на устройстве (не установлен/не Android)
+// 'error'       = HC доступен, разрешения есть, но синхронизация с сервером упала
+type HcState = 'checking' | 'idle' | 'connecting' | 'connected' | 'denied' | 'unavailable' | 'error';
 
 function isInWebView(): boolean {
   return typeof window !== 'undefined' && !!(window as Window & { ReactNativeWebView?: unknown }).ReactNativeWebView;
@@ -105,8 +107,12 @@ export function GadgetsClient({ catalog, connected }: Props) {
         setHcState('connected');
       } else if (detail?.status === 'permission_denied') {
         setHcState('denied');
-      } else if (detail?.status?.startsWith('unavailable') || detail?.status === 'error') {
+      } else if (detail?.status?.startsWith('unavailable')) {
         setHcState('unavailable');
+      } else if (detail?.status === 'error') {
+        // Разрешения выданы и HC доступен, но синк с сервером упал —
+        // НЕ показываем «Недоступно», иначе карточка врёт. Даём «Повторить».
+        setHcState('error');
       } else {
         setHcState('idle');
       }
@@ -160,6 +166,8 @@ export function GadgetsClient({ catalog, connected }: Props) {
                     ? 'Подключён · Шаги · Пульс'
                     : hcState === 'unavailable'
                     ? 'Недоступно на этом устройстве'
+                    : hcState === 'error'
+                    ? 'Ошибка синхронизации — попробуйте снова'
                     : 'Шаги · Пульс · Android 14+'}
                 </p>
               </div>
@@ -177,7 +185,7 @@ export function GadgetsClient({ catalog, connected }: Props) {
                 >
                   Недоступно
                 </span>
-              ) : hcState === 'denied' ? (
+              ) : hcState === 'denied' || hcState === 'error' ? (
                 <button
                   onClick={handleHcConnect}
                   className="px-3 py-1.5 rounded-full text-[12px] font-semibold flex-shrink-0 transition-opacity hover:opacity-80"

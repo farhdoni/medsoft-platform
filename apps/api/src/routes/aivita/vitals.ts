@@ -203,23 +203,70 @@ aivitaVitalsRouter.post(
 
 // ─── POST /vitals/batch ────────────────────────────────────────────────────────
 
+// Backward-compat wire format. The Health Connect sync in the mobile app posts
+// `{ vitals: [...] }` with `recorded_at` and value shapes like { count } (steps)
+// or { bpm } (heart rate). The canonical format used everywhere else is
+// `{ entries: [...] }` with `recordedAt` and { value, unit }. Accept BOTH so
+// already-shipped APKs sync without a rebuild, and normalize the value so the
+// data is actually read downstream (Биометрия / health-monitor / nutrition all
+// read value.value).
+
+const batchEntrySchema = z.object({
+  type: z.enum(VALID_TYPES),
+  value: z.record(z.unknown()),
+  source: z.string().default('manual'),
+  recordedAt: z.string().optional(),
+  recorded_at: z.string().optional(), // snake_case alias (Health Connect)
+  note: z.string().optional(),
+});
+
+type CanonicalVitalValue =
+  | { value: number; unit: string }
+  | { systolic: number; diastolic: number }
+  | { hours: number; quality?: 'poor' | 'ok' | 'good' };
+
+/**
+ * Normalize an incoming vital value to the canonical { value, unit } shape that
+ * the rest of the app reads. Health Connect sends { count } for steps and
+ * { bpm } for heart rate; convert those. Leave already-canonical values and
+ * structured values ({systolic,diastolic}, {hours}) untouched.
+ */
+function normalizeVitalValue(type: VitalType, value: Record<string, unknown>): CanonicalVitalValue {
+  if (typeof value.value === 'number') return value as CanonicalVitalValue;
+  if (typeof value.count === 'number') return { value: value.count, unit: getDefaultUnit(type) };
+  if (typeof value.bpm === 'number') return { value: value.bpm, unit: getDefaultUnit(type) };
+  return value as CanonicalVitalValue;
+}
+
 aivitaVitalsRouter.post(
   '/batch',
   zValidator('json', z.object({
-    entries: z.array(vitalSchema),
+    entries: z.array(batchEntrySchema).optional(),
+    vitals: z.array(batchEntrySchema).optional(), // alias used by the mobile HC sync
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
-    const { entries } = c.req.valid('json');
+    const body = c.req.valid('json');
+    const items = body.entries ?? body.vitals ?? [];
+
+    if (items.length === 0) {
+      return c.json(
+        { error: 'No vital entries provided (expected non-empty "entries" or "vitals" array)' },
+        400,
+      );
+    }
 
     const rows = await db.insert(vitals).values(
-      entries.map((e) => ({
-        userId,
-        type: e.type,
-        value: e.value as { value: number; unit: string } | { systolic: number; diastolic: number } | { hours: number; quality?: 'poor' | 'ok' | 'good' },
-        source: e.source,
-        recordedAt: e.recordedAt ? new Date(e.recordedAt) : new Date(),
-      }))
+      items.map((e) => {
+        const recordedAtRaw = e.recordedAt ?? e.recorded_at;
+        return {
+          userId,
+          type: e.type,
+          value: normalizeVitalValue(e.type, e.value),
+          source: e.source,
+          recordedAt: recordedAtRaw ? new Date(recordedAtRaw) : new Date(),
+        };
+      })
     ).returning();
 
     return c.json({ data: rows }, 201);
