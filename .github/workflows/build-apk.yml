@@ -1,8 +1,11 @@
 name: Build Android APK
 
-# Auto-build AIVITA mobile APKs (WebView wrappers) via EAS.
-# - On push to main: builds only the app(s) whose files changed.
-# - Manually (workflow_dispatch): pick patient/doctor/both and the profile.
+# Build AIVITA mobile APKs (WebView wrappers) on EAS CLOUD.
+# Manual-only (workflow_dispatch). The push trigger was removed: the free EAS
+# plan's monthly Android build quota is easily exhausted, so auto-builds on every
+# push just failed red. Patient APKs now build on the runner (no cloud quota) via
+# build-apk-local.yml; use this workflow for cloud builds (e.g. production AAB)
+# once quota resets or the plan is upgraded.
 #
 # Requires repo secret EXPO_TOKEN (Expo account `farhodni`):
 #   Settings → Secrets and variables → Actions → New repository secret.
@@ -27,12 +30,6 @@ on:
         options:
           - preview
           - production
-  push:
-    branches: [main]
-    paths:
-      - "apps/mobile-patient/**"
-      - "apps/mobile-doctor/**"
-      - ".github/workflows/build-apk.yml"
 
 concurrency:
   group: build-apk-${{ github.ref }}

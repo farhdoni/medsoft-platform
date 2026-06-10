@@ -1,0 +1,156 @@
+name: Build Patient APK (local, release-signed)
+
+# Builds the AIVITA patient APK ON THE GITHUB RUNNER via `eas build --local`, so it
+# does NOT consume the EAS cloud build quota (free plan). Credentials are still
+# resolved from the EAS servers (credentialsSource: remote in eas.json), so the APK
+# is signed with the EAS-managed RELEASE keystore (CrjRIz6RAl) — not the debug key.
+#
+# The build then:
+#   - confirms versionCode / versionName with aapt,
+#   - fails if the APK is debug-signed (apksigner verify --print-certs),
+#   - publishes a GitHub Release vX.Y.Z with the APK attached.
+#
+# Requires repo secret EXPO_TOKEN (Expo account `farhodni`).
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile-patient/**"
+      - ".github/workflows/build-apk-local.yml"
+
+concurrency:
+  group: build-apk-local-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # required to create the GitHub Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/mobile-patient
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify EXPO_TOKEN is set
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "::error::EXPO_TOKEN secret is not set. Add it in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/mobile-patient/package-lock.json
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Ensure build-tools 35.0.0 (apksigner / aapt)
+        run: sdkmanager "build-tools;35.0.0" "platforms;android-35"
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Read app version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VCODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "versionCode=$VCODE" >> "$GITHUB_OUTPUT"
+          echo "Building patient v$VERSION (versionCode $VCODE)"
+
+      - name: Build APK locally (release keystore from EAS, no cloud quota)
+        run: |
+          set -euo pipefail
+          eas build \
+            --platform android \
+            --profile preview \
+            --local \
+            --non-interactive \
+            --output "$GITHUB_WORKSPACE/aivita-patient-v${{ steps.ver.outputs.version }}.apk"
+
+      - name: Locate Android build-tools
+        id: tools
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          BT=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)
+          echo "Using build-tools: $BT"
+          echo "bt=$BT" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm versionCode / versionName (aapt)
+        run: |
+          set -euo pipefail
+          APK="$GITHUB_WORKSPACE/aivita-patient-v${{ steps.ver.outputs.version }}.apk"
+          BADGING=$("${{ steps.tools.outputs.bt }}/aapt" dump badging "$APK")
+          echo "$BADGING" | grep -E "package: name=" | head -1
+          echo "$BADGING" | grep -q "versionCode='${{ steps.ver.outputs.versionCode }}'" \
+            || { echo "::error::versionCode != ${{ steps.ver.outputs.versionCode }}"; exit 1; }
+          echo "$BADGING" | grep -q "versionName='${{ steps.ver.outputs.version }}'" \
+            || { echo "::error::versionName != ${{ steps.ver.outputs.version }}"; exit 1; }
+          echo "✔ aapt confirms versionCode=${{ steps.ver.outputs.versionCode }} versionName=${{ steps.ver.outputs.version }}"
+
+      - name: Verify signing is RELEASE, not debug (apksigner)
+        run: |
+          set -euo pipefail
+          APK="$GITHUB_WORKSPACE/aivita-patient-v${{ steps.ver.outputs.version }}.apk"
+          CERTS=$("${{ steps.tools.outputs.bt }}/apksigner" verify --print-certs "$APK")
+          echo "$CERTS"
+          if echo "$CERTS" | grep -qi "CN=Android Debug"; then
+            echo "::error::APK is DEBUG-signed (CN=Android Debug) — release keystore was NOT applied."
+            exit 1
+          fi
+          if echo "$CERTS" | grep -qi "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"; then
+            echo "::error::APK signed with the known debug keystore fingerprint (FA:C6:17:45...)."
+            exit 1
+          fi
+          echo "✔ APK is RELEASE-signed (not debug)."
+
+      - name: Publish GitHub Release
+        run: |
+          set -euo pipefail
+          TAG="v${{ steps.ver.outputs.version }}"
+          APK="$GITHUB_WORKSPACE/aivita-patient-v${{ steps.ver.outputs.version }}.apk"
+          NOTES="Release-signed AIVITA patient APK (EAS-managed release keystore, not debug).
+          Built on the GitHub runner via \`eas build --local\` (no EAS cloud quota).
+          versionCode ${{ steps.ver.outputs.versionCode }} / versionName ${{ steps.ver.outputs.version }}."
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "AIVITA Patient $TAG (versionCode ${{ steps.ver.outputs.versionCode }})" \
+              --notes "$NOTES"
+          fi
+          echo "Release: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aivita-patient-v${{ steps.ver.outputs.version }}
+          path: ${{ github.workspace }}/aivita-patient-v${{ steps.ver.outputs.version }}.apk
+          if-no-files-found: error
