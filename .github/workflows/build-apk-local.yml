@@ -70,6 +70,12 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Set up pnpm
+        # The monorepo is a pnpm workspace (root pnpm-lock.yaml, lockfileVersion 9.0),
+        # so `eas build --local` reinstalls deps with pnpm inside its isolated build
+        # copy. Without pnpm on the runner it fails with "spawn pnpm ENOENT".
+        run: npm install -g pnpm@9
+
       - name: Install dependencies
         run: npm install
 
