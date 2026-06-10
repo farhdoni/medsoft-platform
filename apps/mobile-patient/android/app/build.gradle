@@ -91,8 +91,8 @@ android {
         applicationId 'uz.aivita.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.3.3"
+        versionCode 10
+        versionName "1.3.4"
     }
     signingConfigs {
         debug {
@@ -107,9 +107,13 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Release signing is provided by EAS-managed credentials at build time.
+            // EAS Build generates android/app/eas-build.gradle (a `release` signingConfig
+            // backed by the release keystore stored on EAS servers) and applies it at the
+            // bottom of this file, overriding the signingConfig here.
+            // Do NOT set `signingConfig signingConfigs.debug` — that ships a DEBUG-signed
+            // release APK (won't install over a release build / blocked by Play Protect)
+            // and silently overrides the EAS keystore injection.
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
@@ -174,4 +178,14 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+}
+
+// EAS-managed Android credentials.
+// During the build, EAS writes android/app/eas-build.gradle (a `release` signingConfig
+// populated from the release keystore stored on EAS servers, wired into buildTypes.release)
+// and signs the release artifact with it. Applied last so it overrides the local config.
+// Guarded so local debug builds (where the file is absent) still configure successfully.
+def easBuildGradle = file('./eas-build.gradle')
+if (easBuildGradle.exists()) {
+    apply from: easBuildGradle
 }
