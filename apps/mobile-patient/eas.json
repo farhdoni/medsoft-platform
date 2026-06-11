@@ -16,6 +16,13 @@
         "image": "latest"
       }
     },
+    "local-preview": {
+      "distribution": "internal",
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
       "android": {
         "buildType": "app-bundle"
