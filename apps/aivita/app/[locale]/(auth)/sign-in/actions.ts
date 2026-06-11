@@ -38,7 +38,7 @@ export async function loginAction(
     return { error: 'network' };
   }
 
-  let json: { data?: { session: SessionPayload; apiToken?: string }; error?: string; userId?: string };
+  let json: { data?: { session: SessionPayload; apiToken?: string; refreshToken?: string }; error?: string; userId?: string };
   try {
     json = await res.json();
   } catch {
@@ -54,8 +54,12 @@ export async function loginAction(
     return { error: 'invalid_credentials' };
   }
 
-  // Set session cookies server-side
-  await setSession({ ...json.data.session, apiToken: json.data.apiToken });
+  // Set session cookies server-side (refreshToken forwarded when SESSIONS_V2)
+  await setSession({
+    ...json.data.session,
+    apiToken:     json.data.apiToken,
+    refreshToken: json.data.refreshToken,
+  });
 
   // Return the destination URL — client will navigate via window.location
   const { role, onboardingCompleted } = json.data.session;

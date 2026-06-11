@@ -7,6 +7,7 @@ import {
   aivitaUsers,
   aivitaEmailVerifications,
   aivitaPasswordResets,
+  aivitaSessions,
   doctorProfiles,
   referrals,
 } from '@medsoft/db';
@@ -31,15 +32,32 @@ async function signMobileToken(payload: SessionPayload): Promise<string> {
     .sign(getSessionSecret());
 }
 
-/** Sign a short-lived API token using THIS server's SESSION_SECRET.
- *  The Next.js frontend stores this as `aivita_api` cookie and forwards it
- *  to the API on every server-side request, solving the SESSION_SECRET mismatch. */
+/** Sign a short-lived API token (1h when SESSIONS_V2, else legacy 30d). */
 async function signApiToken(payload: SessionPayload): Promise<string> {
+  const ttl = env.SESSIONS_V2 === 'true' ? '1h' : '30d';
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('30d')
+    .setExpirationTime(ttl)
     .sign(getSessionSecret());
+}
+
+/** Generate raw refresh token, store SHA-256 hash in DB, return raw token. */
+async function createRefreshSession(opts: {
+  userId: string;
+  userAgent?: string;
+  ipAddress?: string;
+}): Promise<string> {
+  const raw = randomBytes(40).toString('hex');
+  const hash = createHash('sha256').update(raw).digest('hex');
+  await db.insert(aivitaSessions).values({
+    userId:           opts.userId,
+    refreshTokenHash: hash,
+    userAgent:        opts.userAgent,
+    ipAddress:        opts.ipAddress,
+    expiresAt:        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
+  return raw;
 }
 
 export const aivitaAuthRouter = new Hono();
@@ -324,11 +342,108 @@ aivitaAuthRouter.post(
       plan: (user.plan as SessionPayload['plan']) ?? 'free',
     };
 
-    // Return session data + API token for cookie setup
+    // Return session data + API token (+ refresh token when SESSIONS_V2)
     const apiToken = await signApiToken(session);
-    return c.json({ data: { session, apiToken } });
+    let refreshToken: string | undefined;
+    if (env.SESSIONS_V2 === 'true') {
+      refreshToken = await createRefreshSession({
+        userId: user.id,
+        userAgent: c.req.header('user-agent'),
+        ipAddress: c.req.header('x-forwarded-for') ?? c.req.header('cf-connecting-ip'),
+      });
+    }
+    return c.json({ data: { session, apiToken, refreshToken } });
   }
 );
+
+// ─── Refresh session (SESSIONS_V2) ───────────────────────────────────────────
+
+aivitaAuthRouter.post('/refresh', async (c) => {
+  if (env.SESSIONS_V2 !== 'true') {
+    return c.json({ error: 'not_enabled' }, 404);
+  }
+
+  let rawToken: string | undefined;
+  try {
+    const body = await c.req.json();
+    rawToken = body?.refreshToken;
+  } catch {
+    // body may be empty
+  }
+
+  if (!rawToken) return c.json({ error: 'missing_token' }, 400);
+
+  const hash = createHash('sha256').update(rawToken).digest('hex');
+  const now = new Date();
+
+  const sessionRow = await db.query.aivitaSessions.findFirst({
+    where: eq(aivitaSessions.refreshTokenHash, hash),
+  });
+
+  if (!sessionRow) return c.json({ error: 'invalid_token' }, 401);
+  if (sessionRow.revokedAt) return c.json({ error: 'token_revoked' }, 401);
+  if (sessionRow.expiresAt < now) return c.json({ error: 'token_expired' }, 401);
+
+  const user = await db.query.aivitaUsers.findFirst({
+    where: eq(aivitaUsers.id, sessionRow.userId),
+  });
+
+  if (!user || user.deletedAt) return c.json({ error: 'user_not_found' }, 401);
+
+  const session: SessionPayload = {
+    userId: user.id,
+    email: user.email!,
+    name: user.name ?? user.nickname ?? '',
+    avatarUrl: user.avatarUrl ?? undefined,
+    onboardingCompleted: user.onboardingCompleted,
+    role: (user.role as SessionPayload['role']) ?? 'patient',
+    plan: (user.plan as SessionPayload['plan']) ?? 'free',
+  };
+
+  // Rotate: revoke old, issue new
+  await db.update(aivitaSessions)
+    .set({ revokedAt: now })
+    .where(eq(aivitaSessions.id, sessionRow.id));
+
+  const [apiToken, newRefreshToken] = await Promise.all([
+    signApiToken(session),
+    createRefreshSession({
+      userId: user.id,
+      userAgent: c.req.header('user-agent'),
+      ipAddress: c.req.header('x-forwarded-for') ?? c.req.header('cf-connecting-ip'),
+    }),
+  ]);
+
+  return c.json({ data: { session, apiToken, refreshToken: newRefreshToken } });
+});
+
+// ─── Logout with revoke (SESSIONS_V2) ────────────────────────────────────────
+
+aivitaAuthRouter.post('/logout', async (c) => {
+  if (env.SESSIONS_V2 !== 'true') {
+    return c.json({ data: { ok: true } });
+  }
+
+  let rawToken: string | undefined;
+  try {
+    const body = await c.req.json();
+    rawToken = body?.refreshToken;
+  } catch {
+    // body may be empty
+  }
+
+  if (rawToken) {
+    const hash = createHash('sha256').update(rawToken).digest('hex');
+    await db.update(aivitaSessions)
+      .set({ revokedAt: new Date() })
+      .where(and(
+        eq(aivitaSessions.refreshTokenHash, hash),
+        isNull(aivitaSessions.revokedAt),
+      ));
+  }
+
+  return c.json({ data: { ok: true } });
+});
 
 // ─── Forgot password ──────────────────────────────────────────────────────────
 

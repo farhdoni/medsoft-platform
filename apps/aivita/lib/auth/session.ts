@@ -2,15 +2,18 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
 const SESSION_COOKIE = 'aivita_session';
-/** API-signed token cookie — verified by api.aivita.uz using ITS OWN SESSION_SECRET.
- *  Fixes the SESSION_SECRET mismatch between the Next.js server and the API server. */
+/** API-signed token cookie — verified by api.aivita.uz using ITS OWN SESSION_SECRET. */
 const API_COOKIE = 'aivita_api';
+/** Raw refresh token — HttpOnly, 7d, used to rotate access tokens. */
+const REFRESH_COOKIE = 'aivita_refresh';
 
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error('SESSION_SECRET env var is required');
   return new TextEncoder().encode(secret);
 }
+
+const isV2 = () => process.env.SESSIONS_V2 === 'true';
 
 export type AivitaSession = {
   userId: string;
@@ -22,6 +25,8 @@ export type AivitaSession = {
   plan?: 'free' | 'plus' | 'pro';
   /** Raw JWT signed by the API server. Stored as aivita_api cookie for API calls. */
   apiToken?: string;
+  /** Raw refresh token (v2 only). Stored as aivita_refresh cookie. */
+  refreshToken?: string;
 };
 
 export async function getSession(): Promise<AivitaSession | null> {
@@ -42,38 +47,43 @@ export async function getApiToken(): Promise<string | null> {
   return cookieStore.get(API_COOKIE)?.value ?? null;
 }
 
-export async function setSession(session: AivitaSession): Promise<void> {
-  const { apiToken, ...sessionData } = session;
+export async function getRefreshToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get(REFRESH_COOKIE)?.value ?? null;
+}
 
-  // 1. Next.js JWT cookie — used by Next.js server for session reads
+export async function setSession(session: AivitaSession): Promise<void> {
+  const { apiToken, refreshToken, ...sessionData } = session;
+  const v2 = isV2();
+
+  const accessTtlSeconds = v2 ? 60 * 60 : 60 * 60 * 24 * 30;
+
   const token = await new SignJWT({ ...sessionData })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('30d')
+    .setExpirationTime(v2 ? '1h' : '30d')
     .sign(getSecret());
 
   const isProduction = process.env.NODE_ENV === 'production';
   const cookieStore = await cookies();
-
-  cookieStore.set(SESSION_COOKIE, token, {
+  const base = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    sameSite: 'lax' as const,
     path: '/',
     domain: isProduction ? '.aivita.uz' : undefined,
-  });
+  };
 
-  // 2. API cookie — raw JWT signed by the API server, forwarded on every API request.
-  //    This allows api.aivita.uz to verify with its own SESSION_SECRET independently.
+  cookieStore.set(SESSION_COOKIE, token, { ...base, maxAge: accessTtlSeconds });
+
   if (apiToken) {
-    cookieStore.set(API_COOKIE, apiToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/',
-      domain: isProduction ? '.aivita.uz' : undefined,
+    cookieStore.set(API_COOKIE, apiToken, { ...base, maxAge: accessTtlSeconds });
+  }
+
+  if (v2 && refreshToken) {
+    cookieStore.set(REFRESH_COOKIE, refreshToken, {
+      ...base,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
   }
 }
@@ -93,4 +103,5 @@ export async function clearSession(): Promise<void> {
 
   cookieStore.set(SESSION_COOKIE, '', opts);
   cookieStore.set(API_COOKIE, '', opts);
+  cookieStore.set(REFRESH_COOKIE, '', opts);
 }

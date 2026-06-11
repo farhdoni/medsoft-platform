@@ -47,7 +47,12 @@ const APP_ROUTES = [
 // Auth routes — redirect to /home if already authenticated
 const AUTH_ROUTES_REDIRECT = ['/sign-in'];
 
-const SESSION_COOKIE = 'aivita_session';
+const SESSION_COOKIE  = 'aivita_session';
+const REFRESH_COOKIE  = 'aivita_refresh';
+// Set when a refresh attempt is in flight — cleared on success or logout.
+// Prevents refresh-loop: if this cookie is still present on the NEXT request
+// after attempting a refresh, something is broken → force logout immediately.
+const REFRESH_ATTEMPT = 'aivita_refresh_attempt';
 
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
@@ -55,33 +60,40 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-/** Returns userId if cookie is a valid JWT, otherwise null */
-async function getSessionUserId(request: NextRequest): Promise<string | null> {
+type SessionInfo = { userId: string; exp: number } | null;
+
+/** Returns userId + exp if cookie is a valid JWT, otherwise null */
+async function getSessionInfo(request: NextRequest): Promise<SessionInfo> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
     const userId = (payload as { userId?: string }).userId;
-    return userId ?? null;
+    const exp    = (payload as { exp?: number }).exp ?? 0;
+    return userId ? { userId, exp } : null;
   } catch {
     return null;
   }
 }
 
-/** Clears the session cookie and redirects to sign-in */
+/** Clears all session cookies and redirects to sign-in */
 function forceLogout(request: NextRequest, locale: string): NextResponse {
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}/sign-in`;
   const res = NextResponse.redirect(url);
   const isProduction = process.env.NODE_ENV === 'production';
-  res.cookies.set(SESSION_COOKIE, '', {
+  const opts = {
     maxAge: 0,
     path: '/',
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     ...(isProduction ? { domain: '.aivita.uz' } : {}),
-  });
+  };
+  res.cookies.set(SESSION_COOKIE,  '', opts);
+  res.cookies.set('aivita_api',    '', opts);
+  res.cookies.set(REFRESH_COOKIE,  '', opts);
+  res.cookies.set(REFRESH_ATTEMPT, '', opts);
   return res;
 }
 
@@ -104,6 +116,72 @@ function extractLocale(pathname: string, request?: NextRequest): string {
   return DEFAULT_LOCALE;
 }
 
+/** Proactively refresh access token when it expires within 5 minutes.
+ *  Returns a NextResponse with updated cookies, or null if refresh not needed/failed. */
+async function tryProactiveRefresh(
+  request:  NextRequest,
+  session:  NonNullable<SessionInfo>,
+  locale:   string,
+): Promise<NextResponse | null> {
+  if (process.env.SESSIONS_V2 !== 'true') return null;
+
+  const hasRefreshToken = !!request.cookies.get(REFRESH_COOKIE)?.value;
+  if (!hasRefreshToken) return null;
+
+  const expiresIn = session.exp - Math.floor(Date.now() / 1000);
+  // Only refresh if access token expires within 5 minutes
+  if (expiresIn > 5 * 60) return null;
+
+  // ── Refresh-loop guard ───────────────────────────────────────────────────
+  // If aivita_refresh_attempt is already set, it means we attempted a refresh
+  // on the previous request and the new access token still failed to verify.
+  // This signals a broken loop — force clean logout instead of retrying.
+  if (request.cookies.get(REFRESH_ATTEMPT)?.value) {
+    return forceLogout(request, locale);
+  }
+
+  // Mark that a refresh is in progress (cleared on success by setting maxAge=0)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieBase = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+    ...(isProduction ? { domain: '.aivita.uz' } : {}),
+  };
+
+  // Call our own /api/auth/refresh route (same process, no network hop)
+  const refreshUrl = new URL('/api/auth/refresh', request.nextUrl.origin);
+  const refreshReq = new Request(refreshUrl.toString(), {
+    method:  'POST',
+    headers: { cookie: request.headers.get('cookie') ?? '' },
+  });
+
+  let refreshRes: Response;
+  try {
+    refreshRes = await fetch(refreshReq);
+  } catch {
+    // API unreachable — mark attempt and let request proceed (will fail on next)
+    const cont = NextResponse.next();
+    cont.cookies.set(REFRESH_ATTEMPT, '1', { ...cookieBase, maxAge: 30 });
+    return cont;
+  }
+
+  if (!refreshRes.ok) {
+    // Refresh rejected (revoked/expired) — force logout
+    return forceLogout(request, locale);
+  }
+
+  // Success — forward the new Set-Cookie headers from the refresh response
+  const next = NextResponse.next();
+  refreshRes.headers.getSetCookie?.().forEach((c) => {
+    next.headers.append('set-cookie', c);
+  });
+  // Ensure the attempt guard is cleared
+  next.cookies.set(REFRESH_ATTEMPT, '', { ...cookieBase, maxAge: 0 });
+  return next;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -121,10 +199,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const userId   = await getSessionUserId(request);
-  const isAuth   = !!userId;
+  const session = await getSessionInfo(request);
+  const isAuth  = !!session;
   const realPath = stripLocale(pathname);
-  // Pass request so locale falls back to NEXT_LOCALE cookie when not in URL
   const locale   = extractLocale(pathname, request);
 
   const isAppRoute = APP_ROUTES.some(
@@ -140,6 +217,12 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = isAuth ? `/${locale}/home` : `/${locale}/sign-in`;
     return NextResponse.redirect(url);
+  }
+
+  // App route + authenticated → proactive refresh check (SESSIONS_V2 only)
+  if (isAppRoute && isAuth && session) {
+    const refreshed = await tryProactiveRefresh(request, session, locale);
+    if (refreshed) return refreshed;
   }
 
   // App route + not authenticated → redirect to /{locale}/sign-in
@@ -167,7 +250,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // Invalid JWT (token exists but can't verify) — force logout
-  // Use cookie-aware locale so user lands on sign-in in their language
   if (!isAuth && request.cookies.get(SESSION_COOKIE)?.value) {
     return forceLogout(request, extractLocale(pathname, request));
   }
