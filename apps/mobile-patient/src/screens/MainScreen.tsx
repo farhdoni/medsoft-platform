@@ -14,9 +14,11 @@ import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { WEB_URL } from '../constants/config';
+import { isBiometricEnabled, setBiometricEnabled } from '../services/auth';
 import {
   registerForPushNotifications,
   sendPushTokenToServer,
@@ -58,6 +60,11 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [webViewAtTop, setWebViewAtTop] = useState(true);
   const [pushToken, setPushToken] = useState<string | null>(null);
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
+
+  useEffect(() => {
+    isBiometricEnabled().then(setBiometricEnabledState).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (initialDeepLink) {
@@ -122,6 +129,7 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     (function() {
       window.__AIVITA_PLATFORM__ = ${JSON.stringify(Platform.OS)};
       window.__AIVITA_PUSH_TOKEN__ = ${JSON.stringify(pushToken || '')};
+      window.__AIVITA_BIOMETRIC_ENABLED__ = ${JSON.stringify(biometricEnabled)};
 
       // Guard prevents duplicate listeners on WebView reload
       if (!window.__AIVITA_SCROLL_ATTACHED__) {
@@ -260,8 +268,50 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           break;
         }
 
+        case 'enable-biometric': {
+          const hasHardware = await LocalAuthentication.hasHardwareAsync();
+          const enrolled    = await LocalAuthentication.isEnrolledAsync();
+          if (!hasHardware || !enrolled) {
+            webViewRef.current?.injectJavaScript(
+              `(function(){window.dispatchEvent(new CustomEvent('aivita-biometric-status',{detail:{enabled:false,reason:'not_supported'}}));true;})();`
+            );
+            break;
+          }
+          const auth = await LocalAuthentication.authenticateAsync({
+            promptMessage: 'Подтвердите отпечаток для включения биометрии',
+            cancelLabel:   'Отмена',
+            fallbackLabel: 'Пароль',
+          });
+          if (auth.success) {
+            await setBiometricEnabled(true);
+            setBiometricEnabledState(true);
+            webViewRef.current?.injectJavaScript(
+              `(function(){window.dispatchEvent(new CustomEvent('aivita-biometric-status',{detail:{enabled:true}}));true;})();`
+            );
+          } else {
+            webViewRef.current?.injectJavaScript(
+              `(function(){window.dispatchEvent(new CustomEvent('aivita-biometric-status',{detail:{enabled:false,reason:'cancelled'}}));true;})();`
+            );
+          }
+          break;
+        }
+
+        case 'disable-biometric':
+          await setBiometricEnabled(false);
+          setBiometricEnabledState(false);
+          webViewRef.current?.injectJavaScript(
+            `(function(){window.dispatchEvent(new CustomEvent('aivita-biometric-status',{detail:{enabled:false}}));true;})();`
+          );
+          break;
+
         case 'logout':
-          await SecureStore.deleteItemAsync('auth_token');
+          // Clear auth token AND biometric flag — prevents next user from being
+          // locked behind previous user's fingerprint after re-login.
+          await Promise.all([
+            SecureStore.deleteItemAsync('auth_token'),
+            setBiometricEnabled(false),
+          ]);
+          setBiometricEnabledState(false);
           onNavigate('login');
           break;
 

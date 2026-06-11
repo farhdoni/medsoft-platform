@@ -2,9 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreenExpo from 'expo-splash-screen';
-import * as SecureStore from 'expo-secure-store';
-import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken, isBiometricEnabled } from '../services/auth';
 import type { Screen } from '../../App';
 
 type Props = { onNavigate: (screen: Screen) => void };
@@ -23,9 +22,10 @@ export function SplashScreen({ onNavigate }: Props) {
 
     const timer = setTimeout(async () => {
       try {
-        const [token, onboardingDone] = await Promise.all([
-          SecureStore.getItemAsync('auth_token'),
+        const [token, onboardingDone, biometricEnabled] = await Promise.all([
+          getAuthToken(),
           AsyncStorage.getItem('onboarding_done'),
+          isBiometricEnabled(),
         ]);
 
         if (!onboardingDone) {
@@ -38,22 +38,10 @@ export function SplashScreen({ onNavigate }: Props) {
           return;
         }
 
-        // Biometrics check (optional — if supported and previously enrolled)
-        const biometricsEnabled = await AsyncStorage.getItem('biometrics_enabled');
-        if (biometricsEnabled === '1') {
-          const hasHardware = await LocalAuthentication.hasHardwareAsync();
-          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-          if (hasHardware && isEnrolled) {
-            const result = await LocalAuthentication.authenticateAsync({
-              promptMessage: 'Войдите в AIVITA',
-              cancelLabel: 'Отмена',
-              fallbackLabel: 'Пароль',
-            });
-            if (!result.success) {
-              onNavigate('login');
-              return;
-            }
-          }
+        // If biometrics is enabled → show lock screen (handles prompt + fallback)
+        if (biometricEnabled) {
+          onNavigate('biometric');
+          return;
         }
 
         onNavigate('main');

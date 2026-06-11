@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Globe, Bell, ChevronRight, Navigation } from 'lucide-react';
+import { Globe, Bell, ChevronRight, Navigation, Fingerprint } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { ALL_NAV_OPTIONS, loadNavConfig, saveNavConfig } from '@/components/cabinet/dashboard/FloatingNav';
 
@@ -171,11 +171,42 @@ interface Props {
   notificationsOn: boolean;
 }
 
+type RNWebView = { postMessage: (s: string) => void };
+function getRNWebView(): RNWebView | undefined {
+  return typeof window !== 'undefined'
+    ? (window as unknown as { ReactNativeWebView?: RNWebView }).ReactNativeWebView
+    : undefined;
+}
+
 export function SettingsInteractive({ locale, localeLabel, notificationsOn: initialNotif }: Props) {
   const t = useTranslations('app.settings');
   const [showLang, setShowLang] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [notifOn, setNotifOn] = useState(initialNotif);
+  const [isInNative, setIsInNative] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+
+  useEffect(() => {
+    const rnwv = getRNWebView();
+    if (!rnwv) return;
+    setIsInNative(true);
+    // Read initial state injected by native side
+    const w = window as unknown as { __AIVITA_BIOMETRIC_ENABLED__?: boolean };
+    setBiometricOn(w.__AIVITA_BIOMETRIC_ENABLED__ ?? false);
+    // Listen for async updates from native after enable/disable attempt
+    function onStatus(e: Event) {
+      const detail = (e as CustomEvent<{ enabled: boolean }>).detail;
+      setBiometricOn(detail.enabled);
+    }
+    window.addEventListener('aivita-biometric-status', onStatus);
+    return () => window.removeEventListener('aivita-biometric-status', onStatus);
+  }, []);
+
+  function toggleBiometric() {
+    const rnwv = getRNWebView();
+    if (!rnwv) return;
+    rnwv.postMessage(JSON.stringify({ type: biometricOn ? 'disable-biometric' : 'enable-biometric' }));
+  }
 
   function toggleNotifications() {
     const next = !notifOn;
@@ -227,6 +258,28 @@ export function SettingsInteractive({ locale, localeLabel, notificationsOn: init
             />
           </div>
         </button>
+
+        {/* Biometric row — only visible inside the native mobile app */}
+        {isInNative && (
+          <button className={`${rowBase} w-full text-left border-b border-border-soft`} onClick={toggleBiometric}>
+            <div className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center" style={{ background: '#e0d8f0' }}>
+              <Fingerprint className="w-4 h-4" style={{ color: '#6a5a8e' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-semibold text-text-primary">Вход по отпечатку</p>
+              <p className="text-[11px] text-text-muted mt-0.5">Разблокировать приложение без пароля</p>
+            </div>
+            <div
+              className="w-11 h-6 rounded-full flex items-center px-1 transition-all flex-shrink-0"
+              style={{ background: biometricOn ? '#6a5a8e' : '#d0ccc4' }}
+            >
+              <div
+                className="w-4 h-4 rounded-full bg-white transition-all"
+                style={{ transform: biometricOn ? 'translateX(20px)' : 'translateX(0)' }}
+              />
+            </div>
+          </button>
+        )}
 
         {/* Navigation row */}
         <button className={`${rowBase} w-full text-left`} onClick={() => setShowNav(true)}>

@@ -1,0 +1,64 @@
+name: Build Android APK (local EAS)
+
+# Triggered manually from GitHub Actions UI
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile (preview = internal APK, production = AAB)'
+        required: false
+        default: 'preview'
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile-patient
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install root dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Build APK locally
+        # credentialsSource: remote → EAS downloads the managed keystore (CrjRIz6RAl)
+        # using EXPO_TOKEN — same key as v1.3.4, no cloud build quota consumed
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build --local \
+            --platform android \
+            --profile ${{ github.event.inputs.profile || 'preview' }} \
+            --non-interactive \
+            --output ../../aivita-patient.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aivita-patient-${{ github.sha }}
+          path: aivita-patient.apk
+          retention-days: 30
