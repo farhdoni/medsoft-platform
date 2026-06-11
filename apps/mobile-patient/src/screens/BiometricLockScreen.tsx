@@ -9,7 +9,7 @@ const MAX_ATTEMPTS = 3;
 type Props = { onNavigate: (screen: Screen) => void };
 
 export function BiometricLockScreen({ onNavigate }: Props) {
-  const { isSupported, isEnrolled, authenticate } = useBiometric();
+  const { loading, isSupported, isEnrolled, authenticate } = useBiometric();
   const [attempts, setAttempts] = useState(0);
   const [status, setStatus]     = useState<'idle' | 'asking' | 'failed'>('idle');
   const shake = useRef(new Animated.Value(0)).current;
@@ -43,16 +43,18 @@ export function BiometricLockScreen({ onNavigate }: Props) {
     ]).start(() => setStatus('idle'));
   }
 
-  // Auto-prompt on mount (once hardware/enrollment confirmed by hook)
+  // Wait for hook to finish loading before acting — avoids false-negative
+  // from initial state (isSupported/isEnrolled default to false before async check).
   useEffect(() => {
+    if (loading) return;
     if (isSupported && isEnrolled) {
       tryAuth();
-    } else if (isSupported === false || isEnrolled === false) {
-      // Device state changed — skip biometrics
+    } else {
+      // Hardware missing or no fingerprints enrolled — skip to password
       onNavigate('login');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSupported, isEnrolled]);
+  }, [loading]);
 
   const attemptsLeft = MAX_ATTEMPTS - attempts;
 

@@ -305,7 +305,13 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           break;
 
         case 'logout':
-          await SecureStore.deleteItemAsync('auth_token');
+          // Clear auth token AND biometric flag — prevents next user from being
+          // locked behind previous user's fingerprint after re-login.
+          await Promise.all([
+            SecureStore.deleteItemAsync('auth_token'),
+            setBiometricEnabled(false),
+          ]);
+          setBiometricEnabledState(false);
           onNavigate('login');
           break;
 

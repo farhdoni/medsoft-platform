@@ -5,6 +5,7 @@ import { isBiometricEnabled, setBiometricEnabled } from '../services/auth';
 export type BiometricResult = 'ok' | 'failed' | 'not_supported' | 'not_enrolled';
 
 export function useBiometric() {
+  const [loading, setLoading]         = useState(true);
   const [isSupported, setIsSupported] = useState(false);
   const [isEnrolled, setIsEnrolled]   = useState(false);
   const [isEnabled, setIsEnabled]     = useState(false);
@@ -19,8 +20,9 @@ export function useBiometric() {
       setIsSupported(hardware);
       setIsEnrolled(enrolled);
       setIsEnabled(enabled);
+      setLoading(false);
     }
-    load().catch(() => {});
+    load().catch(() => { setLoading(false); });
   }, []);
 
   const authenticate = useCallback(async (): Promise<BiometricResult> => {
@@ -53,5 +55,5 @@ export function useBiometric() {
     setIsEnabled(false);
   }, []);
 
-  return { isSupported, isEnrolled, isEnabled, authenticate, enable, disable };
+  return { loading, isSupported, isEnrolled, isEnabled, authenticate, enable, disable };
 }
