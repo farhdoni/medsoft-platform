@@ -38,6 +38,8 @@ const envSchema = z.object({
   UZUM_MERCHANT_ID: z.string().optional(),
   UZUM_SECRET_KEY: z.string().optional(),
   UZUM_API_URL: z.string().default('https://api.uzum.uz/payment'),
+  // ─── Session security v2 ─────────────────────────────────────────────────────
+  SESSIONS_V2: z.enum(['true', 'false']).default('false'),
 });
 
 function getRequired(parsed: z.infer<typeof envSchema>) {

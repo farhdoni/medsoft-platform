@@ -101,6 +101,27 @@ export const aivitaEmailVerifications = pgTable(
   })
 );
 
+// ─── 1b2. aivita_sessions (v2 auth — revocable refresh tokens) ───────────────
+
+export const aivitaSessions = pgTable(
+  'aivita_sessions',
+  {
+    id:               uuid('id').primaryKey().defaultRandom(),
+    userId:           uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    refreshTokenHash: text('refresh_token_hash').notNull(),
+    userAgent:        text('user_agent'),
+    ipAddress:        text('ip_address'),
+    deviceInfo:       text('device_info'), // 'web' | 'mobile-android' | 'mobile-ios'
+    expiresAt:        timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt:        timestamp('revoked_at', { withTimezone: true }),
+    createdAt:        timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx:      index('aivita_sessions_user_id_idx').on(table.userId),
+    expiresIdx:   index('aivita_sessions_expires_at_idx').on(table.expiresAt),
+  })
+);
+
 // ─── 1c. aivita_password_resets ───────────────────────────────────────────────
 
 export const aivitaPasswordResets = pgTable(
