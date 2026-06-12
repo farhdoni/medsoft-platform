@@ -6,7 +6,8 @@
     "dev": "tsx watch --env-file .env src/index.ts",
     "build": "echo 'No compile step — tsx runs TS directly'",
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@types/nodemailer": "^6.4.17",
     "@types/web-push": "^3.6.4",
-    "tsc-alias": "^1.8.10"
+    "tsc-alias": "^1.8.10",
+    "vitest": "^2.1.9"
   }
 }
