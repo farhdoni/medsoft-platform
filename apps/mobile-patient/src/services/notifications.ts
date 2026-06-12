@@ -24,6 +24,27 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// ─── Server-side diagnostics ──────────────────────────────────────────────────
+
+/**
+ * Fire-and-forget: POST a diagnostic log entry to the server.
+ * Entries are stored in Redis (last 50 per user, TTL 7d) and readable via
+ * GET /v1/aivita/diag — allowing server-side inspection without USB/Metro.
+ */
+export async function sendDiagLog(tag: string, payload: unknown): Promise<void> {
+  try {
+    const token = await getAuthToken().catch(() => null);
+    if (!token) return;
+    await fetch(`${API_URL}/v1/aivita/diag`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ tag, payload, ts: Date.now() }),
+    });
+  } catch {
+    // diagnostics must never crash the app
+  }
+}
+
 // ─── Notification categories (actionable buttons) ────────────────────────────
 
 /** Call once at app start to register the "take / snooze" action buttons. */
@@ -55,6 +76,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
     finalStatus = status;
   }
 
+  void sendDiagLog('permissions', { existingStatus, finalStatus, platform: Platform.OS });
+
   if (finalStatus !== 'granted') return null;
 
   if (Platform.OS === 'android') {
@@ -64,11 +87,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#c87d8a',
     });
-    // Dedicated channel for medication reminders — brand sound + high importance
+    // MAX importance + custom sound on dedicated channel → survives MIUI battery management
     await Notifications.setNotificationChannelAsync('medications', {
       name: 'Напоминания о лекарствах',
-      importance: Notifications.AndroidImportance.HIGH,
-      sound: 'aivita_magic_soft_mono',  // filename without extension (from assets/sounds)
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'aivita_magic_soft_mono',
       vibrationPattern: [0, 400, 200, 400],
       lightColor: '#c87d8a',
       enableLights: true,
@@ -111,21 +134,13 @@ export async function sendPushTokenToServer(
  * medication in the list.
  *
  * Called:
- *  - On app start (after push permissions granted)
- *  - Whenever the web sends postMessage({type:'sync-medications', data:[...]})
- *
- * TODO: expo-notifications currently has no API to cancel only a specific
- * category. Once https://github.com/expo/expo/issues/XXXX is resolved, replace
- * cancelAllScheduledNotificationsAsync() with a category-scoped cancel so that
- * non-medication reminders (e.g. health checkup) are preserved.
- * Workaround: store scheduled IDs in AsyncStorage keyed by 'med-notif-ids'
- * and cancel them individually — implement when needed.
+ *  - On app start (with cached list from AsyncStorage)
+ *  - When web sends postMessage({type:'sync-medications', data:[...]})
+ *  - When app returns to foreground (AppState 'active')
  */
 export async function scheduleMedicationReminders(
   meds: MedScheduleForNotif[],
 ): Promise<void> {
-  // Cancel all previously scheduled notifications
-  // (see TODO above for a future targeted cancel)
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   for (const med of meds) {
@@ -137,7 +152,6 @@ export async function scheduleMedicationReminders(
       let hour = parseInt(hStr, 10);
       let minute = parseInt(mStr, 10) - minutesBefore;
 
-      // Wrap negative minutes into the previous hour
       if (minute < 0) {
         minute += 60;
         hour = hour === 0 ? 23 : hour - 1;
@@ -146,12 +160,11 @@ export async function scheduleMedicationReminders(
       const content: Notifications.NotificationContentInput = {
         title: `💊 ${med.title}`,
         body: [med.dosage, `Время принять в ${timeStr}`].filter(Boolean).join(' · '),
-        sound: 'aivita_magic_soft_mono',     // iOS: filename without extension in bundle
+        sound: 'aivita_magic_soft_mono',
         categoryIdentifier: 'medication-reminder',
         data: { scheduleId: med.id, time: timeStr, type: 'medication' },
       };
 
-      // Android: attach channelId via the android-specific field
       if (Platform.OS === 'android') {
         (content as Record<string, unknown>).android = { channelId: 'medications' };
       }
@@ -166,6 +179,17 @@ export async function scheduleMedicationReminders(
       });
     }
   }
+
+  const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+  void sendDiagLog('scheduled', {
+    medsCount: meds.length,
+    medsIds: meds.map(m => m.id),
+    scheduledCount: allScheduled.length,
+    scheduled: allScheduled.map(n => {
+      const t = n.trigger as Record<string, unknown>;
+      return { title: n.content.title, h: t.hour, m: t.minute };
+    }),
+  });
 }
 
 // ─── Notification response handler (take / snooze) ────────────────────────────
@@ -173,15 +197,6 @@ export async function scheduleMedicationReminders(
 /**
  * Wire up action-button handling for medication reminders.
  * Call once from MainScreen and remove the subscription on unmount.
- *
- * FIX (getAuthToken): getAuthToken() is ASYNC and reads from SecureStore.
- * In a notification response (app in background or just launched), it MAY
- * return null if the session is not cached. Strategy:
- *  1. Try direct Bearer fetch — works when SecureStore is available.
- *  2. If token is null OR fetch fails → inject action into WebView so the
- *     web app (which has the session cookie) handles the API call.
- *
- * @param webViewInject  function to inject JS into the active WebView
  */
 export function addMedicationResponseListener(
   webViewInject: (js: string) => void,
@@ -199,7 +214,6 @@ export function addMedicationResponseListener(
       actionIdentifier === 'take' ||
       actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
     ) {
-      // Try native Bearer fetch, fall back to WebView dispatch
       void (async () => {
         const token = await getAuthToken().catch(() => null);
 
@@ -217,14 +231,12 @@ export function addMedicationResponseListener(
           ).then(r => r.ok).catch(() => false);
 
           if (!ok) {
-            // Fetch failed — tell WebView to handle it
             webViewInject(
               `window.dispatchEvent(new CustomEvent('aivita-med-action',` +
               `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)}}}));true;`
             );
           }
         } else {
-          // No token cached — WebView must handle it
           webViewInject(
             `window.dispatchEvent(new CustomEvent('aivita-med-action',` +
             `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)}}}));true;`
@@ -233,7 +245,6 @@ export function addMedicationResponseListener(
       })();
 
     } else if (actionIdentifier === 'snooze') {
-      // One-shot notification in 15 min — no auth needed
       const content = notification.request.content;
       void Notifications.scheduleNotificationAsync({
         content: {

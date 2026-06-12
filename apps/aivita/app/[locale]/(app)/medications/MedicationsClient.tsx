@@ -168,6 +168,7 @@ function syncMedicationsToNative(meds: MedicationRow[]): void {
   if (typeof window === 'undefined') return;
   const rnwv = (window as unknown as Record<string, unknown>).ReactNativeWebView as
     { postMessage: (s: string) => void } | undefined;
+
   if (!rnwv) return; // not inside a React Native WebView
 
   const payload = meds

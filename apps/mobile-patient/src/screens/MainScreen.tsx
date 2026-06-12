@@ -10,7 +10,12 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
+  AppState,
+  AppStateStatus,
+  PermissionsAndroid,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,22 +31,21 @@ import {
   scheduleMedicationReminders,
   registerNotificationCategories,
   addMedicationResponseListener,
+  sendDiagLog,
   type MedScheduleForNotif,
 } from '../services/notifications';
 import { syncToday as hcSyncToday, requestPermissions, checkAvailability } from '../services/healthConnect';
 import { takePhoto, pickFromGallery } from '../services/camera';
 import type { Screen } from '../../App';
 
-const { height: _SCREEN_HEIGHT } = Dimensions.get('window'); // kept for potential future use
+const { height: _SCREEN_HEIGHT } = Dimensions.get('window');
 
-type Props = {
-  onNavigate: (screen: Screen) => void;
-  initialDeepLink?: string | null;
-};
+const MEDS_CACHE_KEY = 'aivita:meds-cache';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function deepLinkToPath(url: string): string | null {
   try {
-    // Handle aivita:// scheme
     const withProto = url.startsWith('aivita://') ? url.replace('aivita://', 'aivita-app://') : url;
     const parsed = new URL(withProto);
     const path = parsed.host + parsed.pathname;
@@ -54,6 +58,52 @@ function deepLinkToPath(url: string): string | null {
   }
 }
 
+/** Request POST_NOTIFICATIONS permission on Android 13+ (API 33+). */
+async function requestAndroid13NotifPermission(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    // TIRAMISU = 33; check version via PermissionsAndroid
+    const granted = await PermissionsAndroid.request(
+      // @ts-ignore — POST_NOTIFICATIONS added in RN 0.71 / API 33
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS ?? 'android.permission.POST_NOTIFICATIONS',
+    );
+    void sendDiagLog('android13-notif-perm', { granted });
+  } catch {
+    // Older Android — permission doesn't exist, silently skip
+  }
+}
+
+/**
+ * Show a one-time dialog guiding MIUI users to disable battery optimisation
+ * and enable autostart. Shown only once (stored in AsyncStorage).
+ */
+async function maybeShowMiuiBatteryGuide(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  const key = 'aivita:miui-battery-shown';
+  const shown = await AsyncStorage.getItem(key).catch(() => null);
+  if (shown) return;
+  await AsyncStorage.setItem(key, '1').catch(() => {});
+
+  Alert.alert(
+    'Разрешите уведомления о лекарствах',
+    'На Xiaomi (MIUI) уведомления могут не приходить, если:\n\n' +
+    '1. Автозапуск выключен — Настройки → Приложения → AIVITA → Управление разрешениями → Автозапуск → включить\n\n' +
+    '2. Ограничена активность в фоне — Настройки → Приложения → AIVITA → Управление зарядкой → Нет ограничений\n\n' +
+    'Это нужно сделать один раз.',
+    [
+      { text: 'Открыть настройки', onPress: () => Linking.openSettings() },
+      { text: 'Позже', style: 'cancel' },
+    ],
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+type Props = {
+  onNavigate: (screen: Screen) => void;
+  initialDeepLink?: string | null;
+};
+
 export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   const webViewRef = useRef<WebView>(null);
   const [webUrl, setWebUrl] = useState(`${WEB_URL}/ru/home`);
@@ -63,10 +113,12 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
 
+  // ── Biometric state ────────────────────────────────────────────────────────
   useEffect(() => {
     isBiometricEnabled().then(setBiometricEnabledState).catch(() => {});
   }, []);
 
+  // ── Deep-link navigation ───────────────────────────────────────────────────
   useEffect(() => {
     if (initialDeepLink) {
       const path = deepLinkToPath(initialDeepLink);
@@ -74,7 +126,11 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     }
   }, [initialDeepLink]);
 
+  // ── Push + categories + MIUI battery guide ─────────────────────────────────
   useEffect(() => {
+    // Android 13+: runtime POST_NOTIFICATIONS permission
+    void requestAndroid13NotifPermission();
+
     // Register push token + notification categories
     registerForPushNotifications().then(async (token) => {
       if (token) {
@@ -85,14 +141,25 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     });
     registerNotificationCategories().catch(() => {});
 
-    // Sync Health Connect data for today (Android only; silently skipped on iOS/unavailable)
+    // MIUI: one-time guide for battery/autostart settings
+    void maybeShowMiuiBatteryGuide();
+
+    // Schedule from cached list immediately (covers MIUI kill-and-relaunch case)
+    AsyncStorage.getItem(MEDS_CACHE_KEY).then(raw => {
+      if (!raw) return;
+      const meds = JSON.parse(raw) as MedScheduleForNotif[];
+      if (Array.isArray(meds) && meds.length > 0) {
+        scheduleMedicationReminders(meds).catch(() => {});
+      }
+    }).catch(() => {});
+
+    // Sync Health Connect data for today
     hcSyncToday().catch(() => {});
 
-    // Generic notification tap → navigate WebView (non-medication notifications)
+    // Generic notification tap → navigate WebView (non-medication)
     const navSub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data ?? {};
       const type = (data as Record<string, unknown>).type as string | undefined;
-      // Medication actions are handled by addMedicationResponseListener below
       if (type === 'medication') return;
       const url = (data as Record<string, unknown>).url as string | undefined;
       if (url && response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
@@ -113,7 +180,23 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     return () => { navSub.remove(); medSub.remove(); };
   }, []);
 
-  // Re-inject push token into WebView when it becomes available
+  // ── AppState: reschedule on foreground (MIUI may cancel scheduled alarms) ──
+  useEffect(() => {
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState !== 'active') return;
+      AsyncStorage.getItem(MEDS_CACHE_KEY).then(raw => {
+        if (!raw) return;
+        const meds = JSON.parse(raw) as MedScheduleForNotif[];
+        if (Array.isArray(meds) && meds.length > 0) {
+          scheduleMedicationReminders(meds).catch(() => {});
+        }
+      }).catch(() => {});
+    };
+    const sub = AppState.addEventListener('change', handleAppState);
+    return () => sub.remove();
+  }, []);
+
+  // ── Re-inject push token into WebView when it becomes available ────────────
   useEffect(() => {
     if (pushToken) {
       webViewRef.current?.injectJavaScript(`
@@ -132,7 +215,6 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
       window.__AIVITA_PUSH_TOKEN__ = ${JSON.stringify(pushToken || '')};
       window.__AIVITA_BIOMETRIC_ENABLED__ = ${JSON.stringify(biometricEnabled)};
 
-      // Guard prevents duplicate listeners on WebView reload
       if (!window.__AIVITA_SCROLL_ATTACHED__) {
         window.__AIVITA_SCROLL_ATTACHED__ = true;
         window.addEventListener('scroll', function() {
@@ -155,7 +237,7 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
 
   const handleMessage = useCallback(
     async (event: WebViewMessageEvent) => {
-      let msg: Record<string, any>;
+      let msg: Record<string, unknown>;
       try {
         msg = JSON.parse(event.nativeEvent.data);
       } catch {
@@ -164,16 +246,21 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
 
       switch (msg.type) {
         case 'sync-medications': {
-          // Web cabinet sends active medication list → re-schedule local notifications
           const meds = msg.data as MedScheduleForNotif[] | undefined;
+          void sendDiagLog('sync-received', {
+            isArray: Array.isArray(meds),
+            length: Array.isArray(meds) ? meds.length : null,
+          });
           if (Array.isArray(meds)) {
+            // Persist for AppState reschedule and on-launch reschedule
+            AsyncStorage.setItem(MEDS_CACHE_KEY, JSON.stringify(meds)).catch(() => {});
             await scheduleMedicationReminders(meds).catch(() => {});
           }
           break;
         }
 
         case '__scroll__':
-          setWebViewAtTop(msg.y === 0);
+          setWebViewAtTop((msg.y as number) === 0);
           break;
 
         case 'open-camera': {
@@ -228,7 +315,6 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           break;
 
         case 'sync-health-connect': {
-          // WebView запрашивает тихий синк (разрешения уже есть)
           const result = await hcSyncToday().catch((e) => ({ status: 'error' as const, error: String(e) }));
           webViewRef.current?.injectJavaScript(
             `(function(){window.dispatchEvent(new CustomEvent('aivita-health-connect-result',{detail:${JSON.stringify(result)}}));true;})();`
@@ -237,7 +323,6 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         }
 
         case 'check-health-connect': {
-          // Веб спрашивает: доступен ли HC на этом устройстве? (без запроса разрешений)
           const status = await checkAvailability().catch(() => 'error' as const);
           webViewRef.current?.injectJavaScript(
             `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-status',{detail:{status:${JSON.stringify(status)}}}));true;})();`
@@ -246,8 +331,6 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         }
 
         case 'request-health-connect': {
-          // Пользователь нажал «Подключить» на экране гаджетов — запрашиваем разрешения.
-          // ВАЖНО: сначала проверяем доступность — requestPermission() без HC бросает нативный краш.
           const avail = await checkAvailability().catch(() => 'error' as const);
           if (avail !== 'ready') {
             webViewRef.current?.injectJavaScript(
@@ -306,8 +389,6 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           break;
 
         case 'logout':
-          // Clear auth token AND biometric flag — prevents next user from being
-          // locked behind previous user's fingerprint after re-login.
           await Promise.all([
             SecureStore.deleteItemAsync('auth_token'),
             setBiometricEnabled(false),
@@ -360,44 +441,42 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      scrollEnabled={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          enabled={webViewAtTop}
-          tintColor="#c87d8a"
-          colors={['#c87d8a']}
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        scrollEnabled={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            enabled={webViewAtTop}
+            tintColor="#c87d8a"
+            colors={['#c87d8a']}
+          />
+        }
+      >
+        <WebView
+          ref={webViewRef}
+          source={{ uri: webUrl }}
+          style={styles.webview}
+          injectedJavaScript={injectedJavaScript}
+          onMessage={handleMessage}
+          onLoadEnd={handleLoadEnd}
+          onError={handleError}
+          sharedCookiesEnabled
+          thirdPartyCookiesEnabled
+          domStorageEnabled
+          javaScriptEnabled
+          allowsBackForwardNavigationGestures
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
+          overScrollMode="never"
+          nestedScrollEnabled
         />
-      }
-    >
-      <WebView
-        ref={webViewRef}
-        source={{ uri: webUrl }}
-        style={styles.webview}
-        injectedJavaScript={injectedJavaScript}
-        onMessage={handleMessage}
-        onLoadEnd={handleLoadEnd}
-        onError={handleError}
-        sharedCookiesEnabled
-        thirdPartyCookiesEnabled
-        domStorageEnabled
-        javaScriptEnabled
-        allowsBackForwardNavigationGestures
-        // Allow inline media & microphone access
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        // Grant mic/camera permission requests automatically
-        mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
-        // Disable Android over-scroll glow (web page handles scroll internally)
-        overScrollMode="never"
-        // Allow nested scrollable web content (chat messages, lists, etc.)
-        nestedScrollEnabled
-      />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
