@@ -5,6 +5,7 @@ import { db } from '@medsoft/db';
 import { aivitaUsers } from '@medsoft/db';
 import { eq, isNull } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { safeTimezone, isValidTimezone } from '../../lib/timezone.js';
 
 export const aivitaUsersRouter = new Hono();
 
@@ -28,6 +29,7 @@ aivitaUsersRouter.patch(
     phone: z.string().optional(),
     avatarUrl: z.string().url().optional(),
     locale: z.enum(['ru', 'uz', 'en']).optional(),
+    timezone: z.string().refine(isValidTimezone, { message: 'Invalid IANA timezone' }).optional(),
     preferences: z.object({
       notifications: z.object({ push: z.boolean(), email: z.boolean() }).optional(),
       theme: z.enum(['light', 'dark', 'auto']).optional(),
@@ -39,10 +41,15 @@ aivitaUsersRouter.patch(
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
-    const body = c.req.valid('json');
+    const { timezone, ...rest } = c.req.valid('json');
 
     const [updated] = await db.update(aivitaUsers)
-      .set({ ...body, updatedAt: new Date() })
+      .set({
+        ...rest,
+        // Sanitise: reject unknown/invalid tz values — fall back to default
+        ...(timezone !== undefined ? { timezone: safeTimezone(timezone) } : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(aivitaUsers.id, userId))
       .returning();
 

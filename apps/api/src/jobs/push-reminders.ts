@@ -7,11 +7,13 @@
  */
 
 import cron from 'node-cron';
+import { fromZonedTime } from 'date-fns-tz';
 import { db } from '@medsoft/db';
 import { aivitaUsers, aivitaDeviceTokens, habitLogs, habits, medicationSchedule, medicationLog } from '@medsoft/db';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { sendPushNotification, sendWebPushNotification } from '../lib/push-notifications.js';
 import { logger } from '../lib/logger.js';
+import { safeTimezone } from '../lib/timezone.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -112,15 +114,27 @@ async function sendWeeklyHealthSummary() {
 
 // ─── Medication reminders ─────────────────────────────────────────────────────
 
+// In-process dedup: tracks last push timestamp per `${scheduleId}:${time}`.
+// Prevents duplicate sends when two consecutive 5-min cron ticks both fall
+// inside the reminder window (window = minutesBefore+1 min ≈ 6 min > cron period).
+const _reminderSentAt = new Map<string, number>();
+
 async function sendMedicationReminders() {
   logger.info('[Cron] Sending medication reminders…');
 
   try {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const nowUtc = new Date();
 
-    // Get all active medications with reminder enabled
-    const activeMeds = await db.select().from(medicationSchedule)
+    // Fetch active meds + owner timezone in one JOIN to avoid N+1 queries.
+    // aivita_users.timezone is an IANA identifier (e.g. "Asia/Tashkent",
+    // "Europe/Moscow"). fromZonedTime() handles DST automatically.
+    const rows = await db
+      .select({
+        med: medicationSchedule,
+        timezone: aivitaUsers.timezone,
+      })
+      .from(medicationSchedule)
+      .innerJoin(aivitaUsers, eq(aivitaUsers.id, medicationSchedule.userId))
       .where(and(
         eq(medicationSchedule.isActive, true),
         eq(medicationSchedule.reminderEnabled, true),
@@ -128,26 +142,41 @@ async function sendMedicationReminders() {
 
     let sent = 0;
 
-    for (const med of activeMeds) {
-      // Check date range
+    for (const { med, timezone: rawTz } of rows) {
+      // Guard: if timezone stored in DB is somehow invalid, fall back gracefully.
+      // One corrupt row must not abort the entire run.
+      const tz = safeTimezone(rawTz);
+
+      // "Today" in the user's local timezone (YYYY-MM-DD calendar date).
+      const todayStr = new Intl.DateTimeFormat('sv-SE', { timeZone: tz })
+        .format(nowUtc); // sv-SE locale always formats as "YYYY-MM-DD"
+
+      // startDate / endDate are stored as calendar dates — compare in user's tz.
       if (med.startDate && todayStr < med.startDate) continue;
       if (med.endDate && todayStr > med.endDate) continue;
 
       const times = (med.times as string[]) || [];
 
       for (const time of times) {
-        const [h, m] = time.split(':').map(Number);
-        const scheduled = new Date();
-        scheduled.setHours(h, m, 0, 0);
+        // Convert "HH:mm in user's timezone" → UTC using date-fns-tz.
+        // fromZonedTime correctly handles DST transitions (e.g. Europe/Berlin
+        // on spring-forward night: 02:30 local simply doesn't exist → clamps).
+        const scheduledUtc = fromZonedTime(`${todayStr}T${time}:00`, tz);
 
-        // Check if we're within the reminder window (default 5 min before)
         const minutesBefore = med.reminderMinutesBefore ?? 5;
-        const diff = (scheduled.getTime() - now.getTime()) / 60000;
-        if (diff < 0 || diff > minutesBefore + 1) continue;
+        const diffMin = (scheduledUtc.getTime() - nowUtc.getTime()) / 60_000;
 
-        // Check not already taken today
+        // Fire when the scheduled time is 0 … minutesBefore+1 minutes away.
+        if (diffMin < 0 || diffMin > minutesBefore + 1) continue;
+
+        // Dedup: skip if this slot was already pushed during the current window.
+        const dedupKey = `${med.id}:${time}`;
+        const lastSent = _reminderSentAt.get(dedupKey);
+        if (lastSent !== undefined && nowUtc.getTime() - lastSent < (minutesBefore + 2) * 60_000) continue;
+
+        // Check not already taken/skipped today (compare against UTC-day boundary).
         const todayStart = new Date(`${todayStr}T00:00:00`);
-        const todayEnd = new Date(`${todayStr}T23:59:59`);
+        const todayEnd   = new Date(`${todayStr}T23:59:59`);
         const [existingLog] = await db.select().from(medicationLog)
           .where(and(
             eq(medicationLog.scheduleId, med.id),
@@ -159,8 +188,8 @@ async function sendMedicationReminders() {
 
         if (existingLog && (existingLog.status === 'taken' || existingLog.status === 'skipped')) continue;
 
-        // ДЕДУП: мобильные (ios/android) устройства планируют напоминания локально.
-        // Серверный push отправляем ТОЛЬКО web-подпискам (VAPID).
+        // Mobile (ios/android) devices schedule reminders locally via expo-notifications.
+        // Server push is sent ONLY to web (VAPID) subscriptions.
         const tokens = await db
           .select({
             pushToken: aivitaDeviceTokens.pushToken,
@@ -174,13 +203,15 @@ async function sendMedicationReminders() {
 
         const notifData = { scheduleId: med.id, time, url: '/ru/medications' };
         const notifTitle = `💊 ${med.title}`;
-        const notifBody = `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${time}`;
+        const notifBody  = `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${time}`;
 
         await Promise.all(
           webTokens.map(t =>
             sendWebPushNotification(t.pushToken, notifTitle, notifBody, notifData)
           )
         );
+
+        _reminderSentAt.set(dedupKey, nowUtc.getTime());
         sent++;
       }
     }

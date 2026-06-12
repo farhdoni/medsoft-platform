@@ -66,7 +66,7 @@ export default async function SettingsPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const { notificationsOn } = await loadSettingsData();
+  const { notificationsOn, currentTimezone } = await loadSettingsData();
   const LOCALE_LABELS: Record<string, string> = { ru: 'Русский', uz: "O'zbek", en: 'English' };
   const localeLabel = LOCALE_LABELS[locale] ?? 'Русский';
   const session = await getSession();
@@ -176,7 +176,7 @@ export default async function SettingsPage({
               </p>
               {section.id === 'app' ? (
                 /* Language + Notifications + Navigation rendered as interactive client component */
-                <SettingsInteractive locale={locale} localeLabel={localeLabel} notificationsOn={notificationsOn} />
+                <SettingsInteractive locale={locale} localeLabel={localeLabel} notificationsOn={notificationsOn} currentTimezone={currentTimezone} />
               ) : (
                 <div className="rounded-card bg-white border border-border-soft overflow-hidden">
                   {section.items.map((item, idx) => (

@@ -18,6 +18,7 @@ import { randomInt, createHash, randomBytes } from 'crypto';
 import { SignJWT } from 'jose';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { sendVerificationCode, sendPasswordReset } from '../../lib/email.js';
+import { safeTimezone, isValidTimezone, DEFAULT_TIMEZONE } from '../../lib/timezone.js';
 import { env } from '../../env.js';
 
 function getSessionSecret(): Uint8Array {
@@ -84,6 +85,7 @@ aivitaAuthRouter.post(
     password: z.string().min(8),
     name: z.string().min(1).max(100).optional(),
     locale: z.string().default('ru'),
+    timezone: z.string().refine(isValidTimezone, { message: 'Invalid IANA timezone' }).optional(),
     role: z.enum(['patient', 'doctor']).default('patient'),
     specialization: z.string().max(100).optional(),
     refCode: z.string().max(20).optional(),
@@ -93,7 +95,7 @@ aivitaAuthRouter.post(
     workplace: z.string().max(200).optional(),
   })),
   async (c) => {
-    const { email, nickname, password, name, locale, role, specialization, refCode, phone, experienceYears, workplace } = c.req.valid('json');
+    const { email, nickname, password, name, locale, timezone, role, specialization, refCode, phone, experienceYears, workplace } = c.req.valid('json');
 
     // Check uniqueness
     const existing = await db.query.aivitaUsers.findFirst({
@@ -130,6 +132,7 @@ aivitaAuthRouter.post(
       passwordHash,
       provider: 'email',
       locale,
+      timezone: safeTimezone(timezone ?? DEFAULT_TIMEZONE),
       role,
       plan: 'free',
       referralCode,

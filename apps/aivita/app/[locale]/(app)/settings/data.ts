@@ -6,6 +6,7 @@ export interface UserData {
   name: string | null;
   email: string | null;
   locale: string;
+  timezone: string;
   preferences?: {
     theme?: 'light' | 'dark' | 'auto';
     notifications?: { push?: boolean; email?: boolean };
@@ -26,5 +27,6 @@ export async function loadSettingsData() {
     user,
     localeLabel: localeLabel[user?.locale ?? 'ru'] ?? 'Русский',
     notificationsOn: user?.preferences?.notifications?.push ?? true,
+    currentTimezone: user?.timezone ?? 'Asia/Tashkent',
   };
 }
