@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
@@ -33,6 +34,69 @@ import { takePhoto, pickFromGallery } from '../services/camera';
 import type { Screen } from '../../App';
 
 const { height: _SCREEN_HEIGHT } = Dimensions.get('window'); // kept for potential future use
+
+// ─── [MEDS-DEBUG] In-app log panel ───────────────────────────────────────────
+// Intercepts console.log lines that start with [MEDS-DEBUG] and stores them
+// so they're visible on-screen in release builds (no USB / Metro needed).
+// REMOVE this block and <DebugPanel /> before the next production release.
+const _debugLogs: string[] = [];
+const _debugListeners: Array<(logs: string[]) => void> = [];
+const _origLog = console.log.bind(console);
+console.log = (...args: unknown[]) => {
+  _origLog(...args);
+  const line = args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+  if (line.includes('[MEDS-DEBUG]')) {
+    _debugLogs.push(`${new Date().toTimeString().slice(0,8)} ${line}`);
+    if (_debugLogs.length > 200) _debugLogs.shift();
+    _debugListeners.forEach(fn => fn([..._debugLogs]));
+  }
+};
+
+function DebugPanel() {
+  const [visible, setVisible] = useState(false);
+  const [logs, setLogs] = useState<string[]>([..._debugLogs]);
+
+  useEffect(() => {
+    const handler = (l: string[]) => setLogs(l);
+    _debugListeners.push(handler);
+    return () => { const i = _debugListeners.indexOf(handler); if (i >= 0) _debugListeners.splice(i, 1); };
+  }, []);
+
+  return (
+    <>
+      {/* Floating trigger button — tap 3× corner dot to open */}
+      <TouchableOpacity
+        style={dbStyles.trigger}
+        onPress={() => setVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={dbStyles.triggerText}>🐛</Text>
+      </TouchableOpacity>
+
+      <Modal visible={visible} animationType="slide" onRequestClose={() => setVisible(false)}>
+        <View style={dbStyles.modal}>
+          <View style={dbStyles.header}>
+            <Text style={dbStyles.headerTitle}>MEDS-DEBUG logs ({logs.length})</Text>
+            <TouchableOpacity onPress={() => { _debugLogs.length = 0; setLogs([]); }}>
+              <Text style={dbStyles.clearBtn}>Очистить</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setVisible(false)}>
+              <Text style={dbStyles.closeBtn}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={dbStyles.scroll}>
+            {logs.length === 0
+              ? <Text style={dbStyles.empty}>Нет логов. Открой страницу Лекарства.</Text>
+              : [...logs].reverse().map((line, i) => (
+                  <Text key={i} style={dbStyles.logLine}>{line}</Text>
+                ))
+            }
+          </ScrollView>
+        </View>
+      </Modal>
+    </>
+  );
+}
 
 type Props = {
   onNavigate: (screen: Screen) => void;
@@ -166,8 +230,14 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         case 'sync-medications': {
           // Web cabinet sends active medication list → re-schedule local notifications
           const meds = msg.data as MedScheduleForNotif[] | undefined;
+          console.log('[MEDS-DEBUG] handleMessage sync-medications: received, meds type=', typeof meds, 'isArray=', Array.isArray(meds), 'length=', Array.isArray(meds) ? meds.length : 'n/a');
           if (Array.isArray(meds)) {
-            await scheduleMedicationReminders(meds).catch(() => {});
+            console.log('[MEDS-DEBUG] handleMessage sync-medications: payload=', JSON.stringify(meds.map(m => ({ id: m.id, title: m.title, times: m.times }))));
+            await scheduleMedicationReminders(meds).catch((e) => {
+              console.log('[MEDS-DEBUG] handleMessage sync-medications: scheduleMedicationReminders ERROR', String(e));
+            });
+          } else {
+            console.log('[MEDS-DEBUG] handleMessage sync-medications: WARNING — meds is not an array, raw data=', JSON.stringify(msg.data));
           }
           break;
         }
@@ -360,6 +430,7 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   }
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
@@ -398,6 +469,8 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         nestedScrollEnabled
       />
     </ScrollView>
+    <DebugPanel />
+    </>
   );
 }
 
@@ -432,4 +505,32 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   retryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+});
+
+// [MEDS-DEBUG] panel styles — remove with DebugPanel before release
+const dbStyles = StyleSheet.create({
+  trigger: {
+    position: 'absolute', bottom: 80, right: 12,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 9999,
+  },
+  triggerText: { fontSize: 18 },
+  modal: { flex: 1, backgroundColor: '#0d0d0d', paddingTop: 48 },
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingBottom: 8,
+    borderBottomWidth: 1, borderBottomColor: '#333',
+    gap: 8,
+  },
+  headerTitle: { flex: 1, color: '#0f0', fontSize: 13, fontWeight: '700' },
+  clearBtn: { color: '#f90', fontSize: 13, paddingHorizontal: 6 },
+  closeBtn: { color: '#f55', fontSize: 18, paddingHorizontal: 6 },
+  scroll: { flex: 1, padding: 8 },
+  empty: { color: '#666', fontSize: 12, textAlign: 'center', marginTop: 32 },
+  logLine: {
+    color: '#0f0', fontSize: 10, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginBottom: 3, lineHeight: 14,
+  },
 });

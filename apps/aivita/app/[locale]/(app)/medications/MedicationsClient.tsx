@@ -168,6 +168,9 @@ function syncMedicationsToNative(meds: MedicationRow[]): void {
   if (typeof window === 'undefined') return;
   const rnwv = (window as unknown as Record<string, unknown>).ReactNativeWebView as
     { postMessage: (s: string) => void } | undefined;
+
+  // [MEDS-DEBUG] веб-сторона: виден ли WebView-мост?
+  console.log('[MEDS-DEBUG][WEB] syncMedicationsToNative: ReactNativeWebView=', rnwv ? 'PRESENT' : 'ABSENT (not in WebView)');
   if (!rnwv) return; // not inside a React Native WebView
 
   const payload = meds
@@ -180,6 +183,7 @@ function syncMedicationsToNative(meds: MedicationRow[]): void {
       reminderMinutesBefore: m.reminderMinutesBefore,
     }));
 
+  console.log('[MEDS-DEBUG][WEB] syncMedicationsToNative: sending', payload.length, 'meds (of', meds.length, 'total), payload=', JSON.stringify(payload.map(m => ({ title: m.title, times: m.times }))));
   rnwv.postMessage(JSON.stringify({ type: 'sync-medications', data: payload }));
 }
 

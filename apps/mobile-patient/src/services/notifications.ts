@@ -45,17 +45,27 @@ export async function registerNotificationCategories(): Promise<void> {
 // ─── Permissions + channel setup ─────────────────────────────────────────────
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  if (!Device.isDevice) return null;
+  console.log('[MEDS-DEBUG] registerForPushNotifications: start, isDevice=', Device.isDevice);
+  if (!Device.isDevice) {
+    console.log('[MEDS-DEBUG] registerForPushNotifications: NOT a real device — skipping');
+    return null;
+  }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
+  console.log('[MEDS-DEBUG] registerForPushNotifications: existingStatus=', existingStatus);
 
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
+    console.log('[MEDS-DEBUG] registerForPushNotifications: after request, status=', status);
   }
 
-  if (finalStatus !== 'granted') return null;
+  console.log('[MEDS-DEBUG] registerForPushNotifications: finalStatus=', finalStatus);
+  if (finalStatus !== 'granted') {
+    console.log('[MEDS-DEBUG] registerForPushNotifications: PERMISSION DENIED — notifications will NOT work');
+    return null;
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -78,6 +88,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync();
+  console.log('[MEDS-DEBUG] registerForPushNotifications: pushToken=', tokenData.data?.slice(0, 20), '...');
   return tokenData.data;
 }
 
@@ -124,9 +135,15 @@ export async function sendPushTokenToServer(
 export async function scheduleMedicationReminders(
   meds: MedScheduleForNotif[],
 ): Promise<void> {
+  console.log('[MEDS-DEBUG] scheduleMedicationReminders: called with', meds.length, 'meds');
+  meds.forEach((m, i) => {
+    console.log(`[MEDS-DEBUG]   med[${i}]: id=${m.id} title="${m.title}" times=${JSON.stringify(m.times)} reminderMin=${m.reminderMinutesBefore}`);
+  });
+
   // Cancel all previously scheduled notifications
   // (see TODO above for a future targeted cancel)
   await Notifications.cancelAllScheduledNotificationsAsync();
+  console.log('[MEDS-DEBUG] scheduleMedicationReminders: cancelled all existing notifications');
 
   for (const med of meds) {
     const times: string[] = Array.isArray(med.times) ? med.times : [];
@@ -156,6 +173,7 @@ export async function scheduleMedicationReminders(
         (content as Record<string, unknown>).android = { channelId: 'medications' };
       }
 
+      console.log(`[MEDS-DEBUG]   scheduling "${med.title}" originalTime=${timeStr} -> notifAt=${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} (minus ${minutesBefore}min)`);
       await Notifications.scheduleNotificationAsync({
         content,
         trigger: {
@@ -166,6 +184,14 @@ export async function scheduleMedicationReminders(
       });
     }
   }
+
+  // Summary: how many notifications are now scheduled?
+  const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+  console.log('[MEDS-DEBUG] scheduleMedicationReminders: DONE — total scheduled notifications now:', allScheduled.length);
+  allScheduled.forEach((n, i) => {
+    const t = n.trigger as Record<string, unknown>;
+    console.log(`[MEDS-DEBUG]   scheduled[${i}]: "${n.content.title}" h=${t.hour} m=${t.minute}`);
+  });
 }
 
 // ─── Notification response handler (take / snooze) ────────────────────────────
