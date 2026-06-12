@@ -1,5 +1,5 @@
-const CACHE_NAME = 'aivita-v4';
-const STATIC_CACHE = 'aivita-static-v4';
+const CACHE_NAME = 'aivita-v5';
+const STATIC_CACHE = 'aivita-static-v5';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
