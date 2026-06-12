@@ -15,7 +15,6 @@ import {
   PermissionsAndroid,
   Alert,
 } from 'react-native';
-import * as IntentLauncher from 'expo-intent-launcher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
@@ -86,15 +85,16 @@ async function maybeRequestBatteryOptimizationExclusion(): Promise<void> {
   await AsyncStorage.setItem(key, '1').catch(() => {});
 
   try {
-    // Opens the system dialog: "Allow app to always run in background?"
-    // This is a standard AOSP intent — works on Samsung, MIUI, and stock Android.
-    await IntentLauncher.startActivityAsync(
-      IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-      { data: 'package:uz.aivita.app' },
+    // Standard AOSP intent — opens "Allow app to always run in background?" dialog.
+    // Works on Samsung One UI, stock Android, and other OEMs.
+    // Requires REQUEST_IGNORE_BATTERY_OPTIMIZATIONS in AndroidManifest.xml.
+    await Linking.sendIntent(
+      'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+      [{ key: 'android.provider.extra.PACKAGE_NAME', value: 'uz.aivita.app' }],
     );
     void sendDiagLog('battery-opt-requested', { ok: true });
   } catch {
-    // Device doesn't support the intent — fall back to app settings
+    // Device blocked the intent — fall back to manual instructions
     void sendDiagLog('battery-opt-requested', { ok: false, fallback: true });
     Alert.alert(
       'Разрешите фоновую работу',
