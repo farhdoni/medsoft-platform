@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
+  ScrollView,
   Text,
   TouchableOpacity,
   Share,
@@ -359,14 +360,20 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Pull-to-refresh: use a separate View above WebView, only visible when pulling.
-          Do NOT wrap WebView in ScrollView with RefreshControl — it intercepts taps. */}
-      {refreshing && (
-        <View style={styles.refreshIndicator}>
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#c87d8a" colors={['#c87d8a']} />
-        </View>
-      )}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      scrollEnabled={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          enabled={webViewAtTop}
+          tintColor="#c87d8a"
+          colors={['#c87d8a']}
+        />
+      }
+    >
       <WebView
         ref={webViewRef}
         source={{ uri: webUrl }}
@@ -390,14 +397,14 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         // Allow nested scrollable web content (chat messages, lists, etc.)
         nestedScrollEnabled
       />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:        { flex: 1 },
-  webview:          { flex: 1 },
-  refreshIndicator: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  container:    { flex: 1 },
+  scrollContent: { flex: 1 },
+  webview:      { flex: 1 },
   offlineContainer: {
     flex: 1,
     alignItems: 'center',
