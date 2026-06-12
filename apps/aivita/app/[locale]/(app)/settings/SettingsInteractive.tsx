@@ -248,14 +248,10 @@ export function SettingsInteractive({ locale, localeLabel, notificationsOn: init
     }).catch(() => {});
   }
 
-  // Auto-detect timezone on first render if DB still has the default and browser knows better.
-  useEffect(() => {
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (detected && detected !== currentTimezone) {
-      void saveTimezone(detected);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No auto-detect here: useEffect that silently overwrites would reset any manual
+  // selection every time the user opens settings. Auto-detect runs once at
+  // registration (the signup form sends Intl.DateTimeFormat().resolvedOptions().timeZone).
+  // Existing users can change timezone manually via the select below.
 
   const rowBase = 'flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-bg-app cursor-pointer';
 

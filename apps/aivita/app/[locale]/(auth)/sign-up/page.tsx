@@ -1,5 +1,5 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -173,6 +173,10 @@ export default function SignUpPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [detectedTz, setDetectedTz] = useState('Asia/Tashkent');
+  useEffect(() => {
+    try { setDetectedTz(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch {}
+  }, []);
 
   const boundRegister = registerAction.bind(null, locale);
   const [registerState, registerFormAction, registering] = useActionState(
@@ -400,6 +404,7 @@ export default function SignUpPage() {
           </div>
 
           <input type="hidden" name="role" value="patient" />
+          <input type="hidden" name="timezone" value={detectedTz} />
 
           <button
             type="submit"

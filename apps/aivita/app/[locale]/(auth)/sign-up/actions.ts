@@ -33,13 +33,16 @@ export async function registerAction(
   const role = (formData.get('role') as string | null) ?? 'patient';
   const specialization = (formData.get('specialization') as string | null)?.trim() || undefined;
   const refCode = (formData.get('refCode') as string | null)?.trim() || undefined;
+  // Populated client-side via Intl.DateTimeFormat().resolvedOptions().timeZone hidden input.
+  // Validated on the API side via isValidTimezone(); falls back to Asia/Tashkent if absent.
+  const timezone = (formData.get('timezone') as string | null)?.trim() || undefined;
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/v1/aivita/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, nickname, name, password, locale, role, specialization, refCode }),
+      body: JSON.stringify({ email, nickname, name, password, locale, role, specialization, refCode, timezone }),
     });
   } catch {
     return { error: 'network' };

@@ -143,8 +143,9 @@ async function sendMedicationReminders() {
     let sent = 0;
 
     for (const { med, timezone: rawTz } of rows) {
-      // Guard: if timezone stored in DB is somehow invalid, fall back gracefully.
-      // One corrupt row must not abort the entire run.
+      // Per-user try/catch: a single bad row must never abort the entire run.
+      try {
+      // Guard: safeTimezone returns a valid IANA string or 'Asia/Tashkent'.
       const tz = safeTimezone(rawTz);
 
       // "Today" in the user's local timezone (YYYY-MM-DD calendar date).
@@ -213,6 +214,11 @@ async function sendMedicationReminders() {
 
         _reminderSentAt.set(dedupKey, nowUtc.getTime());
         sent++;
+      }
+      } catch (userErr) {
+        // Log and skip — do not let one user's bad data abort the entire run.
+        logger.error({ err: userErr, scheduleId: med.id, userId: med.userId },
+          '[Cron] Skipping medication schedule due to unexpected error');
       }
     }
 
