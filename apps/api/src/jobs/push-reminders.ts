@@ -112,12 +112,26 @@ async function sendWeeklyHealthSummary() {
 
 // ─── Medication reminders ─────────────────────────────────────────────────────
 
+// med.times values are stored in Tashkent time (UTC+5) — the user enters "07:00"
+// meaning 07:00 Tashkent, not UTC. The server clock is UTC, so we must convert.
+// TODO: store per-user timezone in aivita_users when multi-timezone support is needed.
+const TASHKENT_OFFSET_HOURS = 5;
+
+// In-process dedup: tracks last push timestamp per `${scheduleId}:${time}`.
+// Prevents duplicate sends when two consecutive cron ticks both fall inside
+// the reminder window (cron period = 5 min, default window = 6 min → overlap).
+const _reminderSentAt = new Map<string, number>();
+
 async function sendMedicationReminders() {
   logger.info('[Cron] Sending medication reminders…');
 
   try {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const nowUtc = new Date();
+
+    // Shift to Tashkent for calendar-date comparisons (startDate / endDate / todayStr).
+    // We read UTC components of this shifted Date to get Tashkent year/month/day.
+    const tashkentNow = new Date(nowUtc.getTime() + TASHKENT_OFFSET_HOURS * 60 * 60 * 1000);
+    const todayStr = tashkentNow.toISOString().split('T')[0]; // Tashkent calendar date
 
     // Get all active medications with reminder enabled
     const activeMeds = await db.select().from(medicationSchedule)
@@ -129,7 +143,7 @@ async function sendMedicationReminders() {
     let sent = 0;
 
     for (const med of activeMeds) {
-      // Check date range
+      // startDate / endDate are Tashkent calendar dates
       if (med.startDate && todayStr < med.startDate) continue;
       if (med.endDate && todayStr > med.endDate) continue;
 
@@ -137,15 +151,32 @@ async function sendMedicationReminders() {
 
       for (const time of times) {
         const [h, m] = time.split(':').map(Number);
-        const scheduled = new Date();
-        scheduled.setHours(h, m, 0, 0);
 
-        // Check if we're within the reminder window (default 5 min before)
+        // Convert "HH:mm Tashkent" → UTC timestamp for this calendar day.
+        // Date.UTC normalises negative hours, so times like "03:00 Tashkent"
+        // correctly resolve to the previous UTC day (22:00 UTC).
+        const scheduledUtc = new Date(Date.UTC(
+          tashkentNow.getUTCFullYear(),
+          tashkentNow.getUTCMonth(),
+          tashkentNow.getUTCDate(),
+          h - TASHKENT_OFFSET_HOURS, // Tashkent → UTC
+          m,
+          0, 0,
+        ));
+
         const minutesBefore = med.reminderMinutesBefore ?? 5;
-        const diff = (scheduled.getTime() - now.getTime()) / 60000;
-        if (diff < 0 || diff > minutesBefore + 1) continue;
+        const diffMin = (scheduledUtc.getTime() - nowUtc.getTime()) / 60_000;
 
-        // Check not already taken today
+        // Fire when the scheduled time is 0 … minutesBefore+1 minutes away
+        if (diffMin < 0 || diffMin > minutesBefore + 1) continue;
+
+        // Dedup: skip if this slot was already pushed during the current reminder window.
+        // Guards against two consecutive 5-min cron ticks both landing in the window.
+        const dedupKey = `${med.id}:${time}`;
+        const lastSent = _reminderSentAt.get(dedupKey);
+        if (lastSent !== undefined && nowUtc.getTime() - lastSent < (minutesBefore + 2) * 60_000) continue;
+
+        // Check not already taken/skipped today
         const todayStart = new Date(`${todayStr}T00:00:00`);
         const todayEnd = new Date(`${todayStr}T23:59:59`);
         const [existingLog] = await db.select().from(medicationLog)
@@ -159,8 +190,8 @@ async function sendMedicationReminders() {
 
         if (existingLog && (existingLog.status === 'taken' || existingLog.status === 'skipped')) continue;
 
-        // ДЕДУП: мобильные (ios/android) устройства планируют напоминания локально.
-        // Серверный push отправляем ТОЛЬКО web-подпискам (VAPID).
+        // Mobile (ios/android) devices schedule reminders locally via expo-notifications.
+        // Server push is sent ONLY to web (VAPID) subscriptions.
         const tokens = await db
           .select({
             pushToken: aivitaDeviceTokens.pushToken,
@@ -181,6 +212,8 @@ async function sendMedicationReminders() {
             sendWebPushNotification(t.pushToken, notifTitle, notifBody, notifData)
           )
         );
+
+        _reminderSentAt.set(dedupKey, nowUtc.getTime());
         sent++;
       }
     }
