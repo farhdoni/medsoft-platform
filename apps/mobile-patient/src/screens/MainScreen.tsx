@@ -15,6 +15,7 @@ import {
   PermissionsAndroid,
   Alert,
 } from 'react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
@@ -62,9 +63,8 @@ function deepLinkToPath(url: string): string | null {
 async function requestAndroid13NotifPermission(): Promise<void> {
   if (Platform.OS !== 'android') return;
   try {
-    // TIRAMISU = 33; check version via PermissionsAndroid
+    // @ts-ignore — POST_NOTIFICATIONS added in RN 0.71 / API 33
     const granted = await PermissionsAndroid.request(
-      // @ts-ignore — POST_NOTIFICATIONS added in RN 0.71 / API 33
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS ?? 'android.permission.POST_NOTIFICATIONS',
     );
     void sendDiagLog('android13-notif-perm', { granted });
@@ -74,27 +74,38 @@ async function requestAndroid13NotifPermission(): Promise<void> {
 }
 
 /**
- * Show a one-time dialog guiding MIUI users to disable battery optimisation
- * and enable autostart. Shown only once (stored in AsyncStorage).
+ * Request battery optimisation exclusion via the standard Android dialog
+ * (ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS). Works on all OEMs including
+ * Samsung One UI and MIUI. Shown only once per install.
  */
-async function maybeShowMiuiBatteryGuide(): Promise<void> {
+async function maybeRequestBatteryOptimizationExclusion(): Promise<void> {
   if (Platform.OS !== 'android') return;
-  const key = 'aivita:miui-battery-shown';
-  const shown = await AsyncStorage.getItem(key).catch(() => null);
-  if (shown) return;
+  const key = 'aivita:battery-opt-requested';
+  const done = await AsyncStorage.getItem(key).catch(() => null);
+  if (done) return;
   await AsyncStorage.setItem(key, '1').catch(() => {});
 
-  Alert.alert(
-    'Разрешите уведомления о лекарствах',
-    'На Xiaomi (MIUI) уведомления могут не приходить, если:\n\n' +
-    '1. Автозапуск выключен — Настройки → Приложения → AIVITA → Управление разрешениями → Автозапуск → включить\n\n' +
-    '2. Ограничена активность в фоне — Настройки → Приложения → AIVITA → Управление зарядкой → Нет ограничений\n\n' +
-    'Это нужно сделать один раз.',
-    [
-      { text: 'Открыть настройки', onPress: () => Linking.openSettings() },
-      { text: 'Позже', style: 'cancel' },
-    ],
-  );
+  try {
+    // Opens the system dialog: "Allow app to always run in background?"
+    // This is a standard AOSP intent — works on Samsung, MIUI, and stock Android.
+    await IntentLauncher.startActivityAsync(
+      IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+      { data: 'package:uz.aivita.app' },
+    );
+    void sendDiagLog('battery-opt-requested', { ok: true });
+  } catch {
+    // Device doesn't support the intent — fall back to app settings
+    void sendDiagLog('battery-opt-requested', { ok: false, fallback: true });
+    Alert.alert(
+      'Разрешите фоновую работу',
+      'Чтобы напоминания о лекарствах приходили вовремя:\n\n' +
+      'Настройки → Приложения → AIVITA → Батарея → Без ограничений',
+      [
+        { text: 'Открыть настройки', onPress: () => Linking.openSettings() },
+        { text: 'Позже', style: 'cancel' },
+      ],
+    );
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -112,6 +123,8 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   const [webViewAtTop, setWebViewAtTop] = useState(true);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
+  // Mutex: prevents concurrent scheduleMedicationReminders calls from racing
+  const schedLockRef = useRef(false);
 
   // ── Biometric state ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -141,15 +154,16 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     });
     registerNotificationCategories().catch(() => {});
 
-    // MIUI: one-time guide for battery/autostart settings
-    void maybeShowMiuiBatteryGuide();
+    // Request battery optimisation exclusion via system dialog (Samsung + all Android)
+    void maybeRequestBatteryOptimizationExclusion();
 
-    // Schedule from cached list immediately (covers MIUI kill-and-relaunch case)
+    // Schedule from cached list immediately (covers kill-and-relaunch case)
     AsyncStorage.getItem(MEDS_CACHE_KEY).then(raw => {
       if (!raw) return;
       const meds = JSON.parse(raw) as MedScheduleForNotif[];
-      if (Array.isArray(meds) && meds.length > 0) {
-        scheduleMedicationReminders(meds).catch(() => {});
+      if (Array.isArray(meds) && meds.length > 0 && !schedLockRef.current) {
+        schedLockRef.current = true;
+        scheduleMedicationReminders(meds).catch(() => {}).finally(() => { schedLockRef.current = false; });
       }
     }).catch(() => {});
 
@@ -180,15 +194,16 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     return () => { navSub.remove(); medSub.remove(); };
   }, []);
 
-  // ── AppState: reschedule on foreground (MIUI may cancel scheduled alarms) ──
+  // ── AppState: reschedule on foreground (Samsung/MIUI may cancel scheduled alarms) ──
   useEffect(() => {
     const handleAppState = (nextState: AppStateStatus) => {
       if (nextState !== 'active') return;
       AsyncStorage.getItem(MEDS_CACHE_KEY).then(raw => {
         if (!raw) return;
         const meds = JSON.parse(raw) as MedScheduleForNotif[];
-        if (Array.isArray(meds) && meds.length > 0) {
-          scheduleMedicationReminders(meds).catch(() => {});
+        if (Array.isArray(meds) && meds.length > 0 && !schedLockRef.current) {
+          schedLockRef.current = true;
+          scheduleMedicationReminders(meds).catch(() => {}).finally(() => { schedLockRef.current = false; });
         }
       }).catch(() => {});
     };
@@ -252,9 +267,11 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
             length: Array.isArray(meds) ? meds.length : null,
           });
           if (Array.isArray(meds)) {
-            // Persist for AppState reschedule and on-launch reschedule
             AsyncStorage.setItem(MEDS_CACHE_KEY, JSON.stringify(meds)).catch(() => {});
-            await scheduleMedicationReminders(meds).catch(() => {});
+            if (!schedLockRef.current) {
+              schedLockRef.current = true;
+              await scheduleMedicationReminders(meds).catch(() => {}).finally(() => { schedLockRef.current = false; });
+            }
           }
           break;
         }
