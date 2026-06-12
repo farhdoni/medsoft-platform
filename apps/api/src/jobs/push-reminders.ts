@@ -7,13 +7,12 @@
  */
 
 import cron from 'node-cron';
-import { fromZonedTime } from 'date-fns-tz';
 import { db } from '@medsoft/db';
-import { aivitaUsers, aivitaDeviceTokens, habitLogs, habits, medicationSchedule, medicationLog } from '@medsoft/db';
+import { aivitaUsers, aivitaDeviceTokens, habitLogs, habits, medicationSchedule, medicationLog, medicationReminderLog } from '@medsoft/db';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { sendPushNotification, sendWebPushNotification } from '../lib/push-notifications.js';
 import { logger } from '../lib/logger.js';
-import { safeTimezone } from '../lib/timezone.js';
+import { computeFireCandidates } from '../lib/reminder-schedule.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,10 +113,12 @@ async function sendWeeklyHealthSummary() {
 
 // ─── Medication reminders ─────────────────────────────────────────────────────
 
-// In-process dedup: tracks last push timestamp per `${scheduleId}:${time}`.
-// Prevents duplicate sends when two consecutive 5-min cron ticks both fall
-// inside the reminder window (window = minutesBefore+1 min ≈ 6 min > cron period).
-const _reminderSentAt = new Map<string, number>();
+// Дедуп — ПЕРСИСТЕНТНЫЙ (medication_reminder_log, миграция 0023): слот
+// (scheduleId, fireDate, time) вставляется ДО отправки; уникальный констрейнт
+// даёт at-most-once между тиками, рестартами и репликами. In-memory Map больше
+// не используется. Catch-up ограничен CATCHUP_MIN: слот, просроченный сильнее,
+// НЕ реанимируется (медбезопасность — старое «примите сейчас» вреднее тишины).
+const CATCHUP_MIN = 30;
 
 async function sendMedicationReminders() {
   logger.info('[Cron] Sending medication reminders…');
@@ -145,45 +146,30 @@ async function sendMedicationReminders() {
     for (const { med, timezone: rawTz } of rows) {
       // Per-user try/catch: a single bad row must never abort the entire run.
       try {
-      // Guard: safeTimezone returns a valid IANA string or 'Asia/Tashkent'.
-      const tz = safeTimezone(rawTz);
+      const minutesBefore = med.reminderMinutesBefore ?? 5;
 
-      // "Today" in the user's local timezone (YYYY-MM-DD calendar date).
-      const todayStr = new Intl.DateTimeFormat('sv-SE', { timeZone: tz })
-        .format(nowUtc); // sv-SE locale always formats as "YYYY-MM-DD"
+      // Слоты на [сегодня, завтра] в tz пользователя (полуночный край) с
+      // ограниченным catch-up; tz-мусор внутри уходит в safeTimezone().
+      const candidates = computeFireCandidates({
+        times: (med.times as string[]) || [],
+        tz: rawTz,
+        nowUtc,
+        minutesBefore,
+        catchupMin: CATCHUP_MIN,
+        startDate: med.startDate,
+        endDate: med.endDate,
+      });
 
-      // startDate / endDate are stored as calendar dates — compare in user's tz.
-      if (med.startDate && todayStr < med.startDate) continue;
-      if (med.endDate && todayStr > med.endDate) continue;
-
-      const times = (med.times as string[]) || [];
-
-      for (const time of times) {
-        // Convert "HH:mm in user's timezone" → UTC using date-fns-tz.
-        // fromZonedTime correctly handles DST transitions (e.g. Europe/Berlin
-        // on spring-forward night: 02:30 local simply doesn't exist → clamps).
-        const scheduledUtc = fromZonedTime(`${todayStr}T${time}:00`, tz);
-
-        const minutesBefore = med.reminderMinutesBefore ?? 5;
-        const diffMin = (scheduledUtc.getTime() - nowUtc.getTime()) / 60_000;
-
-        // Fire when the scheduled time is 0 … minutesBefore+1 minutes away.
-        if (diffMin < 0 || diffMin > minutesBefore + 1) continue;
-
-        // Dedup: skip if this slot was already pushed during the current window.
-        const dedupKey = `${med.id}:${time}`;
-        const lastSent = _reminderSentAt.get(dedupKey);
-        if (lastSent !== undefined && nowUtc.getTime() - lastSent < (minutesBefore + 2) * 60_000) continue;
-
-        // Check not already taken/skipped today (compare against UTC-day boundary).
-        const todayStart = new Date(`${todayStr}T00:00:00`);
-        const todayEnd   = new Date(`${todayStr}T23:59:59`);
+      for (const cand of candidates) {
+        // Check not already taken/skipped on the slot's date.
+        const dayStart = new Date(`${cand.fireDate}T00:00:00`);
+        const dayEnd   = new Date(`${cand.fireDate}T23:59:59`);
         const [existingLog] = await db.select().from(medicationLog)
           .where(and(
             eq(medicationLog.scheduleId, med.id),
             eq(medicationLog.userId, med.userId),
-            gte(medicationLog.scheduledAt, todayStart),
-            lte(medicationLog.scheduledAt, todayEnd),
+            gte(medicationLog.scheduledAt, dayStart),
+            lte(medicationLog.scheduledAt, dayEnd),
           ))
           .limit(1);
 
@@ -202,9 +188,28 @@ async function sendMedicationReminders() {
         const webTokens = tokens.filter(t => t.platform === 'web');
         if (webTokens.length === 0) continue;
 
-        const notifData = { scheduleId: med.id, time, url: '/ru/medications' };
+        // Персистентный дедуп: insert-then-send. Вставка метки — последний гейт
+        // перед отправкой; конфликт по unique(scheduleId, fireDate, time) значит
+        // «слот уже отправлен» (другим тиком/репликой или до рестарта) → skip.
+        const claimed = await db.insert(medicationReminderLog)
+          .values({ scheduleId: med.id, fireDate: cand.fireDate, time: cand.time })
+          .onConflictDoNothing({
+            target: [
+              medicationReminderLog.scheduleId,
+              medicationReminderLog.fireDate,
+              medicationReminderLog.time,
+            ],
+          })
+          .returning({ id: medicationReminderLog.id });
+        if (claimed.length === 0) continue; // слот уже забран — дубль не шлём
+
+        const notifData = { scheduleId: med.id, time: cand.time, url: '/ru/medications' };
         const notifTitle = `💊 ${med.title}`;
-        const notifBody  = `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${time}`;
+        // Просроченный слот (catch-up ≤30 мин) — честная пометка о задержке,
+        // БЕЗ «примите сейчас»: решение о приёме за пациентом/инструкцией.
+        const notifBody = cand.late
+          ? `${med.dosage ? med.dosage + ' · ' : ''}Напоминание (с задержкой): время приёма было в ${cand.time}`
+          : `${med.dosage ? med.dosage + ' · ' : ''}Время принять в ${cand.time}`;
 
         await Promise.all(
           webTokens.map(t =>
@@ -212,7 +217,6 @@ async function sendMedicationReminders() {
           )
         );
 
-        _reminderSentAt.set(dedupKey, nowUtc.getTime());
         sent++;
       }
       } catch (userErr) {
