@@ -9,6 +9,7 @@ import {
   date,
   jsonb,
   index,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { aivitaUsers } from './aivita';
 import { aivitaPrescriptions } from './aivita-doctor';
@@ -91,5 +92,27 @@ export const medicationLog = pgTable(
   (table) => ({
     userIdx: index('med_log_user_idx').on(table.userId, table.scheduledAt),
     scheduleIdx: index('med_log_schedule_idx').on(table.scheduleId, table.scheduledAt),
+  }),
+);
+
+// ─── 3. medication_reminder_log ────────────────────────────────────────────────
+// Персистентный дедуп пушей-напоминаний (миграция 0023).
+// Слот = (scheduleId, fireDate, time); строка вставляется ДО отправки пуша
+// (insert-then-send): уникальный констрейнт даёт at-most-once между тиками
+// cron, рестартами процесса и репликами. fireDate — календарная дата слота
+// в таймзоне ПОЛЬЗОВАТЕЛЯ; time — "HH:mm" из medication_schedule.times.
+
+export const medicationReminderLog = pgTable(
+  'medication_reminder_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    scheduleId: uuid('schedule_id').notNull().references(() => medicationSchedule.id, { onDelete: 'cascade' }),
+    fireDate: date('fire_date').notNull(),
+    time: varchar('time', { length: 5 }).notNull(),
+    sentAt: timestamp('sent_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    slotUnique: unique('medication_reminder_log_slot_unique').on(table.scheduleId, table.fireDate, table.time),
+    sentAtIdx: index('medication_reminder_log_sent_at_idx').on(table.sentAt),
   }),
 );
