@@ -3,9 +3,29 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Globe, Bell, ChevronRight, Navigation, Fingerprint } from 'lucide-react';
+import { Globe, Bell, ChevronRight, Navigation, Fingerprint, Clock } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { ALL_NAV_OPTIONS, loadNavConfig, saveNavConfig } from '@/components/cabinet/dashboard/FloatingNav';
+
+// Popular IANA timezones shown first; any IANA zone is accepted by the API.
+const POPULAR_TIMEZONES = [
+  { value: 'Asia/Tashkent',    label: 'Ташкент (UTC+5)' },
+  { value: 'Asia/Samarkand',   label: 'Самарканд (UTC+5)' },
+  { value: 'Europe/Moscow',    label: 'Москва (UTC+3)' },
+  { value: 'Asia/Almaty',      label: 'Алматы (UTC+5)' },
+  { value: 'Asia/Bishkek',     label: 'Бишкек (UTC+6)' },
+  { value: 'Asia/Dushanbe',    label: 'Душанбе (UTC+5)' },
+  { value: 'Asia/Ashgabat',    label: 'Ашхабад (UTC+5)' },
+  { value: 'Asia/Baku',        label: 'Баку (UTC+4)' },
+  { value: 'Asia/Tbilisi',     label: 'Тбилиси (UTC+4)' },
+  { value: 'Asia/Yerevan',     label: 'Ереван (UTC+4)' },
+  { value: 'Europe/Istanbul',  label: 'Стамбул (UTC+3)' },
+  { value: 'Europe/London',    label: 'Лондон (UTC+0/+1)' },
+  { value: 'Europe/Berlin',    label: 'Берлин (UTC+1/+2)' },
+  { value: 'America/New_York', label: 'Нью-Йорк (UTC-5/-4)' },
+  { value: 'Asia/Dubai',       label: 'Дубай (UTC+4)' },
+  { value: 'Asia/Shanghai',    label: 'Шанхай (UTC+8)' },
+];
 
 const LOCALES = [
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
@@ -169,6 +189,7 @@ interface Props {
   locale: string;
   localeLabel: string;
   notificationsOn: boolean;
+  currentTimezone: string;
 }
 
 type RNWebView = { postMessage: (s: string) => void };
@@ -178,13 +199,14 @@ function getRNWebView(): RNWebView | undefined {
     : undefined;
 }
 
-export function SettingsInteractive({ locale, localeLabel, notificationsOn: initialNotif }: Props) {
+export function SettingsInteractive({ locale, localeLabel, notificationsOn: initialNotif, currentTimezone }: Props) {
   const t = useTranslations('app.settings');
   const [showLang, setShowLang] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [notifOn, setNotifOn] = useState(initialNotif);
   const [isInNative, setIsInNative] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
+  const [timezone, setTimezone] = useState(currentTimezone);
 
   useEffect(() => {
     const rnwv = getRNWebView();
@@ -217,6 +239,20 @@ export function SettingsInteractive({ locale, localeLabel, notificationsOn: init
     }
   }
 
+  async function saveTimezone(tz: string) {
+    setTimezone(tz);
+    await fetch('/api/proxy/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timezone: tz }),
+    }).catch(() => {});
+  }
+
+  // No auto-detect here: useEffect that silently overwrites would reset any manual
+  // selection every time the user opens settings. Auto-detect runs once at
+  // registration (the signup form sends Intl.DateTimeFormat().resolvedOptions().timeZone).
+  // Existing users can change timezone manually via the select below.
+
   const rowBase = 'flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-bg-app cursor-pointer';
 
   return (
@@ -237,6 +273,30 @@ export function SettingsInteractive({ locale, localeLabel, notificationsOn: init
           <span className="text-[12px] text-text-muted mr-1">{localeLabel}</span>
           <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
         </button>
+
+        {/* Timezone row */}
+        <div className={`${rowBase} border-b border-border-soft`}>
+          <div className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center" style={{ background: '#fde8d8' }}>
+            <Clock className="w-4 h-4" style={{ color: '#b07040' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold text-text-primary">Часовой пояс</p>
+            <p className="text-[11px] text-text-muted mt-0.5">Для точных напоминаний о лекарствах</p>
+          </div>
+          <select
+            value={timezone}
+            onChange={e => saveTimezone(e.target.value)}
+            className="text-[12px] text-text-muted bg-transparent border-none outline-none cursor-pointer max-w-[140px] truncate"
+          >
+            {POPULAR_TIMEZONES.map(tz => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+            {/* Show current value even if it's not in the popular list */}
+            {!POPULAR_TIMEZONES.some(tz => tz.value === timezone) && (
+              <option value={timezone}>{timezone}</option>
+            )}
+          </select>
+        </div>
 
         {/* Notifications row */}
         <button className={`${rowBase} w-full text-left border-b border-border-soft`} onClick={toggleNotifications}>

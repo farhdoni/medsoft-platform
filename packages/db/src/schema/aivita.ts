@@ -40,7 +40,8 @@ export const aivitaUsers = pgTable(
     role: text('role').notNull().default('patient'), // 'patient' | 'doctor' | 'admin'
     plan: text('plan').notNull().default('free'),   // 'free' | 'plus' | 'pro'
 
-    locale: text('locale').default('ru').notNull(),
+    locale:   text('locale').default('ru').notNull(),
+    timezone: text('timezone').default('Asia/Tashkent').notNull(),
 
     preferences: jsonb('preferences')
       .$type<{
