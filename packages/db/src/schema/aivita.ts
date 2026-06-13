@@ -851,11 +851,15 @@ export const userDevices = pgTable(
     metadata: jsonb('metadata'),
     connectedAt: timestamp('connected_at'),
 
+    hcChangesToken: text('hc_changes_token'),
+    hcLastSyncAt: timestamp('hc_last_sync_at', { withTimezone: true }),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
     userIdx: index('user_devices_user_idx').on(table.userId),
     userTypeIdx: index('user_devices_user_type_idx').on(table.userId, table.type),
+    userTypeUniq: unique('user_devices_user_type_uniq').on(table.userId, table.type),
   })
 );
 

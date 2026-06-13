@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
-import { vitals } from '@medsoft/db';
+import { vitals, userDevices } from '@medsoft/db';
 import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { analyzeHealthChange } from '../../lib/health-monitor.js';
@@ -309,3 +309,61 @@ aivitaVitalsRouter.delete('/:id', async (c) => {
 
   return c.json({ data: { success: true } });
 });
+
+// ─── GET /vitals/hc-sync-state ────────────────────────────────────────────────
+
+aivitaVitalsRouter.get('/hc-sync-state', async (c) => {
+  const userId = c.get('aivitaUserId');
+
+  const [device] = await db
+    .select({
+      hcChangesToken: userDevices.hcChangesToken,
+      hcLastSyncAt: userDevices.hcLastSyncAt,
+    })
+    .from(userDevices)
+    .where(and(eq(userDevices.userId, userId), eq(userDevices.type, 'health_connect')))
+    .limit(1);
+
+  return c.json({
+    data: {
+      hcChangesToken: device?.hcChangesToken ?? null,
+      hcLastSyncAt: device?.hcLastSyncAt ?? null,
+    },
+  });
+});
+
+// ─── PUT /vitals/hc-sync-state ────────────────────────────────────────────────
+
+const hcSyncStateSchema = z.object({
+  hcChangesToken: z.string().nullable(),
+  hcLastSyncAt: z.string().datetime().nullable(),
+});
+
+aivitaVitalsRouter.put(
+  '/hc-sync-state',
+  zValidator('json', hcSyncStateSchema),
+  async (c) => {
+    const userId = c.get('aivitaUserId');
+    const { hcChangesToken, hcLastSyncAt } = c.req.valid('json');
+
+    await db
+      .insert(userDevices)
+      .values({
+        userId,
+        type: 'health_connect',
+        name: 'Health Connect',
+        status: 'connected',
+        hcChangesToken,
+        hcLastSyncAt: hcLastSyncAt ? new Date(hcLastSyncAt) : null,
+      })
+      .onConflictDoUpdate({
+        target: [userDevices.userId, userDevices.type],
+        set: {
+          hcChangesToken,
+          hcLastSyncAt: hcLastSyncAt ? new Date(hcLastSyncAt) : null,
+        },
+      });
+
+    return c.json({ data: { ok: true } });
+  }
+);
