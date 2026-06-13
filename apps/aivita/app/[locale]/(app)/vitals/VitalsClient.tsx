@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { VitalRow, LatestVitals } from './types';
 import Modal from '@/components/ui/Modal';
+import { VitalChart } from '@/components/vitals/VitalChart';
+import { PeriodSelector, type Period } from '@/components/vitals/PeriodSelector';
+import { VitalStatsCard } from '@/components/vitals/VitalStatsCard';
+import { VitalTrendBadge } from '@/components/vitals/VitalTrendBadge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +38,89 @@ export const VITAL_DEFS: VitalDef[] = [
 
 function getVitalDef(type: string) {
   return VITAL_DEFS.find((v) => v.type === type);
+}
+
+// ─── Vitals Stats / Analytics ─────────────────────────────────────────────────
+
+interface VitalStats {
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+  count: number;
+  trend: 'up' | 'down' | 'stable';
+  history: Array<{ recordedAt: string; value: Record<string, unknown> }>;
+}
+
+type StatsMap = Partial<Record<string, VitalStats>>;
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-[20px] bg-white border border-app-border p-4 animate-pulse">
+      <div className="flex items-center justify-between mb-3">
+        <div className="h-4 w-24 rounded-full bg-[#e8e6e3]" />
+        <div className="h-5 w-14 rounded-full bg-[#e8e6e3]" />
+      </div>
+      <div className="h-[120px] rounded-[12px] bg-[#e8e6e3] mb-3" />
+      <div className="grid grid-cols-3 gap-2">
+        {[0,1,2].map(i => <div key={i} className="h-12 rounded-[12px] bg-[#e8e6e3]" />)}
+      </div>
+    </div>
+  );
+}
+
+function ChartsSection({ stats, period, onPeriodChange }: {
+  stats: StatsMap;
+  period: Period;
+  onPeriodChange: (p: Period) => void;
+}) {
+  const activeTypes = VITAL_DEFS.filter((d) => {
+    const s = stats[d.type];
+    return s && s.count > 0;
+  });
+
+  if (activeTypes.length === 0) {
+    return (
+      <div
+        className="rounded-[20px] p-6 text-center border border-app-border bg-white"
+      >
+        <p className="text-[28px] mb-2">📊</p>
+        <p className="text-[14px] font-semibold mb-1" style={{ color: '#2a2540' }}>
+          Данных пока нет
+        </p>
+        <p className="text-[12px]" style={{ color: '#9a96a8' }}>
+          Добавьте хотя бы один показатель, чтобы увидеть графики
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {activeTypes.map((def) => {
+        const s = stats[def.type]!;
+        return (
+          <div key={def.type} className="rounded-[20px] bg-white border border-app-border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[16px]">{def.icon}</span>
+                <p className="text-[13px] font-bold" style={{ color: '#2a2540' }}>{def.label}</p>
+              </div>
+              <VitalTrendBadge trend={s.trend} type={def.type} />
+            </div>
+            <div className="mb-3">
+              <VitalChart
+                type={def.type}
+                history={s.history}
+                unit={def.unit}
+                color={def.color}
+              />
+            </div>
+            <VitalStatsCard min={s.min} max={s.max} avg={s.avg} unit={def.unit} />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function formatValue(row: VitalRow): string {
@@ -463,6 +550,39 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
   const [modalType, setModalType] = useState<string>('heart_rate');
   const [, startTransition] = useTransition();
 
+  // Analytics
+  const [period, setPeriod] = useState<Period>('week');
+  const [stats, setStats] = useState<StatsMap>({});
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
+
+  const loadStats = useCallback(async (p: Period) => {
+    setStatsLoading(true);
+    setStatsError(false);
+    try {
+      const results = await Promise.allSettled(
+        VITAL_DEFS.map((def) =>
+          fetch(`/api/vitals/stats?type=${def.type}&period=${p}`)
+            .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+            .then((json) => ({ type: def.type, data: json.data as VitalStats }))
+        )
+      );
+      const map: StatsMap = {};
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          map[r.value.type] = r.value.data;
+        }
+      }
+      setStats(map);
+    } catch {
+      setStatsError(true);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadStats(period); }, [period, loadStats]);
+
   // Open the add-vital modal automatically when navigated from the home page
   // quick-stats cards via ?add=heart_rate etc.
   useEffect(() => {
@@ -480,7 +600,6 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
 
   function handleSaved() {
     startTransition(() => router.refresh());
-    // Reload via Next.js proxy (cookie forwarded server-side)
     fetch('/api/vitals')
       .then((r) => r.json())
       .then((json) => { if (json.data) setRows(json.data); })
@@ -490,6 +609,8 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
       .then((r) => r.json())
       .then((json) => { if (json.data) setLatest(json.data); })
       .catch(() => {});
+
+    void loadStats(period);
   }
 
   function handleDelete(id: string) {
@@ -524,6 +645,37 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
       <section className="mb-6">
         <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ПОСЛЕДНИЕ ПОКАЗАТЕЛИ</h2>
         <LatestGrid latest={latest} onCardClick={(type) => { setModalType(type); setShowModal(true); }} />
+      </section>
+
+      {/* Analytics / Charts */}
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[13px] font-bold" style={{ color: '#6a6580' }}>АНАЛИТИКА</h2>
+        </div>
+        <div className="mb-3">
+          <PeriodSelector value={period} onChange={setPeriod} />
+        </div>
+        {statsError ? (
+          <div className="rounded-[20px] bg-white border border-app-border p-5 text-center">
+            <p className="text-[13px] font-semibold mb-1" style={{ color: '#2a2540' }}>
+              Не удалось загрузить данные
+            </p>
+            <button
+              onClick={() => void loadStats(period)}
+              className="text-[12px] font-semibold mt-1"
+              style={{ color: '#9c5e6c' }}
+            >
+              Попробовать снова
+            </button>
+          </div>
+        ) : statsLoading ? (
+          <div className="space-y-3">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : (
+          <ChartsSection stats={stats} period={period} onPeriodChange={setPeriod} />
+        )}
       </section>
 
       {/* History */}
