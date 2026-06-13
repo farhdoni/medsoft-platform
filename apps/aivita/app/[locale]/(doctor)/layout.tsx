@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { DoctorBottomNav } from '@/components/doctor/DoctorBottomNav';
+import { IdleWarningModal } from '@/components/IdleWarningModal';
 
 export default async function DoctorLayout({
   children,
@@ -22,6 +23,7 @@ export default async function DoctorLayout({
 
   return (
     <div className="min-h-screen bg-app-bg doctor-theme">
+      <IdleWarningModal locale={locale} />
       <div
         className="max-w-[480px] mx-auto w-full min-h-screen bg-app-bg shadow-xl"
         style={{ maxWidth: '480px', margin: '0 auto' }}
