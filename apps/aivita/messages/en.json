@@ -306,6 +306,12 @@
       "deleteConfirm": "Yes, delete",
       "deleting": "Deleting..."
     },
+    "idleWarning": {
+      "title": "Session expiring",
+      "body": "You've been inactive for 14 minutes. You will be logged out automatically in 1 minute.",
+      "stayBtn": "Stay logged in",
+      "logoutBtn": "Log out now"
+    },
     "profileMenu": {
       "ariaLabel": "Profile menu",
       "defaultUser": "User",

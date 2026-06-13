@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import PushManager from '@/components/push/PushManager';
 import { FullscreenReminder } from '@/components/notifications/FullscreenReminder';
+import { IdleWarningModal } from '@/components/IdleWarningModal';
 
 export default async function CabinetLayout({
   children,
@@ -21,6 +22,8 @@ export default async function CabinetLayout({
     <div className="min-h-screen bg-app-bg">
       <PushManager />
       <FullscreenReminder />
+      {/* Auto-logout after 15 min idle (14 min + 1 min warning) */}
+      <IdleWarningModal locale={locale} />
       <div className="max-w-[480px] mx-auto w-full min-h-screen bg-app-bg shadow-xl">
         {children}
       </div>
