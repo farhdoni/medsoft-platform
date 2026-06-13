@@ -306,6 +306,12 @@
       "deleteConfirm": "Ha, o'chirish",
       "deleting": "O'chirilmoqda..."
     },
+    "idleWarning": {
+      "title": "Sessiya tugayapti",
+      "body": "Siz 14 daqiqadan beri faol emassiz. 1 daqiqadan keyin avtomatik chiqish amalga oshiriladi.",
+      "stayBtn": "Tizimda qolish",
+      "logoutBtn": "Hozir chiqish"
+    },
     "profileMenu": {
       "ariaLabel": "Profil menyusi",
       "defaultUser": "Foydalanuvchi",
