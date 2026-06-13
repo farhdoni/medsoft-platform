@@ -87,8 +87,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#c87d8a',
     });
-    // MAX importance + custom sound on dedicated channel → survives MIUI battery management
-    await Notifications.setNotificationChannelAsync('medications', {
+    // Delete legacy channel — Android caches channel config on first creation and
+    // ignores subsequent updates (including sound). Renaming to medications-v2 forces
+    // a fresh channel with the correct sound file.
+    await Notifications.deleteNotificationChannelAsync('medications').catch(() => {});
+    await Notifications.setNotificationChannelAsync('medications-v2', {
       name: 'Напоминания о лекарствах',
       importance: Notifications.AndroidImportance.MAX,
       sound: 'aivita_magic_soft_mono',
@@ -166,7 +169,7 @@ export async function scheduleMedicationReminders(
       };
 
       if (Platform.OS === 'android') {
-        (content as Record<string, unknown>).android = { channelId: 'medications' };
+        (content as Record<string, unknown>).android = { channelId: 'medications-v2' };
       }
 
       await Notifications.scheduleNotificationAsync({
@@ -254,7 +257,7 @@ export function addMedicationResponseListener(
           categoryIdentifier: 'medication-reminder',
           data: content.data ?? {},
           ...(Platform.OS === 'android'
-            ? ({ android: { channelId: 'medications' } } as Record<string, unknown>)
+            ? ({ android: { channelId: 'medications-v2' } } as Record<string, unknown>)
             : {}),
         },
         trigger: {
