@@ -83,6 +83,17 @@ export function GadgetsClient({ catalog, connected }: Props) {
   useEffect(() => {
     if (!inWebView) return;
     postToNative('check-health-connect');
+    // Restore persisted connection: if the user previously connected HC, show
+    // 'connected' on mount instead of resetting to 'idle' after reload/reopen.
+    fetch('/api/vitals/hc-sync-state', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.data?.status === 'connected') {
+          // Don't override a determined 'unavailable' (HC really not on device).
+          setHcState((prev) => (prev === 'unavailable' ? 'unavailable' : 'connected'));
+        }
+      })
+      .catch(() => {});
   }, [inWebView]);
 
   // Слушаем статус доступности HC (ответ на check-health-connect)
@@ -90,7 +101,8 @@ export function GadgetsClient({ catalog, connected }: Props) {
     function onHcStatus(e: Event) {
       const detail = (e as CustomEvent<{ status: string }>).detail;
       if (detail?.status === 'ready') {
-        setHcState('idle'); // доступен — показываем кнопку «Подключить»
+        // HC доступен. Не сбрасываем уже восстановленный 'connected' в 'idle'.
+        setHcState((prev) => (prev === 'connected' ? 'connected' : 'idle'));
       } else if (detail?.status?.startsWith('unavailable') || detail?.status === 'error') {
         setHcState('unavailable'); // HC не установлен — прячем кнопку
       }
@@ -105,6 +117,12 @@ export function GadgetsClient({ catalog, connected }: Props) {
       const detail = (e as CustomEvent<{ status: string }>).detail;
       if (detail?.status === 'ready') {
         setHcState('connected');
+        // Персистим подключение, чтобы статус пережил перезагрузку/переоткрытие.
+        fetch('/api/vitals/hc-sync-state', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hcChangesToken: null, hcLastSyncAt: new Date().toISOString() }),
+        }).catch(() => {});
       } else if (detail?.status === 'permission_denied') {
         setHcState('denied');
       } else if (detail?.status?.startsWith('unavailable')) {
