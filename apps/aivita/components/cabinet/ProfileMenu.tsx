@@ -47,7 +47,7 @@ interface ProfileMenuProps {
 export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) {
   const t = useTranslations('app.profileMenu');
   const [open, setOpen] = React.useState(false);
-  const [pos, setPos] = React.useState({ top: 0, right: 0 });
+  const [pos, setPos] = React.useState({ top: 0, right: 0, maxHeight: 0 });
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -73,9 +73,14 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
   const handleToggle = () => {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const top = rect.bottom + 12;
       setPos({
-        top: rect.bottom + 12,
+        top,
         right: window.innerWidth - rect.right,
+        // Cap to the visible viewport so the full list (incl. the last item,
+        // "Настройки", and logout) stays reachable on short mobile-browser
+        // viewports where the address bar/toolbars shrink window.innerHeight.
+        maxHeight: window.innerHeight - top - 12,
       });
     }
     setOpen(o => !o);
@@ -117,11 +122,16 @@ export function ProfileMenu({ session, locale = 'ru', role }: ProfileMenuProps) 
         right: pos.right,
         zIndex: 9999,
         width: 280,
+        maxHeight: pos.maxHeight > 0 ? pos.maxHeight : undefined,
         background: 'white',
         borderRadius: 16,
         border: '1px solid #e8e4dc',
         boxShadow: '0 16px 48px rgba(42, 37, 64, 0.18)',
-        overflow: 'hidden',
+        // Scroll inside the dropdown instead of clipping content that overflows
+        // the viewport — keeps every menu item reachable on small screens.
+        overflowY: 'auto',
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
           {/* Header */}
