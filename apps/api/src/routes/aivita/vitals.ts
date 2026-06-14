@@ -363,6 +363,9 @@ aivitaVitalsRouter.put(
       .onConflictDoUpdate({
         target: [userDevices.userId, userDevices.type],
         set: {
+          // Re-affirm connection on every persist — without this the status of a
+          // pre-existing row stays stale and the web card can't restore 'connected'.
+          status: 'connected',
           hcChangesToken,
           hcLastSyncAt: hcLastSyncAt ? new Date(hcLastSyncAt) : null,
         },
