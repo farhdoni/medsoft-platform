@@ -277,7 +277,9 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         }
 
         case '__scroll__':
-          setWebViewAtTop((msg.y as number) === 0);
+          // <= 1 (not strict 0): residual/sub-pixel scrollY at the visual top
+          // must still count as "at top", otherwise pull-to-refresh stays gated off.
+          setWebViewAtTop((msg.y as number) <= 1);
           break;
 
         case 'open-camera': {
@@ -429,6 +431,9 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
   const handleLoadEnd = useCallback(() => {
     setRefreshing(false);
     setIsOffline(false);
+    // A full load/reload always lands at the top — re-arm the pull-to-refresh
+    // gate so it doesn't stay stuck disabled from a previous page's scroll.
+    setWebViewAtTop(true);
   }, []);
 
   const handleError = useCallback(() => {
