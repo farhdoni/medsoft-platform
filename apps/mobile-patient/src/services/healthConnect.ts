@@ -7,8 +7,8 @@ import {
   getSdkStatus,
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
-import * as SecureStore from 'expo-secure-store';
-import { API_URL } from '../constants/config';
+import CookieManager, { type Cookies } from '@react-native-cookies/cookies';
+import { API_URL, WEB_URL } from '../constants/config';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,9 +37,26 @@ function todayBounds(): { startTime: string; endTime: string } {
   };
 }
 
-async function getAuthToken(): Promise<string | null> {
+/**
+ * Читает сессионный JWT из НАТИВНОГО cookie-jar WebView (CookieManager).
+ * Cookie httpOnly — поэтому читаем через нативный менеджер, НЕ JS-инжектом.
+ * Предпочитаем aivita_api (API-signed — всегда проверяется бэком), затем
+ * legacy aivita_session. Отправляется на API заголовком X-Aivita-Session.
+ * Cookie живёт на веб-origin (app.aivita.uz); как фолбэк проверяем API-host.
+ */
+async function getSessionToken(): Promise<string | null> {
+  const pick = (c: Cookies): string | null =>
+    c.aivita_api?.value ?? c.aivita_session?.value ?? null;
   try {
-    return await SecureStore.getItemAsync('auth_token');
+    const web = await CookieManager.get(WEB_URL);
+    const token = pick(web);
+    if (token) return token;
+  } catch {
+    // веб-origin недоступен — пробуем API-host ниже
+  }
+  try {
+    const api = await CookieManager.get(API_URL);
+    return pick(api);
   } catch {
     return null;
   }
@@ -74,9 +91,9 @@ async function hasPermissionsUnsafe(): Promise<boolean> {
 }
 
 /**
- * Инициализирует SDK и запрашивает разрешения READ_STEPS + READ_HEART_RATE.
- * Показывает системный диалог — вызывать только если checkAvailability()==='ready'
- * и только по явному действию пользователя.
+ * Инициализирует SDK и запрашивает разрешения READ_STEPS + READ_HEART_RATE
+ * + READ_OXYGEN_SATURATION. Показывает системный диалог — вызывать только если
+ * checkAvailability()==='ready' и только по явному действию пользователя.
  * ВАЖНО: никогда не вызывать без предварительной проверки checkAvailability().
  */
 export async function requestPermissions(): Promise<boolean> {
@@ -88,6 +105,7 @@ export async function requestPermissions(): Promise<boolean> {
     const granted = await requestPermission([
       { accessType: 'read', recordType: 'Steps' },
       { accessType: 'read', recordType: 'HeartRate' },
+      { accessType: 'read', recordType: 'OxygenSaturation' },
     ]);
     return granted.some((p: { recordType: string }) => p.recordType === 'Steps');
   } catch {
@@ -176,14 +194,29 @@ export async function syncToday(): Promise<HcSyncResult> {
     // пульс недоступен — продолжаем
   }
 
+  // SpO2 (пер-замер). API нормализует { percentage } → { value, unit:'%' }.
+  try {
+    const spo2Result = await readRecords('OxygenSaturation', { timeRangeFilter });
+    for (const record of spo2Result.records) {
+      vitals.push({
+        type: 'spo2',
+        value: { percentage: record.percentage },
+        recorded_at: new Date(record.time).toISOString(),
+        source: 'health_connect',
+      });
+    }
+  } catch {
+    // SpO2 недоступен — продолжаем
+  }
+
   if (vitals.length === 0) {
     return { status: 'ready', synced: { steps: null, heartRateReadings: 0 } };
   }
 
-  // 5. Отправляем на API
-  const token = await getAuthToken();
+  // 5. Отправляем на API. Авторизация — сессионная cookie WebView (X-Aivita-Session).
+  const token = await getSessionToken();
   if (!token) {
-    // нет JWT — пользователь не авторизован, молча пропускаем
+    // нет сессии — пользователь не авторизован, молча пропускаем
     return { status: 'ready', synced: { steps: totalSteps, heartRateReadings } };
   }
 
@@ -192,7 +225,7 @@ export async function syncToday(): Promise<HcSyncResult> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        'X-Aivita-Session': token,
       },
       body: JSON.stringify({ vitals }),
     });
