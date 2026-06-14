@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +72,31 @@ export function GadgetsClient({ catalog, connected }: Props) {
   const [hcState, setHcState] = useState<HcState>('checking');
   const [inWebView, setInWebView] = useState(false);
 
+  // Race-proof reconciliation of two async signals that land on every (re)mount:
+  //  - availabilityRef: HC SDK availability from the native bridge (check-health-connect)
+  //  - persistedRef:    persisted "connected" flag from GET /vitals/hc-sync-state
+  // A restored 'connected' is AUTHORITATIVE: availability 'ready' must never
+  // downgrade it to 'idle' (the swipe-remount bug). Until the GET resolves we
+  // stay 'checking' so the «Подключить» button never flashes for a connected user.
+  const availabilityRef = useRef<'unknown' | 'ready' | 'unavailable'>('unknown');
+  const persistedRef = useRef<null | boolean>(null); // null = restore GET not resolved yet
+
+  const reconcile = useCallback(() => {
+    setHcState((prev) => {
+      // User-driven / transient states stay authoritative.
+      if (prev === 'connecting' || prev === 'denied' || prev === 'error') return prev;
+      // Real unavailability always wins (HC uninstalled / not Android).
+      if (availabilityRef.current === 'unavailable') return 'unavailable';
+      // Persisted connection wins over any availability 'ready' → no idle reset.
+      if (persistedRef.current === true) return 'connected';
+      // Restore not resolved yet → keep button hidden, don't flash 'idle'.
+      if (persistedRef.current === null) return 'checking';
+      // persisted === false → show connect button only once HC is confirmed ready.
+      if (availabilityRef.current === 'ready') return 'idle';
+      return 'checking';
+    });
+  }, []);
+
   // isInWebView() reads window.ReactNativeWebView — undefined during SSR.
   // Must run client-side only, after hydration.
   useEffect(() => {
@@ -83,41 +108,50 @@ export function GadgetsClient({ catalog, connected }: Props) {
   useEffect(() => {
     if (!inWebView) return;
     postToNative('check-health-connect');
-    // Restore persisted connection: if the user previously connected HC, show
-    // 'connected' on mount instead of resetting to 'idle' after reload/reopen.
+    // Restore persisted connection. Authoritative: once 'connected' is restored,
+    // no availability path may downgrade the card to 'idle' (see reconcile()).
     fetch('/api/vitals/hc-sync-state', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
-        if (json?.data?.status === 'connected') {
-          // Don't override a determined 'unavailable' (HC really not on device).
-          setHcState((prev) => (prev === 'unavailable' ? 'unavailable' : 'connected'));
-        }
+        persistedRef.current = json?.data?.status === 'connected';
+        reconcile();
       })
-      .catch(() => {});
-  }, [inWebView]);
+      .catch(() => {
+        persistedRef.current = false;
+        reconcile();
+      });
+  }, [inWebView, reconcile]);
 
-  // Слушаем статус доступности HC (ответ на check-health-connect)
+  // Слушаем статус доступности HC (ответ на check-health-connect).
+  // Только обновляет availabilityRef и зовёт reconcile() — НЕ ставит 'idle'
+  // напрямую, чтобы не перетереть восстановленный 'connected' (баг свайпа).
   useEffect(() => {
     function onHcStatus(e: Event) {
       const detail = (e as CustomEvent<{ status: string }>).detail;
       if (detail?.status === 'ready') {
-        // HC доступен. Не сбрасываем уже восстановленный 'connected' в 'idle'.
-        setHcState((prev) => (prev === 'connected' ? 'connected' : 'idle'));
+        availabilityRef.current = 'ready';
       } else if (detail?.status?.startsWith('unavailable') || detail?.status === 'error') {
-        setHcState('unavailable'); // HC не установлен — прячем кнопку
+        availabilityRef.current = 'unavailable';
+      } else {
+        return;
       }
+      reconcile();
     }
     window.addEventListener('aivita-hc-status', onHcStatus);
     return () => window.removeEventListener('aivita-hc-status', onHcStatus);
-  }, []);
+  }, [reconcile]);
 
   // Слушаем ответ от нативного слоя после запроса разрешений
   useEffect(() => {
     function onHcConnected(e: Event) {
       const detail = (e as CustomEvent<{ status: string }>).detail;
       if (detail?.status === 'ready') {
+        // Пользователь только что подключил — авторитетно для текущей сессии
+        // и для последующих ремаунтов (persistedRef).
+        persistedRef.current = true;
+        availabilityRef.current = 'ready';
         setHcState('connected');
-        // Персистим подключение, чтобы статус пережил перезагрузку/переоткрытие.
+        // Персистим подключение, чтобы статус пережил ремаунт (свайп), reload и переоткрытие.
         fetch('/api/vitals/hc-sync-state', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -126,18 +160,19 @@ export function GadgetsClient({ catalog, connected }: Props) {
       } else if (detail?.status === 'permission_denied') {
         setHcState('denied');
       } else if (detail?.status?.startsWith('unavailable')) {
+        availabilityRef.current = 'unavailable';
         setHcState('unavailable');
       } else if (detail?.status === 'error') {
         // Разрешения выданы и HC доступен, но синк с сервером упал —
         // НЕ показываем «Недоступно», иначе карточка врёт. Даём «Повторить».
         setHcState('error');
       } else {
-        setHcState('idle');
+        reconcile();
       }
     }
     window.addEventListener('aivita-hc-connected', onHcConnected);
     return () => window.removeEventListener('aivita-hc-connected', onHcConnected);
-  }, []);
+  }, [reconcile]);
 
   function handleHcConnect() {
     if (!inWebView) return;
