@@ -342,6 +342,67 @@ function LatestGrid({ latest, onCardClick }: { latest: LatestVitals; onCardClick
   );
 }
 
+// ─── Health Connect metrics grid ───────────────────────────────────────────────
+
+// Read-only metrics synced from Health Connect (mobile). Values are stored
+// canonically as { value, unit }; here we just present them. "Нет данных" when
+// a metric was never synced (no crash, no empty hole).
+const HC_METRIC_DEFS: { type: string; label: string; icon: string; bg: string; color: string; unit: string }[] = [
+  { type: 'spo2',               label: 'SpO2',        icon: '🫁', bg: '#d4dff0',            color: '#5e75a8', unit: '%' },
+  { type: 'resting_heart_rate', label: 'Пульс покоя', icon: '💗', bg: 'var(--accent-light)', color: '#9c5e6c', unit: 'bpm' },
+  { type: 'sleep',              label: 'Сон',         icon: '😴', bg: '#e0d8f0',            color: '#6a5a8e', unit: '' },
+  { type: 'calories',           label: 'Калории',     icon: '🔥', bg: '#fde8d8',            color: '#b07040', unit: 'kcal' },
+  { type: 'active_calories',    label: 'Активные',    icon: '⚡', bg: '#f0d4dc',            color: '#9c5e6c', unit: 'kcal' },
+  { type: 'distance',           label: 'Дистанция',   icon: '📍', bg: '#d4e8d8',            color: '#548068', unit: 'км' },
+];
+
+function hcNumber(row: VitalRow | null | undefined): number | null {
+  if (!row) return null;
+  const v = (row.value as { value?: unknown }).value;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+function hcDisplay(type: string, n: number): string {
+  if (type === 'sleep') {
+    const h = Math.floor(n / 60);
+    const m = Math.round(n - h * 60);
+    return `${h}ч ${m.toString().padStart(2, '0')}м`;
+  }
+  if (type === 'distance') {
+    const km = n / 1000;
+    return km >= 10 ? km.toFixed(1) : km.toFixed(2);
+  }
+  return `${Math.round(n)}`;
+}
+
+function HealthConnectGrid({ latest }: { latest: LatestVitals }) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {HC_METRIC_DEFS.map((def) => {
+        const n = hcNumber(latest[def.type]);
+        return (
+          <div
+            key={def.type}
+            className="rounded-[16px] p-3 flex flex-col gap-1"
+            style={{ background: def.bg }}
+          >
+            <span className="text-[20px]">{def.icon}</span>
+            <p className="text-[11px] font-semibold" style={{ color: def.color }}>{def.label}</p>
+            {n !== null ? (
+              <p className="text-[16px] font-bold" style={{ color: '#2a2540' }}>
+                {hcDisplay(def.type, n)}{' '}
+                {def.unit && <span className="text-[10px] font-normal" style={{ color: '#9a96a8' }}>{def.unit}</span>}
+              </p>
+            ) : (
+              <p className="text-[12px]" style={{ color: '#9a96a8' }}>Нет данных</p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── History List ──────────────────────────────────────────────────────────────
 
 function HistoryList({ rows, onDelete }: { rows: VitalRow[]; onDelete: (id: string) => void }) {
@@ -645,6 +706,12 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
       <section className="mb-6">
         <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ПОСЛЕДНИЕ ПОКАЗАТЕЛИ</h2>
         <LatestGrid latest={latest} onCardClick={(type) => { setModalType(type); setShowModal(true); }} />
+      </section>
+
+      {/* Health Connect metrics (synced from mobile) */}
+      <section className="mb-6">
+        <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>С УСТРОЙСТВА · HEALTH CONNECT</h2>
+        <HealthConnectGrid latest={latest} />
       </section>
 
       {/* Analytics / Charts */}

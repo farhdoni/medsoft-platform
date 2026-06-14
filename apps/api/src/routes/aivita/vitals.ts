@@ -16,6 +16,8 @@ aivitaVitalsRouter.use('*', requireAivitaAuth);
 const VALID_TYPES = [
   'heart_rate', 'blood_pressure', 'blood_sugar', 'temperature',
   'weight', 'height', 'sleep_hours', 'water_ml', 'steps', 'spo2', 'respiratory_rate',
+  // Health Connect full biometrics set
+  'sleep', 'calories', 'active_calories', 'distance', 'resting_heart_rate',
 ] as const;
 
 type VitalType = (typeof VALID_TYPES)[number];
@@ -33,13 +35,22 @@ function getDefaultUnit(type: VitalType): string {
     steps: 'steps',
     spo2: '%',
     respiratory_rate: 'rpm',
+    sleep: 'min',
+    calories: 'kcal',
+    active_calories: 'kcal',
+    distance: 'm',
+    resting_heart_rate: 'bpm',
   };
   return units[type] ?? '';
 }
 
 // Types whose recorded_at is normalized to midnight UTC before insert so that
 // a single UNIQUE(user_id, type, recorded_at) deduplicates daily aggregates.
-const DAILY_AGGREGATE_TYPES = new Set<VitalType>(['steps', 'sleep_hours', 'water_ml']);
+// Health Connect re-syncs the same day repeatedly → dedupe the daily totals.
+const DAILY_AGGREGATE_TYPES = new Set<VitalType>([
+  'steps', 'sleep_hours', 'water_ml',
+  'sleep', 'calories', 'active_calories', 'distance',
+]);
 
 function normalizeRecordedAt(type: VitalType, date: Date): Date {
   if (!DAILY_AGGREGATE_TYPES.has(type)) return date;
@@ -223,7 +234,9 @@ aivitaVitalsRouter.post(
 // read value.value).
 
 const batchEntrySchema = z.object({
-  type: z.enum(VALID_TYPES),
+  // Lenient type — unknown types are dropped silently in the handler instead of
+  // failing the whole batch (a single bad entry must not reject valid ones).
+  type: z.string(),
   value: z.record(z.unknown()),
   source: z.string().default('manual'),
   recordedAt: z.string().optional(),
@@ -242,13 +255,20 @@ type CanonicalVitalValue =
  * { bpm } for heart rate; convert those. Leave already-canonical values and
  * structured values ({systolic,diastolic}, {hours}) untouched.
  */
-function normalizeVitalValue(type: VitalType, value: Record<string, unknown>): CanonicalVitalValue {
+function normalizeVitalValue(type: VitalType, value: Record<string, unknown>): CanonicalVitalValue | null {
   if (typeof value.value === 'number') return value as CanonicalVitalValue;
   if (typeof value.count === 'number') return { value: value.count, unit: getDefaultUnit(type) };
   if (typeof value.bpm === 'number') return { value: value.bpm, unit: getDefaultUnit(type) };
   // Health Connect OxygenSaturation sends { percentage } → SpO2 canonical { value, unit:'%' }.
   if (typeof value.percentage === 'number') return { value: value.percentage, unit: getDefaultUnit(type) };
-  return value as CanonicalVitalValue;
+  // Health Connect full set: sleep { minutes }, calories/active_calories { kcal }, distance { meters }.
+  if (typeof value.minutes === 'number') return { value: value.minutes, unit: getDefaultUnit(type) };
+  if (typeof value.kcal === 'number') return { value: value.kcal, unit: getDefaultUnit(type) };
+  if (typeof value.meters === 'number') return { value: value.meters, unit: getDefaultUnit(type) };
+  // Structured values from manual entry pass through untouched.
+  if (typeof value.systolic === 'number' && typeof value.diastolic === 'number') return value as CanonicalVitalValue;
+  if (typeof value.hours === 'number') return value as CanonicalVitalValue;
+  return null; // nothing usable → caller drops this entry silently
 }
 
 aivitaVitalsRouter.post(
@@ -269,22 +289,27 @@ aivitaVitalsRouter.post(
       );
     }
 
-    const rows = await db.insert(vitals).values(
-      items.map((e) => {
-        const recordedAtRaw = e.recordedAt ?? e.recorded_at;
-        const recordedAt = normalizeRecordedAt(
-          e.type,
-          recordedAtRaw ? new Date(recordedAtRaw) : new Date(),
-        );
-        return {
-          userId,
-          type: e.type,
-          value: normalizeVitalValue(e.type, e.value),
-          source: e.source,
-          recordedAt,
-        };
-      })
-    )
+    const validTypes = new Set<string>(VALID_TYPES);
+
+    // Drop unknown types and unparseable/empty values silently — one bad entry
+    // must not reject the whole batch.
+    const toInsert = items.flatMap((e) => {
+      if (!validTypes.has(e.type)) return [];
+      const type = e.type as VitalType;
+      const value = normalizeVitalValue(type, e.value);
+      if (value === null) return [];
+      const recordedAtRaw = e.recordedAt ?? e.recorded_at;
+      const parsed = recordedAtRaw ? new Date(recordedAtRaw) : new Date();
+      const recordedAt = normalizeRecordedAt(type, isNaN(parsed.getTime()) ? new Date() : parsed);
+      return [{ userId, type, value, source: e.source, recordedAt }];
+    });
+
+    if (toInsert.length === 0) {
+      // All entries invalid/empty — nothing to write, but don't 500 the batch.
+      return c.json({ data: [] }, 200);
+    }
+
+    const rows = await db.insert(vitals).values(toInsert)
     .onConflictDoUpdate({
       target: [vitals.userId, vitals.type, vitals.recordedAt],
       // On re-sync: update value (aggregate may have grown) and source.
