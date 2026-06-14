@@ -246,6 +246,8 @@ function normalizeVitalValue(type: VitalType, value: Record<string, unknown>): C
   if (typeof value.value === 'number') return value as CanonicalVitalValue;
   if (typeof value.count === 'number') return { value: value.count, unit: getDefaultUnit(type) };
   if (typeof value.bpm === 'number') return { value: value.bpm, unit: getDefaultUnit(type) };
+  // Health Connect OxygenSaturation sends { percentage } → SpO2 canonical { value, unit:'%' }.
+  if (typeof value.percentage === 'number') return { value: value.percentage, unit: getDefaultUnit(type) };
   return value as CanonicalVitalValue;
 }
 
@@ -317,6 +319,7 @@ aivitaVitalsRouter.get('/hc-sync-state', async (c) => {
 
   const [device] = await db
     .select({
+      status: userDevices.status,
       hcChangesToken: userDevices.hcChangesToken,
       hcLastSyncAt: userDevices.hcLastSyncAt,
     })
@@ -326,6 +329,7 @@ aivitaVitalsRouter.get('/hc-sync-state', async (c) => {
 
   return c.json({
     data: {
+      status: device?.status ?? null,
       hcChangesToken: device?.hcChangesToken ?? null,
       hcLastSyncAt: device?.hcLastSyncAt ?? null,
     },
