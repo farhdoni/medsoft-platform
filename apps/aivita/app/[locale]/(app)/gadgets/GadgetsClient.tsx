@@ -113,10 +113,12 @@ export function GadgetsClient({ catalog, connected }: Props) {
     fetch('/api/vitals/hc-sync-state', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
+        console.log('[aivita-hc] GET hc-sync-state →', json?.data?.status ?? null);
         persistedRef.current = json?.data?.status === 'connected';
         reconcile();
       })
-      .catch(() => {
+      .catch((e) => {
+        console.log('[aivita-hc] GET hc-sync-state failed', String(e));
         persistedRef.current = false;
         reconcile();
       });
@@ -156,7 +158,9 @@ export function GadgetsClient({ catalog, connected }: Props) {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ hcChangesToken: null, hcLastSyncAt: new Date().toISOString() }),
-        }).catch(() => {});
+        })
+          .then((r) => console.log('[aivita-hc] PUT hc-sync-state →', r.status))
+          .catch((e) => console.log('[aivita-hc] PUT hc-sync-state failed', String(e)));
       } else if (detail?.status === 'permission_denied') {
         setHcState('denied');
       } else if (detail?.status?.startsWith('unavailable')) {
@@ -190,8 +194,10 @@ export function GadgetsClient({ catalog, connected }: Props) {
         <h1 className="text-[22px] font-extrabold" style={{ color: '#2a2540' }}>Мои гаджеты</h1>
       </div>
 
-      {/* Stale connected-devices banner */}
-      {connected.length > 0 && (
+      {/* "Coming soon" banner — only for non-HC device rows. Excludes
+          health_connect so it doesn't falsely appear after connecting HC
+          (the hc-sync-state PUT creates a health_connect user_devices row). */}
+      {connected.filter((d) => d.type !== 'health_connect').length > 0 && (
         <div className="rounded-[16px] p-4 flex gap-3 mb-6" style={{ background: '#f0edf8', border: '1px solid #d8cff0' }}>
           <span className="text-[18px] flex-shrink-0">🔧</span>
           <p className="text-[12px]" style={{ color: '#5e40a0' }}>
