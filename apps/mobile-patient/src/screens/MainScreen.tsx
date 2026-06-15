@@ -34,7 +34,7 @@ import {
   sendDiagLog,
   type MedScheduleForNotif,
 } from '../services/notifications';
-import { syncToday as hcSyncToday, requestPermissions, checkAvailability } from '../services/healthConnect';
+import { syncToday as hcSyncToday, requestPermissions, checkAvailability, hasHcPermissions } from '../services/healthConnect';
 import { takePhoto, pickFromGallery } from '../services/camera';
 import type { Screen } from '../../App';
 
@@ -206,6 +206,20 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           scheduleMedicationReminders(meds).catch(() => {}).finally(() => { schedLockRef.current = false; });
         }
       }).catch(() => {});
+
+      // Re-emit HC "connected" on foreground. After the system HC permission dialog
+      // the one-shot inject right after requestPermissions can be missed, leaving the
+      // card on «Подключить». If HC is available and granted, re-dispatch so the web
+      // restores + persists the connected state (ignored if not on the gadgets page).
+      void (async () => {
+        const avail = await checkAvailability().catch(() => 'error' as const);
+        if (avail !== 'ready') return;
+        const granted = await hasHcPermissions().catch(() => false);
+        if (!granted) return;
+        webViewRef.current?.injectJavaScript(
+          `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-connected',{detail:{status:'ready'}}));true;})();`
+        );
+      })();
     };
     const sub = AppState.addEventListener('change', handleAppState);
     return () => sub.remove();
@@ -277,7 +291,9 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
         }
 
         case '__scroll__':
-          setWebViewAtTop((msg.y as number) === 0);
+          // <= 1 (not strict 0): residual/sub-pixel scrollY at the visual top must
+          // still count as "at top", otherwise pull-to-refresh stays gated off.
+          setWebViewAtTop((msg.y as number) <= 1);
           break;
 
         case 'open-camera': {
@@ -423,12 +439,19 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    webViewRef.current?.reload();
+    // Pull-to-refresh: re-read Health Connect and re-POST the batch FIRST so the
+    // gadget's fresh data lands in the DB, THEN reload so the web refetches it.
+    hcSyncToday()
+      .catch(() => {})
+      .finally(() => { webViewRef.current?.reload(); });
   }, []);
 
   const handleLoadEnd = useCallback(() => {
     setRefreshing(false);
     setIsOffline(false);
+    // A full load/reload always lands at the top — re-arm the pull-to-refresh gate
+    // so it doesn't stay stuck disabled from a previous page's scroll position.
+    setWebViewAtTop(true);
   }, []);
 
   const handleError = useCallback(() => {

@@ -33,11 +33,13 @@ Notifications.setNotificationHandler({
  */
 export async function sendDiagLog(tag: string, payload: unknown): Promise<void> {
   try {
-    const token = await getAuthToken().catch(() => null);
+    // Auth = WebView session cookie via X-Aivita-Session (Bearer is ignored by the
+    // API, so the old diag logs silently 401'd and were never recorded).
+    const token = await getSessionToken().catch(() => null);
     if (!token) return;
     await fetch(`${API_URL}/v1/aivita/diag`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', 'X-Aivita-Session': token },
       body: JSON.stringify({ tag, payload, ts: Date.now() }),
     });
   } catch {

@@ -9,6 +9,22 @@ import {
 } from 'react-native-health-connect';
 import { API_URL } from '../constants/config';
 import { getSessionToken } from './auth';
+import { sendDiagLog } from './notifications';
+
+// ─── Read types we sync ─────────────────────────────────────────────────────────
+
+type HcReadType = 'Steps' | 'HeartRate' | 'OxygenSaturation';
+const READ_TYPES: HcReadType[] = ['Steps', 'HeartRate', 'OxygenSaturation'];
+const READ_PERMISSIONS = READ_TYPES.map((recordType) => ({ accessType: 'read' as const, recordType }));
+
+async function grantedReadTypes(): Promise<Set<string>> {
+  const granted = await getGrantedPermissions();
+  return new Set(
+    granted
+      .filter((p: { accessType: string }) => p.accessType === 'read')
+      .map((p: { recordType: string }) => p.recordType),
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,28 +79,48 @@ export async function checkAvailability(): Promise<HcStatus> {
  */
 async function hasPermissionsUnsafe(): Promise<boolean> {
   await initialize();
-  const granted = await getGrantedPermissions();
-  return granted.some((p: { recordType: string }) => p.recordType === 'Steps');
+  const granted = await grantedReadTypes();
+  return granted.has('Steps');
 }
 
 /**
- * Инициализирует SDK и запрашивает разрешения READ_STEPS + READ_HEART_RATE
- * + READ_OXYGEN_SATURATION. Показывает системный диалог — вызывать только если
+ * Безопасная проверка наличия грантов (минимум — шаги). В отличие от
+ * hasPermissionsUnsafe сама делает initialize и не бросает наружу. Вызывать
+ * только после checkAvailability()==='ready'. Используется для пере-эмита
+ * состояния «Подключён» при возврате приложения в foreground.
+ */
+export async function hasHcPermissions(): Promise<boolean> {
+  try {
+    await initialize();
+    const granted = await grantedReadTypes();
+    return granted.has('Steps');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Инициализирует SDK и запрашивает разрешения на чтение Steps + HeartRate +
+ * OxygenSaturation. Показывает системный диалог — вызывать только если
  * checkAvailability()==='ready' и только по явному действию пользователя.
- * ВАЖНО: никогда не вызывать без предварительной проверки checkAvailability().
+ * Если часть типов не выдана — пере-запрашиваем недостающие один раз, чтобы
+ * отказ по пульсу/SpO2 не выглядел как «всё ок».
  */
 export async function requestPermissions(): Promise<boolean> {
-  // Двойная защита: проверяем доступность прямо здесь
   const availability = await checkAvailability();
   if (availability !== 'ready') return false;
   try {
     await initialize();
-    const granted = await requestPermission([
-      { accessType: 'read', recordType: 'Steps' },
-      { accessType: 'read', recordType: 'HeartRate' },
-      { accessType: 'read', recordType: 'OxygenSaturation' },
-    ]);
-    return granted.some((p: { recordType: string }) => p.recordType === 'Steps');
+    await requestPermission(READ_PERMISSIONS);
+    let granted = await grantedReadTypes();
+    const missing = READ_TYPES.filter((t) => !granted.has(t));
+    if (missing.length > 0) {
+      await requestPermission(missing.map((recordType) => ({ accessType: 'read' as const, recordType })));
+      granted = await grantedReadTypes();
+    }
+    void sendDiagLog('hc-permissions', { granted: [...granted], missing: READ_TYPES.filter((t) => !granted.has(t)) });
+    // Базовый минимум — шаги; без них подключение бессмысленно.
+    return granted.has('Steps');
   } catch {
     return false;
   }
@@ -209,8 +245,21 @@ export async function syncToday(): Promise<HcSyncResult> {
 
     if (!response.ok) {
       const text = await response.text();
+      void sendDiagLog('hc-batch', { ok: false, status: response.status });
       return { status: 'error', error: `API ${response.status}: ${text}` };
     }
+    void sendDiagLog('hc-batch', { ok: true, steps: totalSteps, hr: heartRateReadings, items: vitals.length });
+
+    // Персистим статус подключения на сервере тем же X-Aivita-Session, чтобы
+    // карточка «Подключён» восстанавливалась и при старт-синке — не полагаясь
+    // на веб-инжект после системного диалога. (#23/#24 апсертят user_devices.)
+    await fetch(`${API_URL}/v1/aivita/vitals/hc-sync-state`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Aivita-Session': token },
+      body: JSON.stringify({ hcChangesToken: null, hcLastSyncAt: new Date().toISOString() }),
+    })
+      .then((r) => sendDiagLog('hc-persist-put', { ok: r.ok, status: r.status }))
+      .catch((e) => sendDiagLog('hc-persist-put', { ok: false, error: String(e) }));
   } catch (e) {
     return { status: 'error', error: String(e) };
   }
