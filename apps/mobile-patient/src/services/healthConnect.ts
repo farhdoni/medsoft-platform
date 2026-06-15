@@ -7,8 +7,8 @@ import {
   getSdkStatus,
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
-import CookieManager, { type Cookies } from '@react-native-cookies/cookies';
-import { API_URL, WEB_URL } from '../constants/config';
+import { API_URL } from '../constants/config';
+import { getSessionToken } from './auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,30 +37,7 @@ function todayBounds(): { startTime: string; endTime: string } {
   };
 }
 
-/**
- * Читает сессионный JWT из НАТИВНОГО cookie-jar WebView (CookieManager).
- * Cookie httpOnly — поэтому читаем через нативный менеджер, НЕ JS-инжектом.
- * Предпочитаем aivita_api (API-signed — всегда проверяется бэком), затем
- * legacy aivita_session. Отправляется на API заголовком X-Aivita-Session.
- * Cookie живёт на веб-origin (app.aivita.uz); как фолбэк проверяем API-host.
- */
-async function getSessionToken(): Promise<string | null> {
-  const pick = (c: Cookies): string | null =>
-    c.aivita_api?.value ?? c.aivita_session?.value ?? null;
-  try {
-    const web = await CookieManager.get(WEB_URL);
-    const token = pick(web);
-    if (token) return token;
-  } catch {
-    // веб-origin недоступен — пробуем API-host ниже
-  }
-  try {
-    const api = await CookieManager.get(API_URL);
-    return pick(api);
-  } catch {
-    return null;
-  }
-}
+// Сессионный токен (cookie → X-Aivita-Session) переиспользуется из ./auth.
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

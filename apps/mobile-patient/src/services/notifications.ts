@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { API_URL } from '../constants/config';
-import { getAuthToken } from './auth';
+import { getAuthToken, getSessionToken } from './auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,12 +53,16 @@ export async function registerNotificationCategories(): Promise<void> {
     {
       identifier: 'take',
       buttonTitle: '✅ Принял',
-      options: { opensAppToForeground: false },
+      // opensAppToForeground:true — гарантирует доставку экшена даже при убитом
+      // приложении: тап запускает приложение, и ответ обрабатывается на старте
+      // через getLastNotificationResponseAsync (см. addMedicationResponseListener).
+      // При false и killed-state Android не запускает JS — экшен терялся.
+      options: { opensAppToForeground: true },
     },
     {
       identifier: 'snooze',
       buttonTitle: '⏰ Через 15 мин',
-      options: { opensAppToForeground: false },
+      options: { opensAppToForeground: true },
     },
   ]);
 }
@@ -197,6 +201,87 @@ export async function scheduleMedicationReminders(
 
 // ─── Notification response handler (take / snooze) ────────────────────────────
 
+// De-dupe the SAME action tap when it arrives both via cold-start
+// (getLastNotificationResponseAsync) and the live listener. POST /:id/take
+// decrements remaining pills on every call, so it must not be processed twice.
+const handledResponses = new Map<string, number>();
+function alreadyHandled(key: string): boolean {
+  const now = Date.now();
+  for (const [k, ts] of handledResponses) {
+    if (now - ts > 30_000) handledResponses.delete(k);
+  }
+  if (handledResponses.has(key)) return true;
+  handledResponses.set(key, now);
+  return false;
+}
+
+/**
+ * Handle a medication action tap (take / snooze). Runs headless — does NOT depend
+ * on a live WebView: the dose is marked on the server with the WebView session
+ * cookie (X-Aivita-Session), so it works from background and cold start.
+ */
+async function handleMedicationResponse(
+  response: Notifications.NotificationResponse,
+  webViewInject: (js: string) => void,
+): Promise<void> {
+  const { actionIdentifier, notification } = response;
+  const content = notification.request.content;
+  const data = (content.data ?? {}) as { scheduleId?: string; time?: string };
+  const { scheduleId, time } = data;
+  if (!scheduleId) return; // not a medication reminder
+
+  const notifId = notification.request.identifier;
+  if (alreadyHandled(`${notifId}:${actionIdentifier}`)) return;
+
+  if (actionIdentifier === 'snooze') {
+    // Remove the current reminder and re-fire it in 15 minutes.
+    await Notifications.dismissNotificationAsync(notifId).catch(() => {});
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: content.title ?? '💊 Напоминание',
+        body: content.body ?? 'Не забудьте принять лекарство',
+        sound: 'aivita_magic_soft_mono',
+        categoryIdentifier: 'medication-reminder',
+        data: content.data ?? {},
+        ...(Platform.OS === 'android'
+          ? ({ android: { channelId: 'medications-v2' } } as Record<string, unknown>)
+          : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    }).catch(() => {});
+    return;
+  }
+
+  if (
+    actionIdentifier === 'take' ||
+    actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+  ) {
+    // Auth from background = WebView session cookie via X-Aivita-Session (same path
+    // as the Health Connect batch). The API does NOT read Authorization: Bearer,
+    // so the old `Bearer web_session` always 401'd and the dose was never marked.
+    const token = await getSessionToken().catch(() => null);
+    let synced = false;
+    if (token) {
+      synced = await fetch(`${API_URL}/v1/aivita/medications/${scheduleId}/take`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Aivita-Session': token },
+        body: JSON.stringify({ time: time ?? null }),
+      }).then((r) => r.ok).catch(() => false);
+    }
+    // Dismiss the delivered reminder regardless of sync outcome.
+    await Notifications.dismissNotificationAsync(notifId).catch(() => {});
+    // Best-effort: refresh adherence in the cabinet if the WebView is mounted.
+    // If the server sync failed (no session), the web marks it on next open.
+    webViewInject(
+      `window.dispatchEvent(new CustomEvent('aivita-med-action',` +
+      `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)},synced:${synced}}}));true;`
+    );
+  }
+}
+
 /**
  * Wire up action-button handling for medication reminders.
  * Call once from MainScreen and remove the subscription on unmount.
@@ -204,67 +289,14 @@ export async function scheduleMedicationReminders(
 export function addMedicationResponseListener(
   webViewInject: (js: string) => void,
 ): Notifications.EventSubscription {
+  // Cold start: process the action tap that launched the app from a killed state.
+  // getLastNotificationResponseAsync returns the launching response once.
+  Notifications.getLastNotificationResponseAsync()
+    .then((resp) => { if (resp) void handleMedicationResponse(resp, webViewInject); })
+    .catch(() => {});
+
+  // Foreground / background-alive taps.
   return Notifications.addNotificationResponseReceivedListener((response) => {
-    const { actionIdentifier, notification } = response;
-    const data = (notification.request.content.data ?? {}) as {
-      scheduleId?: string;
-      time?: string;
-    };
-    const { scheduleId, time } = data;
-    if (!scheduleId) return;
-
-    if (
-      actionIdentifier === 'take' ||
-      actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
-    ) {
-      void (async () => {
-        const token = await getAuthToken().catch(() => null);
-
-        if (token) {
-          const ok = await fetch(
-            `${API_URL}/v1/aivita/medications/${scheduleId}/take`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ time: time ?? null }),
-            }
-          ).then(r => r.ok).catch(() => false);
-
-          if (!ok) {
-            webViewInject(
-              `window.dispatchEvent(new CustomEvent('aivita-med-action',` +
-              `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)}}}));true;`
-            );
-          }
-        } else {
-          webViewInject(
-            `window.dispatchEvent(new CustomEvent('aivita-med-action',` +
-            `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)}}}));true;`
-          );
-        }
-      })();
-
-    } else if (actionIdentifier === 'snooze') {
-      const content = notification.request.content;
-      void Notifications.scheduleNotificationAsync({
-        content: {
-          title: content.title ?? '💊 Напоминание',
-          body: content.body ?? 'Не забудьте принять лекарство',
-          sound: 'aivita_magic_soft_mono',
-          categoryIdentifier: 'medication-reminder',
-          data: content.data ?? {},
-          ...(Platform.OS === 'android'
-            ? ({ android: { channelId: 'medications-v2' } } as Record<string, unknown>)
-            : {}),
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: new Date(Date.now() + 15 * 60 * 1000),
-        },
-      }).catch(() => {});
-    }
+    void handleMedicationResponse(response, webViewInject);
   });
 }
