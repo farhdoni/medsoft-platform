@@ -22,6 +22,10 @@ export interface VitalDef {
   color: string;
   bg: string;
   dual?: boolean;
+  /** Read-only HC type — excluded from AddVitalModal manual input. */
+  hcOnly?: boolean;
+  /** Custom display formatter for LatestGrid (e.g. min→ч:мин). Receives raw stored value. */
+  formatLatest?: (val: number) => string;
 }
 
 export const VITAL_DEFS: VitalDef[] = [
@@ -34,6 +38,33 @@ export const VITAL_DEFS: VitalDef[] = [
   { type: 'water_ml',     label: 'Вода',           unit: 'мл',   min: 0,   max: 10000,step: 100, icon: '💧', color: '#548068', bg: '#d4e8d8' },
   { type: 'steps',        label: 'Шаги',           unit: 'шагов',min: 0,   max: 100000, icon: '👟', color: 'var(--accent-dark)', bg: 'var(--accent-bg-light)' },
   { type: 'spo2',         label: 'SpO2',           unit: '%',    min: 70,  max: 100, icon: '🫁', color: '#5e75a8', bg: '#d4dff0' },
+  // Health Connect read-only types — no manual entry
+  {
+    type: 'sleep', label: 'Сон (HC)', unit: 'мин', min: 0, max: 1440, icon: '🌙',
+    color: '#5e75a8', bg: '#d4dff0', hcOnly: true,
+    formatLatest: (m) => {
+      const total = Math.round(m);
+      const h = Math.floor(total / 60);
+      const min = total % 60;
+      return h > 0 ? `${h}ч ${String(min).padStart(2, '0')}м` : `${min}м`;
+    },
+  },
+  {
+    type: 'calories', label: 'Калории', unit: 'ккал', min: 0, max: 10000, icon: '🔥',
+    color: '#c0602a', bg: '#f5ddd0', hcOnly: true,
+  },
+  {
+    type: 'active_calories', label: 'Акт. калории', unit: 'ккал', min: 0, max: 5000, icon: '⚡',
+    color: '#c0602a', bg: '#f5ddd0', hcOnly: true,
+  },
+  {
+    type: 'distance', label: 'Дистанция', unit: 'км', min: 0, max: 200, step: 0.01, icon: '📍',
+    color: '#548068', bg: '#d4e8d8', hcOnly: true,
+  },
+  {
+    type: 'resting_heart_rate', label: 'Пульс покоя', unit: 'уд/мин', min: 30, max: 150, icon: '💤',
+    color: 'var(--accent-dark)', bg: 'var(--accent-bg-light)', hcOnly: true,
+  },
 ];
 
 function getVitalDef(type: string) {
@@ -124,6 +155,7 @@ function ChartsSection({ stats, period, onPeriodChange }: {
 }
 
 function formatValue(row: VitalRow): string {
+  const def = getVitalDef(row.type);
   const v = row.value as Record<string, unknown>;
   if (typeof v.systolic === 'number' && typeof v.diastolic === 'number') {
     return `${v.systolic}/${v.diastolic}`;
@@ -132,6 +164,7 @@ function formatValue(row: VitalRow): string {
     return `${v.hours}`;
   }
   if (typeof v.value === 'number') {
+    if (def?.formatLatest) return def.formatLatest(v.value);
     return v.value % 1 === 0 ? `${v.value}` : `${v.value.toFixed(1)}`;
   }
   return '—';
@@ -317,20 +350,25 @@ function LatestGrid({ latest, onCardClick }: { latest: LatestVitals; onCardClick
       {VITAL_DEFS.map((def) => {
         const row = latest[def.type];
         const val = row ? formatValue(row as VitalRow) : null;
+        const isClickable = !def.hcOnly;
         return (
           <div
             key={def.type}
-            className="rounded-[16px] p-3 flex flex-col gap-1 cursor-pointer active:scale-95 transition-transform"
+            className={`rounded-[16px] p-3 flex flex-col gap-1 transition-transform ${isClickable ? 'cursor-pointer active:scale-95' : ''}`}
             style={{ background: def.bg }}
-            onClick={() => onCardClick(def.type)}
-            role="button"
-            aria-label={`Добавить ${def.label}`}
+            onClick={isClickable ? () => onCardClick(def.type) : undefined}
+            role={isClickable ? 'button' : undefined}
+            aria-label={isClickable ? `Добавить ${def.label}` : def.label}
           >
             <span className="text-[20px]">{def.icon}</span>
             <p className="text-[11px] font-semibold" style={{ color: def.color }}>{def.label}</p>
             {val ? (
               <p className="text-[16px] font-bold" style={{ color: '#2a2540' }}>
-                {val} <span className="text-[10px] font-normal" style={{ color: '#9a96a8' }}>{def.unit}</span>
+                {val}
+                {/* Skip unit when formatLatest already embeds it (e.g. sleep "5ч 30м") */}
+                {!def.formatLatest && (
+                  <span className="text-[10px] font-normal" style={{ color: '#9a96a8' }}> {def.unit}</span>
+                )}
               </p>
             ) : (
               <p className="text-[12px]" style={{ color: '#9a96a8' }}>Нет данных</p>
@@ -466,7 +504,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: AddVitalModalProps) {
         </button>
       }
     >
-      {/* Type selector */}
+      {/* Type selector — excludes hcOnly types (read-only from Health Connect) */}
       <label className="block text-xs font-semibold mb-1 text-app-t3">Тип</label>
       <select
         value={type}
@@ -474,7 +512,7 @@ function AddVitalModal({ onClose, onSaved, initialType }: AddVitalModalProps) {
         className="w-full rounded-xl border px-3 py-2.5 text-sm mb-4 outline-none"
         style={{ color: '#2a2540' }}
       >
-        {VITAL_DEFS.map((d) => (
+        {VITAL_DEFS.filter((d) => !d.hcOnly).map((d) => (
           <option key={d.type} value={d.type}>{d.icon} {d.label}</option>
         ))}
       </select>
