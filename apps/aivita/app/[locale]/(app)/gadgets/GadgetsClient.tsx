@@ -129,9 +129,15 @@ export function GadgetsClient({ catalog, connected }: Props) {
   // напрямую, чтобы не перетереть восстановленный 'connected' (баг свайпа).
   useEffect(() => {
     function onHcStatus(e: Event) {
-      const detail = (e as CustomEvent<{ status: string }>).detail;
+      const detail = (e as CustomEvent<{ status: string; connected?: boolean }>).detail;
       if (detail?.status === 'ready') {
         availabilityRef.current = 'ready';
+        // Native confirmed real Android grants — treat as authoritative restore so
+        // the card shows 'connected' even when the API restore hasn't come back yet
+        // or when the user never completed a successful sync (no DB record).
+        if (detail.connected === true) {
+          persistedRef.current = true;
+        }
       } else if (detail?.status?.startsWith('unavailable') || detail?.status === 'error') {
         availabilityRef.current = 'unavailable';
       } else {
