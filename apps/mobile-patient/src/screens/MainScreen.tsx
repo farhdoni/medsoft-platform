@@ -357,8 +357,11 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
 
         case 'check-health-connect': {
           const status = await checkAvailability().catch(() => 'error' as const);
+          // Check actual Android grants only when SDK is confirmed ready — calling
+          // getGrantedPermissions() on unavailable HC causes a native crash.
+          const connected = status === 'ready' ? await hasHcPermissions().catch(() => false) : false;
           webViewRef.current?.injectJavaScript(
-            `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-status',{detail:{status:${JSON.stringify(status)}}}));true;})();`
+            `(function(){window.dispatchEvent(new CustomEvent('aivita-hc-status',{detail:{status:${JSON.stringify(status)},connected:${connected}}}));true;})();`
           );
           break;
         }
