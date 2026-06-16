@@ -16,6 +16,8 @@ aivitaVitalsRouter.use('*', requireAivitaAuth);
 const VALID_TYPES = [
   'heart_rate', 'blood_pressure', 'blood_sugar', 'temperature',
   'weight', 'height', 'sleep_hours', 'water_ml', 'steps', 'spo2', 'respiratory_rate',
+  // Health Connect full biometrics
+  'sleep', 'calories', 'active_calories', 'distance', 'resting_heart_rate',
 ] as const;
 
 type VitalType = (typeof VALID_TYPES)[number];
@@ -33,13 +35,22 @@ function getDefaultUnit(type: VitalType): string {
     steps: 'steps',
     spo2: '%',
     respiratory_rate: 'rpm',
+    sleep: 'min',
+    calories: 'kcal',
+    active_calories: 'kcal',
+    distance: 'km',
+    resting_heart_rate: 'bpm',
   };
   return units[type] ?? '';
 }
 
 // Types whose recorded_at is normalized to midnight UTC before insert so that
 // a single UNIQUE(user_id, type, recorded_at) deduplicates daily aggregates.
-const DAILY_AGGREGATE_TYPES = new Set<VitalType>(['steps', 'sleep_hours', 'water_ml']);
+// HC re-syncs throughout the day → dedupe daily totals for these types.
+const DAILY_AGGREGATE_TYPES = new Set<VitalType>([
+  'steps', 'sleep_hours', 'water_ml',
+  'sleep', 'calories', 'active_calories', 'distance',
+]);
 
 function normalizeRecordedAt(type: VitalType, date: Date): Date {
   if (!DAILY_AGGREGATE_TYPES.has(type)) return date;
@@ -248,6 +259,12 @@ function normalizeVitalValue(type: VitalType, value: Record<string, unknown>): C
   if (typeof value.bpm === 'number') return { value: value.bpm, unit: getDefaultUnit(type) };
   // Health Connect OxygenSaturation sends { percentage } → SpO2 canonical { value, unit:'%' }.
   if (typeof value.percentage === 'number') return { value: value.percentage, unit: getDefaultUnit(type) };
+  // Health Connect full biometrics set:
+  //   sleep { minutes }, calories/active_calories { kcal }, distance { km }
+  if (typeof value.minutes === 'number') return { value: value.minutes, unit: getDefaultUnit(type) };
+  if (typeof value.kcal === 'number') return { value: value.kcal, unit: getDefaultUnit(type) };
+  if (typeof value.km === 'number') return { value: value.km, unit: getDefaultUnit(type) };
+  // Structured manual-entry values pass through untouched.
   return value as CanonicalVitalValue;
 }
 

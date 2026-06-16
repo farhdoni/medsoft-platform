@@ -13,8 +13,20 @@ import { sendDiagLog } from './notifications';
 
 // ─── Read types we sync ─────────────────────────────────────────────────────────
 
-type HcReadType = 'Steps' | 'HeartRate' | 'OxygenSaturation';
-const READ_TYPES: HcReadType[] = ['Steps', 'HeartRate', 'OxygenSaturation'];
+type HcReadType =
+  | 'Steps'
+  | 'HeartRate'
+  | 'OxygenSaturation'
+  | 'SleepSession'
+  | 'TotalCaloriesBurned'
+  | 'ActiveCaloriesBurned'
+  | 'Distance'
+  | 'RestingHeartRate';
+
+const READ_TYPES: HcReadType[] = [
+  'Steps', 'HeartRate', 'OxygenSaturation',
+  'SleepSession', 'TotalCaloriesBurned', 'ActiveCaloriesBurned', 'Distance', 'RestingHeartRate',
+];
 const READ_PERMISSIONS = READ_TYPES.map((recordType) => ({ accessType: 'read' as const, recordType }));
 
 async function grantedReadTypes(): Promise<Set<string>> {
@@ -220,6 +232,74 @@ export async function syncToday(): Promise<HcSyncResult> {
     }
   } catch {
     // SpO2 недоступен — продолжаем
+  }
+
+  // SleepSession — сумма минут всех сессий за день.
+  try {
+    const sleepResult = await readRecords('SleepSession', { timeRangeFilter });
+    let totalMinutes = 0;
+    for (const r of sleepResult.records) {
+      totalMinutes += Math.round(
+        (new Date(r.endTime).getTime() - new Date(r.startTime).getTime()) / 60000,
+      );
+    }
+    if (totalMinutes > 0) {
+      vitals.push({ type: 'sleep', value: { minutes: totalMinutes }, recorded_at: endTime, source: 'health_connect' });
+    }
+  } catch {
+    // SleepSession недоступен — продолжаем
+  }
+
+  // TotalCaloriesBurned — сумма всех сегментов.
+  // readRecords возвращает EnergyResult с готовым inKilocalories.
+  try {
+    const calResult = await readRecords('TotalCaloriesBurned', { timeRangeFilter });
+    let totalKcal = 0;
+    for (const r of calResult.records) totalKcal += r.energy.inKilocalories;
+    if (totalKcal > 0) {
+      vitals.push({ type: 'calories', value: { kcal: Math.round(totalKcal) }, recorded_at: endTime, source: 'health_connect' });
+    }
+  } catch {
+    // TotalCaloriesBurned недоступен — продолжаем
+  }
+
+  // ActiveCaloriesBurned — активные калории (без базального метаболизма).
+  try {
+    const activeCalResult = await readRecords('ActiveCaloriesBurned', { timeRangeFilter });
+    let totalKcal = 0;
+    for (const r of activeCalResult.records) totalKcal += r.energy.inKilocalories;
+    if (totalKcal > 0) {
+      vitals.push({ type: 'active_calories', value: { kcal: Math.round(totalKcal) }, recorded_at: endTime, source: 'health_connect' });
+    }
+  } catch {
+    // ActiveCaloriesBurned недоступен — продолжаем
+  }
+
+  // Distance — сумма за день. readRecords возвращает LengthResult с inKilometers.
+  try {
+    const distResult = await readRecords('Distance', { timeRangeFilter });
+    let totalKm = 0;
+    for (const r of distResult.records) totalKm += r.distance.inKilometers;
+    if (totalKm > 0) {
+      vitals.push({ type: 'distance', value: { km: parseFloat(totalKm.toFixed(2)) }, recorded_at: endTime, source: 'health_connect' });
+    }
+  } catch {
+    // Distance недоступен — продолжаем
+  }
+
+  // RestingHeartRate — пульс покоя (мгновенный замер, не агрегат).
+  try {
+    const rhrResult = await readRecords('RestingHeartRate', { timeRangeFilter });
+    for (const r of rhrResult.records) {
+      vitals.push({
+        type: 'resting_heart_rate',
+        value: { bpm: r.beatsPerMinute },
+        recorded_at: new Date(r.time).toISOString(),
+        source: 'health_connect',
+      });
+    }
+  } catch {
+    // RestingHeartRate недоступен — продолжаем
   }
 
   if (vitals.length === 0) {
