@@ -66,6 +66,7 @@ interface ApiUser {
   name: string | null;          // field is `name` (not fullName)
   nickname: string | null;
   locale: string;
+  timezone: string | null;      // IANA id, e.g. "Asia/Tashkent"
 }
 
 interface ApiHealthScore {
@@ -127,6 +128,18 @@ function sleepVitalValue(v: ApiVital): number {
 const RU_DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] as const;
 type RuDay = typeof RU_DAYS[number];
 
+// `YYYY-MM-DD` for `date` as seen in `tz`. en-CA renders ISO-style dashes.
+// Used to bound non-aggregate vitals (heart_rate) by the user's local calendar
+// day rather than the server's UTC day (UTC+5 → early-morning readings lost).
+function localDateString(date: Date, tz: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 // ─── Main loader ──────────────────────────────────────────────────────────────
 
 export async function loadHomeData(): Promise<{
@@ -137,12 +150,22 @@ export async function loadHomeData(): Promise<{
   vitalsLatest: Record<string, ApiVital | null>;
   doctors: DoctorPreview[];
 }> {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
+  // Fetch the user first: vitals queries need the user's timezone to bound
+  // "today" by their local day (heart_rate is stored at its real timestamp, so a
+  // UTC day boundary drops UTC+5 readings recorded 00:00–05:00 local).
+  const apiUser = await authFetch<ApiUser>('/v1/aivita/users');
+  const tz = apiUser?.timezone || 'Asia/Tashkent';
+
+  // Non-aggregate vitals (heart_rate) → user's LOCAL calendar day.
+  const todayLocal = localDateString(new Date(), tz);
+  // Daily-aggregate vitals (steps, water_ml, sleep_hours) are persisted on the
+  // UTC-midnight grid (see DAILY_AGGREGATE_TYPES in apps/api). Keep querying them
+  // on that grid via explicit UTC instants so their boundary is unchanged.
+  const todayUtc = new Date().toISOString().split('T')[0]; // YYYY-MM-DD (UTC)
+  const sevenDaysAgoUtc = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
 
   const [
-    apiUser,
     apiHealthScore,
     vitalsHR,
     vitalsWater,
@@ -154,14 +177,13 @@ export async function loadHomeData(): Promise<{
     apiVitalsLatest,
     doctors,
   ] = await Promise.all([
-    authFetch<ApiUser>('/v1/aivita/users'),
     authFetch<ApiHealthScore>('/v1/aivita/health-score'),
-    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=heart_rate&from=${today}`),
-    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=water_ml&from=${today}`),
-    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=steps&from=${sevenDaysAgo}`),
-    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=sleep_hours&from=${sevenDaysAgo}`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=heart_rate&from=${todayLocal}`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=water_ml&from=${todayUtc}T00:00:00.000Z`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=steps&from=${sevenDaysAgoUtc}T00:00:00.000Z`),
+    authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=sleep_hours&from=${sevenDaysAgoUtc}T00:00:00.000Z`),
     authFetch<ApiHabit[]>('/v1/aivita/habits'),
-    authFetch<ApiHabitLog[]>(`/v1/aivita/habits/logs/range?from=${today}&to=${today}`),
+    authFetch<ApiHabitLog[]>(`/v1/aivita/habits/logs/range?from=${todayUtc}&to=${todayUtc}`),
     authFetch<ApiReport[]>('/v1/aivita/reports'),
     authFetch<Record<string, ApiVital | null>>('/v1/aivita/vitals/latest'),
     getFeaturedDoctors(),
@@ -200,7 +222,7 @@ export async function loadHomeData(): Promise<{
 
   // ─── Vitals — steps (latest for today = last item for today) ──────────────
   const todayStepsVitals = vitalsSteps?.filter(v =>
-    v.recordedAt.startsWith(today)
+    v.recordedAt.startsWith(todayUtc)
   ) ?? [];
   const stepsTodayRaw = todayStepsVitals.length > 0
     ? numericVitalValue(todayStepsVitals[0])

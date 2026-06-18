@@ -8,6 +8,8 @@ import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { analyzeHealthChange } from '../../lib/health-monitor.js';
 import { autoReport } from './outbreak.js';
 import { healthProfiles } from '@medsoft/db';
+import { getUserTimezone } from '../../lib/user-timezone.js';
+import { parseDateBoundary } from '../../lib/timezone.js';
 
 export const aivitaVitalsRouter = new Hono();
 
@@ -130,11 +132,12 @@ aivitaVitalsRouter.get('/', async (c) => {
   if (type && VALID_TYPES.includes(type as VitalType)) {
     conditions.push(eq(vitals.type, type));
   }
-  if (from) {
-    conditions.push(gte(vitals.recordedAt, new Date(from)));
-  }
-  if (to) {
-    conditions.push(lte(vitals.recordedAt, new Date(to)));
+  // Bare `YYYY-MM-DD` from/to mean the user's LOCAL day (see parseDateBoundary);
+  // full ISO instants pass through unchanged.
+  if (from || to) {
+    const tz = await getUserTimezone(userId);
+    if (from) conditions.push(gte(vitals.recordedAt, parseDateBoundary(from, tz)));
+    if (to) conditions.push(lte(vitals.recordedAt, parseDateBoundary(to, tz, { endOfDay: true })));
   }
 
   const rows = await db.select().from(vitals)
