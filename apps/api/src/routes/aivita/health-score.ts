@@ -5,6 +5,8 @@ import { db } from '@medsoft/db';
 import { healthScores, systemTestResults, vitals } from '@medsoft/db';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { getUserTimezone } from '../../lib/user-timezone.js';
+import { parseDateBoundary } from '../../lib/timezone.js';
 
 export const aivitaHealthScoreRouter = new Hono();
 
@@ -84,9 +86,14 @@ aivitaHealthScoreRouter.get('/vitals', async (c) => {
   const dateTo = c.req.query('to');
   const type = c.req.query('type');
 
+  // Bare `YYYY-MM-DD` from/to are interpreted as the user's LOCAL day, not the
+  // server's UTC day — otherwise UTC+5 readings recorded 00:00–05:00 local are
+  // pushed into "yesterday by UTC" and dropped. Full ISO instants pass through.
+  const tz = await getUserTimezone(userId);
+
   const conditions = [eq(vitals.userId, userId)];
-  if (dateFrom) conditions.push(gte(vitals.recordedAt, new Date(dateFrom)));
-  if (dateTo) conditions.push(lte(vitals.recordedAt, new Date(dateTo)));
+  if (dateFrom) conditions.push(gte(vitals.recordedAt, parseDateBoundary(dateFrom, tz)));
+  if (dateTo) conditions.push(lte(vitals.recordedAt, parseDateBoundary(dateTo, tz, { endOfDay: true })));
   if (type) conditions.push(eq(vitals.type, type));
 
   const rows = await db.select().from(vitals)
