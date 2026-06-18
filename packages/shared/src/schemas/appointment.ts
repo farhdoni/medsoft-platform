@@ -19,5 +19,10 @@ export const createAppointmentSchema = z.object({
 
 export const updateAppointmentSchema = createAppointmentSchema.partial();
 
+export const cancelAppointmentSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
 export type CreateAppointmentDto = z.infer<typeof createAppointmentSchema>;
 export type UpdateAppointmentDto = z.infer<typeof updateAppointmentSchema>;
+export type CancelAppointmentDto = z.infer<typeof cancelAppointmentSchema>;
