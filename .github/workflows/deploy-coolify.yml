@@ -1,34 +1,15 @@
 name: Deploy to Coolify (aivita + api)
 
-# Reliable auto-deploy trigger for the web/API resources hosted on Coolify.
+# Drives Coolify deployments from GitHub Actions instead of relying on
+# Coolify's own GitHub webhook listener, which can fail silently.
 #
-# WHY THIS EXISTS
-# ----------------
-# Coolify's own "GitHub webhook receiver" is the usual culprit when images get
-# stuck on an old SHA: the webhook can be disabled, the URL/secret can rot, or
-# the delivery can fail silently. Driving the deploy from GitHub Actions instead
-# makes the trigger observable (you see 2xx/non-2xx right here in the Actions log)
-# and keeps it in version control. CI owns the trigger; Coolify only builds.
+# REQUIRED REPO SECRETS (Settings → Secrets and variables → Actions):
+#   COOLIFY_HOST   — base URL, e.g. http://109.123.249.224:8000
+#   COOLIFY_TOKEN  — Coolify API token (Bearer)
+#   COOLIFY_UUIDS  — space-separated Coolify resource UUIDs to deploy
+#                    e.g.: "z14jkb1li1oj7vz3kqi6puc9 ukqf33se5dfsw6rlc7aj58ac"
 #
-# WHAT IT DOES
-# ------------
-# On every push to `main` that touches the deployable web/API code, it calls one
-# or more Coolify deploy webhooks. Each call must return 2xx or the job fails red.
-#
-# REQUIRED REPO SECRET (Settings → Secrets and variables → Actions):
-#   COOLIFY_DEPLOY_WEBHOOKS  — whitespace/newline-separated list of full deploy
-#                              URLs, one per Coolify resource (aivita web, api).
-#       • API-token style:  https://<coolify-host>:8000/api/v1/deploy?uuid=<RESOURCE_UUID>&force=false
-#                           (in that case also set COOLIFY_TOKEN, see below)
-#       • Manual-webhook style (token embedded in URL): copy from each resource's
-#                           Coolify page → "Webhooks" → "Manual Deploy" / "Deploy Webhook".
-#
-# OPTIONAL REPO SECRET:
-#   COOLIFY_TOKEN  — Coolify API token, sent as `Authorization: Bearer`. Only
-#                    needed for the /api/v1/deploy URL form (not for manual webhooks).
-#
-# Until COOLIFY_DEPLOY_WEBHOOKS is set, this workflow is a safe no-op (it logs a
-# notice and exits 0), so merging it changes nothing in production by itself.
+# Until all three secrets are set, the workflow exits 0 (safe no-op notice).
 
 on:
   push:
@@ -47,45 +28,101 @@ concurrency:
 
 jobs:
   deploy:
+    name: Trigger + wait for Coolify build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Trigger Coolify deploy webhook(s)
+      - name: Trigger deployments and poll to completion
         env:
-          WEBHOOKS: ${{ secrets.COOLIFY_DEPLOY_WEBHOOKS }}
+          COOLIFY_HOST: ${{ secrets.COOLIFY_HOST }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_UUIDS: ${{ secrets.COOLIFY_UUIDS }}
         run: |
           set -euo pipefail
-          if [ -z "${WEBHOOKS// /}" ]; then
-            echo "::notice::COOLIFY_DEPLOY_WEBHOOKS secret is not set — nothing to trigger. Add it to enable auto-deploy."
+
+          if [ -z "${COOLIFY_HOST:-}" ] || [ -z "${COOLIFY_TOKEN:-}" ] || [ -z "${COOLIFY_UUIDS:-}" ]; then
+            echo "::notice::COOLIFY_HOST / COOLIFY_TOKEN / COOLIFY_UUIDS not set — no-op. Configure secrets to enable auto-deploy."
             exit 0
           fi
 
-          auth_args=()
-          if [ -n "${COOLIFY_TOKEN:-}" ]; then
-            auth_args=(-H "Authorization: Bearer ${COOLIFY_TOKEN}")
-          fi
+          OVERALL_FAIL=0
+          declare -A DEPLOY_MAP   # uuid -> deployment_uuid
 
-          fail=0
-          # Iterate over whitespace/newline separated URLs.
-          for url in $WEBHOOKS; do
-            [ -z "$url" ] && continue
-            # Redact query string (may contain a secret) in logs.
-            safe="${url%%\?*}"
-            echo "→ Triggering deploy: ${safe}?…"
-            code=$(curl -sS -o /tmp/coolify_resp.txt -w '%{http_code}' \
-                     --max-time 30 "${auth_args[@]}" "$url" || echo "000")
-            body=$(cat /tmp/coolify_resp.txt 2>/dev/null || true)
-            echo "   HTTP ${code}"
-            echo "   ${body}" | head -c 500
-            echo
-            case "$code" in
-              2*) echo "   ✓ accepted";;
-              *)  echo "::error::Deploy trigger for ${safe} returned HTTP ${code}"; fail=1;;
-            esac
+          # ── Step 1: fire off all deploys ────────────────────────────────────
+          for APP_UUID in $COOLIFY_UUIDS; do
+            [ -z "$APP_UUID" ] && continue
+            echo "→ Triggering deploy for $APP_UUID …"
+            RESP=$(curl -sS --max-time 30 \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              "${COOLIFY_HOST}/api/v1/deploy?uuid=${APP_UUID}&force=false")
+            echo "  Response: ${RESP}"
+            DEPLOY_UUID=$(echo "$RESP" | python3 -c \
+              "import json,sys; d=json.load(sys.stdin); print(d['deployments'][0]['deployment_uuid'])" 2>/dev/null || true)
+            if [ -z "$DEPLOY_UUID" ]; then
+              echo "::error::Could not get deployment_uuid for $APP_UUID"
+              OVERALL_FAIL=1
+            else
+              echo "  Queued → deployment_uuid: $DEPLOY_UUID"
+              DEPLOY_MAP["$APP_UUID"]="$DEPLOY_UUID"
+            fi
           done
 
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::One or more Coolify deploy triggers failed."
+          # ── Step 2: poll each deployment to completion ───────────────────────
+          POLL_INTERVAL=30
+          POLL_TIMEOUT=900   # 15 min
+
+          for APP_UUID in "${!DEPLOY_MAP[@]}"; do
+            DEPLOY_UUID="${DEPLOY_MAP[$APP_UUID]}"
+            STATUS_URL="${COOLIFY_HOST}/api/v1/deployments/${DEPLOY_UUID}"
+            echo ""
+            echo "Polling $APP_UUID / $DEPLOY_UUID"
+            echo "  URL: ${STATUS_URL}"
+
+            ELAPSED=0
+            APP_FAILED=0
+            while true; do
+              STATUS=$(curl -sS --max-time 15 \
+                -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+                "${STATUS_URL}" | python3 -c \
+                "import json,sys; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null \
+                || echo "fetch_error")
+              echo "  [${ELAPSED}s] ${APP_UUID}: ${STATUS}"
+
+              case "$STATUS" in
+                success|finished)
+                  echo "  ✓ Deployment succeeded."
+                  break
+                  ;;
+                failed|error|cancelled)
+                  echo "::error::Coolify build FAILED for ${APP_UUID} (status=${STATUS}, deploy=${DEPLOY_UUID})"
+                  APP_FAILED=1
+                  break
+                  ;;
+                in_progress|queued|running|building)
+                  ;;
+                *)
+                  echo "  Unknown status '${STATUS}' — keep polling"
+                  ;;
+              esac
+
+              if [ $ELAPSED -ge $POLL_TIMEOUT ]; then
+                echo "::error::Timed out after ${POLL_TIMEOUT}s waiting for ${APP_UUID} (last status: ${STATUS})"
+                APP_FAILED=1
+                break
+              fi
+              sleep $POLL_INTERVAL
+              ELAPSED=$((ELAPSED + POLL_INTERVAL))
+            done
+
+            if [ $APP_FAILED -ne 0 ]; then
+              OVERALL_FAIL=1
+            fi
+          done
+
+          if [ $OVERALL_FAIL -ne 0 ]; then
+            echo ""
+            echo "::error::One or more Coolify deployments failed or timed out."
             exit 1
           fi
-          echo "All Coolify deploy webhooks accepted (2xx)."
+          echo ""
+          echo "All deployments completed successfully."
