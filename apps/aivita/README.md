@@ -1,5 +1,5 @@
 # aivita.uz — Health Platform
-<!-- ci-test: deploy chain verification 2026-06-18 (run 2 — ssh tunnel) -->
+<!-- ci: auto-deploy via GitHub Actions → Coolify SSH tunnel -->
 
 Единое веб-приложение: маркетинговый лендинг + личный кабинет пациента + PWA.
 
