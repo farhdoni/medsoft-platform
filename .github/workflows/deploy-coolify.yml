@@ -31,7 +31,7 @@ jobs:
   deploy:
     name: Trigger + wait for Coolify build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Open SSH tunnel + trigger deploys + poll to completion
         env:
@@ -95,7 +95,7 @@ jobs:
 
           # ── Step 2: poll each deployment to completion ────────────────────────
           POLL_INTERVAL=30
-          POLL_TIMEOUT=900   # 15 min
+          POLL_TIMEOUT=1500  # 25 min — aivita Next.js build + queue wait
 
           for APP_UUID in "${!DEPLOY_MAP[@]}"; do
             DEPLOY_UUID="${DEPLOY_MAP[$APP_UUID]}"
