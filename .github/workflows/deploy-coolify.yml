@@ -1,0 +1,91 @@
+name: Deploy to Coolify (aivita + api)
+
+# Reliable auto-deploy trigger for the web/API resources hosted on Coolify.
+#
+# WHY THIS EXISTS
+# ----------------
+# Coolify's own "GitHub webhook receiver" is the usual culprit when images get
+# stuck on an old SHA: the webhook can be disabled, the URL/secret can rot, or
+# the delivery can fail silently. Driving the deploy from GitHub Actions instead
+# makes the trigger observable (you see 2xx/non-2xx right here in the Actions log)
+# and keeps it in version control. CI owns the trigger; Coolify only builds.
+#
+# WHAT IT DOES
+# ------------
+# On every push to `main` that touches the deployable web/API code, it calls one
+# or more Coolify deploy webhooks. Each call must return 2xx or the job fails red.
+#
+# REQUIRED REPO SECRET (Settings → Secrets and variables → Actions):
+#   COOLIFY_DEPLOY_WEBHOOKS  — whitespace/newline-separated list of full deploy
+#                              URLs, one per Coolify resource (aivita web, api).
+#       • API-token style:  https://<coolify-host>:8000/api/v1/deploy?uuid=<RESOURCE_UUID>&force=false
+#                           (in that case also set COOLIFY_TOKEN, see below)
+#       • Manual-webhook style (token embedded in URL): copy from each resource's
+#                           Coolify page → "Webhooks" → "Manual Deploy" / "Deploy Webhook".
+#
+# OPTIONAL REPO SECRET:
+#   COOLIFY_TOKEN  — Coolify API token, sent as `Authorization: Bearer`. Only
+#                    needed for the /api/v1/deploy URL form (not for manual webhooks).
+#
+# Until COOLIFY_DEPLOY_WEBHOOKS is set, this workflow is a safe no-op (it logs a
+# notice and exits 0), so merging it changes nothing in production by itself.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/aivita/**'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'docker-compose.yml'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-coolify-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy webhook(s)
+        env:
+          WEBHOOKS: ${{ secrets.COOLIFY_DEPLOY_WEBHOOKS }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WEBHOOKS// /}" ]; then
+            echo "::notice::COOLIFY_DEPLOY_WEBHOOKS secret is not set — nothing to trigger. Add it to enable auto-deploy."
+            exit 0
+          fi
+
+          auth_args=()
+          if [ -n "${COOLIFY_TOKEN:-}" ]; then
+            auth_args=(-H "Authorization: Bearer ${COOLIFY_TOKEN}")
+          fi
+
+          fail=0
+          # Iterate over whitespace/newline separated URLs.
+          for url in $WEBHOOKS; do
+            [ -z "$url" ] && continue
+            # Redact query string (may contain a secret) in logs.
+            safe="${url%%\?*}"
+            echo "→ Triggering deploy: ${safe}?…"
+            code=$(curl -sS -o /tmp/coolify_resp.txt -w '%{http_code}' \
+                     --max-time 30 "${auth_args[@]}" "$url" || echo "000")
+            body=$(cat /tmp/coolify_resp.txt 2>/dev/null || true)
+            echo "   HTTP ${code}"
+            echo "   ${body}" | head -c 500
+            echo
+            case "$code" in
+              2*) echo "   ✓ accepted";;
+              *)  echo "::error::Deploy trigger for ${safe} returned HTTP ${code}"; fail=1;;
+            esac
+          done
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::One or more Coolify deploy triggers failed."
+            exit 1
+          fi
+          echo "All Coolify deploy webhooks accepted (2xx)."
