@@ -1,15 +1,16 @@
 name: Deploy to Coolify (aivita + api)
 
-# Drives Coolify deployments from GitHub Actions instead of relying on
-# Coolify's own GitHub webhook listener, which can fail silently.
+# Drives Coolify deployments from GitHub Actions via SSH tunnel.
+# Port 8000 (Coolify API) stays firewalled; tunnel uses port 22 (SSH).
 #
-# REQUIRED REPO SECRETS (Settings → Secrets and variables → Actions):
-#   COOLIFY_HOST   — base URL, e.g. http://109.123.249.224:8000
-#   COOLIFY_TOKEN  — Coolify API token (Bearer)
-#   COOLIFY_UUIDS  — space-separated Coolify resource UUIDs to deploy
-#                    e.g.: "z14jkb1li1oj7vz3kqi6puc9 ukqf33se5dfsw6rlc7aj58ac"
+# REQUIRED REPO SECRETS:
+#   COOLIFY_SSH_KEY  — PEM/OpenSSH private key for root@<VPS_HOST>
+#   VPS_HOST         — e.g. 109.123.249.224
+#   COOLIFY_TOKEN    — Coolify API bearer token
+#   COOLIFY_UUIDS    — space-separated Coolify app UUIDs to deploy
+#                      e.g.: "z14jkb1li1oj7vz3kqi6puc9 ukqf33se5dfsw6rlc7aj58ac"
 #
-# Until all three secrets are set, the workflow exits 0 (safe no-op notice).
+# No-op (exit 0 notice) when any required secret is absent.
 
 on:
   push:
@@ -32,29 +33,54 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Trigger deployments and poll to completion
+      - name: Open SSH tunnel + trigger deploys + poll to completion
         env:
-          COOLIFY_HOST: ${{ secrets.COOLIFY_HOST }}
+          COOLIFY_SSH_KEY: ${{ secrets.COOLIFY_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_UUIDS: ${{ secrets.COOLIFY_UUIDS }}
         run: |
           set -euo pipefail
 
-          if [ -z "${COOLIFY_HOST:-}" ] || [ -z "${COOLIFY_TOKEN:-}" ] || [ -z "${COOLIFY_UUIDS:-}" ]; then
-            echo "::notice::COOLIFY_HOST / COOLIFY_TOKEN / COOLIFY_UUIDS not set — no-op. Configure secrets to enable auto-deploy."
+          # ── Guards ────────────────────────────────────────────────────────────
+          if [ -z "${COOLIFY_SSH_KEY:-}" ] || [ -z "${VPS_HOST:-}" ] || \
+             [ -z "${COOLIFY_TOKEN:-}" ]   || [ -z "${COOLIFY_UUIDS:-}" ]; then
+            echo "::notice::Required secrets not all set (COOLIFY_SSH_KEY / VPS_HOST / COOLIFY_TOKEN / COOLIFY_UUIDS) — no-op."
             exit 0
           fi
 
-          OVERALL_FAIL=0
-          declare -A DEPLOY_MAP   # uuid -> deployment_uuid
+          # ── SSH tunnel (localhost:18000 → VPS:8000) ───────────────────────────
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${COOLIFY_SSH_KEY}" > ~/.ssh/coolify_key
+          chmod 600 ~/.ssh/coolify_key
 
-          # ── Step 1: fire off all deploys ────────────────────────────────────
+          ssh -o StrictHostKeyChecking=no \
+              -o ExitOnForwardFailure=yes \
+              -o ServerAliveInterval=15 \
+              -N -f \
+              -i ~/.ssh/coolify_key \
+              -L 18000:localhost:8000 \
+              root@${VPS_HOST}
+
+          # Wait up to 10 s for tunnel readiness
+          COOLIFY_LOCAL="http://localhost:18000"
+          for i in $(seq 1 10); do
+            curl -s --max-time 2 "${COOLIFY_LOCAL}/" > /dev/null 2>&1 && break || true
+            sleep 1
+          done
+          echo "SSH tunnel ready: ${COOLIFY_LOCAL} → ${VPS_HOST}:8000"
+
+          # ── Step 1: fire off all deploys ─────────────────────────────────────
+          OVERALL_FAIL=0
+          declare -A DEPLOY_MAP
+
           for APP_UUID in $COOLIFY_UUIDS; do
             [ -z "$APP_UUID" ] && continue
+            echo ""
             echo "→ Triggering deploy for $APP_UUID …"
             RESP=$(curl -sS --max-time 30 \
               -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
-              "${COOLIFY_HOST}/api/v1/deploy?uuid=${APP_UUID}&force=false")
+              "${COOLIFY_LOCAL}/api/v1/deploy?uuid=${APP_UUID}&force=false")
             echo "  Response: ${RESP}"
             DEPLOY_UUID=$(echo "$RESP" | python3 -c \
               "import json,sys; d=json.load(sys.stdin); print(d['deployments'][0]['deployment_uuid'])" 2>/dev/null || true)
@@ -67,16 +93,16 @@ jobs:
             fi
           done
 
-          # ── Step 2: poll each deployment to completion ───────────────────────
+          # ── Step 2: poll each deployment to completion ────────────────────────
           POLL_INTERVAL=30
           POLL_TIMEOUT=900   # 15 min
 
           for APP_UUID in "${!DEPLOY_MAP[@]}"; do
             DEPLOY_UUID="${DEPLOY_MAP[$APP_UUID]}"
-            STATUS_URL="${COOLIFY_HOST}/api/v1/deployments/${DEPLOY_UUID}"
+            STATUS_URL="${COOLIFY_LOCAL}/api/v1/deployments/${DEPLOY_UUID}"
             echo ""
             echo "Polling $APP_UUID / $DEPLOY_UUID"
-            echo "  URL: ${STATUS_URL}"
+            echo "  Status endpoint: ${STATUS_URL}"
 
             ELAPSED=0
             APP_FAILED=0
@@ -114,9 +140,7 @@ jobs:
               ELAPSED=$((ELAPSED + POLL_INTERVAL))
             done
 
-            if [ $APP_FAILED -ne 0 ]; then
-              OVERALL_FAIL=1
-            fi
+            [ $APP_FAILED -ne 0 ] && OVERALL_FAIL=1
           done
 
           if [ $OVERALL_FAIL -ne 0 ]; then
