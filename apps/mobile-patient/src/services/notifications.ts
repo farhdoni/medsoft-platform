@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { API_URL } from '../constants/config';
-import { getAuthToken, getSessionToken } from './auth';
+import { getSessionToken } from './auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,14 +119,16 @@ export async function sendPushTokenToServer(
   pushToken: string,
   deviceId: string
 ): Promise<void> {
-  const authToken = await getAuthToken();
-  if (!authToken) return;
+  // Auth = WebView session cookie via X-Aivita-Session (Bearer is ignored by
+  // requireAivitaAuth — same root cause as the sendDiagLog silent 401).
+  const token = await getSessionToken().catch(() => null);
+  if (!token) return;
 
   await fetch(`${API_URL}/v1/aivita/devices/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`,
+      'X-Aivita-Session': token,
     },
     body: JSON.stringify({
       pushToken,
