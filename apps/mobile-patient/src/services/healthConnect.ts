@@ -325,10 +325,8 @@ export async function syncToday(): Promise<HcSyncResult> {
 
     if (!response.ok) {
       const text = await response.text();
-      void sendDiagLog('hc-batch', { ok: false, status: response.status });
       return { status: 'error', error: `API ${response.status}: ${text}` };
     }
-    void sendDiagLog('hc-batch', { ok: true, steps: totalSteps, hr: heartRateReadings, items: vitals.length });
 
     // Персистим статус подключения на сервере тем же X-Aivita-Session, чтобы
     // карточка «Подключён» восстанавливалась и при старт-синке — не полагаясь
@@ -337,9 +335,7 @@ export async function syncToday(): Promise<HcSyncResult> {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Aivita-Session': token },
       body: JSON.stringify({ hcChangesToken: null, hcLastSyncAt: new Date().toISOString() }),
-    })
-      .then((r) => sendDiagLog('hc-persist-put', { ok: r.ok, status: r.status }))
-      .catch((e) => sendDiagLog('hc-persist-put', { ok: false, error: String(e) }));
+    }).catch(() => {});
   } catch (e) {
     return { status: 'error', error: String(e) };
   }
