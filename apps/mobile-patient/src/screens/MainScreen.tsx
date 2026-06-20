@@ -24,7 +24,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { WEB_URL } from '../constants/config';
-import { isBiometricEnabled, setBiometricEnabled } from '../services/auth';
+import { isBiometricEnabled, setBiometricEnabled, getSessionToken } from '../services/auth';
 import {
   registerForPushNotifications,
   sendPushTokenToServer,
@@ -144,18 +144,34 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     // Android 13+: runtime POST_NOTIFICATIONS permission
     void requestAndroid13NotifPermission();
 
-    // Register push token + notification categories
-    registerForPushNotifications().then(async (token) => {
-      if (token) {
-        setPushToken(token);
-        const deviceId = `${Platform.OS}-${Date.now()}`;
-        await sendPushTokenToServer(token, deviceId).catch(() => {});
-      }
-    });
     registerNotificationCategories().catch(() => {});
 
     // Request battery optimisation exclusion via system dialog (Samsung + all Android)
     void maybeRequestBatteryOptimizationExclusion();
+
+    // Defer push token registration until the WebView session cookie is available.
+    // On cold start the WebView hasn't loaded yet, so getSessionToken() returns null
+    // and sendPushTokenToServer silently exits. Poll every 2 s, give up after 30 s.
+    let pushCancelled = false;
+    let pushAttempt = 0;
+    const tryRegisterPush = async (): Promise<void> => {
+      if (pushCancelled) return;
+      const session = await getSessionToken().catch(() => null);
+      if (!session) {
+        if (++pushAttempt < 15) setTimeout(() => void tryRegisterPush(), 2000);
+        return;
+      }
+      registerForPushNotifications()
+        .then(async (token) => {
+          if (token && !pushCancelled) {
+            setPushToken(token);
+            const deviceId = `${Platform.OS}-${Date.now()}`;
+            await sendPushTokenToServer(token, deviceId).catch(() => {});
+          }
+        })
+        .catch((e: unknown) => void sendDiagLog('push-flow-error', { error: String(e) }));
+    };
+    void tryRegisterPush();
 
     // Schedule from cached list immediately (covers kill-and-relaunch case)
     AsyncStorage.getItem(MEDS_CACHE_KEY).then(raw => {
@@ -191,7 +207,7 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
       webViewRef.current?.injectJavaScript(js);
     });
 
-    return () => { navSub.remove(); medSub.remove(); };
+    return () => { pushCancelled = true; navSub.remove(); medSub.remove(); };
   }, []);
 
   // ── AppState: reschedule on foreground (Samsung/MIUI may cancel scheduled alarms) ──

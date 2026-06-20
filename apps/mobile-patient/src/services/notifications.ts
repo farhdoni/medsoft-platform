@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
@@ -109,8 +110,15 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
-  return tokenData.data;
+  try {
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId ?? '3e941beb-ac98-421c-8115-3500b21b11b3',
+    });
+    return tokenData.data;
+  } catch (e: unknown) {
+    void sendDiagLog('push-token-error', { error: String(e) });
+    return null;
+  }
 }
 
 // ─── Server token registration ────────────────────────────────────────────────
