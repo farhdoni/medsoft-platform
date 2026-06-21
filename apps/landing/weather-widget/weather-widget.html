@@ -1,0 +1,80 @@
+<!--
+  Виджет погоды для лендинга aivita.uz — самодостаточный блок.
+  Куда вставить: в нужное место <body> файла /var/www/aivita-landing/index.html.
+  Зависимостей нет. Данные берёт из публичного роута API (ключ OpenWeather на сервере):
+    GET https://api.aivita.uz/v1/weather/public
+  Локация: пробует геолокацию браузера; при отказе сервер определит по IP / отдаст дефолт (Ташкент).
+-->
+<div id="aivita-weather" class="aivita-weather" hidden>
+  <div class="aivita-weather__head">
+    <span class="aivita-weather__icon" data-w="icon">☁️</span>
+    <span class="aivita-weather__temp" data-w="temp">—</span>
+  </div>
+  <div class="aivita-weather__desc" data-w="desc"></div>
+  <div class="aivita-weather__loc" data-w="loc"></div>
+  <div class="aivita-weather__metrics">
+    <span data-w="humidity"></span>
+    <span data-w="wind"></span>
+  </div>
+</div>
+
+<style>
+  .aivita-weather {
+    display: inline-block;
+    min-width: 200px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #111827;
+  }
+  .aivita-weather__head { display: flex; align-items: center; gap: 10px; }
+  .aivita-weather__icon { font-size: 34px; line-height: 1; }
+  .aivita-weather__temp { font-size: 34px; font-weight: 700; }
+  .aivita-weather__desc { margin-top: 4px; font-size: 14px; color: #6b7280; text-transform: capitalize; }
+  .aivita-weather__loc { margin-top: 6px; font-size: 12px; color: #6b7280; }
+  .aivita-weather__metrics { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: #6b7280; }
+</style>
+
+<script>
+  (function () {
+    var API = "https://api.aivita.uz/v1/weather/public";
+    var root = document.getElementById("aivita-weather");
+    if (!root) return;
+    var $ = function (k) { return root.querySelector('[data-w="' + k + '"]'); };
+
+    function iconFor(code) {
+      var key = String(code || "").replace(/[nd]$/, "");
+      var map = { "01": "☀️", "02": "🌤️", "03": "☁️", "04": "☁️", "09": "🌦️", "10": "🌧️", "11": "⛈️", "13": "❄️", "50": "🌫️" };
+      return map[key] || "☁️";
+    }
+
+    function render(d) {
+      $("icon").textContent = iconFor(d.current.icon);
+      $("temp").textContent = d.current.tempC + "°C";
+      $("desc").textContent = d.current.description || "";
+      $("loc").textContent = "📍 " + d.location.name + (d.location.country ? ", " + d.location.country : "");
+      $("humidity").textContent = "💧 " + d.current.humidity + "%";
+      $("wind").textContent = "💨 " + d.current.windMs + " м/с";
+      root.hidden = false;
+    }
+
+    function fetchWeather(qs) {
+      fetch(API + (qs || ""))
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(render)
+        .catch(function () { /* тихо скрываем виджет при ошибке */ });
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function (pos) { fetchWeather("?lat=" + pos.coords.latitude + "&lon=" + pos.coords.longitude); },
+        function () { fetchWeather(""); },
+        { timeout: 5000, maximumAge: 600000 }
+      );
+    } else {
+      fetchWeather("");
+    }
+  })();
+</script>

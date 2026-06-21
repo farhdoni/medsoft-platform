@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { env } from '../env';
 import { redis } from '../lib/redis';
 import { requireAuth } from '../middleware/auth';
+import { rateLimit } from '../middleware/rate-limit';
 
 export const weatherRouter = new Hono();
-weatherRouter.use('*', requireAuth);
 
 interface WeatherResponse {
   location: { name: string; country: string | null; lat: number; lon: number };
@@ -40,7 +41,7 @@ async function geolocateByIp(ip: string | undefined): Promise<{ lat: number; lon
   }
 }
 
-weatherRouter.get('/', async (c) => {
+async function handleWeather(c: Context) {
   if (!env.OPENWEATHER_API_KEY) {
     return c.json({ error: { code: 'WEATHER_UNCONFIGURED', message: 'Weather provider is not configured' } }, 503);
   }
@@ -133,4 +134,10 @@ weatherRouter.get('/', async (c) => {
   }
 
   return c.json(payload);
-});
+}
+
+// Admin dashboard (cookie-authenticated).
+weatherRouter.get('/', requireAuth, handleWeather);
+
+// Public surfaces (landing page, mobile app) — no auth, IP rate-limited.
+weatherRouter.get('/public', rateLimit(60, 60, 'weather'), handleWeather);
