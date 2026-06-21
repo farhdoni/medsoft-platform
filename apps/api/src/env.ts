@@ -22,6 +22,11 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   TOTP_ISSUER: z.string().default('MedSoft'),
   TOTP_LABEL: z.string().default('aivita.uz'),
+  OPENWEATHER_API_KEY: z.string().optional(),
+  WEATHER_DEFAULT_LAT: z.coerce.number().default(41.2995),
+  WEATHER_DEFAULT_LON: z.coerce.number().default(69.2401),
+  WEATHER_DEFAULT_CITY: z.string().default('Ташкент'),
+  WEATHER_CACHE_TTL: z.coerce.number().default(600),
 });
 
 const parsed = envSchema.safeParse(process.env);

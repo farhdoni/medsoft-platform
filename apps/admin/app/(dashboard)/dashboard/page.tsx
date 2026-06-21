@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, Stethoscope, Building2, Calendar, CreditCard, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiGet } from '@/lib/api';
+import { WeatherCard } from '@/components/dashboard/weather-card';
 
 interface DashboardStats {
   patients: number;
@@ -46,6 +47,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+        <WeatherCard />
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { sosCallsRouter } from './routes/sos-calls';
 import { aiLogsRouter } from './routes/ai-logs';
 import { adminsRouter } from './routes/admins';
 import { dashboardRouter } from './routes/dashboard';
+import { weatherRouter } from './routes/weather';
 
 export const app = new Hono();
 
@@ -33,3 +34,4 @@ app.route('/v1/sos-calls', sosCallsRouter);
 app.route('/v1/ai-logs', aiLogsRouter);
 app.route('/v1/admins', adminsRouter);
 app.route('/v1/dashboard', dashboardRouter);
+app.route('/v1/weather', weatherRouter);
