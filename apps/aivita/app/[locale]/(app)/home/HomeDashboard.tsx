@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ActivityChart } from '@/components/cabinet/dashboard/ActivityChart';
 import { ReportCard } from '@/components/cabinet/dashboard/ReportCard';
 import { AiMonitor } from '@/components/cabinet/dashboard/AiMonitor';
+import { WeatherCard } from '@/components/cabinet/dashboard/WeatherCard';
 import { ReferralBanner } from './ReferralBanner';
 import type { DailyMetrics, ActivityPoint, Report, User } from '@/lib/cabinet-types';
 import type { DoctorPreview } from './data';
@@ -30,6 +31,7 @@ interface BlockDef { id: string; label: string; icon: string }
 const HOME_BLOCKS: BlockDef[] = [
   { id: 'ai_monitor',   label: 'AI Монитор',      icon: '🤖' },
   { id: 'activity',     label: 'Активность',       icon: '📊' },
+  { id: 'weather',      label: 'Погода',           icon: '🌤️' },
   { id: 'doctors',      label: 'Врачи',            icon: '👨‍⚕️' },
   { id: 'referral',     label: 'Реферал',          icon: '🎁' },
   { id: 'quick_access', label: 'Быстрый доступ',   icon: '⚡' },
@@ -361,6 +363,8 @@ export function HomeDashboard({ locale, activity, report, vitals, doctors }: Pro
             </div>
           </section>
         );
+      case 'weather':
+        return <WeatherCard />;
       case 'referral':
         return <ReferralBanner locale={locale} />;
       case 'quick_access':
