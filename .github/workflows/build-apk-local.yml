@@ -152,6 +152,7 @@ jobs:
           else
             gh release create "$TAG" "$APK" \
               --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
               --title "AIVITA Patient $TAG (versionCode ${{ steps.ver.outputs.versionCode }})" \
               --notes "$NOTES"
           fi
