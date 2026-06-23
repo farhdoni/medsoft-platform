@@ -131,6 +131,15 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
     isBiometricEnabled().then(setBiometricEnabledState).catch(() => {});
   }, []);
 
+  // ── Geolocation permission (Android) ───────────────────────────────────────
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ).catch(() => {});
+    }
+  }, []);
+
   // ── Deep-link navigation ───────────────────────────────────────────────────
   useEffect(() => {
     if (initialDeepLink) {
@@ -527,6 +536,7 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
           thirdPartyCookiesEnabled
           domStorageEnabled
           javaScriptEnabled
+          geolocationEnabled={true}
           allowsBackForwardNavigationGestures
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
