@@ -13,6 +13,9 @@ async function handler(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
+  if (path.some((seg) => seg === '..' || seg === '.' || seg.includes('/'))) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+  }
   const apiPath = path.join('/');
   const search = req.nextUrl.searchParams.toString();
   const url = `${API_BASE}/v1/aivita/${apiPath}${search ? '?' + search : ''}`;
