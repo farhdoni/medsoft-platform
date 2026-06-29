@@ -300,8 +300,8 @@ export function WeatherCard() {
   const pm25 = air?.current.pm2_5 ?? 0;
   const kpVal = kp ?? 0;
   const alerts = weather ? buildAlerts(weather.current.uv_index, pm25, kpVal) : [];
-  const worstLevel: 'bad' | 'warn' | null = alerts.some(a => a.level === 'bad') ? 'bad'
-    : alerts.length > 0 ? 'warn' : null;
+  const worstLevel: 'bad' | 'warn' | 'good' = alerts.some(a => a.level === 'bad') ? 'bad'
+    : alerts.length > 0 ? 'warn' : 'good';
 
   const uvColor = (uv: number) =>
     uv >= 8 ? '#dc3545' : uv >= 6 ? '#e8873a' : '#3a7a4a';
@@ -371,17 +371,15 @@ export function WeatherCard() {
               )}
             </div>
 
-            {/* Risk chip */}
-            {worstLevel !== null && (
-              <span style={{
-                flexShrink: 0, padding: '3px 8px', borderRadius: 20,
-                fontSize: 11, fontWeight: 700,
-                background: worstLevel === 'bad' ? '#fde8e8' : '#fff3cd',
-                color: worstLevel === 'bad' ? '#dc3545' : '#c96a00',
-              }}>
-                Осторожно
-              </span>
-            )}
+            {/* Risk chip — always visible */}
+            <span style={{
+              flexShrink: 0, padding: '3px 8px', borderRadius: 20,
+              fontSize: 11, fontWeight: 700,
+              background: worstLevel === 'bad' ? '#fde8e8' : worstLevel === 'warn' ? '#fff3cd' : '#d4e8d8',
+              color: worstLevel === 'bad' ? '#dc3545' : worstLevel === 'warn' ? '#c96a00' : '#3a7a4a',
+            }}>
+              {worstLevel === 'good' ? '✓ Спокойно' : 'Осторожно'}
+            </span>
 
             {/* Chevron */}
             <span style={{
@@ -570,41 +568,59 @@ export function WeatherCard() {
 
               </div>
 
-              {/* ── Health alerts (only when triggered) ── */}
-              {alerts.length > 0 && (
-                <div style={{ background: '#f4f3ef', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
-                  <p style={{
-                    fontSize: 10, fontWeight: 700, color: '#9a96a8',
-                    textTransform: 'uppercase', letterSpacing: '0.6px',
-                    margin: '0 0 8px',
-                  }}>
-                    Кому осторожно на улице сегодня
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {alerts.map((a, idx) => (
-                      <div key={idx} style={{
-                        display: 'flex', gap: 8, alignItems: 'flex-start',
-                        padding: '7px 10px', borderRadius: 9,
-                        background: a.level === 'bad' ? '#fde8e8' : '#fff3cd',
-                        border: `1px solid ${a.level === 'bad' ? 'rgba(220,53,69,.18)' : 'rgba(232,135,58,.18)'}`,
-                      }}>
-                        <span style={{ fontSize: 14, flexShrink: 0, lineHeight: 1.4 }}>{a.icon}</span>
-                        <div>
-                          <p style={{
-                            margin: 0, fontSize: 12, fontWeight: 700,
-                            color: a.level === 'bad' ? '#dc3545' : '#c96a00',
-                          }}>
-                            {a.text}
-                          </p>
-                          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6a6580', lineHeight: 1.4 }}>
-                            {a.detail}
-                          </p>
+              {/* ── Health hints (always visible) ── */}
+              <div style={{ background: '#f4f3ef', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
+                {alerts.length > 0 ? (
+                  <>
+                    <p style={{
+                      fontSize: 10, fontWeight: 700, color: '#9a96a8',
+                      textTransform: 'uppercase', letterSpacing: '0.6px',
+                      margin: '0 0 8px',
+                    }}>
+                      Кому осторожно на улице сегодня
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {alerts.map((a, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex', gap: 8, alignItems: 'flex-start',
+                          padding: '7px 10px', borderRadius: 9,
+                          background: a.level === 'bad' ? '#fde8e8' : '#fff3cd',
+                          border: `1px solid ${a.level === 'bad' ? 'rgba(220,53,69,.18)' : 'rgba(232,135,58,.18)'}`,
+                        }}>
+                          <span style={{ fontSize: 14, flexShrink: 0, lineHeight: 1.4 }}>{a.icon}</span>
+                          <div>
+                            <p style={{
+                              margin: 0, fontSize: 12, fontWeight: 700,
+                              color: a.level === 'bad' ? '#dc3545' : '#c96a00',
+                            }}>
+                              {a.text}
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6a6580', lineHeight: 1.4 }}>
+                              {a.detail}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{
+                    display: 'flex', gap: 8, alignItems: 'flex-start',
+                    padding: '7px 10px', borderRadius: 9,
+                    background: '#d4e8d8', border: '1px solid rgba(58,122,74,.18)',
+                  }}>
+                    <span style={{ fontSize: 14, flexShrink: 0, lineHeight: 1.4 }}>✓</span>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#3a7a4a' }}>
+                        Сегодня благоприятно
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6a6580', lineHeight: 1.4 }}>
+                        Давление, УФ, воздух и магнитный фон в норме — для гипертоников, астматиков и после онкологии кожи особых рисков на улице нет.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* ── 7-day slim strip ── */}
               {weather.daily.time.length > 0 && (
