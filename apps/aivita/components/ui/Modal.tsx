@@ -28,7 +28,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Moda
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -47,7 +47,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Moda
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && (
-          <div className="px-5 py-4 border-t border-app-border flex-shrink-0">
+          <div className="px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+96px)] border-t border-app-border flex-shrink-0">
             {footer}
           </div>
         )}
