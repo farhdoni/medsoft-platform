@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { TopBar } from '@/components/cabinet/dashboard/TopBar';
 import { WeatherCard } from '@/components/cabinet/dashboard/WeatherCard';
 import { HeroSection } from '@/components/cabinet/dashboard/HeroSection';
