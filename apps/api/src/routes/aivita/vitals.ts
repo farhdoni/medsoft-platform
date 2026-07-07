@@ -79,46 +79,118 @@ aivitaVitalsRouter.get('/latest', async (c) => {
 });
 
 // ─── GET /vitals/stats ─────────────────────────────────────────────────────────
+// Single request returns all types aggregated in SQL — no JS min/max/avg loops,
+// no history rows in the response.
+
+type BucketRow = {
+  type: string;
+  bucket: Date;
+  bucket_avg: string | null;
+  bucket_cnt: string;
+  total_min: string | null;
+  total_max: string | null;
+  total_avg: string | null;
+  total_cnt: string;
+};
+
+function formatBucketLabel(bucket: Date, period: string | undefined): string {
+  const d = new Date(bucket);
+  if (period === 'year') return d.toLocaleDateString('ru', { month: 'short' });
+  if (period === 'month') return d.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('ru', { day: 'numeric', month: 'numeric' });
+}
 
 aivitaVitalsRouter.get('/stats', async (c) => {
   const userId = c.get('aivitaUserId');
-  const { type, period } = c.req.query();
-
-  if (!type || !VALID_TYPES.includes(type as VitalType)) {
-    return c.json({ error: 'Invalid or missing type' }, 400);
-  }
+  const { period } = c.req.query();
 
   const days = period === 'month' ? 30 : period === 'year' ? 365 : 7;
   const from = new Date(Date.now() - days * 86400000);
+  const trunc = period === 'year' ? 'month' : period === 'month' ? 'week' : 'day';
 
-  const rows = await db.select().from(vitals)
-    .where(and(
-      eq(vitals.userId, userId),
-      eq(vitals.type, type),
-      gte(vitals.recordedAt, from)
-    ))
-    .orderBy(asc(vitals.recordedAt));
+  // One CTE-based query: bucket aggregates + overall stats per type, all types in one scan.
+  // COALESCE handles blood_pressure (systolic/diastolic) alongside standard {value} shape.
+  const sqlRows = await db.execute(sql`
+    WITH base AS (
+      SELECT
+        type,
+        date_trunc(${trunc}, recorded_at) AS bucket,
+        COALESCE(
+          (value->>'value')::numeric,
+          (value->>'systolic')::numeric
+        ) AS val
+      FROM vitals
+      WHERE user_id = ${userId}
+        AND recorded_at >= ${from}
+    ),
+    bucket_agg AS (
+      SELECT type, bucket,
+        AVG(val)   AS bucket_avg,
+        COUNT(*)   AS bucket_cnt
+      FROM base
+      GROUP BY type, bucket
+    ),
+    overall_agg AS (
+      SELECT type,
+        MIN(val)    AS total_min,
+        MAX(val)    AS total_max,
+        AVG(val)    AS total_avg,
+        COUNT(val)  AS total_cnt
+      FROM base
+      GROUP BY type
+    )
+    SELECT
+      ba.type,
+      ba.bucket,
+      ba.bucket_avg,
+      ba.bucket_cnt,
+      oa.total_min,
+      oa.total_max,
+      oa.total_avg,
+      oa.total_cnt
+    FROM bucket_agg ba
+    JOIN overall_agg oa ON ba.type = oa.type
+    ORDER BY ba.type, ba.bucket ASC
+  `);
 
-  // Extract numeric values from the JSONB value field
-  const values = rows
-    .map((r) => {
-      const v = r.value as Record<string, unknown>;
-      return typeof v.value === 'number' ? v.value : null;
-    })
-    .filter((v): v is number => v !== null);
+  // Group SQL rows by vital type
+  const byType = new Map<string, BucketRow[]>();
+  for (const row of sqlRows as unknown as BucketRow[]) {
+    const list = byType.get(row.type) ?? [];
+    list.push(row);
+    byType.set(row.type, list);
+  }
 
-  const stats = {
-    min: values.length ? Math.min(...values) : null,
-    max: values.length ? Math.max(...values) : null,
-    avg: values.length ? values.reduce((a, b) => a + b, 0) / values.length : null,
-    count: rows.length,
-    trend: values.length >= 2
-      ? (values[values.length - 1] > values[0] ? 'up' : 'down')
-      : 'stable',
-    history: rows,
-  };
+  const data: Record<string, unknown> = {};
+  for (const type of VALID_TYPES) {
+    const buckets = byType.get(type) ?? [];
+    if (buckets.length === 0) {
+      data[type] = { min: null, max: null, avg: null, count: 0, trend: 'stable', buckets: [] };
+      continue;
+    }
 
-  return c.json({ data: stats });
+    const first = buckets[0];
+    const min   = first.total_min  != null ? parseFloat(first.total_min)  : null;
+    const max   = first.total_max  != null ? parseFloat(first.total_max)  : null;
+    const avg   = first.total_avg  != null ? parseFloat(first.total_avg)  : null;
+    const count = parseInt(first.total_cnt, 10);
+
+    const bucketVals = buckets
+      .map(b => b.bucket_avg != null ? parseFloat(b.bucket_avg) : null)
+      .filter((v): v is number => v !== null);
+    const trend: 'up' | 'down' | 'stable' = bucketVals.length >= 2
+      ? (bucketVals[bucketVals.length - 1] > bucketVals[0] ? 'up' : 'down')
+      : 'stable';
+
+    const formattedBuckets = buckets.map(b => ({
+      label: formatBucketLabel(new Date(b.bucket), period),
+      value: b.bucket_avg != null ? Math.round(parseFloat(b.bucket_avg) * 10) / 10 : 0,
+    }));
+
+    data[type] = { min, max, avg, count, trend, buckets: formattedBuckets };
+  }
+
+  return c.json({ data });
 });
 
 // ─── GET /vitals ───────────────────────────────────────────────────────────────

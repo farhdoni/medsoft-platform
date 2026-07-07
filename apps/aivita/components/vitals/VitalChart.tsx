@@ -6,43 +6,24 @@ import {
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 
-interface HistoryRow {
-  recordedAt: string;
-  value: Record<string, unknown>;
+interface BucketPoint {
+  label: string;
+  value: number;
 }
 
 interface Props {
   type: string;
-  history: HistoryRow[];
+  buckets: BucketPoint[];
   unit: string;
   color: string;
 }
 
 const BAR_TYPES = new Set(['steps', 'water_ml', 'sleep_hours']);
 
-function extractNumeric(row: HistoryRow): number | null {
-  const v = row.value;
-  if (typeof v.value === 'number') return v.value;
-  if (typeof v.hours === 'number') return v.hours;
-  if (typeof v.systolic === 'number') return v.systolic as number;
-  return null;
-}
+export function VitalChart({ type, buckets, unit, color }: Props) {
+  if (buckets.length === 0) return null;
 
-function formatDate(iso: string, period?: string) {
-  const d = new Date(iso);
-  if (period === 'year') return d.toLocaleDateString('ru', { month: 'short' });
-  return d.toLocaleDateString('ru', { day: 'numeric', month: 'numeric' });
-}
-
-export function VitalChart({ type, history, unit, color }: Props) {
-  if (history.length === 0) return null;
-
-  const data = history
-    .map((r) => ({ date: r.recordedAt, val: extractNumeric(r) }))
-    .filter((d): d is { date: string; val: number } => d.val !== null)
-    .map((d) => ({ date: formatDate(d.date), val: d.val }));
-
-  if (data.length === 0) return null;
+  const data = buckets.map(b => ({ date: b.label, val: b.value }));
 
   const isBar = BAR_TYPES.has(type);
   const Chart = isBar ? BarChart : LineChart;
