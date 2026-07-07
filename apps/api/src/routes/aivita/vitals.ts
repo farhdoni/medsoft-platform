@@ -116,8 +116,8 @@ aivitaVitalsRouter.get('/stats', async (c) => {
         type,
         date_trunc(${trunc}, recorded_at) AS bucket,
         COALESCE(
-          (value->>'value')::numeric,
-          (value->>'systolic')::numeric
+          ((value#>>'{}')::jsonb->>'value')::numeric,
+          ((value#>>'{}')::jsonb->>'systolic')::numeric
         ) AS val
       FROM vitals
       WHERE user_id = ${userId}
