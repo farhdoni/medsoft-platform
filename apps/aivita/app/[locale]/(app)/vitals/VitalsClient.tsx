@@ -79,7 +79,7 @@ interface VitalStats {
   avg: number | null;
   count: number;
   trend: 'up' | 'down' | 'stable';
-  history: Array<{ recordedAt: string; value: Record<string, unknown> }>;
+  buckets: Array<{ label: string; value: number }>;
 }
 
 type StatsMap = Partial<Record<string, VitalStats>>;
@@ -141,7 +141,7 @@ function ChartsSection({ stats, period, onPeriodChange }: {
             <div className="mb-3">
               <VitalChart
                 type={def.type}
-                history={s.history}
+                buckets={s.buckets}
                 unit={def.unit}
                 color={def.color}
               />
@@ -598,20 +598,10 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
     setStatsLoading(true);
     setStatsError(false);
     try {
-      const results = await Promise.allSettled(
-        VITAL_DEFS.map((def) =>
-          fetch(`/api/vitals/stats?type=${def.type}&period=${p}`)
-            .then((r) => r.ok ? r.json() : Promise.reject(r.status))
-            .then((json) => ({ type: def.type, data: json.data as VitalStats }))
-        )
-      );
-      const map: StatsMap = {};
-      for (const r of results) {
-        if (r.status === 'fulfilled') {
-          map[r.value.type] = r.value.data;
-        }
-      }
-      setStats(map);
+      const res = await fetch(`/api/vitals/stats?period=${p}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const json = await res.json();
+      setStats(json.data as StatsMap);
     } catch {
       setStatsError(true);
     } finally {
