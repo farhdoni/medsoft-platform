@@ -105,7 +105,7 @@ aivitaVitalsRouter.get('/stats', async (c) => {
   const { period } = c.req.query();
 
   const days = period === 'month' ? 30 : period === 'year' ? 365 : 7;
-  const from = new Date(Date.now() - days * 86400000);
+  const from = new Date(Date.now() - days * 86400000).toISOString();
   const trunc = period === 'year' ? 'month' : period === 'month' ? 'week' : 'day';
 
   // One CTE-based query: bucket aggregates + overall stats per type, all types in one scan.
