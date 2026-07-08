@@ -622,12 +622,18 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
     fetch('/api/vitals?limit=20&offset=0')
       .then((r) => r.json())
       .then((json: { items?: VitalRow[]; total?: number; hasMore?: boolean }) => {
-        setHistItems(json.items ?? []);
-        setHistTotal(json.total ?? 0);
-        setHistHasMore(json.hasMore ?? false);
-        setHistOffset(json.items?.length ?? 0);
+        // Не затирать SSR-данные пустым/битым ответом
+        if (Array.isArray(json.items) && json.items.length > 0) {
+          setHistItems(json.items);
+          setHistTotal(json.total ?? json.items.length);
+          setHistHasMore(json.hasMore ?? false);
+          setHistOffset(json.items.length);
+        } else if (typeof json.total === 'number' && json.total > 0) {
+          setHistTotal(json.total);
+          setHistHasMore(json.hasMore ?? false);
+        }
       })
-      .catch(() => {});
+      .catch((e) => { console.error('vitals history load failed', e); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
