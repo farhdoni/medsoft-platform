@@ -125,18 +125,19 @@ aivitaVitalsRouter.get('/stats', async (c) => {
     ),
     bucket_agg AS (
       SELECT type, bucket,
-        AVG(val)   AS bucket_avg,
+        CASE WHEN type IN ('steps','water_ml','distance')
+             THEN SUM(val) ELSE AVG(val) END AS bucket_avg,
         COUNT(*)   AS bucket_cnt
       FROM base
       GROUP BY type, bucket
     ),
     overall_agg AS (
       SELECT type,
-        MIN(val)    AS total_min,
-        MAX(val)    AS total_max,
-        AVG(val)    AS total_avg,
-        COUNT(val)  AS total_cnt
-      FROM base
+        MIN(bucket_avg) AS total_min,
+        MAX(bucket_avg) AS total_max,
+        AVG(bucket_avg) AS total_avg,
+        SUM(bucket_cnt) AS total_cnt
+      FROM bucket_agg
       GROUP BY type
     )
     SELECT
