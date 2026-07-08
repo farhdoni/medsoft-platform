@@ -583,10 +583,16 @@ interface Props {
 export function VitalsClient({ initialLatest, initialRows }: Props) {
   const router = useRouter();
   const [latest, setLatest] = useState<LatestVitals>(initialLatest);
-  const [rows, setRows] = useState<VitalRow[]>(initialRows);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<string>('heart_rate');
   const [, startTransition] = useTransition();
+
+  // History pagination
+  const [histItems, setHistItems] = useState<VitalRow[]>(initialRows.slice(0, 20));
+  const [histOffset, setHistOffset] = useState(Math.min(initialRows.length, 20));
+  const [histTotal, setHistTotal] = useState<number | null>(null);
+  const [histHasMore, setHistHasMore] = useState(initialRows.length >= 20);
+  const [histLoading, setHistLoading] = useState(false);
 
   // Analytics
   const [period, setPeriod] = useState<Period>('week');
@@ -611,6 +617,35 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
 
   useEffect(() => { void loadStats(period); }, [period, loadStats]);
 
+  // On mount: fetch canonical first page to get server-side total
+  useEffect(() => {
+    fetch('/api/vitals?limit=20&offset=0')
+      .then((r) => r.json())
+      .then((json: { items?: VitalRow[]; total?: number; hasMore?: boolean }) => {
+        setHistItems(json.items ?? []);
+        setHistTotal(json.total ?? 0);
+        setHistHasMore(json.hasMore ?? false);
+        setHistOffset(json.items?.length ?? 0);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadMoreHistory() {
+    if (histLoading || !histHasMore) return;
+    setHistLoading(true);
+    try {
+      const res = await fetch(`/api/vitals?limit=20&offset=${histOffset}`);
+      const json: { items?: VitalRow[]; total?: number; hasMore?: boolean } = await res.json();
+      setHistItems((prev) => [...prev, ...(json.items ?? [])]);
+      setHistTotal(json.total ?? histTotal);
+      setHistHasMore(json.hasMore ?? false);
+      setHistOffset((prev) => prev + (json.items?.length ?? 0));
+    } finally {
+      setHistLoading(false);
+    }
+  }
+
   // Open the add-vital modal automatically when navigated from the home page
   // quick-stats cards via ?add=heart_rate etc.
   useEffect(() => {
@@ -628,9 +663,15 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
 
   function handleSaved() {
     startTransition(() => router.refresh());
-    fetch('/api/vitals')
+    // Reset history to first page so new entry appears at top
+    fetch('/api/vitals?limit=20&offset=0')
       .then((r) => r.json())
-      .then((json) => { if (json.data) setRows(json.data); })
+      .then((json: { items?: VitalRow[]; total?: number; hasMore?: boolean }) => {
+        setHistItems(json.items ?? []);
+        setHistTotal(json.total ?? 0);
+        setHistHasMore(json.hasMore ?? false);
+        setHistOffset(json.items?.length ?? 0);
+      })
       .catch(() => {});
 
     fetch('/api/vitals/latest')
@@ -642,7 +683,8 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
   }
 
   function handleDelete(id: string) {
-    setRows((prev) => prev.filter((r) => r.id !== id));
+    setHistItems((prev) => prev.filter((r) => r.id !== id));
+    setHistTotal((prev) => (prev !== null ? prev - 1 : null));
     fetch(`/api/vitals/${id}`, { method: 'DELETE' }).catch(() => {});
   }
 
@@ -708,9 +750,31 @@ export function VitalsClient({ initialLatest, initialRows }: Props) {
 
       {/* History */}
       <section className="mb-6">
-        <h2 className="text-[13px] font-bold mb-3" style={{ color: '#6a6580' }}>ИСТОРИЯ ЗАПИСЕЙ</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[13px] font-bold" style={{ color: '#6a6580' }}>ИСТОРИЯ ЗАПИСЕЙ</h2>
+          {histTotal !== null && (
+            <span className="text-[11px]" style={{ color: '#9a96a8' }}>
+              {histItems.length} из {histTotal}
+            </span>
+          )}
+        </div>
         <div className="rounded-[20px] bg-white border p-3 border-app-border">
-          <HistoryList rows={rows} onDelete={handleDelete} />
+          <HistoryList rows={histItems} onDelete={handleDelete} />
+          {histHasMore && (
+            <button
+              onClick={() => void loadMoreHistory()}
+              disabled={histLoading}
+              className="mt-2 w-full py-2 rounded-[12px] text-[13px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+              style={{ color: 'var(--accent-dark)', background: 'var(--accent-light)' }}
+            >
+              {histLoading ? 'Загрузка...' : 'Показать ещё'}
+            </button>
+          )}
+          {!histHasMore && histTotal !== null && histItems.length > 0 && (
+            <p className="mt-2 text-center text-[11px]" style={{ color: '#9a96a8' }}>
+              Показаны все {histTotal}
+            </p>
+          )}
         </div>
       </section>
 

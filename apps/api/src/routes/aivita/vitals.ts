@@ -198,6 +198,14 @@ aivitaVitalsRouter.get('/stats', async (c) => {
 aivitaVitalsRouter.get('/', async (c) => {
   const userId = c.get('aivitaUserId');
   const { from, to, type } = c.req.query();
+  const limitRaw = c.req.query('limit');
+  const offsetRaw = c.req.query('offset');
+
+  // Pagination mode: ?limit=N → returns { items, total, hasMore }.
+  // Without limit → legacy { data: rows } with hard cap 100 (SSR + handleSaved callers).
+  const paginated = limitRaw !== undefined;
+  const limit  = paginated ? Math.min(50, Math.max(1, Number(limitRaw) || 20)) : 100;
+  const offset = paginated ? Math.max(0, Number(offsetRaw ?? '0') || 0) : 0;
 
   let conditions = [eq(vitals.userId, userId)];
 
@@ -210,6 +218,21 @@ aivitaVitalsRouter.get('/', async (c) => {
     const tz = await getUserTimezone(userId);
     if (from) conditions.push(gte(vitals.recordedAt, parseDateBoundary(from, tz)));
     if (to) conditions.push(lte(vitals.recordedAt, parseDateBoundary(to, tz, { endOfDay: true })));
+  }
+
+  if (paginated) {
+    const [{ total }] = await db
+      .select({ total: sql<number>`cast(count(*) as int)` })
+      .from(vitals)
+      .where(and(...conditions));
+
+    const rows = await db.select().from(vitals)
+      .where(and(...conditions))
+      .orderBy(desc(vitals.recordedAt))
+      .limit(limit)
+      .offset(offset);
+
+    return c.json({ items: rows, total, hasMore: offset + rows.length < total });
   }
 
   const rows = await db.select().from(vitals)
