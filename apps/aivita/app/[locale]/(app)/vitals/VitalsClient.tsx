@@ -181,6 +181,21 @@ function formatTime(iso: string) {
   return `${d.toLocaleDateString('ru', { day: 'numeric', month: 'short' })} · ${time}`;
 }
 
+function dateKey(iso: string) { return new Date(iso).toDateString(); }
+
+function dateLabel(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const yest = new Date(now); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === now.toDateString()) return 'Сегодня';
+  if (d.toDateString() === yest.toDateString()) return 'Вчера';
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+}
+
+function timeOnly(iso: string) {
+  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
 // ─── AI Monitor Alerts ────────────────────────────────────────────────────────
 
 interface Alert {
@@ -392,31 +407,52 @@ function HistoryList({ rows, onDelete }: { rows: VitalRow[]; onDelete: (id: stri
     );
   }
 
+  // Group rows by calendar date (rows are already sorted DESC by recordedAt)
+  const groups: { key: string; label: string; items: VitalRow[] }[] = [];
+  for (const row of rows) {
+    const k = dateKey(row.recordedAt);
+    const last = groups[groups.length - 1];
+    if (last && last.key === k) {
+      last.items.push(row);
+    } else {
+      groups.push({ key: k, label: dateLabel(row.recordedAt), items: [row] });
+    }
+  }
+
   return (
-    <div className="space-y-1">
-      {rows.map((row) => {
-        const def = getVitalDef(row.type);
-        return (
-          <div key={row.id} className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] hover:bg-[#f4f3ef] transition-colors group">
-            <span className="text-[18px] flex-shrink-0">{def?.icon ?? '📊'}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold truncate" style={{ color: '#2a2540' }}>
-                {def?.label ?? row.type} — {formatValue(row)} {def?.unit}
-              </p>
-              <p className="text-[11px]" style={{ color: '#9a96a8' }}>
-                {formatTime(row.recordedAt)} · {row.source === 'manual' ? '✋ Вручную' : `⌚ ${row.source}`}
-              </p>
-            </div>
-            <button
-              onClick={() => onDelete(row.id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-[18px] p-1"
-              title="Удалить"
-            >
-              🗑️
-            </button>
+    <div>
+      {groups.map((group) => (
+        <div key={group.key}>
+          <p className="text-[11px] font-semibold px-1 pt-3 pb-1" style={{ color: '#b3adb8' }}>
+            {group.label}
+          </p>
+          <div className="space-y-1">
+            {group.items.map((row) => {
+              const def = getVitalDef(row.type);
+              return (
+                <div key={row.id} className="flex items-center gap-3 px-3 py-2.5 rounded-[12px] hover:bg-[#f4f3ef] transition-colors group">
+                  <span className="text-[18px] flex-shrink-0">{def?.icon ?? '📊'}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold truncate" style={{ color: '#2a2540' }}>
+                      {def?.label ?? row.type} — {formatValue(row)} {def?.unit}
+                    </p>
+                    <p className="text-[11px]" style={{ color: '#9a96a8' }}>
+                      {timeOnly(row.recordedAt)} · {row.source === 'manual' ? '✋ Вручную' : `⌚ ${row.source}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onDelete(row.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[18px] p-1"
+                    title="Удалить"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
