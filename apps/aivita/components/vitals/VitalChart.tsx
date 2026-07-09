@@ -18,7 +18,7 @@ interface Props {
   color: string;
 }
 
-const BAR_TYPES = new Set(['steps', 'water_ml', 'sleep_hours']);
+const BAR_TYPES = new Set(['steps', 'water_ml', 'sleep_hours', 'distance']);
 
 export function VitalChart({ type, buckets, unit, color }: Props) {
   if (buckets.length === 0) return null;
