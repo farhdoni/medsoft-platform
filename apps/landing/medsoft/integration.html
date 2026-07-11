@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Интеграции МИС AIVITA — е-здоровье, HL7 FHIR, лаборатории</title>
+<meta name="description" content="AIVITA МИС интеграции: е-здоровье Узбекистана, HL7 FHIR, лабораторные системы, Click/Payme, онлайн-касса, SMS, WhatsApp. Открытый API для разработчиков.">
+<link rel="canonical" href="https://aivita.uz/medsoft/integration.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/page.css">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@graph":[
+    {"@type":"WebPage","@id":"https://aivita.uz/medsoft/integration.html#webpage",
+     "name":"Интеграции МИС AIVITA — е-здоровье, HL7 FHIR, лаборатории","url":"https://aivita.uz/medsoft/integration.html",
+     "breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://aivita.uz/"},{"@type":"ListItem","position":2,"name":"МИС для клиник","item":"https://aivita.uz/medsoft/"},{"@type":"ListItem","position":3,"name":"Интеграции AIVITA МИС с внешними системами","item":"https://aivita.uz/medsoft/integration.html"}]}},
+    {"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Есть ли готовая интеграция с е-здоровье Узбекистана?","acceptedAnswer":{"@type":"Answer","text":"Да, интеграция с е-здоровье входит в базовый пакет AIVITA МИС и настраивается в рамках внедрения. Данные передаются автоматически согласно требованиям Минздрава РУ."}},{"@type":"Question","name":"Можно ли подключить AIVITA к нашей существующей лаборатории?","acceptedAnswer":{"@type":"Answer","text":"Да, если ваша лаборатория поддерживает стандарты HL7 или имеет API, интеграция настраивается в течение 1–2 недель. Поддерживаем наиболее распространённые LIS в Узбекистане."}},{"@type":"Question","name":"Есть ли API для разработчиков?","acceptedAnswer":{"@type":"Answer","text":"Да, AIVITA предоставляет документированный REST API. Позволяет подключить сайт клиники, мобильное приложение, колл-центр или любую внешнюю систему."}},{"@type":"Question","name":"Какие платёжные системы поддерживаются?","acceptedAnswer":{"@type":"Answer","text":"Click, Payme, Uzcard, HUMO, банковские переводы. Онлайн-касса формирует фискальный чек автоматически согласно требованиям налоговых органов РУ."}}]}
+  ]
+}
+</script>
+</head>
+<body>
+<header class="topnav">
+  <a class="nav-logo" href="/"><img src="/assets/logo-horizontal.png" alt="AIVITA"></a>
+  <nav class="nav-links">
+    <a href="/features/">Возможности</a>
+    <a href="/medsoft/" class="active hide-mob">МИС для клиник</a>
+    <a href="/medical-tourism/" class="hide-mob">Медтуризм</a>
+    <a href="/doctors/" class="hide-mob">Врачи</a>
+    <a href="/get-app.html" class="nav-cta">Скачать</a>
+  </nav>
+</header>
+<nav class="breadcrumb"><a href="/">Главная</a><span>›</span><a href="/medsoft/">МИС для клиник</a><span>›</span>Интеграции AIVITA МИС с внешними системами</nav>
+<div class="page-hero">
+  <div class="pill">🔗 Интеграции</div>
+  <h1>Интеграции AIVITA МИС с внешними системами</h1>
+  <p class="lead">AIVITA МИС интегрируется с ключевыми внешними системами: е-здоровье Узбекистана, HL7 FHIR, лаборатории, платёжные системы, кассовое оборудование, мессенджеры.</p>
+</div>
+<div class="content">
+  <h2>Государственные системы здравоохранения</h2>
+  <p><strong>е-здоровье (Узбекистан).</strong> AIVITA МИС синхронизирует данные пациентов с государственной платформой е-здоровье в соответствии с требованиями Минздрава РУ. Регистрация визитов, диагнозы по МКБ-10, прививки — всё автоматически.</p>
+  <p><strong>HL7 FHIR.</strong> Стандарт обмена медицинскими данными, поддерживаемый AIVITA. Позволяет обмениваться данными с другими МИС, лабораториями и диагностическими центрами без ручного ввода.</p>
+
+  <h2>Лабораторные и диагностические системы</h2>
+  <div class="cards">
+    <div class="card"><div class="card-icon">🧪</div><h3>LIS (Лабораторные системы)</h3><p>Результаты анализов из лаборатории попадают в ЭМК пациента автоматически. Врач видит результаты, не выходя из карты.</p></div>
+    <div class="card"><div class="card-icon">🖼️</div><h3>DICOM (Снимки)</h3><p>Интеграция с PACS-системами: рентген, УЗИ, МРТ, КТ снимки хранятся в ЭМК и доступны врачу мгновенно.</p></div>
+    <div class="card"><div class="card-icon">💊</div><h3>Аптечные системы</h3><p>Интеграция с аптеками клиники: врач выписывает рецепт в ЭМК, аптека получает его автоматически.</p></div>
+    <div class="card"><div class="card-icon">📱</div><h3>Носимые устройства</h3><p>Данные Mi Band, Samsung Health, Google Health Connect попадают в медкарту пациента для мониторинга хронических заболеваний.</p></div>
+  </div>
+
+  <h2>Платёжные системы и онлайн-касса</h2>
+  <p>AIVITA МИС поддерживает интеграцию с узбекскими платёжными системами: Click, Payme, карты Uzcard и HUMO. Онлайн-оплата консультаций, автоматическое формирование кассового чека, сверка с бухгалтерией.</p>
+
+  <h2>Коммуникации с пациентами</h2>
+  <p>SMS через Uzbektelecom и Beeline, WhatsApp Business API, Telegram-бот для клиники. Напоминания о визитах, результаты анализов, акции и профилактические напоминания — автоматически.</p>
+
+  <h2>Открытый API</h2>
+  <p>AIVITA предоставляет REST API с документацией для разработчиков. Клиника может подключить собственные разработки: мобильное приложение, сайт, CRM, колл-центр.</p>
+  <div class="faq">
+    <h2>Частые вопросы</h2>
+    <details>
+      <summary>Есть ли готовая интеграция с е-здоровье Узбекистана? <span class="sum-icon">+</span></summary>
+      <p>Да, интеграция с е-здоровье входит в базовый пакет AIVITA МИС и настраивается в рамках внедрения. Данные передаются автоматически согласно требованиям Минздрава РУ.</p>
+    </details>    <details>
+      <summary>Можно ли подключить AIVITA к нашей существующей лаборатории? <span class="sum-icon">+</span></summary>
+      <p>Да, если ваша лаборатория поддерживает стандарты HL7 или имеет API, интеграция настраивается в течение 1–2 недель. Поддерживаем наиболее распространённые LIS в Узбекистане.</p>
+    </details>    <details>
+      <summary>Есть ли API для разработчиков? <span class="sum-icon">+</span></summary>
+      <p>Да, AIVITA предоставляет документированный REST API. Позволяет подключить сайт клиники, мобильное приложение, колл-центр или любую внешнюю систему.</p>
+    </details>    <details>
+      <summary>Какие платёжные системы поддерживаются? <span class="sum-icon">+</span></summary>
+      <p>Click, Payme, Uzcard, HUMO, банковские переводы. Онлайн-касса формирует фискальный чек автоматически согласно требованиям налоговых органов РУ.</p>
+    </details>
+  </div>
+
+  <div class="cta-box">
+    <h2>Запросить демо для вашей клиники</h2>
+    <p>Бесплатная демонстрация и расчёт стоимости за 24 часа</p>
+    <a href="https://app.aivita.uz/demo" class="btn-primary">Запросить демо</a>
+    <a href="/medsoft/" class="btn-secondary">Все модули МИС</a>
+  </div>
+
+  <div class="related">
+    <h3>Читайте также</h3>
+    <div class="related-grid">
+      <a class="related-item" href="/medsoft/"><div class="ri-tag">МИС</div><div class="ri-title">МИС для клиник — все модули</div></a>      <a class="related-item" href="/medsoft/emr.html"><div class="ri-tag">Медсофт</div><div class="ri-title">Электронная медкарта</div></a>      <a class="related-item" href="/medsoft/analytics.html"><div class="ri-tag">Медсофт</div><div class="ri-title">Аналитика клиники</div></a>
+    </div>
+  </div>
+</div>
+<footer class="site-footer">
+  <img src="/assets/logo-horizontal.png" alt="AIVITA" class="footer-logo">
+  <div class="footer-links">
+    <a href="/">Главная</a><a href="/features/">Возможности</a>
+    <a href="/medsoft/">МИС для клиник</a><a href="/doctors/">Врачи</a>
+    <a href="/about.html">О нас</a><a href="/blog/">Блог</a>
+  </div>
+  <p class="footer-copy">© 2026 AIVITA — Медицинская информационная система для Узбекистана</p>
+</footer>
+</body></html>
