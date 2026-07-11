@@ -3,29 +3,192 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIVITA — AI-платформа здоровья для Узбекистана</title>
-<meta name="description" content="Aivita — твой персональный AI-ассистент здоровья. Медкарта, чекап, врачи и забота о семье в одном приложении." />
+<title>AIVITA — AI-ассистент здоровья в Узбекистане | Медкарта, AI-чекап, врачи онлайн</title>
+<meta name="description" content="AIVITA — AI-ассистент здоровья из Узбекистана: электронная медкарта с QR, AI-чекап за 60 секунд, Drug Checker, 250+ врачей онлайн. Бесплатно, на русском, узбекском и английском." />
 <meta name="theme-color" content="#c87d8a" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="icon" type="image/x-icon" href="/assets/favicon.ico" /><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
 <link rel="apple-touch-icon" href="/assets/logo-icon.png" />
 
+<!-- Canonical -->
+<link rel="canonical" href="https://aivita.uz/" />
+
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="AIVITA — AI-платформа здоровья" />
-<meta property="og:description" content="Твой персональный AI-ассистент здоровья. Медкарта, чекап, врачи — в одном приложении." />
-<meta property="og:image" content="https://aivita.uz/assets/logo-avatar.png" />
+<meta property="og:title" content="AIVITA — AI-ассистент здоровья в Узбекистане" />
+<meta property="og:description" content="Электронная медкарта с QR, AI-чекап за 60 секунд, Drug Checker, 250+ врачей онлайн. Бесплатно, на русском, узбекском и английском." />
+<meta property="og:image" content="https://aivita.uz/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://aivita.uz/" />
-<meta property="og:site_name" content="aivita.uz" />
+<meta property="og:site_name" content="AIVITA" />
 <meta property="og:locale" content="ru_RU" />
 <meta property="og:locale:alternate" content="uz_UZ" />
 <meta property="og:locale:alternate" content="en_US" />
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="AIVITA — AI-платформа здоровья" />
-<meta name="twitter:description" content="Твой персональный AI-ассистент здоровья." />
-<meta name="twitter:image" content="https://aivita.uz/assets/logo-avatar.png" />
+<meta name="twitter:site" content="@aivita_uz" />
+<meta name="twitter:title" content="AIVITA — AI-ассистент здоровья в Узбекистане" />
+<meta name="twitter:description" content="Медкарта с QR, AI-чекап, Drug Checker, 250+ врачей онлайн. Бесплатно." />
+<meta name="twitter:image" content="https://aivita.uz/assets/og-image.png" />
+
+<!-- Schema.org JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": ["Organization", "MedicalOrganization"],
+      "@id": "https://aivita.uz/#organization",
+      "name": "AIVITA",
+      "alternateName": "AIVITA — AI-ассистент здоровья",
+      "url": "https://aivita.uz",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://aivita.uz/assets/logo-horizontal.png",
+        "width": 200,
+        "height": 50
+      },
+      "description": "AIVITA — AI-ассистент здоровья из Узбекистана: электронная медкарта с QR, AI-чекап за 60 секунд, Drug Checker, 250+ врачей онлайн.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "UZ",
+        "addressLocality": "Ташкент"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "availableLanguage": ["Russian", "Uzbek", "English"]
+      },
+      "sameAs": [
+        "https://t.me/aivita_uz",
+        "https://www.instagram.com/aivita.uz"
+      ],
+      "foundingDate": "2024",
+      "areaServed": {
+        "@type": "Country",
+        "name": "Uzbekistan"
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://aivita.uz/#app",
+      "name": "AIVITA",
+      "url": "https://app.aivita.uz",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Android, iOS, Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "UZS"
+      },
+      "description": "AI-ассистент здоровья: медкарта с QR-кодом, AI-чекап 5 систем организма, Drug Checker, 250+ врачей онлайн, SOS-кнопка. Работает на русском, узбекском и английском языках.",
+      "inLanguage": ["ru", "uz", "en"],
+      "publisher": {
+        "@id": "https://aivita.uz/#organization"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://aivita.uz/#website",
+      "url": "https://aivita.uz",
+      "name": "AIVITA",
+      "description": "AI-ассистент здоровья в Узбекистане",
+      "publisher": {
+        "@id": "https://aivita.uz/#organization"
+      },
+      "inLanguage": ["ru", "uz", "en"]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://aivita.uz/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Что такое AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AIVITA — это AI-ассистент здоровья из Узбекистана. Приложение объединяет электронную медкарту с QR-кодом, AI-чекап (оценка 5 систем организма за 60 секунд), проверку совместимости лекарств (Drug Checker), консультации 250+ врачей онлайн, управление здоровьем всей семьи и SOS-кнопку экстренной помощи. Работает на русском, узбекском и английском языках."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Сколько стоит AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Базовый доступ к AIVITA бесплатен. Медкарта, AI-чекап и Drug Checker доступны без оплаты. Расширенные функции (консультации врачей, телемедицина) предоставляются по подписке. Подробнее на странице тарифов: https://aivita.uz/pricing.html"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Что такое AI-чекап в AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AI-чекап — это автоматизированная оценка здоровья за 60 секунд. AI анализирует данные по 5 системам организма: сердечно-сосудистой, пищеварительной, опорно-двигательной, нервной и иммунной. По результатам формируется Health Score от 0 до 100 и персональный план улучшения здоровья."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Как работает Drug Checker в AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Drug Checker — модуль проверки совместимости лекарств в AIVITA. Пользователь вводит список принимаемых препаратов, и AI проверяет опасные взаимодействия между ними. Функция помогает избежать нежелательных реакций при комбинировании лекарств."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "На каких языках работает AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AIVITA работает на трёх языках: русском, узбекском и английском. Пользователь может переключить язык интерфейса в любой момент. AI-чат и медицинский контент доступны на всех трёх языках."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Что такое медкарта с QR в AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Электронная медкарта AIVITA — это цифровой паспорт здоровья с уникальным QR-кодом. Врач или медработник может мгновенно получить доступ к истории болезней, аллергиям, хроническим заболеваниям и текущим лекарствам пациента, просто отсканировав QR-код. Данные хранятся в защищённом облаке."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Безопасны ли мои данные в AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AIVITA использует шифрование данных при передаче (TLS) и хранении. Медицинские данные пользователей не передаются третьим лицам без явного согласия. Политика конфиденциальности опубликована на https://aivita.uz/privacy.html"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "В каких городах работают врачи AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AIVITA предоставляет доступ к 250+ врачам по всему Узбекистану, включая все 14 регионов страны. Онлайн-консультации доступны из любой точки страны. Список клиник-партнёров доступен на странице https://aivita.uz/clinics.html"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Как скачать приложение AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Приложение AIVITA доступно для Android в Google Play и для iOS в App Store. Ссылки для скачивания: https://aivita.uz/get-app.html . Также доступна веб-версия на https://app.aivita.uz — без скачивания, в браузере."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Что такое SOS-кнопка в AIVITA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SOS-кнопка в AIVITA — функция экстренной помощи. При нажатии приложение автоматически отправляет геолокацию и медицинские данные пользователя экстренным контактам и службам помощи. Функция работает без интернет-соединения в режиме звонка."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 
 <!-- ===== Google Tag Manager (replace GTM-XXXXXXX with real ID) ===== -->
 <script>
@@ -1454,6 +1617,95 @@ h1 .gradient {
         Заведи свою медицинскую карту <span class="arrow">→</span>
       </button>
     </div>
+  </div>
+</section>
+
+
+<!-- ===== FAQ ===== -->
+<section id="faq" style="max-width:800px;margin:0 auto;padding:60px 24px 40px">
+  <h2 style="font-size:clamp(22px,4vw,32px);font-weight:700;text-align:center;margin-bottom:36px;color:#2a2540">Частые вопросы</h2>
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Что такое AIVITA?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">AIVITA — AI-ассистент здоровья из Узбекистана. Приложение объединяет электронную медкарту с QR-кодом, AI-чекап (оценка 5 систем организма за 60 секунд), проверку совместимости лекарств (Drug Checker), консультации 250+ врачей онлайн, управление здоровьем всей семьи и SOS-кнопку. Работает на русском, узбекском и английском языках.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Сколько стоит AIVITA?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">Базовый доступ к AIVITA бесплатен. Медкарта, AI-чекап и Drug Checker доступны без оплаты. Расширенные функции (консультации врачей, телемедицина) предоставляются по подписке. Подробнее на <a href="/pricing.html" style="color:#8b6aae">странице тарифов</a>.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Что такое AI-чекап?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">AI-чекап — автоматизированная оценка здоровья за 60 секунд. AI анализирует данные по 5 системам организма: сердечно-сосудистой, пищеварительной, опорно-двигательной, нервной и иммунной. По результатам формируется Health Score от 0 до 100 и персональный план улучшения здоровья.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Как работает Drug Checker?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">Drug Checker — модуль проверки совместимости лекарств. Введите список принимаемых препаратов, и AI мгновенно проверит опасные взаимодействия между ними. Функция помогает избежать нежелательных реакций при одновременном приёме нескольких лекарств.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Что такое медкарта с QR-кодом?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">Электронная медкарта AIVITA — цифровой паспорт здоровья с уникальным QR-кодом. Врач или медработник мгновенно получает доступ к истории болезней, аллергиям, хроническим заболеваниям и текущим лекарствам пациента, просто отсканировав QR. Данные хранятся в защищённом облаке.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Как скачать приложение AIVITA?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">Приложение AIVITA доступно для Android (Google Play) и iOS (App Store). Ссылки на скачивание: <a href="/get-app.html" style="color:#8b6aae">aivita.uz/get-app</a>. Также доступна веб-версия на <a href="https://app.aivita.uz" style="color:#8b6aae">app.aivita.uz</a> — без скачивания, прямо в браузере.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Безопасны ли мои медицинские данные?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">AIVITA использует шифрование данных при передаче (TLS) и хранении. Медицинские данные не передаются третьим лицам без явного согласия пользователя. Подробности в <a href="/privacy.html" style="color:#8b6aae">политике конфиденциальности</a>.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        На каких языках работает AIVITA?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">AIVITA работает на трёх языках: русском, узбекском и английском. Язык интерфейса переключается в любой момент. AI-чат и медицинский контент доступны на всех трёх языках.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        В каких городах работают врачи AIVITA?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">AIVITA предоставляет доступ к 250+ врачам во всех 14 регионах Узбекистана. Онлайн-консультации доступны из любой точки страны. Список клиник-партнёров: <a href="/clinics.html" style="color:#8b6aae">aivita.uz/clinics</a>.</p>
+    </details>
+
+    <details style="background:#fff;border:1px solid #e8e6ee;border-radius:14px;padding:20px 24px;cursor:pointer">
+      <summary style="font-weight:600;font-size:16px;color:#2a2540;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        Что такое SOS-кнопка в AIVITA?
+        <span style="font-size:20px;color:#8b6aae;flex-shrink:0;margin-left:12px">+</span>
+      </summary>
+      <p style="margin-top:12px;color:#5a566a;line-height:1.6;font-size:15px">SOS-кнопка — функция экстренной помощи. При нажатии приложение автоматически отправляет геолокацию и медицинские данные пользователя экстренным контактам и службам помощи.</p>
+    </details>
+
   </div>
 </section>
 

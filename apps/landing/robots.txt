@@ -1,3 +1,52 @@
 User-agent: *
 Allow: /
+
+# AI crawlers — explicitly allowed for GEO visibility
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+# App cabinet — private, no index needed
+User-agent: *
+Disallow: /app/
+
 Sitemap: https://aivita.uz/sitemap.xml
+Sitemap: https://aivita.uz/llms.txt
