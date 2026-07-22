@@ -271,12 +271,16 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
 
       if (!window.__AIVITA_SCROLL_ATTACHED__) {
         window.__AIVITA_SCROLL_ATTACHED__ = true;
-        window.addEventListener('scroll', function() {
+        document.addEventListener('scroll', function(e) {
+          var el = e.target;
+          var y = (el === document || el === document.documentElement || el === document.body)
+            ? window.scrollY
+            : ((el && el.scrollTop) || 0);
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: '__scroll__',
-            y: window.scrollY
+            y: y
           }));
-        }, { passive: true });
+        }, { passive: true, capture: true });
       }
 
       window.dispatchEvent(new CustomEvent('aivita-native-ready', {
