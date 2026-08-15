@@ -182,13 +182,23 @@ export function WeatherCard() {
   const searchInput = useRef<HTMLInputElement>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Read collapse state from localStorage ────────────────────────────────
+  // ── Read collapse state and saved city from localStorage ────────────────
   useEffect(() => {
-    try { setOpen(localStorage.getItem('aivita_weather_open') === '1'); } catch { /* ignore */ }
-  }, []);
+    try {
+      setOpen(localStorage.getItem('aivita_weather_open') === '1');
+      const saved = localStorage.getItem('aivita_weather_city');
+      if (saved) {
+        const parsed = JSON.parse(saved) as { name: string; lat: number; lon: number };
+        if (parsed.lat && parsed.lon) {
+          setCoords({ lat: parsed.lat, lon: parsed.lon });
+          if (parsed.name) setCity(parsed.name);
+          setGeoReady(true);
+          return;
+        }
+      }
+    } catch { /* ignore */ }
 
-  // ── Step 1: resolve location via geolocation; fall back silently ────────
-  useEffect(() => {
+    // ── Step 1: resolve location via geolocation; fall back silently ────────
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setGeoReady(true);
       return;
@@ -200,7 +210,7 @@ export function WeatherCard() {
         setGeoReady(true);
       },
       () => setGeoReady(true),
-      { timeout: 6000, maximumAge: 600_000, enableHighAccuracy: false },
+      { timeout: 4000, maximumAge: 600_000, enableHighAccuracy: false },
     );
   }, []);
 
@@ -224,19 +234,35 @@ export function WeatherCard() {
       ]);
 
       if (wRes.status === 'fulfilled' && wRes.value.ok) {
-        setWeather((await wRes.value.json()) as OMWeather);
+        const wData = (await wRes.value.json()) as OMWeather;
+        setWeather(wData);
       } else {
         setNetError(true);
       }
+
       if (aRes.status === 'fulfilled' && aRes.value.ok) {
-        setAir((await aRes.value.json()) as OMAir);
+        try {
+          const aData = (await aRes.value.json()) as OMAir;
+          setAir(aData);
+        } catch {
+          // Non-critical: ignore air quality parse errors
+        }
       }
+
       if (kRes.status === 'fulfilled' && kRes.value.ok) {
-        // Response: [header_row, ...data_rows]. Each data row: [time_tag, kp, ...]
-        const rows = (await kRes.value.json()) as string[][];
-        if (rows.length > 1) {
-          const last = rows[rows.length - 1];
-          if (last?.[1] !== undefined) setKp(parseFloat(last[1]));
+        try {
+          const text = await kRes.value.text();
+          if (text && text.trim().startsWith('[')) {
+            const rows = JSON.parse(text) as string[][];
+            if (rows.length > 1) {
+              const last = rows[rows.length - 1];
+              if (last?.[1] !== undefined) setKp(parseFloat(last[1]));
+            }
+          } else {
+            setKp(1); // Default quiet level if NOAA returns 202/empty
+          }
+        } catch {
+          setKp(1); // Non-critical: default to quiet level
         }
       }
     } catch {
@@ -269,11 +295,19 @@ export function WeatherCard() {
   };
 
   const pickCity = (g: GeoCity) => {
+    const cityName = g.name + (g.admin1 ? `, ${g.admin1}` : '');
     setCoords({ lat: g.latitude, lon: g.longitude });
-    setCity(g.name + (g.admin1 ? `, ${g.admin1}` : ''));
+    setCity(cityName);
     setSearchOpen(false);
     setQuery('');
     setSuggestions([]);
+    try {
+      localStorage.setItem('aivita_weather_city', JSON.stringify({
+        name: cityName,
+        lat: g.latitude,
+        lon: g.longitude,
+      }));
+    } catch { /* ignore */ }
   };
 
   // ── Collapse toggle ───────────────────────────────────────────────────────
@@ -286,13 +320,14 @@ export function WeatherCard() {
   // ── Re-trigger geolocation ────────────────────────────────────────────────
   const requestGeo = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    try { localStorage.removeItem('aivita_weather_city'); } catch { /* ignore */ }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         setCity('Моя локация');
       },
       () => {},
-      { timeout: 6000, maximumAge: 0, enableHighAccuracy: false },
+      { timeout: 4000, maximumAge: 0, enableHighAccuracy: false },
     );
   };
 
