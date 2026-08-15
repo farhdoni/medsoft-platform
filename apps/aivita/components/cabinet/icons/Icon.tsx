@@ -208,21 +208,21 @@ const Family3D = ({ size }: { size: Size }) => (
 const ChatAI3D = ({ size }: { size: Size }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" style={{ overflow: "visible" }}>
     <defs>
-      {grad("ca-body", PALETTE.purple.light, PALETTE.purple.mid, PALETTE.purple.dark)}
+      {grad("ca-body", PALETTE.blue.light, PALETTE.blue.mid, PALETTE.blue.dark)}
       {radial("ca-hl", "#fff", "#fff")}
     </defs>
-    <ellipse cx="32" cy="58" rx="14" ry="2" fill="rgba(80, 70, 140, 0.2)" />
+    <ellipse cx="32" cy="56" rx="14" ry="2" fill="rgba(80, 70, 140, 0.2)" />
     <path
-      d="M10 28 Q10 14 26 14 L40 14 Q54 14 54 28 Q54 42 40 42 L24 42 L14 50 L17 42 Q10 40 10 28 Z"
+      d="M12 28 C12 17 21 12 32 12 C43 12 52 17 52 28 C52 38 43 43 32 43 C28.5 43 25 42 22 40.5 L14 46 L15.5 38.5 C13.3 35.5 12 32 12 28 Z"
       fill="url(#ca-body)"
-      stroke={PALETTE.purple.dark}
+      stroke={PALETTE.blue.dark}
       strokeWidth="0.8"
       strokeLinejoin="round"
     />
-    <circle cx="22" cy="28" r="2.5" fill="#fff" />
+    <circle cx="24" cy="28" r="2.5" fill="#fff" />
     <circle cx="32" cy="28" r="2.5" fill="#fff" />
-    <circle cx="42" cy="28" r="2.5" fill="#fff" />
-    <ellipse cx="20" cy="22" rx="4" ry="2" fill="url(#ca-hl)" opacity="0.7" />
+    <circle cx="40" cy="28" r="2.5" fill="#fff" />
+    <ellipse cx="24" cy="20" rx="5" ry="2.5" fill="url(#ca-hl)" opacity="0.7" transform="rotate(-10 24 20)" />
   </svg>
 );
 
