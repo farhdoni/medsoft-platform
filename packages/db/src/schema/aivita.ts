@@ -14,6 +14,7 @@ import {
   serial,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 // ─── 1. aivita_users ───────────────────────────────────────────────────────────
 
@@ -21,6 +22,12 @@ export const aivitaUsers = pgTable(
   'aivita_users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+
+    // Stable, non-public person identifier for external (ecosystem/v1) exchange.
+    // Deliberately separate from `id`: `id` is the internal PK and must never be
+    // handed to partners — `externalId` is what gets exposed instead.
+    externalId: uuid('external_id').notNull().unique().$defaultFn(() => randomUUID()),
+
     email: text('email').unique(),
     phone: text('phone').unique(),
     name: text('name'),
@@ -76,6 +83,7 @@ export const aivitaUsers = pgTable(
     deletedAt: timestamp('deleted_at'),
   },
   (table) => ({
+    externalIdIdx: index('aivita_users_external_id_idx').on(table.externalId),
     emailIdx: index('aivita_users_email_idx').on(table.email),
     phoneIdx: index('aivita_users_phone_idx').on(table.phone),
     providerIdx: index('aivita_users_provider_idx').on(table.provider, table.providerUserId),
