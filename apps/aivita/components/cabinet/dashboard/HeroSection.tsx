@@ -66,47 +66,29 @@ export function HeroSection({ user, metrics }: Props) {
             className="mt-1"
             textStyle={{ fontSize: 11, color: '#fff', opacity: 0.7 }}
           />
-          <h1 className="mt-2 max-w-md text-[22px] font-bold leading-[1.15] sm:text-[28px]">
+          <h1 className="mt-2 max-w-md text-[22px] font-extrabold leading-[1.15] sm:text-[28px]">
             {t('titleLine1')}
             <br />
             {t('titleLine2')}
           </h1>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              ask(question);
-            }}
-            className="mt-6 flex max-w-md items-center gap-2 rounded-chip bg-white/95 p-1.5 pl-4 shadow-card"
-          >
-            <span aria-hidden className="text-[18px] flex-shrink-0">💬</span>
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={t('aiPlaceholder')}
-              className="flex-1 min-w-0 bg-transparent py-2 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none"
-              disabled={submitting}
-            />
+          <div className="mt-5 flex flex-wrap gap-2.5">
             <button
-              type="submit"
-              disabled={submitting}
-              className="shrink-0 whitespace-nowrap rounded-chip bg-accent-rose px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#8a4f5d] disabled:opacity-60"
+              type="button"
+              onClick={() => router.push(`/${locale}/test`)}
+              className="inline-flex items-center gap-1.5 rounded-chip bg-white/20 px-4 py-2 text-[13px] font-bold text-white shadow-sm backdrop-blur-md transition hover:bg-white/30 active:scale-95"
             >
-              {submitting ? "…" : t('askButton')}
+              <span>⚡</span>
+              <span>Пройти чекап</span>
             </button>
-          </form>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {prompts.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => ask(p)}
-                className="rounded-chip border border-white/40 bg-white/10 px-3.5 py-1.5 text-[12px] font-medium text-white/95 transition hover:bg-white/20"
-              >
-                {p}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => router.push(`/${locale}/medical-card`)}
+              className="inline-flex items-center gap-1.5 rounded-chip bg-white/10 border border-white/30 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/20 active:scale-95"
+            >
+              <span>📄</span>
+              <span>Медкарта</span>
+            </button>
           </div>
         </div>
 

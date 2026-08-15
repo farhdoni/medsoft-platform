@@ -183,6 +183,7 @@
   "app": {
     "nav": {
       "home": "Home",
+      "chat": "Chat",
       "test": "Test",
       "habits": "Habits",
       "chats": "Chats",

@@ -1,5 +1,5 @@
 import { ChatPageShell } from '@/components/cabinet/dashboard/ChatPageShell';
-import ChatClient from './ChatClient';
+import { AvChatHubClient } from '@/components/cabinet/chat/AvChatHubClient';
 
 export default async function ChatPage({
   params,
@@ -9,7 +9,7 @@ export default async function ChatPage({
   const { locale } = await params;
   return (
     <ChatPageShell active="chat" locale={locale}>
-      <ChatClient />
+      <AvChatHubClient locale={locale} />
     </ChatPageShell>
   );
 }

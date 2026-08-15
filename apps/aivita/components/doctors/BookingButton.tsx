@@ -5,10 +5,11 @@ import { BookingModal } from './BookingModal';
 interface BookingButtonProps {
   doctorId: string;
   doctorName: string;
+  clinicId?: string; // добавил clinicId
   locale?: string;
 }
 
-export function BookingButton({ doctorId, doctorName, locale = 'ru' }: BookingButtonProps) {
+export function BookingButton({ doctorId, doctorName, clinicId, locale = 'ru' }: BookingButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,6 +27,7 @@ export function BookingButton({ doctorId, doctorName, locale = 'ru' }: BookingBu
         <BookingModal
           doctorId={doctorId}
           doctorName={doctorName}
+          clinicId={clinicId || ''} // Передаем clinicId
           locale={locale}
           onClose={() => setOpen(false)}
         />

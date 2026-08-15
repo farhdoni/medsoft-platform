@@ -183,6 +183,7 @@
   "app": {
     "nav": {
       "home": "Bosh sahifa",
+      "chat": "Chat",
       "test": "Test",
       "habits": "Odatlar",
       "chats": "Chatlar",

@@ -4,6 +4,7 @@ import { TopBar } from '@/components/cabinet/dashboard/TopBar';
 import { WeatherCard } from '@/components/cabinet/dashboard/WeatherCard';
 import { HeroSection } from '@/components/cabinet/dashboard/HeroSection';
 import { MetricsRow } from '@/components/cabinet/dashboard/MetricsRow';
+import { ActiveChatsWidget } from '@/components/cabinet/dashboard/ActiveChatsWidget';
 import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
@@ -29,6 +30,7 @@ export default async function HomePage({
         <WeatherCard />
         <HeroSection user={user} metrics={metrics} />
         <MetricsRow metrics={metrics} vitalsLatest={vitals} />
+        <ActiveChatsWidget locale={locale} />
 
         {/* ── Draggable & customisable blocks ─────────────────────────────── */}
         <HomeDashboard

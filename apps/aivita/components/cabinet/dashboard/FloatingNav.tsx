@@ -11,13 +11,14 @@ const NAV_LS_KEY = 'aivita_nav_config';
 
 export const ALL_NAV_OPTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: "home",        label: "Главная",   icon: "home"   },
-  { id: "vitals",      label: "Биометрия", icon: "heart"  },
+  { id: "chat",        label: "Чат",       icon: "chat"   },
   { id: "medications", label: "Лекарства", icon: "pill"   },
+  { id: "vitals",      label: "Биометрия", icon: "heart"  },
   { id: "gadgets",     label: "Гаджеты",   icon: "steps"  },
   { id: "family",      label: "Семья",     icon: "family" },
 ];
 
-const DEFAULT_NAV = { left: ["home", "vitals"], right: ["medications", "family"] };
+const DEFAULT_NAV = { left: ["home", "chat"], right: ["medications", "family"] };
 
 export function loadNavConfig(): { left: string[]; right: string[] } {
   try {
@@ -41,11 +42,12 @@ function stripLocale(pathname: string): string {
 /**
  * Exactly ONE tab active at a time:
  * - exact match for "home" (avoids lighting up home for every sub-route)
- * - prefix match for others (e.g. /vitals/entry/42 → vitals active)
+ * - prefix match for others (e.g. /chat/123 → chat active)
  */
 function computeActive(pathname: string, id: string): boolean {
   const norm = stripLocale(pathname);
   if (id === 'home') return norm === '/home' || norm === '/';
+  if (id === 'chat') return norm === '/chat' || norm.startsWith('/chat/') || norm === '/chats' || norm.startsWith('/chats/');
   return norm === `/${id}` || norm.startsWith(`/${id}/`);
 }
 
@@ -58,6 +60,8 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
   const locale = (params?.locale as string) || "ru";
 
   const [navConfig, setNavConfig] = useState(DEFAULT_NAV);
+  const [unreadChatCount, setUnreadChatCount] = useState(2);
+
   useEffect(() => { setNavConfig(loadNavConfig()); }, []);
 
   function go(id: string) {
@@ -75,12 +79,13 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
 
   function renderTab(tab: (typeof ALL_NAV_OPTIONS)[0]) {
     const isActive = computeActive(pathname ?? '/', tab.id);
+    const isChat = tab.id === 'chat';
     return (
       <button
         key={tab.id}
         type="button"
         onClick={() => go(tab.id)}
-        className="flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition active:scale-95 sm:px-3 sm:py-2"
+        className="relative flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition active:scale-95 sm:px-3 sm:py-2"
         style={{
           touchAction: 'manipulation',  // eliminates 300ms tap delay in WebView
           cursor: 'pointer',
@@ -89,7 +94,14 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
         }}
         aria-current={isActive ? "page" : undefined}
       >
-        <Icon name={tab.icon} size={22} />
+        <div className="relative">
+          <Icon name={tab.icon} size={22} />
+          {isChat && unreadChatCount > 0 && !isActive && (
+            <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9c5e6c] px-1 text-[8px] font-black text-white shadow-sm ring-1 ring-white">
+              {unreadChatCount}
+            </span>
+          )}
+        </div>
         <span
           className="text-[10px] font-semibold"
           style={{ color: isActive ? 'var(--accent-dark)' : '#9a96a8' }}

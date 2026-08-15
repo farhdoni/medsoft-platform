@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft } from 'lucide-react';
+import { getDoctorSchedule, bookAppointment, AivitaScheduleDay } from '../../lib/api/medsoft';
 
 const PROXY = '/api/proxy';
 
@@ -16,6 +17,7 @@ interface ScheduleDay {
 }
 
 interface BookingModalProps {
+  clinicId: string;
   doctorId: string;
   doctorName: string;
   locale?: string;
@@ -97,9 +99,9 @@ function jsDayToOurDay(jsDay: number): number {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: BookingModalProps) {
+export function BookingModal({ clinicId, doctorId, doctorName, locale = 'ru', onClose }: BookingModalProps) {
   const [mounted, setMounted]           = useState(false);
-  const [schedule, setSchedule]         = useState<ScheduleDay[]>([]);
+  const [schedule, setSchedule]         = useState<AivitaScheduleDay[]>([]);
   const [loadingSchedule, setLoading]   = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -114,31 +116,38 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
   const dates = getNextDates();
 
   useEffect(() => {
-    fetch(`${PROXY}/catalog/${doctorId}/schedule`)
-      .then(r => r.json())
-      .then(j => {
-        const data: ScheduleDay[] = j.data ?? [];
-        // Fallback to mock Mon-Fri schedule when doctor has no DB schedule
-        setSchedule(data.length > 0 ? data : buildMockSchedule());
+    const start = dates[0].toISOString().split('T')[0];
+    const end = dates[dates.length - 1].toISOString().split('T')[0];
+    
+    getDoctorSchedule(clinicId, doctorId, start, end)
+      .then(data => {
+        setSchedule(data || []);
       })
-      .catch(() => { setSchedule(buildMockSchedule()); })
+      .catch(err => { 
+        console.error("Failed to load schedule from MedSoft API", err);
+        setSchedule([]); 
+      })
       .finally(() => setLoading(false));
-  }, [doctorId]);
+  }, [clinicId, doctorId]);
 
   function getSlotsForDate(date: Date): { time: string; busy: boolean }[] {
-    const ourDay     = jsDayToOurDay(date.getDay());
-    const daySchedule = schedule.find(s => s.dayOfWeek === ourDay);
+    const dateStr = date.toISOString().split('T')[0];
+    const daySchedule = schedule.find(s => s.date === dateStr);
     if (!daySchedule) return [];
 
-    const rawSlots = generateSlots(daySchedule);
-
-    // If today, filter past slots (+30 min buffer)
+    // Filter past slots if it's today
     const now = new Date();
-    const filtered = date.toDateString() === now.toDateString()
-      ? rawSlots.filter(t => timeToMinutes(t) >= now.getHours() * 60 + now.getMinutes() + 30)
-      : rawSlots;
+    const isToday = date.toDateString() === now.toDateString();
+    
+    const mappedSlots = daySchedule.slots.map(s => ({ 
+      time: s.start_time.substring(0, 5), // e.g. "09:00:00" -> "09:00"
+      busy: !s.is_available 
+    }));
 
-    return filtered.map(time => ({ time, busy: isBusy(date, time) }));
+    if (isToday) {
+      return mappedSlots.filter(s => timeToMinutes(s.time) >= now.getHours() * 60 + now.getMinutes() + 30);
+    }
+    return mappedSlots;
   }
 
   async function handleBook() {
@@ -150,20 +159,21 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
       const dt = new Date(selectedDate);
       dt.setHours(h, m, 0, 0);
 
-      const res = await fetch(`${PROXY}/catalog/${doctorId}/book`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ scheduledAt: dt.toISOString(), type: 'offline' }),
-      });
-      const json = await res.json() as { error?: string };
-      if (!res.ok) {
-        setError(json.error ?? 'Ошибка записи');
-        return;
-      }
+      // В реальном сценарии здесь нужно брать данные пациента из сессии/полей ввода
+      const req = {
+        doctor_id: doctorId,
+        patient_phone: "+998901234567", // TODO: Get from auth context
+        patient_first_name: "John", // TODO: Get from auth context
+        scheduled_at: dt.toISOString(),
+        is_first_visit: true
+      };
+
+      await bookAppointment(clinicId, req);
+      
       setBooked({ date: selectedDate, time: selectedTime });
       setStep('done');
-    } catch {
-      setError('Ошибка сети. Попробуйте позже.');
+    } catch (err: any) {
+      setError(err.message || 'Ошибка сети. Попробуйте позже.');
     } finally {
       setBooking(false);
     }
@@ -285,10 +295,11 @@ export function BookingModal({ doctorId, doctorName, locale = 'ru', onClose }: B
                     </p>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
                       {dates.map(date => {
-                        const ourDay      = jsDayToOurDay(date.getDay());
-                        const hasSchedule = schedule.some(s => s.dayOfWeek === ourDay);
+                        const dateStr = date.toISOString().split('T')[0];
+                        const hasSchedule = schedule.some(s => s.date === dateStr && s.slots.length > 0);
                         const isSel       = selectedDate?.toDateString() === date.toDateString();
                         const isToday     = date.toDateString() === new Date().toDateString();
+                        const ourDay      = jsDayToOurDay(date.getDay());
                         return (
                           <button
                             key={date.toISOString()}
