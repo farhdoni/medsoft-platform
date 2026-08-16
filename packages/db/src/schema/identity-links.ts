@@ -7,6 +7,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 import { aivitaUsers } from './aivita';
+import { partnerClinics } from './partner-clinics';
 
 // ─── identity_links ─────────────────────────────────────────────────────────
 //
@@ -20,12 +21,11 @@ import { aivitaUsers } from './aivita';
 // telegram, provider identity) — never off a name match. An ambiguous match
 // is written as `status: 'quarantine'`, never guessed into `'active'`.
 //
-// No structural partner/clinic entity exists yet in the active schema (the
-// legacy `clinics` table isn't wired to aivitaUsers-based flows, and
-// `doctorProfiles.clinicName` is free text) — TODO(brick 3): replace
-// `partnerCode` with a real `partnerId` FK once a partner/clinic entity is
-// introduced. Until then, partnerCode is a stable text code identifying the
-// partner system (e.g. 'medsoft', or a per-clinic code once partners exist).
+// brick 3 (partner-clinics.ts) introduced the partner registry: partnerCode
+// is now a real FK against partnerClinics.code (a natural-key FK — code
+// stays the identifying value here, no surrogate partnerId column added,
+// since this table was still empty in dev when brick 3 landed and no
+// resolver code depended on the old free-text column yet).
 
 export const identityLinks = pgTable(
   'identity_links',
@@ -36,7 +36,9 @@ export const identityLinks = pgTable(
       .notNull()
       .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
 
-    partnerCode: text('partner_code').notNull(),
+    partnerCode: text('partner_code')
+      .notNull()
+      .references(() => partnerClinics.code),
 
     // How the partner identifies this same person on their side
     // (e.g. MedSoft's internal patient id / record number).
