@@ -104,6 +104,7 @@ import { symptomCheckerRouter } from './routes/aivita/symptom-checker.js';
 import { mentalHealthRouter } from './routes/aivita/mental-health.js';
 import { remindersRouter } from './routes/aivita/reminders.js';
 import { aivitaDiagRouter } from './routes/aivita/diag.js';
+import { ecosystemAppointmentsRouter } from './routes/ecosystem/appointments.js';
 
 const app = new Hono();
 
@@ -223,6 +224,11 @@ app.route('/v1/admin/security', adminSecurityRouter);
 app.route('/v1/admin/reports', adminReportsRouter);
 app.route('/v1/aivita/faq', publicFaqRouter);
 app.route('/v1/admin/notifications', adminNotificationsRouter);
+
+// Deliberately NOT under /v1 — this is the versioned partner-facing
+// exchange contract (requirePartnerAuth, M2M), a separate lifecycle from
+// AIVITA's own internal /v1 API.
+app.route('/ecosystem/v1/appointments', ecosystemAppointmentsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
