@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./schema/partner-clinics": "./src/schema/partner-clinics.ts"
+    "./schema/partner-clinics": "./src/schema/partner-clinics.ts",
+    "./schema/identity-links": "./src/schema/identity-links.ts",
+    "./schema/aivita": "./src/schema/aivita.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",
