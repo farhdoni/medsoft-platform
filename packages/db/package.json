@@ -10,6 +10,8 @@
     "./schema/partner-clinics": "./src/schema/partner-clinics.ts",
     "./schema/identity-links": "./src/schema/identity-links.ts",
     "./schema/ecosystem-appointments": "./src/schema/ecosystem-appointments.ts",
+    "./schema/consents": "./src/schema/consents.ts",
+    "./schema/discharge-documents": "./src/schema/discharge-documents.ts",
     "./schema/aivita": "./src/schema/aivita.ts"
   },
   "scripts": {

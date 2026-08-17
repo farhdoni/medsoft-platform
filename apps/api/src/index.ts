@@ -57,6 +57,7 @@ import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
 import { conversationsRouter } from './routes/aivita/conversations.js';
 import { aiChatRouter } from './routes/aivita/ai-chat.js';
 import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
+import { aivitaConsentsRouter } from './routes/aivita/consents.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
 import { startNotificationReminders } from './jobs/notification-reminders.js';
@@ -105,6 +106,7 @@ import { mentalHealthRouter } from './routes/aivita/mental-health.js';
 import { remindersRouter } from './routes/aivita/reminders.js';
 import { aivitaDiagRouter } from './routes/aivita/diag.js';
 import { ecosystemAppointmentsRouter } from './routes/ecosystem/appointments.js';
+import { ecosystemDischargeDocumentsRouter } from './routes/ecosystem/discharge-documents.js';
 
 const app = new Hono();
 
@@ -177,6 +179,7 @@ app.route('/v1/aivita/conversations', conversationsRouter);
 app.route('/v1/aivita/ai-chat', aiChatRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
+app.route('/v1/aivita/consents', aivitaConsentsRouter);
 // Pharmacy partner system
 app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
 app.route('/v1/pharmacy', pharmacyRouter);
@@ -229,6 +232,7 @@ app.route('/v1/admin/notifications', adminNotificationsRouter);
 // exchange contract (requirePartnerAuth, M2M), a separate lifecycle from
 // AIVITA's own internal /v1 API.
 app.route('/ecosystem/v1/appointments', ecosystemAppointmentsRouter);
+app.route('/ecosystem/v1/discharge-documents', ecosystemDischargeDocumentsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
