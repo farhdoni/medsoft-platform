@@ -89,6 +89,7 @@ import { adminSystemRouter } from './routes/admin/system.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminNotificationsRouter } from './routes/admin/notifications.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
+import { adminPartnersRouter } from './routes/admin-partners.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 import { landingApiRouter } from './routes/landing-api.js';
 import { clinicPublicRouter, clinicAdminRouter } from './routes/clinic-requests.js';
@@ -126,6 +127,8 @@ app.route('/v1/admins', adminsRouter);
 app.route('/v1/dashboard', dashboardRouter);
 // Monitoring (admin-only)
 app.route('/v1/admin/monitoring', adminMonitoringRouter);
+// Partner API key issuance (admin-only) — ecosystem/v1 M2M auth circuit
+app.route('/v1/admin/partners', adminPartnersRouter);
 // Landing public API (aivita.uz/api/*)
 app.route('/api', landingApiRouter);
 app.route('/api', clinicPublicRouter);
