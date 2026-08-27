@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS "conversations" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "type" "conversation_type" DEFAULT 'direct' NOT NULL,
   "status" "conversation_status" DEFAULT 'active' NOT NULL,
-  "last_message_at" timestamptz,
-  "created_at" timestamptz DEFAULT now() NOT NULL
+  "last_message_at" timestamptz(3),
+  "created_at" timestamptz(3) DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS "conversation_participants" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "conversation_id" uuid NOT NULL REFERENCES "conversations"("id") ON DELETE CASCADE,
   "user_id" uuid NOT NULL REFERENCES "aivita_users"("id") ON DELETE CASCADE,
-  "last_read_at" timestamptz,
-  "joined_at" timestamptz DEFAULT now() NOT NULL,
+  "last_read_at" timestamptz(3),
+  "joined_at" timestamptz(3) DEFAULT now() NOT NULL,
   CONSTRAINT "conv_participants_conv_user_unique" UNIQUE("conversation_id", "user_id")
 );
 --> statement-breakpoint
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS "messages" (
   "attachment_mime" text,
   "attachment_size" integer,
   "reply_to_id" uuid REFERENCES "messages"("id") ON DELETE SET NULL,
-  "deleted_at" timestamptz,
-  "created_at" timestamptz DEFAULT now() NOT NULL
+  "deleted_at" timestamptz(3),
+  "created_at" timestamptz(3) DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "messages_conv_created_idx" ON "messages" ("conversation_id", "created_at");
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS "user_blocks" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "blocker_id" uuid NOT NULL REFERENCES "aivita_users"("id") ON DELETE CASCADE,
   "blocked_id" uuid NOT NULL REFERENCES "aivita_users"("id") ON DELETE CASCADE,
-  "created_at" timestamptz DEFAULT now() NOT NULL,
+  "created_at" timestamptz(3) DEFAULT now() NOT NULL,
   CONSTRAINT "user_blocks_blocker_blocked_unique" UNIQUE("blocker_id", "blocked_id")
 );
 --> statement-breakpoint
@@ -103,8 +103,8 @@ CREATE TABLE IF NOT EXISTS "message_reports" (
   "reason" text NOT NULL,
   "status" "message_report_status" DEFAULT 'pending' NOT NULL,
   "reviewed_by" uuid REFERENCES "admin_users"("id") ON DELETE SET NULL,
-  "reviewed_at" timestamptz,
-  "created_at" timestamptz DEFAULT now() NOT NULL
+  "reviewed_at" timestamptz(3),
+  "created_at" timestamptz(3) DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "message_reports_message_idx" ON "message_reports" ("message_id");
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS "message_reactions" (
   "message_id" uuid NOT NULL REFERENCES "messages"("id") ON DELETE CASCADE,
   "user_id" uuid NOT NULL REFERENCES "aivita_users"("id") ON DELETE CASCADE,
   "emoji" text NOT NULL,
-  "created_at" timestamptz DEFAULT now() NOT NULL,
+  "created_at" timestamptz(3) DEFAULT now() NOT NULL,
   CONSTRAINT "message_reactions_message_user_unique" UNIQUE("message_id", "user_id")
 );
 --> statement-breakpoint
