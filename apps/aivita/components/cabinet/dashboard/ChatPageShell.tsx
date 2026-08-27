@@ -6,6 +6,12 @@ interface Props {
   active?: string;
   locale?: string;
   children: React.ReactNode;
+  /**
+   * Hide the floating nav. Set inside a conversation thread, where the
+   * composer owns the bottom edge and a second floating bar under it reads as
+   * a stray second deck — the call Telegram and WhatsApp make too.
+   */
+  hideNav?: boolean;
 }
 
 /**
@@ -17,7 +23,7 @@ interface Props {
  *
  * Children must use h-full (not 100dvh) so the layout composes correctly.
  */
-export async function ChatPageShell({ active, locale = "ru", children }: Props) {
+export async function ChatPageShell({ active, locale = "ru", hideNav = false, children }: Props) {
   const session = await getSession();
   const rawName = session?.name?.trim() || '';
   const words = rawName.split(/\s+/).filter(Boolean);
@@ -47,19 +53,23 @@ export async function ChatPageShell({ active, locale = "ru", children }: Props) 
         {children}
       </div>
 
-      {/* FloatingNav at bottom */}
-      <div className="flex-shrink-0">
-        <FloatingNav active={active} />
-      </div>
+      {!hideNav && (
+        <>
+          {/* FloatingNav at bottom */}
+          <div className="flex-shrink-0">
+            <FloatingNav active={active} />
+          </div>
 
-      {/* Spacer for the fixed FloatingNav: it's position:fixed so the wrapper
-          above collapses to 0 — this div gives the flex layout real height so
-          the chat input is never hidden behind the nav pill. */}
-      <div
-        aria-hidden="true"
-        className="flex-shrink-0"
-        style={{ height: 'calc(84px + env(safe-area-inset-bottom))' }}
-      />
+          {/* Spacer for the fixed FloatingNav: it is position:fixed so the
+              wrapper above collapses to 0 — this div gives the flex layout real
+              height so the chat input is never hidden behind the nav pill. */}
+          <div
+            aria-hidden="true"
+            className="flex-shrink-0"
+            style={{ height: 'calc(84px + env(safe-area-inset-bottom))' }}
+          />
+        </>
+      )}
     </div>
   );
 }

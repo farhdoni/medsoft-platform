@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/messenger/Avatar';
+import { EmojiPanel } from '@/components/messenger/EmojiPanel';
 import { dayKey, displayName, formatBubbleTime, formatDayLabel } from '@/components/messenger/format';
 import type {
   ApiEnvelope,
@@ -46,11 +47,20 @@ export function ThreadClient({
   const [banner, setBanner] = useState(false);
   const [picker, setPicker] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stickToBottom = useRef(true);
+
+  // Transient toasts clear themselves so stubs do not leave litter on screen.
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 2200);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // Privacy banner — dismissal is per-device, so localStorage is the right home.
   useEffect(() => {
@@ -113,21 +123,31 @@ export function ThreadClient({
         const json = (await res.json()) as ApiEnvelope<MessengerMessage[]>;
         const fresh = json.data ?? [];
         if (fresh.length === 0) return;
+        let added: MessengerMessage[] = [];
         setMessages((prev) => {
           const seen = new Set(prev.map((m) => m.id));
-          const add = fresh.filter((m) => !seen.has(m.id));
-          return add.length ? [...prev, ...add] : prev;
+          added = fresh.filter((m) => !seen.has(m.id));
+          return added.length ? [...prev, ...added] : prev;
         });
-        if (fresh.some((m) => m.senderId !== meId)) markRead();
+        if (added.some((m) => m.senderId !== meId)) markRead();
       } catch { /* transient */ }
     }, POLL_MS);
     return () => clearInterval(id);
   }, [conversationId, messages, meId, markRead]);
 
-  // Keep the view pinned to the newest message unless the user scrolled up.
+  // Land on the newest message when the thread opens, and follow new arrivals
+  // only while the reader is already at the bottom — never yank them out of
+  // history they are scrolling through.
   useEffect(() => {
     if (stickToBottom.current) bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.length]);
+
+  // Opening the emoji panel shortens the scroller; keep the last message visible.
+  useEffect(() => {
+    if (emojiOpen && stickToBottom.current) {
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: 'end' }));
+    }
+  }, [emojiOpen]);
 
   function onScroll() {
     const el = scrollRef.current;
@@ -165,10 +185,43 @@ export function ThreadClient({
     finally { setLoadingOlder(false); }
   }
 
+  /** Insert at the caret so the panel can be used mid-sentence, not just at the end. */
+  function insertEmoji(emoji: string) {
+    const el = inputRef.current;
+    if (!el) { setDraft((d) => d + emoji); return; }
+    const start = el.selectionStart ?? draft.length;
+    const end = el.selectionEnd ?? draft.length;
+    const next = draft.slice(0, start) + emoji + draft.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const caret = start + emoji.length;
+      el.setSelectionRange(caret, caret);
+    });
+  }
+
+  function backspace() {
+    const el = inputRef.current;
+    if (!el) { setDraft((d) => [...d].slice(0, -1).join('')); return; }
+    const start = el.selectionStart ?? draft.length;
+    const end = el.selectionEnd ?? draft.length;
+    if (start === 0 && start === end) return;
+    // Step back by a full code point so an emoji is deleted whole.
+    const cut = start === end ? [...draft.slice(0, start)].pop()?.length ?? 1 : 0;
+    const from = start === end ? start - cut : start;
+    const next = draft.slice(0, from) + draft.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(from, from);
+    });
+  }
+
   async function send() {
     const text = draft.trim();
     if (!text || sending) return;
     setSending(true);
+    setEmojiOpen(false);
     try {
       const res = await fetch(`${PROXY}/messaging/conversations/${conversationId}/messages`, {
         method: 'POST',
@@ -191,7 +244,10 @@ export function ThreadClient({
                 ...json.data,
                 replyTo: {
                   id: quoted.id,
-                  sender: quoted.senderId === meId ? { id: meId, nickname: null, name: 'Вы', avatarUrl: null } : partner ?? { id: quoted.senderId, nickname: null, name: null, avatarUrl: null },
+                  sender:
+                    quoted.senderId === meId
+                      ? { id: meId, nickname: null, name: 'Вы', avatarUrl: null }
+                      : partner ?? { id: quoted.senderId, nickname: null, name: null, avatarUrl: null },
                   content: (quoted.content ?? '').slice(0, 120),
                 },
               }
@@ -282,7 +338,7 @@ export function ThreadClient({
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   }
 
-  const lastOwn = [...messages].reverse().find((m) => m.senderId === meId);
+  const canSend = draft.trim().length > 0 && !sending;
 
   return (
     <div className="h-full flex flex-col overflow-hidden" onClick={() => { setMenuOpen(false); setPicker(null); }}>
@@ -382,133 +438,150 @@ export function ThreadClient({
 
       {/* ── Messages ───────────────────────────────────────────────────── */}
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-3 min-h-0">
-        {loadingOlder && <p className="text-center text-[11px] text-app-t3 pb-2">Загружаем…</p>}
-        {loading ? (
-          <p className="text-center text-xs text-app-t3 py-6">Открываем диалог…</p>
-        ) : messages.length === 0 ? (
-          <p className="text-center text-xs text-app-t3 py-6">Сообщений пока нет — напишите первым</p>
-        ) : (
-          messages.map((m, i) => {
-            const own = m.senderId === meId;
-            const showDay = i === 0 || dayKey(m.createdAt) !== dayKey(messages[i - 1].createdAt);
-            return (
-              <div key={m.id}>
-                {showDay && (
-                  <div className="flex justify-center my-3">
-                    <span className="px-3 py-1 rounded-full text-[11px] text-app-t2 bg-white" style={{ border: '1px solid #e8e4dc' }}>
-                      {formatDayLabel(m.createdAt)}
-                    </span>
-                  </div>
-                )}
+        {/* min-h-full + justify-end pins a short thread to the bottom, the way
+            every messenger does it, while a long one still scrolls normally. */}
+        <div className="min-h-full flex flex-col justify-end">
+          {loadingOlder && <p className="text-center text-[11px] text-app-t3 pb-2">Загружаем…</p>}
+          {loading ? (
+            <p className="text-center text-xs text-app-t3 py-6">Открываем диалог…</p>
+          ) : messages.length === 0 ? (
+            <p className="text-center text-xs text-app-t3 py-6">Сообщений пока нет — напишите первым</p>
+          ) : (
+            messages.map((m, i) => {
+              const own = m.senderId === meId;
+              const showDay = i === 0 || dayKey(m.createdAt) !== dayKey(messages[i - 1].createdAt);
+              const hasReactions = (m.reactions?.length ?? 0) > 0;
+              return (
+                <div key={m.id}>
+                  {showDay && (
+                    <div className="flex justify-center my-3">
+                      <span className="px-3 py-1 rounded-full text-[11px] text-app-t2 bg-white" style={{ border: '1px solid #e8e4dc' }}>
+                        {formatDayLabel(m.createdAt)}
+                      </span>
+                    </div>
+                  )}
 
-                <div className={`flex items-end gap-2 mb-2 ${own ? 'justify-end' : 'justify-start'}`}>
-                  {!own && <Avatar user={partner} size={28} />}
+                  {/* items-end keeps the incoming avatar level with the bubble;
+                      reactions hang off the bubble absolutely so they never
+                      push it out of line. */}
+                  <div
+                    className={`flex items-end gap-2 ${own ? 'justify-end' : 'justify-start'}`}
+                    style={{ marginBottom: hasReactions ? 18 : 8 }}
+                  >
+                    {!own && <Avatar user={partner} size={28} />}
 
-                  <div className={`relative max-w-[78%] ${own ? 'items-end' : 'items-start'} flex flex-col`}>
-                    <div
-                      onDoubleClick={() => setPicker(m.id)}
-                      onPointerDown={() => startLongPress(m.id)}
-                      onPointerUp={clearLongPress}
-                      onPointerLeave={clearLongPress}
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-3 py-2 rounded-2xl select-none"
-                      style={
-                        own
-                          ? { background: '#9c5e6c', color: '#fff', borderBottomRightRadius: 4 }
-                          : { background: '#fff', color: '#2a2540', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }
-                      }
-                    >
-                      {m.replyTo && (
+                    <div className="relative max-w-[78%]">
+                      <div
+                        onDoubleClick={() => setPicker(m.id)}
+                        onPointerDown={() => startLongPress(m.id)}
+                        onPointerUp={clearLongPress}
+                        onPointerLeave={clearLongPress}
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3 py-2 rounded-2xl select-none"
+                        style={
+                          own
+                            ? { background: '#9c5e6c', color: '#fff', borderBottomRightRadius: 4 }
+                            : { background: '#fff', color: '#2a2540', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }
+                        }
+                      >
+                        {m.replyTo && (
+                          <div
+                            className="mb-1.5 pl-2 py-0.5 rounded"
+                            style={{
+                              borderLeft: `3px solid ${own ? 'rgba(255,255,255,.65)' : 'var(--accent, #cc8a96)'}`,
+                              background: own ? 'rgba(255,255,255,.12)' : '#faf9f7',
+                            }}
+                          >
+                            <p className="text-[11px] font-semibold" style={{ opacity: own ? 0.95 : 1, color: own ? '#fff' : 'var(--accent-dark, #9c5e6c)' }}>
+                              {m.replyTo.sender.id === meId ? 'Вы' : displayName(m.replyTo.sender)}
+                            </p>
+                            <p className="text-[11px] truncate" style={{ opacity: own ? 0.85 : 0.7 }}>
+                              {m.replyTo.content ?? 'Сообщение удалено'}
+                            </p>
+                          </div>
+                        )}
+
+                        {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
+
+                        {/* Time sits bottom-right inside the bubble for both
+                            sides; only outgoing carries the delivery tick. */}
+                        <div className="flex items-center justify-end gap-1 mt-0.5">
+                          <span className="text-[10px]" style={{ opacity: own ? 0.75 : 0.45 }}>
+                            {formatBubbleTime(m.createdAt)}
+                          </span>
+                          {own && (
+                            // Single tick = delivered. A second "read" tick needs
+                            // the partner's last_read_at, which the API does not
+                            // expose yet.
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-label="Отправлено">
+                              <path d="m5 13 4 4L19 7" stroke="#fff" strokeOpacity=".8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reaction pills, overlapping the bubble's bottom edge. */}
+                      {hasReactions && (
                         <div
-                          className="mb-1.5 pl-2 py-0.5 rounded"
-                          style={{
-                            borderLeft: `3px solid ${own ? 'rgba(255,255,255,.65)' : 'var(--accent, #cc8a96)'}`,
-                            background: own ? 'rgba(255,255,255,.12)' : '#faf9f7',
-                          }}
+                          className={`absolute flex flex-wrap gap-1 ${own ? 'right-2' : 'left-2'}`}
+                          style={{ bottom: -11 }}
                         >
-                          <p className="text-[11px] font-semibold" style={{ opacity: own ? 0.95 : 1, color: own ? '#fff' : 'var(--accent-dark, #9c5e6c)' }}>
-                            {m.replyTo.sender.id === meId ? 'Вы' : displayName(m.replyTo.sender)}
-                          </p>
-                          <p className="text-[11px] truncate" style={{ opacity: own ? 0.85 : 0.7 }}>
-                            {m.replyTo.content ?? 'Сообщение удалено'}
-                          </p>
+                          {m.reactions!.map((r) => (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleReaction(m.id, r.emoji); }}
+                              className="px-1.5 py-0.5 rounded-full text-[11px] flex items-center gap-1 shadow-sm"
+                              style={{
+                                background: r.reacted ? 'var(--accent-light, #f0d4dc)' : '#fff',
+                                border: `1px solid ${r.reacted ? 'var(--accent, #cc8a96)' : '#e8e4dc'}`,
+                                color: '#2a2540',
+                              }}
+                            >
+                              <span aria-hidden="true">{r.emoji}</span>
+                              <span className="font-semibold">{r.count}</span>
+                            </button>
+                          ))}
                         </div>
                       )}
 
-                      {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
-
-                      <div className={`flex items-center gap-1 mt-0.5 ${own ? 'justify-end' : 'justify-start'}`}>
-                        <span className="text-[10px]" style={{ opacity: own ? 0.75 : 0.55 }}>
-                          {formatBubbleTime(m.createdAt)}
-                        </span>
-                        {own && (
-                          // Single tick = delivered. A second "read" tick needs the
-                          // partner's last_read_at, which the API does not expose yet.
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-label="Отправлено">
-                            <path d="m5 13 4 4L19 7" stroke="#fff" strokeOpacity=".8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Reaction aggregate */}
-                    {m.reactions && m.reactions.length > 0 && (
-                      <div className={`flex flex-wrap gap-1 mt-1 ${own ? 'justify-end' : 'justify-start'}`}>
-                        {m.reactions.map((r) => (
-                          <button
-                            key={r.emoji}
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); toggleReaction(m.id, r.emoji); }}
-                            className="px-1.5 py-0.5 rounded-full text-[11px] flex items-center gap-1"
-                            style={{
-                              background: r.reacted ? 'var(--accent-light, #f0d4dc)' : '#fff',
-                              border: `1px solid ${r.reacted ? 'var(--accent, #cc8a96)' : '#e8e4dc'}`,
-                              color: '#2a2540',
-                            }}
-                          >
-                            <span aria-hidden="true">{r.emoji}</span>
-                            <span className="font-semibold">{r.count}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Long-press / double-tap popover */}
-                    {picker === m.id && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className={`absolute -top-12 z-20 flex items-center gap-1 px-2 py-1.5 bg-white rounded-full shadow-lg ${own ? 'right-0' : 'left-0'}`}
-                        style={{ border: '1px solid #e8e4dc' }}
-                      >
-                        {EMOJI_CHOICES.map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            aria-label={`Реакция ${emoji}`}
-                            onClick={() => toggleReaction(m.id, emoji)}
-                            className="text-lg leading-none px-1 active:scale-90 transition-transform"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                        <span className="w-px h-5 mx-0.5" style={{ background: '#e8e4dc' }} aria-hidden="true" />
-                        <button
-                          type="button"
-                          onClick={() => { setReplyTo(m); setPicker(null); }}
-                          className="px-2 text-[11px] font-semibold whitespace-nowrap"
-                          style={{ color: 'var(--accent-dark, #9c5e6c)' }}
+                      {/* Long-press / double-tap popover */}
+                      {picker === m.id && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className={`absolute -top-12 z-20 flex items-center gap-1 px-2 py-1.5 bg-white rounded-full shadow-lg ${own ? 'right-0' : 'left-0'}`}
+                          style={{ border: '1px solid #e8e4dc' }}
                         >
-                          Ответить
-                        </button>
-                      </div>
-                    )}
+                          {EMOJI_CHOICES.map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              aria-label={`Реакция ${emoji}`}
+                              onClick={() => toggleReaction(m.id, emoji)}
+                              className="text-lg leading-none px-1 active:scale-90 transition-transform"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                          <span className="w-px h-5 mx-0.5" style={{ background: '#e8e4dc' }} aria-hidden="true" />
+                          <button
+                            type="button"
+                            onClick={() => { setReplyTo(m); setPicker(null); }}
+                            className="px-2 text-[11px] font-semibold whitespace-nowrap"
+                            style={{ color: 'var(--accent-dark, #9c5e6c)' }}
+                          >
+                            Ответить
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
+              );
+            })
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* ── Reply preview ──────────────────────────────────────────────── */}
@@ -537,20 +610,30 @@ export function ThreadClient({
       )}
 
       {/* ── Composer ───────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-3 pb-2 pt-1">
+      <div
+        className="flex-shrink-0 px-3 pt-1"
+        style={{ paddingBottom: emojiOpen ? 4 : 'calc(8px + env(safe-area-inset-bottom))' }}
+      >
         <div
           className="flex items-end gap-1.5 bg-white rounded-2xl px-2 py-1.5"
           style={{ border: '1px solid #e8e4dc' }}
         >
-          <button type="button" disabled title="Скоро" aria-label="Прикрепить файл (скоро)" className="w-8 h-8 flex items-center justify-center opacity-40 flex-shrink-0">
+          <button
+            type="button"
+            aria-label="Прикрепить файл"
+            onClick={() => setNotice('Вложения — скоро')}
+            className="w-8 h-8 flex items-center justify-center flex-shrink-0 opacity-50 active:opacity-80"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 19a2 2 0 0 1-3-3l8-8" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
 
           <textarea
+            ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => setEmojiOpen(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
             }}
@@ -560,38 +643,59 @@ export function ThreadClient({
             className="flex-1 resize-none bg-transparent text-sm text-app-t1 placeholder:text-app-t3 outline-none py-1.5 max-h-28"
           />
 
-          <button type="button" disabled title="Скоро" aria-label="Эмодзи (скоро)" className="w-8 h-8 flex items-center justify-center opacity-40 flex-shrink-0">
+          <button
+            type="button"
+            aria-label="Эмодзи"
+            aria-pressed={emojiOpen}
+            onClick={() => setEmojiOpen((v) => !v)}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-80"
+            style={
+              emojiOpen
+                ? { background: 'var(--accent-light, #f0d4dc)' }
+                : undefined
+            }
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke="#6a6580" strokeWidth="1.8" />
-              <circle cx="9" cy="10" r="1" fill="#6a6580" />
-              <circle cx="15" cy="10" r="1" fill="#6a6580" />
-              <path d="M8.5 14.5a4 4 0 0 0 7 0" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="12" cy="12" r="9" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" />
+              <circle cx="9" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
+              <circle cx="15" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
+              <path d="M8.5 14.5a4 4 0 0 0 7 0" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
 
-          {draft.trim() ? (
-            <button
-              type="button"
-              onClick={send}
-              disabled={sending}
-              aria-label="Отправить"
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, var(--accent, #cc8a96), var(--accent-dark, #9c5e6c))' }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 12h15M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          ) : (
-            <button type="button" disabled title="Скоро" aria-label="Голосовое сообщение (скоро)" className="w-9 h-9 flex items-center justify-center opacity-40 flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="9" y="3" width="6" height="11" rx="3" stroke="#6a6580" strokeWidth="1.8" />
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-          )}
+          <button
+            type="button"
+            aria-label="Голосовое сообщение"
+            onClick={() => setNotice('Голосовые — скоро')}
+            className="w-8 h-8 flex items-center justify-center flex-shrink-0 opacity-50 active:opacity-80"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="9" y="3" width="6" height="11" rx="3" stroke="#6a6580" strokeWidth="1.8" />
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          {/* Always present, disabled while there is nothing to send. */}
+          <button
+            type="button"
+            onClick={send}
+            disabled={!canSend}
+            aria-label="Отправить"
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
+            style={{
+              background: 'linear-gradient(135deg, #cc8a96, #9c5e6c)',
+              opacity: canSend ? 1 : 0.4,
+              cursor: canSend ? 'pointer' : 'default',
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2v6.4Z" fill="#fff" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {emojiOpen && <EmojiPanel onPick={insertEmoji} onBackspace={backspace} />}
 
       {/* ── Report dialog ──────────────────────────────────────────────── */}
       {reportFor && (
@@ -621,15 +725,13 @@ export function ThreadClient({
 
       {/* ── Transient notice ───────────────────────────────────────────── */}
       {notice && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-28 z-40" role="status">
-          <button
-            type="button"
-            onClick={() => setNotice(null)}
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 pointer-events-none" role="status">
+          <span
             className="px-4 py-2 rounded-full text-xs text-white shadow-lg"
             style={{ background: 'rgba(42,37,64,.92)' }}
           >
             {notice}
-          </button>
+          </span>
         </div>
       )}
     </div>
