@@ -21,30 +21,41 @@ adminSystemRouter.get('/health', (c) => {
 
 adminSystemRouter.use('*', requireAuth);
 
-// Backup storage directory (relative to project root in Docker)
+// Backup storage directory (relative to project root in Docker or local)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BACKUPS_DIR = path.resolve(__dirname, '../../../../../backups');
+export const BACKUPS_DIR = path.resolve(__dirname, '../../../../../backups');
 
-function ensureBackupsDir() {
+export function ensureBackupsDir() {
   if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 }
 
-// ─── POST /backup — run pg_dump ────────────────────────────────────────────────
+export function validateSafeFilename(filename: string): boolean {
+  if (!filename || filename.includes('/') || filename.includes('\\') || filename.includes('..') || filename.includes(':')) {
+    return false;
+  }
+  return /^[a-zA-Z0-9_\-\.]+$/.test(filename);
+}
 
-adminSystemRouter.post('/backup', async (c) => {
+/** Helper function to create a PostgreSQL backup snapshot */
+export async function createPlatformBackup(): Promise<{ id: number; filename: string; sizeBytes: number; createdAt: Date }> {
   ensureBackupsDir();
 
-  const filename = `backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const filename = `backup_${timestamp}.sql`;
   const filepath = path.join(BACKUPS_DIR, filename);
 
-  // Parse DATABASE_URL to get connection params for pg_dump
   const dbUrl = env.DATABASE_URL;
+  let dumpSuccess = false;
 
   try {
-    await execFileAsync('pg_dump', [dbUrl, '--file', filepath, '--no-password', '--format=plain']);
-  } catch {
-    // pg_dump may not be available; create a minimal placeholder
-    fs.writeFileSync(filepath, `-- Backup created at ${new Date().toISOString()}\n-- pg_dump not available\n`);
+    await execFileAsync('pg_dump', ['--dbname', dbUrl, '--file', filepath, '--no-password', '--format=plain']);
+    dumpSuccess = true;
+  } catch (err: any) {
+    // pg_dump may not be available in minimal containers; create structured fallback
+    fs.writeFileSync(
+      filepath,
+      `-- MedSoft Platform Backup snapshot created at ${new Date().toISOString()}\n-- Error executing pg_dump: ${err?.message || 'pg_dump not found'}\n`
+    );
   }
 
   const stats = fs.statSync(filepath);
@@ -53,9 +64,25 @@ adminSystemRouter.post('/backup', async (c) => {
     sizeBytes: stats.size,
   }).returning();
 
-  await logSystem('info', 'system', `Backup created: ${filename}`, { sizeBytes: stats.size });
+  if (dumpSuccess) {
+    await logSystem('info', 'system', `Backup successfully created: ${filename}`, { sizeBytes: stats.size });
+  } else {
+    await logSystem('warning', 'system', `Backup created with fallback (pg_dump CLI not available): ${filename}`, { sizeBytes: stats.size });
+  }
 
-  return c.json({ data: row }, 201);
+  return row;
+}
+
+// ─── POST /backup — run pg_dump ────────────────────────────────────────────────
+
+adminSystemRouter.post('/backup', async (c) => {
+  try {
+    const row = await createPlatformBackup();
+    return c.json({ data: row }, 201);
+  } catch (err: any) {
+    await logSystem('error', 'system', `Failed to create backup: ${err?.message}`);
+    return c.json({ error: 'Failed to create backup', detail: err?.message }, 500);
+  }
 });
 
 // ─── GET /backups — list ───────────────────────────────────────────────────────
@@ -69,8 +96,7 @@ adminSystemRouter.get('/backups', async (c) => {
 
 adminSystemRouter.get('/backups/:filename', async (c) => {
   const filename = c.req.param('filename');
-  // Prevent path traversal
-  if (filename.includes('/') || filename.includes('..')) {
+  if (!validateSafeFilename(filename)) {
     return c.json({ error: 'Invalid filename' }, 400);
   }
 
@@ -81,6 +107,53 @@ adminSystemRouter.get('/backups/:filename', async (c) => {
   c.header('Content-Type', 'application/octet-stream');
   c.header('Content-Disposition', `attachment; filename="${filename}"`);
   return c.body(content);
+});
+
+// ─── DELETE /backups/:filename — delete backup archive & record ───────────────
+
+adminSystemRouter.delete('/backups/:filename', async (c) => {
+  const filename = c.req.param('filename');
+  if (!validateSafeFilename(filename)) {
+    return c.json({ error: 'Invalid filename' }, 400);
+  }
+
+  const filepath = path.join(BACKUPS_DIR, filename);
+  if (fs.existsSync(filepath)) {
+    try {
+      fs.unlinkSync(filepath);
+    } catch (e: any) {
+      return c.json({ error: `Could not delete file from disk: ${e?.message}` }, 500);
+    }
+  }
+
+  await db.delete(systemBackups).where(eq(systemBackups.filename, filename));
+  await logSystem('info', 'system', `Backup deleted: ${filename}`);
+
+  return c.json({ ok: true, message: `Backup ${filename} deleted successfully` });
+});
+
+// ─── POST /backups/:filename/restore — restore database from backup ───────────
+
+adminSystemRouter.post('/backups/:filename/restore', async (c) => {
+  const filename = c.req.param('filename');
+  if (!validateSafeFilename(filename)) {
+    return c.json({ error: 'Invalid filename' }, 400);
+  }
+
+  const filepath = path.join(BACKUPS_DIR, filename);
+  if (!fs.existsSync(filepath)) {
+    return c.json({ error: 'Backup file not found on disk' }, 404);
+  }
+
+  const dbUrl = env.DATABASE_URL;
+  try {
+    await execFileAsync('psql', ['--dbname', dbUrl, '--file', filepath]);
+    await logSystem('warning', 'system', `Database restored from backup: ${filename}`);
+    return c.json({ ok: true, message: `Database successfully restored from ${filename}` });
+  } catch (err: any) {
+    await logSystem('error', 'system', `Database restore failed for ${filename}: ${err?.message}`);
+    return c.json({ error: 'Restore execution failed', detail: err?.message }, 500);
+  }
 });
 
 // ─── GET /logs — system logs with filters ─────────────────────────────────────
