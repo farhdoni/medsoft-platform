@@ -38,9 +38,9 @@ export default function PatientVideoCallPage() {
   function handleEnd() {
     // Redirect back to chat if we have conversationId
     if (callInfo?.conversationId) {
-      router.push(`/${locale}/chats/${callInfo.conversationId}`);
+      router.push(`/${locale}/messenger`);
     } else {
-      router.push(`/${locale}/chats`);
+      router.push(`/${locale}/messenger`);
     }
   }
 
@@ -49,7 +49,7 @@ export default function PatientVideoCallPage() {
       <div className="fixed inset-0 flex items-center justify-center bg-[#0d1117]">
         <div className="text-center text-white">
           <p className="text-xl mb-4">Некорректная ссылка на звонок</p>
-          <Link href={`/${locale}/chats`} className="text-[#6BA3D6] underline">
+          <Link href={`/${locale}/messenger`} className="text-[#6BA3D6] underline">
             Вернуться к чатам
           </Link>
         </div>

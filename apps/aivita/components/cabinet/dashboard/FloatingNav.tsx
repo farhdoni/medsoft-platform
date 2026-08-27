@@ -66,9 +66,30 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
     window.location.href = `/${locale}/${id}`;
   }
 
-  function openAiChat() {
-    window.location.href = `/${locale}/ai-chat`;
+  function openMessenger() {
+    window.location.href = `/${locale}/messenger`;
   }
+
+  // Total unread across conversations, for the badge on the centre button.
+  // Same 30s cadence as the TopBar bell so the two never disagree for long.
+  const [chatUnread, setChatUnread] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    function fetchUnread() {
+      fetch('/api/proxy/messaging/conversations')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          if (!alive || !Array.isArray(j?.data)) return;
+          setChatUnread(
+            j.data.reduce((sum: number, c: { unreadCount?: number }) => sum + (c.unreadCount ?? 0), 0),
+          );
+        })
+        .catch(() => {});
+    }
+    fetchUnread();
+    const id = setInterval(fetchUnread, 30_000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
 
   const leftTabs  = navConfig.left.map(id  => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
   const rightTabs = navConfig.right.map(id => ALL_NAV_OPTIONS.find(o => o.id === id)).filter(Boolean) as typeof ALL_NAV_OPTIONS;
@@ -106,11 +127,11 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
         {/* Left tabs */}
         {leftTabs.map(renderTab)}
 
-        {/* Center AI Aura button — navigates to /ai-chat */}
+        {/* Center AI Aura button — navigates to /messenger (icon intentionally unchanged) */}
         <button
           type="button"
-          aria-label={t('aiAssistant')}
-          onClick={openAiChat}
+          aria-label="Центр общения"
+          onClick={openMessenger}
           className="relative -mt-4 mx-1 flex-shrink-0 transition-transform active:scale-95 hover:scale-105"
           style={{ touchAction: 'manipulation', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
         >
@@ -165,6 +186,15 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
             <circle cx="26" cy="26" r="4"   fill="url(#aura-core)"/>
             <circle cx="26" cy="26" r="1.5" fill="white" opacity="0.85"/>
           </svg>
+
+          {chatUnread > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+              style={{ background: '#e4572e', border: '2px solid #fff' }}
+            >
+              {chatUnread > 9 ? '9+' : chatUnread}
+            </span>
+          )}
         </button>
 
         {/* Right tabs */}

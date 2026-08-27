@@ -1,15 +1,15 @@
 import { ChatPageShell } from '@/components/cabinet/dashboard/ChatPageShell';
-import ChatClient from './ChatClient';
+import { MessengerHubClient } from './MessengerHubClient';
 
-export default async function ChatPage({
+export default async function MessengerPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
   return (
-    <ChatPageShell active="chat" locale={locale}>
-      <ChatClient />
+    <ChatPageShell active="messenger" locale={locale}>
+      <MessengerHubClient locale={locale} />
     </ChatPageShell>
   );
 }

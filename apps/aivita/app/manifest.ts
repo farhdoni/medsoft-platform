@@ -30,7 +30,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
       {
         name: 'AI-чат',
-        url: '/chat',
+        url: '/ai-chat',
         icons: [{ src: '/icons/icon-96.png', sizes: '96x96' }],
       },
     ],

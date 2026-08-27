@@ -22,7 +22,7 @@ const PATIENT_MENU_ITEMS: MenuItem[] = [
   { icon: 'heart',    softBg: 'var(--accent-light)',    titleKey: 'vitals',          subtitleKey: 'vitalsSub',          href: '/vitals' },
   { icon: 'sparkle',  softBg: '#f0e4f8',                titleKey: 'healthAnalysis',  subtitleKey: 'healthAnalysisSub',  href: '/health-analysis' },
   { icon: 'sparkle',  softBg: '#e8f4e8',                titleKey: 'healthAgents',    subtitleKey: 'healthAgentsSub',    href: '/health-agents' },
-  { icon: 'chat',     softBg: '#d4e8d8',                titleKey: 'aiChat',          subtitleKey: 'aiChatSub',          href: '/chat' },
+  { icon: 'chat',     softBg: '#d4e8d8',                titleKey: 'aiChat',          subtitleKey: 'aiChatSub',          href: '/ai-chat' },
   { icon: 'family',   softBg: '#d4dff0',                titleKey: 'family',          subtitleKey: 'familySub',          href: '/family' },
   { icon: 'sparkle',  softBg: '#f0e8f4',                titleKey: 'referral',        subtitleKey: 'referralSub',        href: '/settings/referral' },
   { icon: 'settings', softBg: 'var(--accent-bg-light)', titleKey: 'settings',        subtitleKey: 'settingsSub',        href: '/settings' },
