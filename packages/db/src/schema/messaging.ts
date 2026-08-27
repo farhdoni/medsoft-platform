@@ -45,8 +45,8 @@ export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   type: conversationTypeEnum('type').notNull().default('direct'),
   status: conversationStatusEnum('status').notNull().default('active'),
-  lastMessageAt: timestamp('last_message_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ─── 2. conversation_participants ───────────────────────────────────────────
@@ -61,8 +61,8 @@ export const conversationParticipants = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
-    lastReadAt: timestamp('last_read_at'),
-    joinedAt: timestamp('joined_at').notNull().defaultNow(),
+    lastReadAt: timestamp('last_read_at', { withTimezone: true }),
+    joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     convUserUnique: unique('conv_participants_conv_user_unique').on(
@@ -95,8 +95,8 @@ export const messages = pgTable(
     replyToId: uuid('reply_to_id').references((): AnyPgColumn => messages.id, {
       onDelete: 'set null',
     }),
-    deletedAt: timestamp('deleted_at'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     convCreatedIdx: index('messages_conv_created_idx').on(
@@ -119,7 +119,7 @@ export const userBlocks = pgTable(
     blockedId: uuid('blocked_id')
       .notNull()
       .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     uniqueBlock: unique('user_blocks_blocker_blocked_unique').on(
@@ -148,8 +148,8 @@ export const messageReports = pgTable(
     reviewedBy: uuid('reviewed_by').references(() => adminUsers.id, {
       onDelete: 'set null',
     }),
-    reviewedAt: timestamp('reviewed_at'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     messageIdx: index('message_reports_message_idx').on(table.messageId),
@@ -171,7 +171,7 @@ export const messageReactions = pgTable(
       .notNull()
       .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
     emoji: text('emoji').notNull(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     messageUserUnique: unique('message_reactions_message_user_unique').on(
