@@ -12,6 +12,7 @@
     "./schema/ecosystem-appointments": "./src/schema/ecosystem-appointments.ts",
     "./schema/consents": "./src/schema/consents.ts",
     "./schema/discharge-documents": "./src/schema/discharge-documents.ts",
+    "./schema/exchange-audit": "./src/schema/exchange-audit.ts",
     "./schema/aivita": "./src/schema/aivita.ts"
   },
   "scripts": {
