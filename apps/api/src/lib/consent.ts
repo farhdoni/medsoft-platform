@@ -13,12 +13,18 @@ import { and, eq, gt, isNull, or } from 'drizzle-orm';
 // revokes, or otherwise mutates a consent. Granting only ever happens
 // through the patient's own authenticated session; see
 // routes/aivita/consents.ts.
+//
+// getActiveConsent returns the row's id (not just a boolean) so callers that
+// need to record WHICH consent an operation relied on — the ecosystem/v1
+// exchange journal, exchange_audit.consent_id — can do so without a second
+// query. hasActiveConsent is a thin wrapper for callers that only need the
+// yes/no answer.
 
-export async function hasActiveConsent(
+export async function getActiveConsent(
   personId: string,
   partnerCode: string,
   scope: string,
-): Promise<boolean> {
+): Promise<{ id: string } | null> {
   const [row] = await db
     .select({ id: consents.id })
     .from(consents)
@@ -32,5 +38,13 @@ export async function hasActiveConsent(
     ))
     .limit(1);
 
-  return !!row;
+  return row ?? null;
+}
+
+export async function hasActiveConsent(
+  personId: string,
+  partnerCode: string,
+  scope: string,
+): Promise<boolean> {
+  return (await getActiveConsent(personId, partnerCode, scope)) !== null;
 }

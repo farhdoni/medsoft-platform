@@ -6,6 +6,7 @@ import { ecosystemAppointments } from '@medsoft/db/schema/ecosystem-appointments
 import { and, eq } from 'drizzle-orm';
 import { requirePartnerAuth } from '../../middleware/partner-auth.js';
 import { resolvePatientLink } from '../../lib/identity-resolver.js';
+import { logExchangeEvent } from '../../lib/exchange-audit.js';
 
 // POST /ecosystem/v1/appointments — a partner clinic (e.g. MedSoft) pushes
 // the fact that ITS OWN patient has an appointment with ITS OWN doctor. The
@@ -47,18 +48,39 @@ router.post('/', zValidator('json', pushAppointmentSchema), async (c) => {
   const resolved = await resolvePatientLink(partner.code, body.partnerLocalId, body.hints);
 
   if (resolved.status === 'no_match') {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'appointment.push',
+      outcome: 'no_match',
+      partnerLocalId: body.partnerLocalId,
+    });
     return c.json({
       status: 'no_match',
       message: 'Patient not linked to an AIVITA account yet — resend once identified.',
     }, 202);
   }
   if (resolved.status === 'quarantine') {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'appointment.push',
+      outcome: 'quarantine',
+      personId: resolved.personId,
+      partnerLocalId: body.partnerLocalId,
+      metadata: { matchChannel: resolved.link.matchChannel },
+    });
     return c.json({
       status: 'quarantine',
       message: 'Patient link exists but is not confirmed yet.',
     }, 202);
   }
   if (resolved.status === 'ambiguous') {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'appointment.push',
+      outcome: 'ambiguous',
+      partnerLocalId: body.partnerLocalId,
+      metadata: { matchChannel: resolved.channel, candidateCount: resolved.candidateCount },
+    });
     return c.json({
       status: 'ambiguous',
       message: 'Multiple AIVITA accounts matched this patient — resolve manually before pushing this appointment.',
@@ -82,6 +104,14 @@ router.post('/', zValidator('json', pushAppointmentSchema), async (c) => {
     .returning();
 
   if (inserted) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'appointment.push',
+      outcome: 'created',
+      personId: resolved.personId,
+      partnerLocalId: body.partnerLocalId,
+      metadata: { partnerAppointmentId: body.partnerAppointmentId, matchChannel: resolved.matchChannel },
+    });
     return c.json({
       externalId: resolved.externalId,
       appointment: {
@@ -111,12 +141,28 @@ router.post('/', zValidator('json', pushAppointmentSchema), async (c) => {
     // Partner reused partnerAppointmentId for a different local patient —
     // a real collision, not a replay. Never return the wrong patient's
     // externalId.
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'appointment.push',
+      outcome: 'conflict',
+      personId: resolved.personId,
+      partnerLocalId: body.partnerLocalId,
+      metadata: { partnerAppointmentId: body.partnerAppointmentId },
+    });
     return c.json({
       status: 'conflict',
       message: 'partnerAppointmentId already used for a different patient.',
     }, 409);
   }
 
+  await logExchangeEvent({
+    partnerCode: partner.code,
+    action: 'appointment.push',
+    outcome: 'duplicate',
+    personId: resolved.personId,
+    partnerLocalId: body.partnerLocalId,
+    metadata: { partnerAppointmentId: body.partnerAppointmentId, matchChannel: resolved.matchChannel },
+  });
   return c.json({
     externalId: resolved.externalId,
     appointment: {

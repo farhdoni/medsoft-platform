@@ -9,7 +9,8 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { requirePartnerAuth } from '../../middleware/partner-auth.js';
 import { resolvePatientLink } from '../../lib/identity-resolver.js';
-import { hasActiveConsent } from '../../lib/consent.js';
+import { getActiveConsent } from '../../lib/consent.js';
+import { logExchangeEvent } from '../../lib/exchange-audit.js';
 
 // POST /ecosystem/v1/discharge-documents — a partner clinic (e.g. MedSoft)
 // attaches a discharge document (epicrisis file the clinic already
@@ -20,7 +21,7 @@ import { hasActiveConsent } from '../../lib/consent.js';
 // Two gates, both mandatory, checked in this order:
 //   1. resolvePatientLink — same identity resolution ecosystem/v1
 //      appointments already uses. Only 'linked' continues.
-//   2. hasActiveConsent — the PATIENT must have already granted this
+//   2. getActiveConsent — the PATIENT must have already granted this
 //      partner permission to attach discharge documents (scope
 //      'discharge_document') through the patient's own AIVITA session.
 //      This endpoint only ever CHECKS for consent — it never creates one.
@@ -107,14 +108,35 @@ router.post('/', async (c) => {
   const mime = file.type;
   const ext = ALLOWED_MIME_EXT[mime];
   if (!ext) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'error',
+      partnerLocalId,
+      metadata: { partnerDocumentId, reason: 'mime_not_allowed' },
+    });
     return c.json({ error: `File type not allowed: ${mime}` }, 400);
   }
 
   const bytes = await file.arrayBuffer();
   if (bytes.byteLength === 0) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'error',
+      partnerLocalId,
+      metadata: { partnerDocumentId, reason: 'empty_file' },
+    });
     return c.json({ error: 'Empty file' }, 400);
   }
   if (bytes.byteLength > MAX_BYTES) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'error',
+      partnerLocalId,
+      metadata: { partnerDocumentId, reason: 'file_too_large' },
+    });
     return c.json({ error: 'File too large (max 10MB)' }, 400);
   }
 
@@ -126,18 +148,40 @@ router.post('/', async (c) => {
   });
 
   if (resolved.status === 'no_match') {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'no_match',
+      partnerLocalId,
+      metadata: { partnerDocumentId },
+    });
     return c.json({
       status: 'no_match',
       message: 'Patient not linked to an AIVITA account yet — resend once identified.',
     }, 202);
   }
   if (resolved.status === 'quarantine') {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'quarantine',
+      personId: resolved.personId,
+      partnerLocalId,
+      metadata: { partnerDocumentId, matchChannel: resolved.link.matchChannel },
+    });
     return c.json({
       status: 'quarantine',
       message: 'Patient link exists but is not confirmed yet.',
     }, 202);
   }
   if (resolved.status === 'ambiguous') {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'ambiguous',
+      partnerLocalId,
+      metadata: { partnerDocumentId, matchChannel: resolved.channel, candidateCount: resolved.candidateCount },
+    });
     return c.json({
       status: 'ambiguous',
       message: 'Multiple AIVITA accounts matched this patient — resolve manually before pushing this document.',
@@ -145,13 +189,22 @@ router.post('/', async (c) => {
   }
 
   // ── 2. Consent gate — patient-granted only, never created here ─────────
-  const consented = await hasActiveConsent(resolved.personId, partner.code, CONSENT_SCOPE);
-  if (!consented) {
+  const activeConsent = await getActiveConsent(resolved.personId, partner.code, CONSENT_SCOPE);
+  if (!activeConsent) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'denied_no_consent',
+      personId: resolved.personId,
+      partnerLocalId,
+      metadata: { partnerDocumentId },
+    });
     return c.json({
       status: 'consent_required',
       message: 'Patient has not granted this clinic consent to attach discharge documents. The patient must grant consent from their own AIVITA account first.',
     }, 403);
   }
+  const consentId = activeConsent.id;
 
   // ── 3. Idempotency pre-check — avoid touching disk for a known replay ──
   const [existingDoc] = await db.select()
@@ -164,11 +217,29 @@ router.post('/', async (c) => {
 
   if (existingDoc) {
     if (existingDoc.personId !== resolved.personId) {
+      await logExchangeEvent({
+        partnerCode: partner.code,
+        action: 'discharge.push',
+        outcome: 'conflict',
+        personId: resolved.personId,
+        partnerLocalId,
+        consentId,
+        metadata: { partnerDocumentId },
+      });
       return c.json({
         status: 'conflict',
         message: 'partnerDocumentId already used for a different patient.',
       }, 409);
     }
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'duplicate',
+      personId: resolved.personId,
+      partnerLocalId,
+      consentId,
+      metadata: { partnerDocumentId },
+    });
     return c.json({
       externalId: resolved.externalId,
       document: {
@@ -212,6 +283,15 @@ router.post('/', async (c) => {
     .returning();
 
   if (inserted) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'created',
+      personId: resolved.personId,
+      partnerLocalId,
+      consentId,
+      metadata: { partnerDocumentId },
+    });
     return c.json({
       externalId: resolved.externalId,
       document: {
@@ -242,12 +322,30 @@ router.post('/', async (c) => {
     throw new Error('discharge document insert conflicted but no existing row found');
   }
   if (raced.personId !== resolved.personId) {
+    await logExchangeEvent({
+      partnerCode: partner.code,
+      action: 'discharge.push',
+      outcome: 'conflict',
+      personId: resolved.personId,
+      partnerLocalId,
+      consentId,
+      metadata: { partnerDocumentId },
+    });
     return c.json({
       status: 'conflict',
       message: 'partnerDocumentId already used for a different patient.',
     }, 409);
   }
 
+  await logExchangeEvent({
+    partnerCode: partner.code,
+    action: 'discharge.push',
+    outcome: 'duplicate',
+    personId: resolved.personId,
+    partnerLocalId,
+    consentId,
+    metadata: { partnerDocumentId },
+  });
   return c.json({
     externalId: resolved.externalId,
     document: {
