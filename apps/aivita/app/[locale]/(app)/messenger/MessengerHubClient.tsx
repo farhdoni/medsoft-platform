@@ -106,6 +106,13 @@ export function MessengerHubClient({ locale }: { locale: string }) {
     return () => clearInterval(id);
   }, [loadConversations]);
 
+  // Разархивировали последний диалог — возвращаемся к основному списку.
+  // Иначе экран застревает на «В архиве пусто»: строки «Архив» с её
+  // переключателем уже нет, и выйти из этого вида нечем.
+  useEffect(() => {
+    if (archivedConvs.length === 0) setShowArchive(false);
+  }, [archivedConvs.length]);
+
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
     const q = query.trim();
@@ -335,7 +342,7 @@ export function MessengerHubClient({ locale }: { locale: string }) {
               </div>
             ))}
           </div>
-        ) : convs.length === 0 ? (
+        ) : convs.length === 0 && archivedConvs.length === 0 ? (
           <div className="bg-white rounded-2xl p-6 text-center" style={{ border: '1px solid #e8e4dc' }}>
             <div className="text-3xl mb-2" aria-hidden="true">💬</div>
             <p className="text-sm font-semibold text-app-t1">Пока нет диалогов</p>
@@ -349,6 +356,9 @@ export function MessengerHubClient({ locale }: { locale: string }) {
           </div>
         ) : (
           <div className="space-y-2">
+            {/* Ряд архива идёт первым и НЕ зависит от того, пуст ли активный
+                список: когда в архив уходит единственный диалог, экран без
+                этой строки прятал бы его насовсем. */}
             {archivedConvs.length > 0 && (
               <ArchiveRow
                 count={archivedConvs.length}
@@ -356,6 +366,19 @@ export function MessengerHubClient({ locale }: { locale: string }) {
                 open={showArchive}
                 onToggle={() => setShowArchive((v) => !v)}
               />
+            )}
+
+            {(showArchive ? archivedConvs : convs).length === 0 && (
+              <div className="bg-white rounded-2xl p-5 text-center" style={{ border: '1px solid #e8e4dc' }}>
+                <p className="text-sm font-semibold text-app-t1">
+                  {showArchive ? 'В архиве пусто' : 'Все диалоги в архиве'}
+                </p>
+                <p className="text-xs text-app-t3 mt-1">
+                  {showArchive
+                    ? 'Сюда попадают убранные диалоги'
+                    : 'Откройте «Архив» выше или найдите собеседника по @имени'}
+                </p>
+              </div>
             )}
 
             {(showArchive ? archivedConvs : convs).map((conv) => (

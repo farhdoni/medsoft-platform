@@ -109,6 +109,8 @@ export function ThreadClient({
   const docInputRef = useRef<HTMLInputElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stickToBottom = useRef(true);
+  /** Поднят, пока фокус в поле ставим мы сами, а не палец пользователя. */
+  const programmaticFocus = useRef(false);
 
   useEffect(() => {
     if (!notice) return;
@@ -247,18 +249,29 @@ export function ThreadClient({
     finally { setLoadingOlder(false); }
   }
 
+  /**
+   * Возвращает фокус и каретку в поле после вставки из панели.
+   *
+   * Фокус здесь программный, и onFocus у textarea НЕ должен принимать его за
+   * тап пользователя: иначе панель закрывается сразу после первого эмодзи, и
+   * подряд вставить несколько уже нельзя.
+   */
+  function restoreCaret(el: HTMLTextAreaElement, pos: number) {
+    requestAnimationFrame(() => {
+      programmaticFocus.current = true;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+      requestAnimationFrame(() => { programmaticFocus.current = false; });
+    });
+  }
+
   function insertEmoji(emoji: string) {
     const el = inputRef.current;
     if (!el) { setDraft((d) => d + emoji); return; }
     const start = el.selectionStart ?? draft.length;
     const end = el.selectionEnd ?? draft.length;
-    const next = draft.slice(0, start) + emoji + draft.slice(end);
-    setDraft(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      const caret = start + emoji.length;
-      el.setSelectionRange(caret, caret);
-    });
+    setDraft(draft.slice(0, start) + emoji + draft.slice(end));
+    restoreCaret(el, start + emoji.length);
   }
 
   function backspace() {
@@ -269,12 +282,8 @@ export function ThreadClient({
     if (start === 0 && start === end) return;
     const cut = start === end ? [...draft.slice(0, start)].pop()?.length ?? 1 : 0;
     const from = start === end ? start - cut : start;
-    const next = draft.slice(0, from) + draft.slice(end);
-    setDraft(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(from, from);
-    });
+    setDraft(draft.slice(0, from) + draft.slice(end));
+    restoreCaret(el, from);
   }
 
   /** Single path to POST /messages — text, media and stickers all go through here. */
@@ -288,7 +297,7 @@ export function ThreadClient({
         });
         const json = (await res.json()) as ApiEnvelope<MessengerMessage> & { error?: string };
         if (!res.ok) {
-          setNotice(json?.error ?? 'Не удалось отправить сообщение');
+          setNotice(sendErrorText(res.status));
           return false;
         }
         if (json.data) setMessages((prev) => [...prev, json.data]);
@@ -351,7 +360,7 @@ export function ThreadClient({
       const up = await fetch(`${PROXY}/upload`, { method: 'POST', body: form });
       const uj = (await up.json()) as { data?: { url: string; name: string; mime: string; size?: number }; error?: string };
       if (!up.ok || !uj.data) {
-        setNotice(uj?.error ?? 'Не удалось загрузить файл');
+        setNotice(uploadErrorText(up.status));
         return;
       }
       await postMessage({
@@ -937,7 +946,7 @@ export function ThreadClient({
               ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onFocus={() => setEmojiOpen(false)}
+              onFocus={() => { if (!programmaticFocus.current) setEmojiOpen(false); }}
               onKeyDown={(e) => {
                 if (enterSend && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
               }}
@@ -1066,6 +1075,28 @@ export function ThreadClient({
       )}
     </div>
   );
+}
+
+/**
+ * Тексты отказов выбираются по статусу ответа, а не берутся из тела.
+ *
+ * `error` в ответе API написан по-английски и адресован разработчику
+ * ("Message not delivered — conversation is blocked"); показывать его в
+ * русском интерфейсе нельзя, а переводить строки сервера на клиенте — значит
+ * привязываться к их точной формулировке. Статус для этого устойчивее.
+ */
+function sendErrorText(status: number): string {
+  if (status === 403) return 'Сообщение не доставлено — диалог заблокирован';
+  if (status === 401) return 'Сессия истекла — войдите заново';
+  if (status === 400) return 'Сообщение не отправлено — проверьте содержимое';
+  return 'Не удалось отправить сообщение';
+}
+
+function uploadErrorText(status: number): string {
+  if (status === 415) return 'Такой тип файла нельзя отправить';
+  if (status === 413) return 'Файл больше 10 МБ';
+  if (status === 401) return 'Сессия истекла — войдите заново';
+  return 'Не удалось загрузить файл';
 }
 
 /** Newest message from the other side — what "Пожаловаться" targets. */

@@ -29,3 +29,9 @@ apps/mobile-doctor/.expo/
 *.apk
 *.ipa
 *.aab
+
+# Playwright e2e: артефакты прогона. Сам набор тестов в репозитории, а
+# скриншоты и отчёты пересоздаются каждым запуском — Farhod смотрит их
+# локально в e2e/screenshots/.
+e2e/screenshots/
+e2e/report/

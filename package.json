@@ -9,6 +9,7 @@
     "typecheck": "pnpm --recursive typecheck"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "typescript": "^5.4.5"
   },
   "engines": {
