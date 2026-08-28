@@ -19,6 +19,9 @@ drizzle/
 # User-uploaded chat attachments — never belongs in the repo
 apps/api/uploads/
 
+# Local agent/editor scaffolding
+.claude/
+
 # Expo / React Native
 .expo/
 apps/mobile-patient/.expo/
