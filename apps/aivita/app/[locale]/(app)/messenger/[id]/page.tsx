@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { ChatPageShell } from '@/components/cabinet/dashboard/ChatPageShell';
+import { ChatSurface } from '@/components/messenger/ChatSurface';
 import { ThreadClient } from './ThreadClient';
 
 export default async function MessengerThreadPage({
@@ -16,7 +17,9 @@ export default async function MessengerThreadPage({
   // nav is still there on /messenger and the conversation list.
   return (
     <ChatPageShell active="messenger" locale={locale} hideNav>
-      <ThreadClient locale={locale} conversationId={id} meId={session.userId} />
+      <ChatSurface paint>
+        <ThreadClient locale={locale} conversationId={id} meId={session.userId} />
+      </ChatSurface>
     </ChatPageShell>
   );
 }

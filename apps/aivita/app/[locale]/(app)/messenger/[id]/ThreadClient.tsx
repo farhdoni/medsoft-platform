@@ -610,8 +610,8 @@ export function ThreadClient({
                           className="px-3 py-2 rounded-2xl select-none"
                           style={
                             own
-                              ? { background: '#9c5e6c', color: '#fff', borderBottomRightRadius: 4 }
-                              : { background: '#fff', color: '#2a2540', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }
+                              ? { background: 'var(--av-bubble-out-bg, #9c5e6c)', color: 'var(--av-bubble-out-text, #fff)', borderBottomRightRadius: 4 }
+                              : { background: 'var(--av-bubble-in-bg, #fff)', color: 'var(--av-bubble-in-text, #2a2540)', border: '1px solid var(--av-border, #e8e4dc)', borderBottomLeftRadius: 4 }
                           }
                         >
                           {m.replyTo && (
@@ -649,7 +649,7 @@ export function ThreadClient({
                             </div>
                           )}
 
-                          {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
+                          {m.content && <p className="whitespace-pre-wrap break-words" style={{ fontSize: 'var(--av-msg-size, 14px)' }}>{m.content}</p>}
 
                           {meta}
                         </div>
