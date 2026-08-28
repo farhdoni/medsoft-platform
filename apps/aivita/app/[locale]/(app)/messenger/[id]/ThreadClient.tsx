@@ -94,6 +94,8 @@ export function ThreadClient({
   const [picker, setPicker] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [enterSend, setEnterSend] = useState(true);
+  const [autoloadMedia, setAutoloadMedia] = useState(true);
+  const [autoplayGif, setAutoplayGif] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -130,7 +132,12 @@ export function ThreadClient({
   // "Enter отправляет" is a per-device preference; the settings screen fires
   // av-chat-prefs when it changes, so the open thread follows immediately.
   useEffect(() => {
-    const sync = () => setEnterSend(readPrefs().enterSend);
+    const sync = () => {
+      const p = readPrefs();
+      setEnterSend(p.enterSend);
+      setAutoloadMedia(p.autoloadMedia);
+      setAutoplayGif(p.autoplayGif);
+    };
     sync();
     window.addEventListener('av-chat-prefs', sync);
     window.addEventListener('storage', sync);
@@ -707,7 +714,15 @@ export function ThreadClient({
 
                           {m.type === 'image' && m.attachmentUrl && (
                             <div className="mb-1">
-                              <ImageAttachment url={m.attachmentUrl} gif={isGif(m)} onOpen={() => setLightbox(m.attachmentUrl!)} />
+                              <ImageAttachment
+                                url={m.attachmentUrl}
+                                previewUrl={m.previewUrl}
+                                size={m.attachmentSize}
+                                gif={isGif(m)}
+                                autoload={autoloadMedia}
+                                autoplayGif={autoplayGif}
+                                onOpen={() => setLightbox(m.attachmentUrl!)}
+                              />
                             </div>
                           )}
 

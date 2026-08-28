@@ -135,30 +135,88 @@ export function FileCard({
 
 // ─── Image / GIF ──────────────────────────────────────────────────────────────
 
+/**
+ * Image or GIF in a bubble.
+ *
+ * Two data settings change what is fetched, not just what is shown, which is
+ * the point — someone on a metered connection should not pay for a photo they
+ * have not asked for:
+ *   autoload=false  nothing is requested until the placeholder is tapped
+ *   autoplayGif=false  the still frame loads, the animation only on tap
+ */
 export function ImageAttachment({
   url,
+  previewUrl,
+  size,
   gif,
+  autoload,
+  autoplayGif,
   onOpen,
 }: {
   url: string;
+  previewUrl?: string | null;
+  size?: number | null;
   gif: boolean;
+  autoload: boolean;
+  autoplayGif: boolean;
   onOpen: () => void;
 }) {
+  const [loaded, setLoaded] = useState(autoload);
+  const [playing, setPlaying] = useState(!gif || autoplayGif);
+
+  if (!loaded) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setLoaded(true); }}
+        className="flex items-center gap-2 rounded-xl px-3 py-2.5 w-[190px]"
+        style={{ background: 'rgba(0,0,0,.06)', border: '1px dashed rgba(0,0,0,.18)' }}
+      >
+        <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'rgba(0,0,0,.08)' }} aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span className="min-w-0 text-left">
+          <span className="block text-xs font-semibold">{gif ? 'GIF' : 'Фото'}</span>
+          <span className="block text-[10px] opacity-70">{formatBytes(size ?? null) || 'Нажмите, чтобы загрузить'}</span>
+        </span>
+      </button>
+    );
+  }
+
+  const src = gif && !playing && previewUrl ? previewUrl : url;
+
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onOpen(); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        // First tap on a paused GIF starts it; afterwards it opens fullscreen.
+        if (gif && !playing) { setPlaying(true); return; }
+        onOpen();
+      }}
       className="relative block rounded-xl overflow-hidden max-w-full"
       style={{ lineHeight: 0 }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="" className="max-w-full rounded-xl" style={{ maxHeight: 280, objectFit: 'cover' }} />
+      <img src={src} alt="" className="max-w-full rounded-xl" style={{ maxHeight: 280, objectFit: 'cover' }} />
       {gif && (
         <span
           className="absolute left-1.5 bottom-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold text-white"
           style={{ background: 'rgba(0,0,0,.55)' }}
         >
           GIF
+        </span>
+      )}
+      {gif && !playing && (
+        <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+          <span className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,.45)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 5.5v13l11-6.5-11-6.5Z" fill="#fff" />
+            </svg>
+          </span>
         </span>
       )}
     </button>

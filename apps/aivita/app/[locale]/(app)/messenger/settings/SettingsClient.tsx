@@ -24,6 +24,7 @@ export function SettingsClient({ locale }: { locale: string }) {
   const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULT_PREFS);
   const [blocks, setBlocks] = useState<BlockRow[] | null>(null);
   const [restrictNewChats, setRestrictNewChats] = useState(false);
+  const [notif, setNotif] = useState({ notifPreview: true, quietHours: false });
   const [rules, setRules] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -45,11 +46,30 @@ export function SettingsClient({ locale }: { locale: string }) {
   useEffect(() => {
     fetch(`${PROXY}/messaging/settings`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: ApiEnvelope<{ restrictNewChats: boolean }> | null) => {
-        if (j?.data) setRestrictNewChats(j.data.restrictNewChats);
+      .then((j: ApiEnvelope<{ restrictNewChats: boolean; notifPreview: boolean; quietHours: boolean }> | null) => {
+        if (!j?.data) return;
+        setRestrictNewChats(j.data.restrictNewChats);
+        setNotif({ notifPreview: j.data.notifPreview, quietHours: j.data.quietHours });
       })
       .catch(() => {});
   }, []);
+
+  /** One switch at a time — the API merges, so nothing else is clobbered. */
+  async function setServerSetting(key: 'notifPreview' | 'quietHours', value: boolean) {
+    const before = notif;
+    setNotif({ ...notif, [key]: value });
+    try {
+      const res = await fetch(`${PROXY}/messaging/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+      if (!res.ok) throw new Error('settings failed');
+    } catch {
+      setNotif(before);
+      setNotice('Не удалось сохранить настройку');
+    }
+  }
 
   async function setRestrict(value: boolean) {
     const before = restrictNewChats;
@@ -236,6 +256,33 @@ export function SettingsClient({ locale }: { locale: string }) {
         <Section title="Уведомления">
           <Row label="Звук уведомлений" hint="Звук появится в следующем обновлении">
             <Switch checked={prefs.sound} onChange={(v) => set('sound', v)} label="Звук уведомлений" />
+          </Row>
+
+          <Row label="Показывать текст в уведомлении" hint="Выключите — придёт только «Новое сообщение»">
+            <Switch
+              checked={notif.notifPreview}
+              onChange={(v) => setServerSetting('notifPreview', v)}
+              label="Показывать текст в уведомлении"
+            />
+          </Row>
+
+          <Row label="Тихие часы 22:00–08:00" hint="В это время уведомления не приходят">
+            <Switch
+              checked={notif.quietHours}
+              onChange={(v) => setServerSetting('quietHours', v)}
+              label="Тихие часы"
+            />
+          </Row>
+        </Section>
+
+        {/* ── Данные и память ────────────────────────────────────────── */}
+        <Section title="Данные и память">
+          <Row label="Автозагрузка медиа" hint="Выключите — фото и GIF грузятся по тапу">
+            <Switch checked={prefs.autoloadMedia} onChange={(v) => set('autoloadMedia', v)} label="Автозагрузка медиа" />
+          </Row>
+
+          <Row label="Автопроигрывание GIF" hint="Выключите — сначала стоп-кадр, анимация по тапу">
+            <Switch checked={prefs.autoplayGif} onChange={(v) => set('autoplayGif', v)} label="Автопроигрывание GIF" />
           </Row>
         </Section>
 

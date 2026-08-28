@@ -21,6 +21,8 @@ export type ChatPrefs = {
   background: BackgroundId;
   sound: boolean;
   enterSend: boolean;
+  autoloadMedia: boolean;
+  autoplayGif: boolean;
 };
 
 export const PREF_KEYS = {
@@ -29,6 +31,8 @@ export const PREF_KEYS = {
   background: 'av-chat-bg',
   sound: 'av-chat-sound',
   enterSend: 'av-chat-enter-send',
+  autoloadMedia: 'av-chat-autoload-media',
+  autoplayGif: 'av-chat-autoplay-gif',
 } as const;
 
 export const DEFAULT_PREFS: ChatPrefs = {
@@ -37,6 +41,8 @@ export const DEFAULT_PREFS: ChatPrefs = {
   background: 'plain',
   sound: true,
   enterSend: true,
+  autoloadMedia: true,
+  autoplayGif: true,
 };
 
 export const TEXT_SIZES: { id: TextSizeId; label: string; px: number }[] = [
@@ -133,15 +139,20 @@ export function readPrefs(): ChatPrefs {
       ),
       sound: (localStorage.getItem(PREF_KEYS.sound) ?? '1') !== '0',
       enterSend: (localStorage.getItem(PREF_KEYS.enterSend) ?? '1') !== '0',
+      autoloadMedia: (localStorage.getItem(PREF_KEYS.autoloadMedia) ?? '1') !== '0',
+      autoplayGif: (localStorage.getItem(PREF_KEYS.autoplayGif) ?? '1') !== '0',
     };
   } catch {
     return DEFAULT_PREFS;
   }
 }
 
+/** Prefs stored as 1/0 rather than their literal string value. */
+const BOOLEAN_PREFS = new Set<keyof ChatPrefs>(['sound', 'enterSend', 'autoloadMedia', 'autoplayGif']);
+
 export function writePref<K extends keyof ChatPrefs>(key: K, value: ChatPrefs[K]): void {
   try {
-    localStorage.setItem(PREF_KEYS[key], (key === 'sound' || key === 'enterSend') ? (value ? '1' : '0') : String(value));
+    localStorage.setItem(PREF_KEYS[key], BOOLEAN_PREFS.has(key) ? (value ? '1' : '0') : String(value));
     // Same-tab listeners: the storage event only fires in *other* tabs.
     window.dispatchEvent(new CustomEvent('av-chat-prefs'));
   } catch { /* private mode — the choice just does not persist */ }
