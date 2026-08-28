@@ -23,6 +23,7 @@ type BlockRow = { id: string; createdAt: string; user: MessengerUser };
 export function SettingsClient({ locale }: { locale: string }) {
   const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULT_PREFS);
   const [blocks, setBlocks] = useState<BlockRow[] | null>(null);
+  const [restrictNewChats, setRestrictNewChats] = useState(false);
   const [rules, setRules] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -38,6 +39,33 @@ export function SettingsClient({ locale }: { locale: string }) {
     setPrefs((p) => ({ ...p, [key]: value }));
     writePref(key, value);
   }, []);
+
+  // Server-side setting, unlike the appearance ones: it changes who may open
+  // a conversation with this account, so it has to live with the account.
+  useEffect(() => {
+    fetch(`${PROXY}/messaging/settings`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: ApiEnvelope<{ restrictNewChats: boolean }> | null) => {
+        if (j?.data) setRestrictNewChats(j.data.restrictNewChats);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function setRestrict(value: boolean) {
+    const before = restrictNewChats;
+    setRestrictNewChats(value);
+    try {
+      const res = await fetch(`${PROXY}/messaging/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restrictNewChats: value }),
+      });
+      if (!res.ok) throw new Error('settings failed');
+    } catch {
+      setRestrictNewChats(before);
+      setNotice('Не удалось сохранить настройку');
+    }
+  }
 
   const loadBlocks = useCallback(async () => {
     try {
@@ -127,6 +155,10 @@ export function SettingsClient({ locale }: { locale: string }) {
             </div>
           </Row>
 
+          <Row label="Enter отправляет сообщение" hint="Выключите, если Enter должен переносить строку">
+            <Switch checked={prefs.enterSend} onChange={(v) => set('enterSend', v)} label="Enter отправляет сообщение" />
+          </Row>
+
           <div className="pt-1">
             <p className="text-xs mb-2" style={{ color: 'var(--av-text-dim)' }}>Фон чата</p>
             <div className="flex gap-2 flex-wrap">
@@ -155,6 +187,19 @@ export function SettingsClient({ locale }: { locale: string }) {
 
         {/* ── Приватность ────────────────────────────────────────────── */}
         <Section title="Приватность">
+          <Row
+            label="Только знакомые могут писать"
+            hint="Новые диалоги смогут начинать лишь те, с кем вы уже общаетесь"
+          >
+            <Switch
+              checked={restrictNewChats}
+              onChange={setRestrict}
+              label="Только знакомые могут писать"
+            />
+          </Row>
+
+          <div className="pt-1" style={{ borderTop: '1px solid var(--av-border)' }} />
+
           <p className="text-xs mb-2" style={{ color: 'var(--av-text-dim)' }}>Заблокированные пользователи</p>
           {blocks === null ? (
             <p className="text-xs" style={{ color: 'var(--av-text-mute)' }}>Загружаем…</p>

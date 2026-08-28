@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/messenger/Avatar';
 import { displayName, formatListTime, previewOf } from '@/components/messenger/format';
 import type { ApiEnvelope, MessengerConversation, MessengerUser } from '@/components/messenger/types';
+import { SUPPORT_NICKNAME } from '@/components/messenger/types';
 
 const PROXY = '/api/proxy';
 const POLL_MS = 5_000;
@@ -24,6 +25,7 @@ export function MessengerHubClient({ locale }: { locale: string }) {
   const [searched, setSearched] = useState(false);
   const [found, setFound] = useState<MessengerUser | null>(null);
   const [starting, setStarting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Own @username for the header pill.
   useEffect(() => {
@@ -71,6 +73,25 @@ export function MessengerHubClient({ locale }: { locale: string }) {
     }
   }
 
+  /** Opens the official support conversation, resolving it by nickname. */
+  async function openSupport() {
+    setStarting(true);
+    try {
+      const res = await fetch(`${PROXY}/messaging/search?q=@${SUPPORT_NICKNAME}`);
+      const json = (await res.json()) as ApiEnvelope<MessengerUser | null>;
+      const support = json.data;
+      if (!support) {
+        setNotice('Поддержка временно недоступна');
+        return;
+      }
+      await openConversationWith(support.id);
+    } catch {
+      setNotice('Поддержка временно недоступна');
+    } finally {
+      setStarting(false);
+    }
+  }
+
   async function openConversationWith(userId: string) {
     setStarting(true);
     try {
@@ -79,7 +100,15 @@ export function MessengerHubClient({ locale }: { locale: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       });
-      const json = (await res.json()) as ApiEnvelope<MessengerConversation>;
+      const json = (await res.json()) as ApiEnvelope<MessengerConversation> & { code?: string };
+      if (!res.ok) {
+        // 'restricted' is the API's code for someone who only accepts
+        // messages from people they already talk to.
+        setNotice(json.code === 'restricted'
+          ? 'Пользователь ограничил новые сообщения'
+          : 'Не удалось открыть диалог');
+        return;
+      }
       const convId = json.data?.id;
       if (convId) router.push(`/${locale}/messenger/${convId}`);
     } catch {
@@ -243,11 +272,7 @@ export function MessengerHubClient({ locale }: { locale: string }) {
       {/* ── Body ───────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0">
         {segment === 'help' ? (
-          <div className="bg-white rounded-2xl p-6 text-center" style={{ border: '1px solid #e8e4dc' }}>
-            <div className="text-3xl mb-2" aria-hidden="true">🛟</div>
-            <p className="text-sm font-semibold text-app-t1">Поддержка</p>
-            <p className="text-xs text-app-t3 mt-1">Скоро</p>
-          </div>
+          <HelpTab starting={starting} onWriteSupport={openSupport} />
         ) : loading ? (
           <div className="space-y-2" aria-busy="true">
             {[0, 1, 2].map((i) => (
@@ -315,6 +340,108 @@ export function MessengerHubClient({ locale }: { locale: string }) {
             })}
           </div>
         )}
+      </div>
+      {notice && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-28 z-40 pointer-events-none" role="status">
+          <span className="px-4 py-2 rounded-full text-xs text-white shadow-lg" style={{ background: 'rgba(42,37,64,.92)' }}>
+            {notice}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── Help ─────────────────────────────────────────────────────────────────────
+
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: 'Как найти врача?',
+    a: 'Откройте раздел «Врачи» в каталоге: там можно отфильтровать специалистов по специализации и посмотреть профиль. Из профиля врача есть кнопка «Написать» — она открывает диалог прямо здесь, в чате.',
+  },
+  {
+    q: 'Как записаться на приём?',
+    a: 'В профиле врача нажмите «Записаться» и выберите свободное время в расписании. Подтверждение придёт уведомлением, а напоминание — заранее до приёма.',
+  },
+  {
+    q: 'Как изменить @имя?',
+    a: 'Ваш @username виден в шапке «Центра общения». Смена имени появится в настройках профиля в ближайшем обновлении — пока напишите нам сюда, и мы поменяем вручную.',
+  },
+  {
+    q: 'Как заблокировать пользователя?',
+    a: 'Откройте диалог, нажмите ⋮ в правом верхнем углу и выберите «Заблокировать». После этого ни он вам, ни вы ему написать не сможете. Снять блокировку можно в «Настройках чата» → «Приватность».',
+  },
+  {
+    q: 'Что делать при ошибке?',
+    a: 'Попробуйте обновить страницу — большинство сбоев связи проходят сами. Если ошибка повторяется, напишите нам в поддержку и приложите скриншот: так мы разберёмся быстрее.',
+  },
+  {
+    q: 'Безопасно ли писать здесь о здоровье?',
+    a: 'Чат защищён вашей учётной записью, но это обычная переписка, а не медицинская карта. Не отправляйте в открытый чат results анализов и документы, без которых можно обойтись, и помните: чат не заменяет очную консультацию.',
+  },
+];
+
+function HelpTab({ starting, onWriteSupport }: { starting: boolean; onWriteSupport: () => void }) {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={onWriteSupport}
+        disabled={starting}
+        className="w-full bg-white rounded-2xl p-4 flex items-center gap-3 text-left active:opacity-80 disabled:opacity-60"
+        style={{ border: '1px solid #e8e4dc' }}
+      >
+        <span
+          className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+          style={{ background: 'var(--accent-light, #f0d4dc)' }}
+          aria-hidden="true"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#9c5e6c" strokeWidth="1.8" />
+            <circle cx="12" cy="12" r="3.5" stroke="#9c5e6c" strokeWidth="1.8" />
+            <path d="m5.6 5.6 3.9 3.9M18.4 5.6l-3.9 3.9M5.6 18.4l3.9-3.9M18.4 18.4l-3.9-3.9" stroke="#9c5e6c" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-app-t1">Написать в поддержку</span>
+          <span className="block text-xs text-app-t3">Отвечаем в чате</span>
+        </span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" stroke="#9a96a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wide px-1 pb-1.5 text-app-t3">Частые вопросы</p>
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e4dc' }}>
+          {FAQ.map((item, i) => {
+            const expanded = open === i;
+            return (
+              <div key={item.q} style={{ borderTop: i === 0 ? undefined : '1px solid #f0eeea' }}>
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setOpen(expanded ? null : i)}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-left active:bg-[#faf9f7]"
+                >
+                  <span className="flex-1 text-sm text-app-t1">{item.q}</span>
+                  <svg
+                    width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                    style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
+                  >
+                    <path d="m6 9 6 6 6-6" stroke="#9a96a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {expanded && (
+                  <p className="px-4 pb-3 -mt-1 text-xs leading-5 text-app-t2">{item.a}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

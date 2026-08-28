@@ -20,6 +20,7 @@ export type ChatPrefs = {
   textSize: TextSizeId;
   background: BackgroundId;
   sound: boolean;
+  enterSend: boolean;
 };
 
 export const PREF_KEYS = {
@@ -27,6 +28,7 @@ export const PREF_KEYS = {
   textSize: 'av-chat-text-size',
   background: 'av-chat-bg',
   sound: 'av-chat-sound',
+  enterSend: 'av-chat-enter-send',
 } as const;
 
 export const DEFAULT_PREFS: ChatPrefs = {
@@ -34,6 +36,7 @@ export const DEFAULT_PREFS: ChatPrefs = {
   textSize: 'm',
   background: 'plain',
   sound: true,
+  enterSend: true,
 };
 
 export const TEXT_SIZES: { id: TextSizeId; label: string; px: number }[] = [
@@ -129,6 +132,7 @@ export function readPrefs(): ChatPrefs {
         DEFAULT_PREFS.background,
       ),
       sound: (localStorage.getItem(PREF_KEYS.sound) ?? '1') !== '0',
+      enterSend: (localStorage.getItem(PREF_KEYS.enterSend) ?? '1') !== '0',
     };
   } catch {
     return DEFAULT_PREFS;
@@ -137,7 +141,7 @@ export function readPrefs(): ChatPrefs {
 
 export function writePref<K extends keyof ChatPrefs>(key: K, value: ChatPrefs[K]): void {
   try {
-    localStorage.setItem(PREF_KEYS[key], key === 'sound' ? (value ? '1' : '0') : String(value));
+    localStorage.setItem(PREF_KEYS[key], (key === 'sound' || key === 'enterSend') ? (value ? '1' : '0') : String(value));
     // Same-tab listeners: the storage event only fires in *other* tabs.
     window.dispatchEvent(new CustomEvent('av-chat-prefs'));
   } catch { /* private mode — the choice just does not persist */ }

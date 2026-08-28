@@ -27,6 +27,8 @@ import type {
   ReactionAggregate,
   StickerRef,
 } from '@/components/messenger/types';
+import { isSupportUser } from '@/components/messenger/types';
+import { readPrefs } from '@/components/messenger/chat-prefs';
 import { STICKER_MIME } from '@/components/messenger/types';
 
 const PROXY = '/api/proxy';
@@ -90,6 +92,8 @@ export function ThreadClient({
   const [reportReason, setReportReason] = useState('');
   const [banner, setBanner] = useState(false);
   const [picker, setPicker] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [enterSend, setEnterSend] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -122,6 +126,19 @@ export function ThreadClient({
     setBanner(false);
     try { localStorage.setItem(BANNER_KEY, '1'); } catch { /* private mode */ }
   }
+
+  // "Enter отправляет" is a per-device preference; the settings screen fires
+  // av-chat-prefs when it changes, so the open thread follows immediately.
+  useEffect(() => {
+    const sync = () => setEnterSend(readPrefs().enterSend);
+    sync();
+    window.addEventListener('av-chat-prefs', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('av-chat-prefs', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
 
   const markRead = useCallback(() => {
     fetch(`${PROXY}/messaging/conversations/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
@@ -407,6 +424,26 @@ export function ThreadClient({
     });
   }
 
+  /** Soft-deletes one of my own messages; the API refuses anyone else’s. */
+  async function deleteMessage(messageId: string) {
+    setConfirmDelete(null);
+    const before = messages;
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, deleted: true, content: null, attachmentUrl: null, attachmentName: null, locationLat: null, locationLng: null }
+          : m,
+      ),
+    );
+    try {
+      const res = await fetch(`${PROXY}/messaging/messages/${messageId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
+    } catch {
+      setMessages(before);
+      setNotice('Не удалось удалить сообщение');
+    }
+  }
+
   async function toggleReaction(messageId: string, emoji: string) {
     setPicker(null);
     const before = messages;
@@ -500,7 +537,19 @@ export function ThreadClient({
 
         <Avatar user={partner} size={36} />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-app-t1 truncate">{displayName(partner)}</p>
+          <p className="text-sm font-semibold text-app-t1 truncate flex items-center gap-1">
+            {displayName(partner)}
+            {isSupportUser(partner) && (
+              // Official account: the checkmark is what tells someone this is
+              // really AIVITA and not a lookalike who picked the same name.
+              <span title="Официальный аккаунт" aria-label="Официальный аккаунт" className="flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" fill="#6BA3D6" />
+                  <path d="m7.5 12.5 3 3 6-6.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            )}
+          </p>
           {partner?.nickname && <p className="text-[11px] text-app-t3 truncate">@{partner.nickname}</p>}
         </div>
 
@@ -680,7 +729,18 @@ export function ThreadClient({
                             </div>
                           )}
 
-                          {m.content && <p className="whitespace-pre-wrap break-words" style={{ fontSize: 'var(--av-msg-size, 14px)' }}>{m.content}</p>}
+                          {m.deleted ? (
+                            <p
+                              className="italic"
+                              style={{ fontSize: 'var(--av-msg-size, 14px)', opacity: own ? 0.7 : 0.55 }}
+                            >
+                              Сообщение удалено
+                            </p>
+                          ) : (
+                            m.content && (
+                              <p className="whitespace-pre-wrap break-words" style={{ fontSize: 'var(--av-msg-size, 14px)' }}>{m.content}</p>
+                            )
+                          )}
 
                           {meta}
                         </div>
@@ -733,6 +793,16 @@ export function ThreadClient({
                           >
                             Ответить
                           </button>
+                          {own && !m.deleted && (
+                            <button
+                              type="button"
+                              onClick={() => { setConfirmDelete(m.id); setPicker(null); }}
+                              className="px-2 text-[11px] font-semibold whitespace-nowrap"
+                              style={{ color: '#c0523a' }}
+                            >
+                              Удалить
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -854,7 +924,7 @@ export function ThreadClient({
               onChange={(e) => setDraft(e.target.value)}
               onFocus={() => setEmojiOpen(false)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+                if (enterSend && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
               }}
               rows={1}
               placeholder="Сообщение…"
@@ -949,6 +1019,23 @@ export function ThreadClient({
               </button>
               <button type="button" disabled={!reportReason.trim()} onClick={submitReport} className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'var(--accent-dark, #9c5e6c)' }}>
                 Отправить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: 'rgba(42,37,64,.45)' }} onClick={() => setConfirmDelete(null)}>
+          <div className="w-full max-w-xs bg-white rounded-2xl p-4" style={{ border: '1px solid #e8e4dc' }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-app-t1">Удалить сообщение?</p>
+            <p className="text-xs text-app-t3 mt-1">Его текст и вложение исчезнут у обоих собеседников.</p>
+            <div className="flex gap-2 mt-3">
+              <button type="button" onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-xl text-sm font-semibold" style={{ color: '#6a6580', border: '1px solid #e8e4dc' }}>
+                Отмена
+              </button>
+              <button type="button" onClick={() => deleteMessage(confirmDelete)} className="flex-1 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: '#c0523a' }}>
+                Удалить
               </button>
             </div>
           </div>

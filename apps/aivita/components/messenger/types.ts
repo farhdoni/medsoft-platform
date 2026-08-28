@@ -49,6 +49,8 @@ export type MessengerMessage = {
   /** Present on GET /conversations/:id/messages, absent on POST responses. */
   replyTo?: ReplyQuote | null;
   reactions?: ReactionAggregate[];
+  /** True once the author soft-deletes it; every content field comes back null. */
+  deleted?: boolean;
 };
 
 export type MessengerConversation = {
@@ -91,3 +93,11 @@ export type StickerRef = {
  * bare — no bubble, no chrome — so the thread keys off this exact value.
  */
 export const STICKER_MIME = 'image/sticker+svg';
+
+
+/** Nickname of the official support account, mirrored from the API env. */
+export const SUPPORT_NICKNAME = (process.env.NEXT_PUBLIC_SUPPORT_NICKNAME ?? 'aivita').toLowerCase();
+
+export function isSupportUser(user: { nickname: string | null } | null): boolean {
+  return !!user?.nickname && user.nickname.toLowerCase() === SUPPORT_NICKNAME;
+}
