@@ -18,6 +18,8 @@ import {
   sendPushNotification,
   sendWebPushNotification,
 } from '../../lib/push-notifications.js';
+import { decidePush } from '../../lib/quiet-hours.js';
+import { logger } from '../../lib/logger.js';
 
 // AV Chat — open messenger between AIVITA users. Replaces the legacy
 // doctor-patient chat (routes/aivita/conversations.ts, dropped together with
@@ -252,27 +254,35 @@ aivitaMessagingRouter.post('/conversations', zValidator('json', startSchema), as
 // The caller's conversation list: the other party, the last message, and how
 // many messages arrived after their last_read_at.
 
+// ?archived=1 returns only the archived chats; by default they are hidden.
+// A new message never un-archives a conversation — archiving is a decision
+// about attention, not a snooze, which is the behaviour people expect from
+// every other messenger.
 aivitaMessagingRouter.get('/conversations', async (c) => {
   const me = c.get('aivitaUserId');
+  const wantArchived = c.req.query('archived') === '1';
 
   const myRows = await db
     .select({
       convId: conversationParticipants.conversationId,
       lastReadAt: conversationParticipants.lastReadAt,
+      pinnedAt: conversationParticipants.pinnedAt,
+      mutedUntil: conversationParticipants.mutedUntil,
+      archivedAt: conversationParticipants.archivedAt,
     })
     .from(conversationParticipants)
     .where(eq(conversationParticipants.userId, me));
 
-  if (myRows.length === 0) return c.json({ data: [] });
+  const visible = myRows.filter((r) => (wantArchived ? r.archivedAt !== null : r.archivedAt === null));
+  if (visible.length === 0) return c.json({ data: [] });
 
-  const convIds = myRows.map((r) => r.convId);
-  const readMap = new Map(myRows.map((r) => [r.convId, r.lastReadAt]));
+  const convIds = visible.map((r) => r.convId);
+  const prefsMap = new Map(visible.map((r) => [r.convId, r]));
 
   const convs = await db
     .select()
     .from(conversations)
-    .where(inArray(conversations.id, convIds))
-    .orderBy(desc(conversations.lastMessageAt));
+    .where(inArray(conversations.id, convIds));
 
   const others = await db
     .select({
@@ -287,6 +297,8 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
     ));
   const otherMap = new Map(others.map((r) => [r.convId, r.user]));
 
+  const now = Date.now();
+
   const data = await Promise.all(convs.map(async (conv) => {
     const [last] = await db
       .select()
@@ -295,7 +307,8 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
       .orderBy(desc(messages.createdAt))
       .limit(1);
 
-    const lastReadAt = readMap.get(conv.id) ?? null;
+    const prefs = prefsMap.get(conv.id);
+    const lastReadAt = prefs?.lastReadAt ?? null;
     const [unread] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(messages)
@@ -311,10 +324,78 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
       participant: otherMap.get(conv.id) ?? null,
       lastMessage: last ?? null,
       unreadCount: unread?.n ?? 0,
+      pinned: prefs?.pinnedAt != null,
+      pinnedAt: prefs?.pinnedAt ?? null,
+      // An expired mute simply stops counting — nothing has to clear it.
+      muted: prefs?.mutedUntil != null && prefs.mutedUntil.getTime() > now,
+      mutedUntil: prefs?.mutedUntil ?? null,
+      archived: prefs?.archivedAt != null,
     };
   }));
 
+  // Pinned block first, most recently pinned on top; everything else by
+  // recency. Sorted here rather than in SQL because the pin lives on the
+  // participant row while the recency lives on the conversation.
+  data.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (a.pinned && b.pinned) {
+      return (b.pinnedAt?.getTime() ?? 0) - (a.pinnedAt?.getTime() ?? 0);
+    }
+    const at = a.lastMessageAt?.getTime() ?? 0;
+    const bt = b.lastMessageAt?.getTime() ?? 0;
+    return bt - at;
+  });
+
   return c.json({ data });
+});
+
+// ─── PUT /conversations/:id/prefs ─────────────────────────────────────────────
+// Pin, mute and archive are one participant’s view of a chat, so this only
+// ever writes the caller’s own row.
+
+const convPrefsSchema = z.object({
+  pinned: z.boolean().optional(),
+  muted: z.boolean().optional(),
+  archived: z.boolean().optional(),
+});
+
+// "Muted" with no end date is stored as a far-future instant rather than a
+// sentinel, so the push path can compare one column against now() and needs
+// no special case for forever.
+const MUTE_FOREVER = new Date('2099-12-31T00:00:00.000Z');
+
+aivitaMessagingRouter.put('/conversations/:id/prefs', zValidator('json', convPrefsSchema), async (c) => {
+  const me = c.get('aivitaUserId');
+  const convId = c.req.param('id');
+  const patch = c.req.valid('json');
+
+  const row = await participantOf(convId, me);
+  if (!row) return c.json({ error: 'Forbidden' }, 403);
+
+  const now = new Date();
+  const set: Record<string, Date | null> = {};
+  if (patch.pinned !== undefined) set.pinnedAt = patch.pinned ? now : null;
+  if (patch.muted !== undefined) set.mutedUntil = patch.muted ? MUTE_FOREVER : null;
+  if (patch.archived !== undefined) set.archivedAt = patch.archived ? now : null;
+
+  if (Object.keys(set).length > 0) {
+    await db.update(conversationParticipants)
+      .set(set)
+      .where(and(
+        eq(conversationParticipants.conversationId, convId),
+        eq(conversationParticipants.userId, me),
+      ));
+  }
+
+  const updated = await participantOf(convId, me);
+  return c.json({
+    data: {
+      conversationId: convId,
+      pinned: updated?.pinnedAt != null,
+      muted: updated?.mutedUntil != null && updated.mutedUntil.getTime() > Date.now(),
+      archived: updated?.archivedAt != null,
+    },
+  });
 });
 
 // ─── GET /conversations/:id/messages ──────────────────────────────────────────
@@ -513,16 +594,53 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
     .where(eq(conversations.id, convId));
 
   // Push the other side. Never let a push failure fail the send — the message
-  // is already committed.
+  // is already committed, and delivery is a separate concern from storage.
+  //
+  // Three things can silence or trim it, all decided in decidePush():
+  // the recipient muted this conversation, their quiet hours are running in
+  // their own timezone, or they asked not to see message text on the lock
+  // screen. A suppressed push changes nothing else — the message is stored
+  // and their unread count still rises.
   const [sender] = await db.select(publicUser).from(aivitaUsers).where(eq(aivitaUsers.id, me)).limit(1);
-  const title = sender?.name ?? (sender?.nickname ? '@' + sender.nickname : 'Новое сообщение');
-  const preview = body.content ? body.content.slice(0, REPLY_PREVIEW_CHARS) : '📎 Вложение';
+  const senderName = sender?.name ?? (sender?.nickname ? '@' + sender.nickname : 'Новое сообщение');
+  const fullPreview = body.content ? body.content.slice(0, REPLY_PREVIEW_CHARS) : '📎 Вложение';
+
   for (const o of others) {
-    void pushToUser(o.userId, title, preview, {
-      conversationId: convId,
-      messageId: msg.id,
-      url: '/chat/' + convId,
-    }).catch(() => {});
+    void (async () => {
+      const [recipient] = await db
+        .select({ timezone: aivitaUsers.timezone })
+        .from(aivitaUsers)
+        .where(eq(aivitaUsers.id, o.userId))
+        .limit(1);
+
+      const seat = await participantOf(convId, o.userId);
+      const settings = await readAvChatSettings(o.userId);
+
+      const decision = decidePush({
+        now: new Date(),
+        mutedUntil: seat?.mutedUntil ?? null,
+        quietHours: settings.quietHours,
+        notifPreview: settings.notifPreview,
+        timeZone: recipient?.timezone,
+      });
+
+      if (!decision.send) {
+        logger.info({ conversationId: convId, recipient: o.userId, reason: decision.reason }, '[Push] suppressed');
+        return;
+      }
+
+      // Without preview the notification says only that something arrived —
+      // no text, no sender name, no file name.
+      const title = decision.preview ? senderName : 'Новое сообщение';
+      const bodyText = decision.preview ? fullPreview : 'Новое сообщение';
+      logger.info({ conversationId: convId, recipient: o.userId, preview: decision.preview }, '[Push] sending');
+
+      await pushToUser(o.userId, title, bodyText, {
+        conversationId: convId,
+        messageId: msg.id,
+        url: '/chat/' + convId,
+      });
+    })().catch(() => {});
   }
 
   return c.json({ data: msg }, 201);

@@ -63,6 +63,12 @@ export const conversationParticipants = pgTable(
       .notNull()
       .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
     lastReadAt: timestamp('last_read_at', { withTimezone: true, precision: 3 }),
+    // Per-participant view of the chat (migration 0036). Timestamps, not
+    // booleans: pinnedAt orders the pinned block and mutedUntil can express
+    // "muted for an hour" as easily as "muted", expiring on its own.
+    pinnedAt: timestamp('pinned_at', { withTimezone: true, precision: 3 }),
+    mutedUntil: timestamp('muted_until', { withTimezone: true, precision: 3 }),
+    archivedAt: timestamp('archived_at', { withTimezone: true, precision: 3 }),
     joinedAt: timestamp('joined_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
   (table) => ({
