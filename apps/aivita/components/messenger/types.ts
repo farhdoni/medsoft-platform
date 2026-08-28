@@ -69,6 +69,8 @@ export type GifItem = {
   url: string;
   /** Static thumbnail — what the picker grid shows. */
   preview: string;
+  /** Animated thumbnail — played only while a grid tile is hovered. */
+  thumb: string;
   width: number;
   height: number;
   description: string;

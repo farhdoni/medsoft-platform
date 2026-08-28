@@ -848,7 +848,7 @@ export function ThreadClient({
       </div>
 
       {emojiOpen && (
-        <EmojiPanel onPick={insertEmoji} onBackspace={backspace} onPickSticker={sendSticker} onPickGif={sendGif} />
+        <EmojiPanel onPick={insertEmoji} onBackspace={backspace} onPickSticker={sendSticker} onPickGif={sendGif} locale={locale} />
       )}
 
       {/* Hidden inputs driven by the attach sheet. */}

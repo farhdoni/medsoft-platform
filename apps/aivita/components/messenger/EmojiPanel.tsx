@@ -31,11 +31,14 @@ export function EmojiPanel({
   onBackspace,
   onPickSticker,
   onPickGif,
+  locale,
 }: {
   onPick: (emoji: string) => void;
   onBackspace: () => void;
   onPickSticker: (sticker: StickerRef) => void;
   onPickGif: (gif: GifItem) => void;
+  /** Drives the GIF search language; the provider maps it to what it supports. */
+  locale: string;
 }) {
   const [tab, setTab] = useState<Tab>('emoji');
   const [query, setQuery] = useState('');
@@ -106,7 +109,7 @@ export function EmojiPanel({
       </div>
 
       {tab === 'stickers' && <StickersTab onPickSticker={onPickSticker} />}
-      {tab === 'gif' && <GifTab onPickGif={onPickGif} />}
+      {tab === 'gif' && <GifTab onPickGif={onPickGif} locale={locale} />}
 
       {tab === 'emoji' && (
         <>
@@ -275,79 +278,126 @@ function StickersTab({ onPickSticker }: { onPickSticker: (s: StickerRef) => void
 
 // ─── GIF ──────────────────────────────────────────────────────────────────────
 
-function GifTab({ onPickGif }: { onPickGif: (g: GifItem) => void }) {
+function GifTab({ onPickGif, locale }: { onPickGif: (g: GifItem) => void; locale: string }) {
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<GifItem[]>([]);
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Seeded, then replaced by whatever the server-side provider reports, so a
+  // provider swap changes the credit line without touching this file.
+  const [attribution, setAttribution] = useState('Powered by GIPHY');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
-  // Debounced so typing does not fire a request per keystroke.
+  // Debounced so typing does not fire a request per keystroke, and aborted on
+  // change so a slow earlier reply cannot land on top of a newer one.
   useEffect(() => {
-    let alive = true;
-    setLoading(true);
+    const ctrl = new AbortController();
+    setStatus('loading');
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/gif?q=${encodeURIComponent(query.trim())}`);
-        const json = (await res.json()) as { configured: boolean; data: GifItem[] };
-        if (!alive) return;
+        const qs = new URLSearchParams({ lang: locale });
+        const q = query.trim();
+        if (q) qs.set('q', q);
+        const res = await fetch(`/api/gif?${qs}`, { signal: ctrl.signal });
+        const json = (await res.json()) as {
+          configured: boolean;
+          attribution?: string;
+          data?: GifItem[];
+        };
+        if (json.attribution) setAttribution(json.attribution);
         setConfigured(json.configured);
+        if (!res.ok) { setItems([]); setStatus('error'); return; }
         setItems(json.data ?? []);
-      } catch {
-        if (alive) { setConfigured(true); setItems([]); }
-      } finally {
-        if (alive) setLoading(false);
+        setStatus('ready');
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') return;
+        setConfigured(true);
+        setItems([]);
+        setStatus('error');
       }
     }, 300);
-    return () => { alive = false; clearTimeout(t); };
-  }, [query]);
-
-  if (configured === false) {
-    return (
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="text-center">
-          <div className="text-2xl mb-1" aria-hidden="true">🎞️</div>
-          <p className="text-xs font-semibold text-app-t1">GIF появятся после подключения ключа</p>
-          <p className="text-[11px] text-app-t3 mt-1">Провайдер пока не настроен</p>
-        </div>
-      </div>
-    );
-  }
+    return () => { ctrl.abort(); clearTimeout(t); };
+  }, [query, locale, retry]);
 
   return (
     <>
-      <div className="flex-shrink-0 px-2 pt-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск GIF…"
-          aria-label="Поиск GIF"
-          className="w-full rounded-xl text-xs text-app-t1 placeholder:text-app-t3 outline-none px-3 py-2"
-          style={{ background: '#faf9f7', border: '1px solid #e8e4dc' }}
-        />
-      </div>
-      <div className="flex-1 overflow-y-auto px-2 py-2 min-h-0">
-        {loading ? (
-          <p className="text-center text-xs text-app-t3 py-6">Загружаем…</p>
-        ) : items.length === 0 ? (
-          <p className="text-center text-xs text-app-t3 py-6">Ничего не нашли</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-1">
-            {items.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                aria-label={g.description}
-                onClick={() => onPickGif(g)}
-                className="aspect-square rounded-lg overflow-hidden active:scale-95 transition-transform"
-                style={{ background: '#faf9f7' }}
-              >
-                {/* Static preview in the grid; only the sent bubble animates. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={g.preview} alt="" loading="lazy" className="w-full h-full object-cover" />
-              </button>
-            ))}
+      {configured === false ? (
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="text-center">
+            <div className="text-2xl mb-1" aria-hidden="true">🎞️</div>
+            <p className="text-xs font-semibold text-app-t1">GIF появятся после подключения ключа</p>
+            <p className="text-[11px] text-app-t3 mt-1">Провайдер пока не настроен</p>
           </div>
-        )}
+        </div>
+      ) : (
+        <>
+          <div className="flex-shrink-0 px-2 pt-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск GIF…"
+              aria-label="Поиск GIF"
+              className="w-full rounded-xl text-xs text-app-t1 placeholder:text-app-t3 outline-none px-3 py-2"
+              style={{ background: '#faf9f7', border: '1px solid #e8e4dc' }}
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 py-2 min-h-0">
+            {status === 'loading' ? (
+              <p className="text-center text-xs text-app-t3 py-6">Загружаем…</p>
+            ) : status === 'error' ? (
+              <div className="flex flex-col items-center gap-2 py-6">
+                <p className="text-xs text-app-t3">Не удалось загрузить</p>
+                <button
+                  type="button"
+                  onClick={() => setRetry((n) => n + 1)}
+                  className="text-xs font-semibold rounded-full px-3 py-1.5"
+                  style={{ background: '#faf9f7', color: 'var(--accent-dark, #9c5e6c)' }}
+                >
+                  Повторить
+                </button>
+              </div>
+            ) : items.length === 0 ? (
+              <p className="text-center text-xs text-app-t3 py-6">Ничего не нашли</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {items.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-label={g.description}
+                    onClick={() => onPickGif(g)}
+                    onMouseEnter={() => setHovered(g.id)}
+                    onMouseLeave={() => setHovered((h) => (h === g.id ? null : h))}
+                    className="aspect-square rounded-lg overflow-hidden active:scale-95 transition-transform"
+                    style={{ background: '#faf9f7' }}
+                  >
+                    {/* Still frames by default — a grid of animating GIFs is unreadable.
+                        Only the hovered tile plays. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={hovered === g.id ? g.thumb : g.preview}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Provider credit — required by the provider's terms, so it stays put
+          in every state, including "no key yet". */}
+      <div
+        className="flex-shrink-0 px-2 py-1.5 text-center"
+        style={{ borderTop: '1px solid #f0eeea' }}
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-app-t3">
+          {attribution}
+        </span>
       </div>
     </>
   );
