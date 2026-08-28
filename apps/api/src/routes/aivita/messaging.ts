@@ -486,6 +486,26 @@ aivitaMessagingRouter.delete('/messages/:id/reactions', async (c) => {
 
 const blockSchema = z.object({ userId: z.string().uuid() });
 
+// GET /block — who the caller has blocked, with enough profile to render the
+// settings list. Only the caller's own blocks: nobody may ask who blocked THEM,
+// which would turn the endpoint into a way to probe other people's choices.
+aivitaMessagingRouter.get('/block', async (c) => {
+  const me = c.get('aivitaUserId');
+
+  const rows = await db
+    .select({
+      id: userBlocks.id,
+      createdAt: userBlocks.createdAt,
+      user: publicUser,
+    })
+    .from(userBlocks)
+    .innerJoin(aivitaUsers, eq(aivitaUsers.id, userBlocks.blockedId))
+    .where(eq(userBlocks.blockerId, me))
+    .orderBy(desc(userBlocks.createdAt));
+
+  return c.json({ data: rows });
+});
+
 aivitaMessagingRouter.post('/block', zValidator('json', blockSchema), async (c) => {
   const me = c.get('aivitaUserId');
   const { userId } = c.req.valid('json');
