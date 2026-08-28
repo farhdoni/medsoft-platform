@@ -40,6 +40,9 @@ export type MessengerMessage = {
   durationSeconds: number | null;
   /** Still frame for a GIF/image, separate from the played asset (0034). */
   previewUrl: string | null;
+  /** Single pin for a location message (migration 0035). */
+  locationLat: number | null;
+  locationLng: number | null;
   replyToId: string | null;
   deletedAt: string | null;
   createdAt: string;

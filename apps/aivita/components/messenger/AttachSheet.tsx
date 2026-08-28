@@ -1,16 +1,19 @@
 'use client';
 
 /**
- * Attachment chooser. Two intents, two file inputs with different `accept`
- * filters — photos open the gallery on mobile, documents the file browser.
+ * Attachment chooser. Photos and documents each open a file input with its own
+ * accept filter — the gallery on mobile, the file browser otherwise — while
+ * geolocation asks the browser for the current position instead.
  */
 export function AttachSheet({
   onPickPhoto,
   onPickDocument,
+  onPickLocation,
   onClose,
 }: {
   onPickPhoto: () => void;
   onPickDocument: () => void;
+  onPickLocation: () => void;
   onClose: () => void;
 }) {
   const options = [
@@ -42,6 +45,19 @@ export function AttachSheet({
         </svg>
       ),
     },
+    {
+      key: 'geo',
+      label: 'Геолокация',
+      hint: 'текущая точка',
+      bg: '#d8e8c0',
+      onClick: onPickLocation,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke="#6b8f4e" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="12" cy="10" r="2.5" stroke="#6b8f4e" strokeWidth="1.8" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -59,7 +75,7 @@ export function AttachSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-10 h-1 rounded-full mx-auto mb-3" style={{ background: '#e8e4dc' }} aria-hidden="true" />
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {options.map((o) => (
             <button
               key={o.key}

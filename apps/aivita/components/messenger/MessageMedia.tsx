@@ -217,3 +217,74 @@ export function Lightbox({ url, onClose }: { url: string; onClose: () => void })
     </div>
   );
 }
+
+// ─── Location ─────────────────────────────────────────────────────────────────
+
+/** Formats a coordinate the way map apps show it — six decimals is ~10 cm. */
+export function formatCoord(value: number): string {
+  return value.toFixed(5);
+}
+
+export function mapLink(lat: number, lng: number): string {
+  return `https://maps.google.com/?q=${lat},${lng}`;
+}
+
+/**
+ * A single pin. No tiles and no map SDK on purpose: a static-map image needs a
+ * paid key and leaks the coordinate to a third party on every render, so the
+ * card shows the point and hands off to whatever map app the reader already
+ * uses.
+ */
+export function LocationCard({
+  lat,
+  lng,
+  own,
+}: {
+  lat: number;
+  lng: number;
+  own: boolean;
+}) {
+  const ink = own ? '#fff' : '#2a2540';
+  const dim = own ? 'rgba(255,255,255,.75)' : '#6a6580';
+
+  return (
+    <div className="min-w-[190px] max-w-[240px]">
+      <div className="flex items-center gap-2">
+        <span
+          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: own ? 'rgba(255,255,255,.2)' : 'var(--accent-light, #f0d4dc)' }}
+          aria-hidden="true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"
+              stroke={own ? '#fff' : '#9c5e6c'}
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="10" r="2.5" stroke={own ? '#fff' : '#9c5e6c'} strokeWidth="1.8" />
+          </svg>
+        </span>
+        <span className="min-w-0">
+          <span className="block text-xs font-semibold" style={{ color: ink }}>Геолокация</span>
+          <span className="block text-[10px] tabular-nums" style={{ color: dim }}>
+            {formatCoord(lat)}, {formatCoord(lng)}
+          </span>
+        </span>
+      </div>
+      <a
+        href={mapLink(lat, lng)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="block mt-2 py-1.5 rounded-lg text-center text-[11px] font-semibold"
+        style={{
+          background: own ? 'rgba(255,255,255,.18)' : 'var(--accent-light, #f0d4dc)',
+          color: own ? '#fff' : 'var(--accent-dark, #9c5e6c)',
+        }}
+      >
+        Открыть на карте
+      </a>
+    </div>
+  );
+}

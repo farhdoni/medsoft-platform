@@ -11,6 +11,8 @@ import {
   Lightbox,
   Sticker,
   VoicePlayer,
+  LocationCard,
+  formatCoord,
   isGif,
   isSticker,
 } from '@/components/messenger/MessageMedia';
@@ -55,6 +57,8 @@ type OutgoingMessage = {
   attachmentSize?: number;
   durationSeconds?: number;
   previewUrl?: string;
+  locationLat?: number;
+  locationLng?: number;
 };
 
 export function ThreadClient({
@@ -90,6 +94,7 @@ export function ThreadClient({
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -360,6 +365,26 @@ export function ThreadClient({
     setEmojiOpen(false);
     const ok = await recorder.start();
     if (!ok) setNotice('Нет доступа к микрофону');
+  }
+
+  /** Ask the browser where we are; the pin is only sent after confirmation. */
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      setNotice('Геолокация недоступна на этом устройстве');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setPendingLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setNotice('Нет доступа к геолокации'),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  }
+
+  async function sendLocation() {
+    const pin = pendingLocation;
+    if (!pin) return;
+    setPendingLocation(null);
+    await postMessage({ type: 'location', locationLat: pin.lat, locationLng: pin.lng });
   }
 
   async function sendSticker(s: StickerRef) {
@@ -643,6 +668,12 @@ export function ThreadClient({
                             </div>
                           )}
 
+                          {m.type === 'location' && m.locationLat != null && m.locationLng != null && (
+                            <div className="mb-0.5">
+                              <LocationCard lat={m.locationLat} lng={m.locationLng} own={own} />
+                            </div>
+                          )}
+
                           {m.type === 'file' && m.attachmentUrl && (
                             <div className="mb-0.5">
                               <FileCard url={m.attachmentUrl} name={m.attachmentName} size={m.attachmentSize} own={own} />
@@ -731,6 +762,38 @@ export function ThreadClient({
               <path d="M6 6l12 12M18 6 6 18" stroke="#6a6580" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </button>
+        </div>
+      )}
+
+      {pendingLocation && (
+        <div
+          className="flex-shrink-0 mx-3 mb-1 px-3 py-2.5 rounded-xl bg-white"
+          style={{ border: '1px solid var(--accent, #cc8a96)' }}
+        >
+          <p className="text-xs font-semibold" style={{ color: 'var(--accent-dark, #9c5e6c)' }}>
+            Отправить мою локацию
+          </p>
+          <p className="text-[11px] tabular-nums mt-0.5" style={{ color: '#6a6580' }}>
+            {formatCoord(pendingLocation.lat)}, {formatCoord(pendingLocation.lng)}
+          </p>
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setPendingLocation(null)}
+              className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ color: '#6a6580', border: '1px solid #e8e4dc' }}
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              onClick={sendLocation}
+              className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white"
+              style={{ background: 'var(--accent-dark, #9c5e6c)' }}
+            >
+              Отправить
+            </button>
+          </div>
         </div>
       )}
 
@@ -860,6 +923,7 @@ export function ThreadClient({
           onClose={() => setAttachOpen(false)}
           onPickPhoto={() => { setAttachOpen(false); photoInputRef.current?.click(); }}
           onPickDocument={() => { setAttachOpen(false); docInputRef.current?.click(); }}
+          onPickLocation={() => { setAttachOpen(false); requestLocation(); }}
         />
       )}
 
