@@ -36,6 +36,10 @@ export type MessengerMessage = {
   attachmentName: string | null;
   attachmentMime: string | null;
   attachmentSize: number | null;
+  /** Voice length in whole seconds (migration 0034). */
+  durationSeconds: number | null;
+  /** Still frame for a GIF/image, separate from the played asset (0034). */
+  previewUrl: string | null;
   replyToId: string | null;
   deletedAt: string | null;
   createdAt: string;
@@ -57,3 +61,28 @@ export type MessengerConversation = {
 
 /** Every messaging endpoint wraps its payload in { data }. */
 export type ApiEnvelope<T> = { data: T; error?: string };
+
+/** One GIF from the provider, as /api/gif normalises it. */
+export type GifItem = {
+  id: string;
+  /** Animated file — what the bubble plays. */
+  url: string;
+  /** Static thumbnail — what the picker grid shows. */
+  preview: string;
+  width: number;
+  height: number;
+  description: string;
+};
+
+/** A sticker chosen from a pack under public/stickers/. */
+export type StickerRef = {
+  url: string;
+  name: string;
+  pack: string;
+};
+
+/**
+ * Marker mime for stickers. They ride on message_type 'image' but must render
+ * bare — no bubble, no chrome — so the thread keys off this exact value.
+ */
+export const STICKER_MIME = 'image/sticker+svg';

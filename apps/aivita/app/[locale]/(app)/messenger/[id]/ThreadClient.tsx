@@ -4,20 +4,58 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/messenger/Avatar';
 import { EmojiPanel } from '@/components/messenger/EmojiPanel';
-import { dayKey, displayName, formatBubbleTime, formatDayLabel } from '@/components/messenger/format';
+import { AttachSheet } from '@/components/messenger/AttachSheet';
+import {
+  FileCard,
+  ImageAttachment,
+  Lightbox,
+  Sticker,
+  VoicePlayer,
+  isGif,
+  isSticker,
+} from '@/components/messenger/MessageMedia';
+import { useVoiceRecorder } from '@/components/messenger/useVoiceRecorder';
+import { dayKey, displayName, formatBubbleTime, formatDayLabel, formatDuration } from '@/components/messenger/format';
 import type {
   ApiEnvelope,
+  GifItem,
   MessengerConversation,
   MessengerMessage,
   MessengerUser,
   ReactionAggregate,
+  StickerRef,
 } from '@/components/messenger/types';
+import { STICKER_MIME } from '@/components/messenger/types';
 
 const PROXY = '/api/proxy';
 const PAGE = 40;
 const POLL_MS = 4_000;
 const BANNER_KEY = 'av-chat-privacy-banner-dismissed';
 const EMOJI_CHOICES = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // matches routes/aivita/upload.ts
+
+const DOC_ACCEPT = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  '.pdf,.docx,.xlsx,.pptx,.txt,.csv,.zip',
+].join(',');
+
+type OutgoingMessage = {
+  content?: string;
+  type?: MessengerMessage['type'];
+  replyToId?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentMime?: string;
+  attachmentSize?: number;
+  durationSeconds?: number;
+  previewUrl?: string;
+};
 
 export function ThreadClient({
   locale,
@@ -29,6 +67,7 @@ export function ThreadClient({
   meId: string;
 }) {
   const router = useRouter();
+  const recorder = useVoiceRecorder();
 
   const [messages, setMessages] = useState<MessengerMessage[]>([]);
   const [partner, setPartner] = useState<MessengerUser | null>(null);
@@ -38,6 +77,7 @@ export function ThreadClient({
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [replyTo, setReplyTo] = useState<MessengerMessage | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -48,21 +88,23 @@ export function ThreadClient({
   const [picker, setPicker] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const docInputRef = useRef<HTMLInputElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stickToBottom = useRef(true);
 
-  // Transient toasts clear themselves so stubs do not leave litter on screen.
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(null), 2200);
     return () => clearTimeout(t);
   }, [notice]);
 
-  // Privacy banner — dismissal is per-device, so localStorage is the right home.
   useEffect(() => {
     try {
       setBanner(localStorage.getItem(BANNER_KEY) !== '1');
@@ -80,8 +122,6 @@ export function ThreadClient({
     fetch(`${PROXY}/messaging/conversations/${conversationId}/read`, { method: 'PUT' }).catch(() => {});
   }, [conversationId]);
 
-  // The thread endpoint returns messages only; the partner comes from the
-  // conversation list, which is where the API exposes the other participant.
   const loadPartner = useCallback(async () => {
     try {
       const res = await fetch(`${PROXY}/messaging/conversations`);
@@ -109,8 +149,6 @@ export function ThreadClient({
     loadInitial().then(markRead);
   }, [loadPartner, loadInitial, markRead]);
 
-  // Poll for new messages with ?after=<newest createdAt>, the cursor contract
-  // the API exposes. Appends only what is genuinely new.
   useEffect(() => {
     const id = setInterval(async () => {
       const newest = messages.length ? messages[messages.length - 1].createdAt : null;
@@ -135,14 +173,10 @@ export function ThreadClient({
     return () => clearInterval(id);
   }, [conversationId, messages, meId, markRead]);
 
-  // Land on the newest message when the thread opens, and follow new arrivals
-  // only while the reader is already at the bottom — never yank them out of
-  // history they are scrolling through.
   useEffect(() => {
     if (stickToBottom.current) bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [messages.length]);
 
-  // Opening the emoji panel shortens the scroller; keep the last message visible.
   useEffect(() => {
     if (emojiOpen && stickToBottom.current) {
       requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: 'end' }));
@@ -174,7 +208,6 @@ export function ThreadClient({
             const seen = new Set(prev.map((m) => m.id));
             return [...older.filter((m) => !seen.has(m.id)), ...prev];
           });
-          // Hold the reading position steady as content grows above.
           requestAnimationFrame(() => {
             if (el) el.scrollTop = el.scrollHeight - prevHeight;
           });
@@ -185,7 +218,6 @@ export function ThreadClient({
     finally { setLoadingOlder(false); }
   }
 
-  /** Insert at the caret so the panel can be used mid-sentence, not just at the end. */
   function insertEmoji(emoji: string) {
     const el = inputRef.current;
     if (!el) { setDraft((d) => d + emoji); return; }
@@ -206,7 +238,6 @@ export function ThreadClient({
     const start = el.selectionStart ?? draft.length;
     const end = el.selectionEnd ?? draft.length;
     if (start === 0 && start === end) return;
-    // Step back by a full code point so an emoji is deleted whole.
     const cut = start === end ? [...draft.slice(0, start)].pop()?.length ?? 1 : 0;
     const from = start === end ? start - cut : start;
     const next = draft.slice(0, from) + draft.slice(end);
@@ -217,54 +248,140 @@ export function ThreadClient({
     });
   }
 
+  /** Single path to POST /messages — text, media and stickers all go through here. */
+  const postMessage = useCallback(
+    async (payload: OutgoingMessage): Promise<boolean> => {
+      try {
+        const res = await fetch(`${PROXY}/messaging/conversations/${conversationId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = (await res.json()) as ApiEnvelope<MessengerMessage> & { error?: string };
+        if (!res.ok) {
+          setNotice(json?.error ?? 'Не удалось отправить сообщение');
+          return false;
+        }
+        if (json.data) setMessages((prev) => [...prev, json.data]);
+        stickToBottom.current = true;
+        return true;
+      } catch {
+        setNotice('Сеть недоступна');
+        return false;
+      }
+    },
+    [conversationId],
+  );
+
   async function send() {
     const text = draft.trim();
     if (!text || sending) return;
     setSending(true);
     setEmojiOpen(false);
-    try {
-      const res = await fetch(`${PROXY}/messaging/conversations/${conversationId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text, ...(replyTo ? { replyToId: replyTo.id } : {}) }),
-      });
-      const json = (await res.json()) as ApiEnvelope<MessengerMessage> & { error?: string };
-      if (!res.ok) {
-        setNotice(json?.error ?? 'Не удалось отправить сообщение');
-        return;
-      }
-      if (json.data) {
-        // POST does not expand replyTo; attach the quote we already hold so the
-        // bubble renders correctly without waiting for the next poll.
-        const quoted = replyTo;
-        setMessages((prev) => [
-          ...prev,
-          quoted
-            ? {
-                ...json.data,
-                replyTo: {
-                  id: quoted.id,
-                  sender:
-                    quoted.senderId === meId
-                      ? { id: meId, nickname: null, name: 'Вы', avatarUrl: null }
-                      : partner ?? { id: quoted.senderId, nickname: null, name: null, avatarUrl: null },
-                  content: (quoted.content ?? '').slice(0, 120),
-                },
-              }
-            : json.data,
-        ]);
+    const quoted = replyTo;
+    const ok = await postMessage({ content: text, ...(quoted ? { replyToId: quoted.id } : {}) });
+    if (ok) {
+      // POST does not expand replyTo; attach the quote we already hold so the
+      // bubble renders correctly without waiting for the next poll.
+      if (quoted) {
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (!last || last.replyToId !== quoted.id) return prev;
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...last,
+              replyTo: {
+                id: quoted.id,
+                sender:
+                  quoted.senderId === meId
+                    ? { id: meId, nickname: null, name: 'Вы', avatarUrl: null }
+                    : partner ?? { id: quoted.senderId, nickname: null, name: null, avatarUrl: null },
+                content: (quoted.content ?? '').slice(0, 120),
+              },
+            },
+          ];
+        });
       }
       setDraft('');
       setReplyTo(null);
-      stickToBottom.current = true;
+    }
+    setSending(false);
+  }
+
+  /** Upload through the app's existing /v1/aivita/upload, then post the message. */
+  async function uploadAndSend(file: File, kind: 'image' | 'file' | 'voice', durationSeconds?: number) {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setNotice('Файл больше 10 МБ');
+      return;
+    }
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const up = await fetch(`${PROXY}/upload`, { method: 'POST', body: form });
+      const uj = (await up.json()) as { data?: { url: string; name: string; mime: string; size?: number }; error?: string };
+      if (!up.ok || !uj.data) {
+        setNotice(uj?.error ?? 'Не удалось загрузить файл');
+        return;
+      }
+      await postMessage({
+        type: kind,
+        attachmentUrl: uj.data.url,
+        attachmentName: uj.data.name,
+        attachmentMime: uj.data.mime,
+        attachmentSize: uj.data.size ?? file.size,
+        ...(durationSeconds ? { durationSeconds } : {}),
+        ...(replyTo ? { replyToId: replyTo.id } : {}),
+      });
+      setReplyTo(null);
     } catch {
-      setNotice('Сеть недоступна');
+      setNotice('Не удалось загрузить файл');
     } finally {
-      setSending(false);
+      setUploading(false);
     }
   }
 
-  /** One reaction per user per message: same emoji again removes it. */
+  function onFileChosen(e: React.ChangeEvent<HTMLInputElement>, kind: 'image' | 'file') {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // let the same file be picked twice in a row
+    if (file) uploadAndSend(file, kind);
+  }
+
+  async function toggleRecording() {
+    if (recorder.state === 'recording') {
+      const res = await recorder.stop();
+      if (!res) { setNotice('Слишком короткая запись'); return; }
+      const ext = res.blob.type.includes('ogg') ? 'ogg' : 'webm';
+      const file = new File([res.blob], `voice-${Date.now()}.${ext}`, { type: res.blob.type });
+      await uploadAndSend(file, 'voice', res.seconds);
+      return;
+    }
+    setEmojiOpen(false);
+    const ok = await recorder.start();
+    if (!ok) setNotice('Нет доступа к микрофону');
+  }
+
+  async function sendSticker(s: StickerRef) {
+    setEmojiOpen(false);
+    // The API validates attachmentUrl as a URL, so a pack path needs an origin.
+    const url = s.url.startsWith('http') ? s.url : `${window.location.origin}${s.url}`;
+    await postMessage({ type: 'image', attachmentUrl: url, attachmentMime: STICKER_MIME, attachmentName: s.name });
+  }
+
+  async function sendGif(g: GifItem) {
+    setEmojiOpen(false);
+    // attachmentUrl points at the provider's CDN — we never copy GIFs into our
+    // own uploads dir.
+    await postMessage({
+      type: 'image',
+      attachmentUrl: g.url,
+      previewUrl: g.preview,
+      attachmentMime: 'image/gif',
+      attachmentName: g.description,
+    });
+  }
+
   async function toggleReaction(messageId: string, emoji: string) {
     setPicker(null);
     const before = messages;
@@ -286,7 +403,7 @@ export function ThreadClient({
           });
       if (!res.ok) throw new Error('reaction failed');
     } catch {
-      setMessages(before); // roll back the optimistic update
+      setMessages(before);
       setNotice('Не удалось изменить реакцию');
     }
   }
@@ -338,15 +455,13 @@ export function ThreadClient({
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   }
 
+  const recording = recorder.state === 'recording';
   const canSend = draft.trim().length > 0 && !sending;
 
   return (
     <div className="h-full flex flex-col overflow-hidden" onClick={() => { setMenuOpen(false); setPicker(null); }}>
       {/* ── Sub-header ─────────────────────────────────────────────────── */}
-      <div
-        className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white"
-        style={{ borderBottom: '1px solid #e8e4dc' }}
-      >
+      <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white" style={{ borderBottom: '1px solid #e8e4dc' }}>
         <button
           type="button"
           aria-label="Назад"
@@ -386,12 +501,7 @@ export function ThreadClient({
               className="absolute right-0 top-11 z-30 w-52 bg-white rounded-2xl overflow-hidden shadow-lg"
               style={{ border: '1px solid #e8e4dc' }}
             >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={toggleBlock}
-                className="w-full text-left px-4 py-3 text-sm text-app-t1 active:bg-[#faf9f7]"
-              >
+              <button type="button" role="menuitem" onClick={toggleBlock} className="w-full text-left px-4 py-3 text-sm text-app-t1 active:bg-[#faf9f7]">
                 {blocked ? 'Разблокировать' : 'Заблокировать'}
               </button>
               <button
@@ -423,12 +533,7 @@ export function ThreadClient({
           <p className="text-[11px] leading-4 flex-1" style={{ color: 'var(--accent-dark, #9c5e6c)' }}>
             Не делитесь чувствительными медицинскими данными в открытом чате
           </p>
-          <button
-            type="button"
-            aria-label="Скрыть предупреждение"
-            onClick={dismissBanner}
-            className="flex-shrink-0 w-5 h-5 flex items-center justify-center active:opacity-60"
-          >
+          <button type="button" aria-label="Скрыть предупреждение" onClick={dismissBanner} className="flex-shrink-0 w-5 h-5 flex items-center justify-center active:opacity-60">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M6 6l12 12M18 6 6 18" stroke="var(--accent-dark, #9c5e6c)" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
@@ -438,8 +543,8 @@ export function ThreadClient({
 
       {/* ── Messages ───────────────────────────────────────────────────── */}
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-3 min-h-0">
-        {/* min-h-full + justify-end pins a short thread to the bottom, the way
-            every messenger does it, while a long one still scrolls normally. */}
+        {/* min-h-full + justify-end pins a short thread to the bottom while a
+            long one still scrolls normally. */}
         <div className="min-h-full flex flex-col justify-end">
           {loadingOlder && <p className="text-center text-[11px] text-app-t3 pb-2">Загружаем…</p>}
           {loading ? (
@@ -451,6 +556,23 @@ export function ThreadClient({
               const own = m.senderId === meId;
               const showDay = i === 0 || dayKey(m.createdAt) !== dayKey(messages[i - 1].createdAt);
               const hasReactions = (m.reactions?.length ?? 0) > 0;
+              const sticker = isSticker(m);
+
+              const meta = (
+                <div className="flex items-center justify-end gap-1 mt-0.5">
+                  <span className="text-[10px]" style={{ opacity: own ? 0.75 : 0.45 }}>
+                    {formatBubbleTime(m.createdAt)}
+                  </span>
+                  {own && (
+                    // Single tick = delivered. A read tick needs the partner's
+                    // last_read_at, which the API does not expose yet.
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-label="Отправлено">
+                      <path d="m5 13 4 4L19 7" stroke={sticker ? '#9a96a8' : '#fff'} strokeOpacity=".8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+              );
+
               return (
                 <div key={m.id}>
                   {showDay && (
@@ -461,71 +583,80 @@ export function ThreadClient({
                     </div>
                   )}
 
-                  {/* items-end keeps the incoming avatar level with the bubble;
-                      reactions hang off the bubble absolutely so they never
-                      push it out of line. */}
-                  <div
-                    className={`flex items-end gap-2 ${own ? 'justify-end' : 'justify-start'}`}
-                    style={{ marginBottom: hasReactions ? 18 : 8 }}
-                  >
+                  <div className={`flex items-end gap-2 ${own ? 'justify-end' : 'justify-start'}`} style={{ marginBottom: hasReactions ? 18 : 8 }}>
                     {!own && <Avatar user={partner} size={28} />}
 
                     <div className="relative max-w-[78%]">
-                      <div
-                        onDoubleClick={() => setPicker(m.id)}
-                        onPointerDown={() => startLongPress(m.id)}
-                        onPointerUp={clearLongPress}
-                        onPointerLeave={clearLongPress}
-                        onClick={(e) => e.stopPropagation()}
-                        className="px-3 py-2 rounded-2xl select-none"
-                        style={
-                          own
-                            ? { background: '#9c5e6c', color: '#fff', borderBottomRightRadius: 4 }
-                            : { background: '#fff', color: '#2a2540', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }
-                        }
-                      >
-                        {m.replyTo && (
-                          <div
-                            className="mb-1.5 pl-2 py-0.5 rounded"
-                            style={{
-                              borderLeft: `3px solid ${own ? 'rgba(255,255,255,.65)' : 'var(--accent, #cc8a96)'}`,
-                              background: own ? 'rgba(255,255,255,.12)' : '#faf9f7',
-                            }}
-                          >
-                            <p className="text-[11px] font-semibold" style={{ opacity: own ? 0.95 : 1, color: own ? '#fff' : 'var(--accent-dark, #9c5e6c)' }}>
-                              {m.replyTo.sender.id === meId ? 'Вы' : displayName(m.replyTo.sender)}
-                            </p>
-                            <p className="text-[11px] truncate" style={{ opacity: own ? 0.85 : 0.7 }}>
-                              {m.replyTo.content ?? 'Сообщение удалено'}
-                            </p>
-                          </div>
-                        )}
-
-                        {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
-
-                        {/* Time sits bottom-right inside the bubble for both
-                            sides; only outgoing carries the delivery tick. */}
-                        <div className="flex items-center justify-end gap-1 mt-0.5">
-                          <span className="text-[10px]" style={{ opacity: own ? 0.75 : 0.45 }}>
-                            {formatBubbleTime(m.createdAt)}
-                          </span>
-                          {own && (
-                            // Single tick = delivered. A second "read" tick needs
-                            // the partner's last_read_at, which the API does not
-                            // expose yet.
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-label="Отправлено">
-                              <path d="m5 13 4 4L19 7" stroke="#fff" strokeOpacity=".8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Reaction pills, overlapping the bubble's bottom edge. */}
-                      {hasReactions && (
+                      {/* Stickers render bare — no bubble, no border. */}
+                      {sticker ? (
                         <div
-                          className={`absolute flex flex-wrap gap-1 ${own ? 'right-2' : 'left-2'}`}
-                          style={{ bottom: -11 }}
+                          onDoubleClick={() => setPicker(m.id)}
+                          onPointerDown={() => startLongPress(m.id)}
+                          onPointerUp={clearLongPress}
+                          onPointerLeave={clearLongPress}
+                          onClick={(e) => e.stopPropagation()}
+                          className={own ? 'flex flex-col items-end' : 'flex flex-col items-start'}
                         >
+                          {m.attachmentUrl && <Sticker url={m.attachmentUrl} />}
+                          <div className="px-1" style={{ color: '#9a96a8' }}>{meta}</div>
+                        </div>
+                      ) : (
+                        <div
+                          onDoubleClick={() => setPicker(m.id)}
+                          onPointerDown={() => startLongPress(m.id)}
+                          onPointerUp={clearLongPress}
+                          onPointerLeave={clearLongPress}
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-3 py-2 rounded-2xl select-none"
+                          style={
+                            own
+                              ? { background: '#9c5e6c', color: '#fff', borderBottomRightRadius: 4 }
+                              : { background: '#fff', color: '#2a2540', border: '1px solid #e8e4dc', borderBottomLeftRadius: 4 }
+                          }
+                        >
+                          {m.replyTo && (
+                            <div
+                              className="mb-1.5 pl-2 py-0.5 rounded"
+                              style={{
+                                borderLeft: `3px solid ${own ? 'rgba(255,255,255,.65)' : 'var(--accent, #cc8a96)'}`,
+                                background: own ? 'rgba(255,255,255,.12)' : '#faf9f7',
+                              }}
+                            >
+                              <p className="text-[11px] font-semibold" style={{ opacity: own ? 0.95 : 1, color: own ? '#fff' : 'var(--accent-dark, #9c5e6c)' }}>
+                                {m.replyTo.sender.id === meId ? 'Вы' : displayName(m.replyTo.sender)}
+                              </p>
+                              <p className="text-[11px] truncate" style={{ opacity: own ? 0.85 : 0.7 }}>
+                                {m.replyTo.content ?? 'Сообщение удалено'}
+                              </p>
+                            </div>
+                          )}
+
+                          {m.type === 'image' && m.attachmentUrl && (
+                            <div className="mb-1">
+                              <ImageAttachment url={m.attachmentUrl} gif={isGif(m)} onOpen={() => setLightbox(m.attachmentUrl!)} />
+                            </div>
+                          )}
+
+                          {m.type === 'voice' && m.attachmentUrl && (
+                            <div className="mb-0.5">
+                              <VoicePlayer url={m.attachmentUrl} duration={m.durationSeconds} own={own} />
+                            </div>
+                          )}
+
+                          {m.type === 'file' && m.attachmentUrl && (
+                            <div className="mb-0.5">
+                              <FileCard url={m.attachmentUrl} name={m.attachmentName} size={m.attachmentSize} own={own} />
+                            </div>
+                          )}
+
+                          {m.content && <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>}
+
+                          {meta}
+                        </div>
+                      )}
+
+                      {hasReactions && (
+                        <div className={`absolute flex flex-wrap gap-1 ${own ? 'right-2' : 'left-2'}`} style={{ bottom: -11 }}>
                           {m.reactions!.map((r) => (
                             <button
                               key={r.emoji}
@@ -545,7 +676,6 @@ export function ThreadClient({
                         </div>
                       )}
 
-                      {/* Long-press / double-tap popover */}
                       {picker === m.id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
@@ -596,12 +726,7 @@ export function ThreadClient({
             </p>
             <p className="text-[11px] text-app-t2 truncate">{replyTo.content ?? 'Вложение'}</p>
           </div>
-          <button
-            type="button"
-            aria-label="Отменить ответ"
-            onClick={() => setReplyTo(null)}
-            className="flex-shrink-0 w-6 h-6 flex items-center justify-center active:opacity-60"
-          >
+          <button type="button" aria-label="Отменить ответ" onClick={() => setReplyTo(null)} className="flex-shrink-0 w-6 h-6 flex items-center justify-center active:opacity-60">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M6 6l12 12M18 6 6 18" stroke="#6a6580" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
@@ -609,93 +734,136 @@ export function ThreadClient({
         </div>
       )}
 
+      {uploading && (
+        <p className="flex-shrink-0 text-center text-[11px] pb-1" style={{ color: 'var(--accent-dark, #9c5e6c)' }}>
+          Загружаем вложение…
+        </p>
+      )}
+
       {/* ── Composer ───────────────────────────────────────────────────── */}
-      <div
-        className="flex-shrink-0 px-3 pt-1"
-        style={{ paddingBottom: emojiOpen ? 4 : 'calc(8px + env(safe-area-inset-bottom))' }}
-      >
-        <div
-          className="flex items-end gap-1.5 bg-white rounded-2xl px-2 py-1.5"
-          style={{ border: '1px solid #e8e4dc' }}
-        >
-          <button
-            type="button"
-            aria-label="Прикрепить файл"
-            onClick={() => setNotice('Вложения — скоро')}
-            className="w-8 h-8 flex items-center justify-center flex-shrink-0 opacity-50 active:opacity-80"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 19a2 2 0 0 1-3-3l8-8" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+      <div className="flex-shrink-0 px-3 pt-1" style={{ paddingBottom: emojiOpen ? 4 : 'calc(8px + env(safe-area-inset-bottom))' }}>
+        {recording ? (
+          <div className="flex items-center gap-3 bg-white rounded-2xl px-3 py-2" style={{ border: '1px solid var(--accent, #cc8a96)' }}>
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: '#e4572e', animation: 'pulse 1s ease-in-out infinite' }} aria-hidden="true" />
+            <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--accent-dark, #9c5e6c)' }}>
+              {formatDuration(recorder.seconds)}
+            </span>
+            <span className="flex-1 text-[11px] text-app-t3">Идёт запись…</span>
+            <button
+              type="button"
+              aria-label="Отменить запись"
+              onClick={() => { recorder.cancel(); setNotice('Запись отменена'); }}
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-70"
+              style={{ background: '#faf9f7' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" stroke="#6a6580" strokeWidth="2.4" strokeLinecap="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label="Отправить голосовое"
+              onClick={toggleRecording}
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+              style={{ background: 'linear-gradient(135deg, #cc8a96, #9c5e6c)' }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2v6.4Z" fill="#fff" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-end gap-1.5 bg-white rounded-2xl px-2 py-1.5" style={{ border: '1px solid #e8e4dc' }}>
+            <button
+              type="button"
+              aria-label="Прикрепить файл"
+              onClick={() => { setEmojiOpen(false); setAttachOpen(true); }}
+              className="w-8 h-8 flex items-center justify-center flex-shrink-0 active:opacity-70"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 19a2 2 0 0 1-3-3l8-8" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-          <textarea
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => setEmojiOpen(false)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-            }}
-            rows={1}
-            placeholder="Сообщение…"
-            aria-label="Текст сообщения"
-            className="flex-1 resize-none bg-transparent text-sm text-app-t1 placeholder:text-app-t3 outline-none py-1.5 max-h-28"
-          />
+            <textarea
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onFocus={() => setEmojiOpen(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+              }}
+              rows={1}
+              placeholder="Сообщение…"
+              aria-label="Текст сообщения"
+              className="flex-1 resize-none bg-transparent text-sm text-app-t1 placeholder:text-app-t3 outline-none py-1.5 max-h-28"
+            />
 
-          <button
-            type="button"
-            aria-label="Эмодзи"
-            aria-pressed={emojiOpen}
-            onClick={() => setEmojiOpen((v) => !v)}
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-80"
-            style={
-              emojiOpen
-                ? { background: 'var(--accent-light, #f0d4dc)' }
-                : undefined
-            }
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" />
-              <circle cx="9" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
-              <circle cx="15" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
-              <path d="M8.5 14.5a4 4 0 0 0 7 0" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </button>
+            <button
+              type="button"
+              aria-label="Эмодзи, стикеры и GIF"
+              aria-pressed={emojiOpen}
+              onClick={() => setEmojiOpen((v) => !v)}
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-80"
+              style={emojiOpen ? { background: 'var(--accent-light, #f0d4dc)' } : undefined}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" />
+                <circle cx="9" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
+                <circle cx="15" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
+                <path d="M8.5 14.5a4 4 0 0 0 7 0" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
 
-          <button
-            type="button"
-            aria-label="Голосовое сообщение"
-            onClick={() => setNotice('Голосовые — скоро')}
-            className="w-8 h-8 flex items-center justify-center flex-shrink-0 opacity-50 active:opacity-80"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="9" y="3" width="6" height="11" rx="3" stroke="#6a6580" strokeWidth="1.8" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </button>
+            <button
+              type="button"
+              aria-label="Записать голосовое"
+              onClick={toggleRecording}
+              className="w-8 h-8 flex items-center justify-center flex-shrink-0 active:opacity-70"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="9" y="3" width="6" height="11" rx="3" stroke="#6a6580" strokeWidth="1.8" />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
 
-          {/* Always present, disabled while there is nothing to send. */}
-          <button
-            type="button"
-            onClick={send}
-            disabled={!canSend}
-            aria-label="Отправить"
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
-            style={{
-              background: 'linear-gradient(135deg, #cc8a96, #9c5e6c)',
-              opacity: canSend ? 1 : 0.4,
-              cursor: canSend ? 'pointer' : 'default',
-            }}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2v6.4Z" fill="#fff" />
-            </svg>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={send}
+              disabled={!canSend}
+              aria-label="Отправить"
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #cc8a96, #9c5e6c)',
+                opacity: canSend ? 1 : 0.4,
+                cursor: canSend ? 'pointer' : 'default',
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2v6.4Z" fill="#fff" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
-      {emojiOpen && <EmojiPanel onPick={insertEmoji} onBackspace={backspace} />}
+      {emojiOpen && (
+        <EmojiPanel onPick={insertEmoji} onBackspace={backspace} onPickSticker={sendSticker} onPickGif={sendGif} />
+      )}
+
+      {/* Hidden inputs driven by the attach sheet. */}
+      <input ref={photoInputRef} type="file" accept="image/*" hidden onChange={(e) => onFileChosen(e, 'image')} />
+      <input ref={docInputRef} type="file" accept={DOC_ACCEPT} hidden onChange={(e) => onFileChosen(e, 'file')} />
+
+      {attachOpen && (
+        <AttachSheet
+          onClose={() => setAttachOpen(false)}
+          onPickPhoto={() => { setAttachOpen(false); photoInputRef.current?.click(); }}
+          onPickDocument={() => { setAttachOpen(false); docInputRef.current?.click(); }}
+        />
+      )}
+
+      {lightbox && <Lightbox url={lightbox} onClose={() => setLightbox(null)} />}
 
       {/* ── Report dialog ──────────────────────────────────────────────── */}
       {reportFor && (
@@ -723,13 +891,9 @@ export function ThreadClient({
         </div>
       )}
 
-      {/* ── Transient notice ───────────────────────────────────────────── */}
       {notice && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 pointer-events-none" role="status">
-          <span
-            className="px-4 py-2 rounded-full text-xs text-white shadow-lg"
-            style={{ background: 'rgba(42,37,64,.92)' }}
-          >
+          <span className="px-4 py-2 rounded-full text-xs text-white shadow-lg" style={{ background: 'rgba(42,37,64,.92)' }}>
             {notice}
           </span>
         </div>

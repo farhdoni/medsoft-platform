@@ -73,3 +73,17 @@ export function previewOf(
   if (hasAttachment || type === 'file') return '📎 Файл';
   return 'Сообщение';
 }
+
+/** Human file size for the attachment card. */
+export function formatBytes(bytes: number | null): string {
+  if (!bytes || bytes < 0) return '';
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
+
+/** Voice length as m:ss. */
+export function formatDuration(seconds: number | null): string {
+  const s = Math.max(0, Math.round(seconds ?? 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}

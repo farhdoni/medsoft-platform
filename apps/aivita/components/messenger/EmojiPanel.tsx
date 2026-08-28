@@ -7,23 +7,35 @@ import {
   RECENT_LIMIT,
   searchEmoji,
 } from './emoji-data';
+import type { GifItem, StickerRef } from './types';
 
 type Tab = 'emoji' | 'stickers' | 'gif';
 
 export const EMOJI_PANEL_HEIGHT = 300;
 
+type PackManifest = {
+  id: string;
+  name: string;
+  stickers: { file: string; tags: string[] }[];
+};
+
 /**
- * Composer emoji panel. Sits where the FloatingNav would be, which is why the
- * thread hides that nav — see ChatPageShell's hideNav.
+ * Composer insert panel: emoji, stickers, GIF. Sits where the FloatingNav
+ * would be, which is why the thread hides that nav — see ChatPageShell.
  *
- * Picking does NOT close the panel: people type several emoji in a row.
+ * Picking an emoji does NOT close the panel: people type several in a row.
+ * Picking a sticker or a GIF sends immediately, so the parent closes it.
  */
 export function EmojiPanel({
   onPick,
   onBackspace,
+  onPickSticker,
+  onPickGif,
 }: {
   onPick: (emoji: string) => void;
   onBackspace: () => void;
+  onPickSticker: (sticker: StickerRef) => void;
+  onPickGif: (gif: GifItem) => void;
 }) {
   const [tab, setTab] = useState<Tab>('emoji');
   const [query, setQuery] = useState('');
@@ -70,7 +82,6 @@ export function EmojiPanel({
       className="flex-shrink-0 flex flex-col bg-white"
       style={{ height: EMOJI_PANEL_HEIGHT, borderTop: '1px solid #e8e4dc' }}
     >
-      {/* Tabs */}
       <div className="flex-shrink-0 flex gap-1 px-2 pt-2" role="tablist" aria-label="Вставка">
         {tabs.map((t) => {
           const active = t.id === tab;
@@ -94,16 +105,11 @@ export function EmojiPanel({
         })}
       </div>
 
-      {tab !== 'emoji' ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl mb-1" aria-hidden="true">{tab === 'gif' ? '🎞️' : '🖼️'}</div>
-            <p className="text-xs text-app-t3">Скоро</p>
-          </div>
-        </div>
-      ) : (
+      {tab === 'stickers' && <StickersTab onPickSticker={onPickSticker} />}
+      {tab === 'gif' && <GifTab onPickGif={onPickGif} />}
+
+      {tab === 'emoji' && (
         <>
-          {/* Search */}
           <div className="flex-shrink-0 px-2 pt-2">
             <input
               value={query}
@@ -115,7 +121,6 @@ export function EmojiPanel({
             />
           </div>
 
-          {/* Grid */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 py-2 min-h-0">
             {results ? (
               results.length === 0 ? (
@@ -153,7 +158,6 @@ export function EmojiPanel({
             )}
           </div>
 
-          {/* Category anchors + backspace */}
           <div
             className="flex-shrink-0 flex items-center gap-0.5 px-2 py-1.5 overflow-x-auto"
             style={{ borderTop: '1px solid #f0eeea' }}
@@ -197,6 +201,155 @@ export function EmojiPanel({
         </>
       )}
     </div>
+  );
+}
+
+// ─── Stickers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Packs are data, not code: public/stickers/packs.json lists pack ids and each
+ * pack carries its own manifest. Dropping in an illustrator's pack means adding
+ * a folder and one line in packs.json.
+ */
+function StickersTab({ onPickSticker }: { onPickSticker: (s: StickerRef) => void }) {
+  const [packs, setPacks] = useState<PackManifest[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const index = (await (await fetch('/stickers/packs.json')).json()) as { packs: string[] };
+        const loaded = await Promise.all(
+          (index.packs ?? []).map(async (id) => {
+            const m = (await (await fetch(`/stickers/${id}/manifest.json`)).json()) as PackManifest;
+            return { ...m, id };
+          }),
+        );
+        if (alive) setPacks(loaded);
+      } catch {
+        if (alive) setPacks([]);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  if (packs === null) {
+    return <div className="flex-1 flex items-center justify-center"><p className="text-xs text-app-t3">Загружаем…</p></div>;
+  }
+  if (packs.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-xs text-app-t3">Стикеры не найдены</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto px-2 py-2 min-h-0">
+      {packs.map((pack) => (
+        <div key={pack.id}>
+          <p className="text-[11px] font-semibold text-app-t3 px-1 pb-1">{pack.name}</p>
+          <div className="grid grid-cols-4 gap-1 mb-2">
+            {pack.stickers.map((s) => {
+              const url = `/stickers/${pack.id}/${s.file}`;
+              return (
+                <button
+                  key={s.file}
+                  type="button"
+                  aria-label={s.tags[0] ?? 'Стикер'}
+                  title={s.tags.join(', ')}
+                  onClick={() => onPickSticker({ url, name: s.tags[0] ?? pack.id, pack: pack.id })}
+                  className="aspect-square rounded-xl flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="w-full h-full object-contain" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── GIF ──────────────────────────────────────────────────────────────────────
+
+function GifTab({ onPickGif }: { onPickGif: (g: GifItem) => void }) {
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState<GifItem[]>([]);
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Debounced so typing does not fire a request per keystroke.
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/gif?q=${encodeURIComponent(query.trim())}`);
+        const json = (await res.json()) as { configured: boolean; data: GifItem[] };
+        if (!alive) return;
+        setConfigured(json.configured);
+        setItems(json.data ?? []);
+      } catch {
+        if (alive) { setConfigured(true); setItems([]); }
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }, 300);
+    return () => { alive = false; clearTimeout(t); };
+  }, [query]);
+
+  if (configured === false) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className="text-2xl mb-1" aria-hidden="true">🎞️</div>
+          <p className="text-xs font-semibold text-app-t1">GIF появятся после подключения ключа</p>
+          <p className="text-[11px] text-app-t3 mt-1">Провайдер пока не настроен</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-shrink-0 px-2 pt-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск GIF…"
+          aria-label="Поиск GIF"
+          className="w-full rounded-xl text-xs text-app-t1 placeholder:text-app-t3 outline-none px-3 py-2"
+          style={{ background: '#faf9f7', border: '1px solid #e8e4dc' }}
+        />
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 py-2 min-h-0">
+        {loading ? (
+          <p className="text-center text-xs text-app-t3 py-6">Загружаем…</p>
+        ) : items.length === 0 ? (
+          <p className="text-center text-xs text-app-t3 py-6">Ничего не нашли</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-1">
+            {items.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                aria-label={g.description}
+                onClick={() => onPickGif(g)}
+                className="aspect-square rounded-lg overflow-hidden active:scale-95 transition-transform"
+                style={{ background: '#faf9f7' }}
+              >
+                {/* Static preview in the grid; only the sent bubble animates. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={g.preview} alt="" loading="lazy" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
