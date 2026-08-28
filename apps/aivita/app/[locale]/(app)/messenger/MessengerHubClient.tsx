@@ -26,6 +26,9 @@ export function MessengerHubClient({ locale }: { locale: string }) {
   const [found, setFound] = useState<MessengerUser | null>(null);
   const [starting, setStarting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [archivedConvs, setArchivedConvs] = useState<MessengerConversation[]>([]);
+  const [showArchive, setShowArchive] = useState(false);
+  const [rowMenu, setRowMenu] = useState<string | null>(null);
 
   // Own @username for the header pill.
   useEffect(() => {
@@ -39,16 +42,63 @@ export function MessengerHubClient({ locale }: { locale: string }) {
 
   const loadConversations = useCallback(async () => {
     try {
-      const res = await fetch(`${PROXY}/messaging/conversations`);
-      if (!res.ok) return;
-      const json = (await res.json()) as ApiEnvelope<MessengerConversation[]>;
-      setConvs(json.data ?? []);
+      const [mainRes, archRes] = await Promise.all([
+        fetch(`${PROXY}/messaging/conversations`),
+        fetch(`${PROXY}/messaging/conversations?archived=1`),
+      ]);
+      if (mainRes.ok) {
+        const json = (await mainRes.json()) as ApiEnvelope<MessengerConversation[]>;
+        setConvs(json.data ?? []);
+      }
+      if (archRes.ok) {
+        const json = (await archRes.json()) as ApiEnvelope<MessengerConversation[]>;
+        setArchivedConvs(json.data ?? []);
+      }
     } catch {
       /* keep the last good list — a dropped poll should not blank the screen */
     } finally {
       setLoading(false);
     }
   }, []);
+
+  /** Pin / mute / archive, applied optimistically and rolled back on failure. */
+  async function setConvPref(convId: string, patch: { pinned?: boolean; muted?: boolean; archived?: boolean }) {
+    setRowMenu(null);
+    const beforeMain = convs;
+    const beforeArch = archivedConvs;
+
+    if (patch.archived !== undefined) {
+      // Moving between the two lists, so both change at once.
+      if (patch.archived) {
+        const row = convs.find((c) => c.id === convId);
+        setConvs(convs.filter((c) => c.id !== convId));
+        if (row) setArchivedConvs([{ ...row, archived: true }, ...archivedConvs]);
+      } else {
+        const row = archivedConvs.find((c) => c.id === convId);
+        setArchivedConvs(archivedConvs.filter((c) => c.id !== convId));
+        if (row) setConvs([{ ...row, archived: false }, ...convs]);
+      }
+    } else {
+      const apply = (list: MessengerConversation[]) =>
+        list.map((c) => (c.id === convId ? { ...c, ...patch } : c));
+      setConvs(apply(convs));
+      setArchivedConvs(apply(archivedConvs));
+    }
+
+    try {
+      const res = await fetch(`${PROXY}/messaging/conversations/${convId}/prefs`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error('prefs failed');
+      loadConversations();
+    } catch {
+      setConvs(beforeMain);
+      setArchivedConvs(beforeArch);
+      setNotice('Не удалось изменить настройки диалога');
+    }
+  }
 
   useEffect(() => {
     loadConversations();
@@ -299,45 +349,26 @@ export function MessengerHubClient({ locale }: { locale: string }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {convs.map((conv) => {
-              const msg = conv.lastMessage;
-              return (
-                <button
-                  key={conv.id}
-                  type="button"
-                  onClick={() => router.push(`/${locale}/messenger/${conv.id}`)}
-                  className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left active:opacity-80 transition-opacity"
-                  style={{ border: '1px solid #e8e4dc' }}
-                >
-                  <Avatar user={conv.participant} size={48} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-sm font-semibold text-app-t1 truncate">
-                        {displayName(conv.participant)}
-                      </p>
-                      <span className="flex-shrink-0 text-[11px] text-app-t3">
-                        {formatListTime(conv.lastMessageAt ?? msg?.createdAt ?? null)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className="text-xs text-app-t2 truncate">
-                        {msg
-                          ? previewOf(msg.content, msg.type, !!msg.attachmentUrl)
-                          : 'Нет сообщений'}
-                      </p>
-                      {conv.unreadCount > 0 && (
-                        <span
-                          className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white flex items-center justify-center"
-                          style={{ background: 'var(--accent-dark, #9c5e6c)' }}
-                        >
-                          {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+            {archivedConvs.length > 0 && (
+              <ArchiveRow
+                count={archivedConvs.length}
+                unread={archivedConvs.reduce((s, c) => s + c.unreadCount, 0)}
+                open={showArchive}
+                onToggle={() => setShowArchive((v) => !v)}
+              />
+            )}
+
+            {(showArchive ? archivedConvs : convs).map((conv) => (
+              <ConversationRow
+                key={conv.id}
+                conv={conv}
+                menuOpen={rowMenu === conv.id}
+                onOpen={() => router.push(`/${locale}/messenger/${conv.id}`)}
+                onMenu={() => setRowMenu(rowMenu === conv.id ? null : conv.id)}
+                onCloseMenu={() => setRowMenu(null)}
+                onPref={(patch) => setConvPref(conv.id, patch)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -443,6 +474,170 @@ function HelpTab({ starting, onWriteSupport }: { starting: boolean; onWriteSuppo
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Conversation list rows ───────────────────────────────────────────────────
+
+/**
+ * Collapsed entry to the archive. Archived chats keep receiving messages — a
+ * new one does not pull the conversation back out, the way it does not in
+ * Telegram — so the badge here is the only place their unread shows up.
+ */
+function ArchiveRow({
+  count,
+  unread,
+  open,
+  onToggle,
+}: {
+  count: number;
+  unread: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="w-full bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 text-left active:opacity-80"
+      style={{ border: '1px solid #e8e4dc' }}
+    >
+      <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#f0eeea' }} aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="#6a6580" strokeWidth="1.7" strokeLinejoin="round" />
+          <path d="M3 4h18v4H3zM10 12h4" stroke="#6a6580" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-semibold text-app-t1">Архив</span>
+        <span className="block text-[11px] text-app-t3">{count} диалог{count % 10 === 1 && count % 100 !== 11 ? '' : 'ов'}</span>
+      </span>
+      {unread > 0 && (
+        <span
+          className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white flex items-center justify-center"
+          style={{ background: '#9a96a8' }}
+        >
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+        style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+        <path d="m6 9 6 6 6-6" stroke="#9a96a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+function ConversationRow({
+  conv,
+  menuOpen,
+  onOpen,
+  onMenu,
+  onCloseMenu,
+  onPref,
+}: {
+  conv: MessengerConversation;
+  menuOpen: boolean;
+  onOpen: () => void;
+  onMenu: () => void;
+  onCloseMenu: () => void;
+  onPref: (patch: { pinned?: boolean; muted?: boolean; archived?: boolean }) => void;
+}) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const msg = conv.lastMessage;
+
+  const startPress = () => {
+    clearPress();
+    timer.current = setTimeout(onMenu, 450);
+  };
+  const clearPress = () => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onOpen}
+        onPointerDown={startPress}
+        onPointerUp={clearPress}
+        onPointerLeave={clearPress}
+        onContextMenu={(e) => { e.preventDefault(); onMenu(); }}
+        className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left active:opacity-80 transition-opacity"
+        style={{ border: '1px solid #e8e4dc' }}
+      >
+        <Avatar user={conv.participant} size={48} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-app-t1 truncate flex items-center gap-1">
+              {displayName(conv.participant)}
+              {conv.muted && (
+                <span title="Без звука" aria-label="Без звука" className="flex-shrink-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" stroke="#9a96a8" strokeWidth="1.7" strokeLinejoin="round" />
+                    <path d="m16 9 5 6M21 9l-5 6" stroke="#9a96a8" strokeWidth="1.7" strokeLinecap="round" />
+                  </svg>
+                </span>
+              )}
+            </p>
+            <span className="flex-shrink-0 flex items-center gap-1">
+              {conv.pinned && (
+                <span title="Закреплён" aria-label="Закреплён">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M9 3h6l-1 6 4 3v2H6v-2l4-3-1-6Z" stroke="#9a96a8" strokeWidth="1.7" strokeLinejoin="round" />
+                    <path d="M12 14v7" stroke="#9a96a8" strokeWidth="1.7" strokeLinecap="round" />
+                  </svg>
+                </span>
+              )}
+              <span className="text-[11px] text-app-t3">
+                {formatListTime(conv.lastMessageAt ?? msg?.createdAt ?? null)}
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <p className="text-xs text-app-t2 truncate">
+              {msg ? previewOf(msg.content, msg.type, !!msg.attachmentUrl) : 'Нет сообщений'}
+            </p>
+            {conv.unreadCount > 0 && (
+              <span
+                className="flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white flex items-center justify-center"
+                // A muted chat still counts, it just stops shouting about it.
+                style={{ background: conv.muted ? '#9a96a8' : 'var(--accent-dark, #9c5e6c)' }}
+              >
+                {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
+              </span>
+            )}
+          </div>
+        </div>
+      </button>
+
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={onCloseMenu} aria-hidden="true" />
+          <div
+            role="menu"
+            className="absolute right-3 top-14 z-30 w-56 bg-white rounded-2xl overflow-hidden shadow-lg"
+            style={{ border: '1px solid #e8e4dc' }}
+          >
+            <button type="button" role="menuitem" onClick={() => onPref({ pinned: !conv.pinned })}
+              className="w-full text-left px-4 py-3 text-sm text-app-t1 active:bg-[#faf9f7]">
+              {conv.pinned ? 'Открепить' : 'Закрепить'}
+            </button>
+            <button type="button" role="menuitem" onClick={() => onPref({ muted: !conv.muted })}
+              className="w-full text-left px-4 py-3 text-sm text-app-t1 active:bg-[#faf9f7]"
+              style={{ borderTop: '1px solid #f0eeea' }}>
+              {conv.muted ? 'Включить звук' : 'Без звука'}
+            </button>
+            <button type="button" role="menuitem" onClick={() => onPref({ archived: !conv.archived })}
+              className="w-full text-left px-4 py-3 text-sm text-app-t1 active:bg-[#faf9f7]"
+              style={{ borderTop: '1px solid #f0eeea' }}>
+              {conv.archived ? 'Из архива' : 'В архив'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

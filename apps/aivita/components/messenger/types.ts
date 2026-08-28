@@ -62,6 +62,12 @@ export type MessengerConversation = {
   participant: MessengerUser | null;
   lastMessage: MessengerMessage | null;
   unreadCount: number;
+  /** This participant’s own view of the chat (migration 0036). */
+  pinned: boolean;
+  pinnedAt: string | null;
+  muted: boolean;
+  mutedUntil: string | null;
+  archived: boolean;
 };
 
 /** Every messaging endpoint wraps its payload in { data }. */
