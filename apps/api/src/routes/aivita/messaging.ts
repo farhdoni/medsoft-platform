@@ -343,6 +343,10 @@ const sendSchema = z.object({
   // Voice length; previewUrl is a GIF/image still frame (migration 0034).
   durationSeconds: z.number().int().positive().max(3600).optional(),
   previewUrl: z.string().url().optional(),
+  // A single pin (migration 0035). Ranges are the real ones, not a rough
+  // sanity check: anything outside them is not a point on Earth.
+  locationLat: z.number().min(-90).max(90).optional(),
+  locationLng: z.number().min(-180).max(180).optional(),
 });
 
 aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sendSchema), async (c) => {
@@ -350,7 +354,13 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
   const convId = c.req.param('id');
   const body = c.req.valid('json');
 
-  if (!body.content && !body.attachmentUrl) {
+  // A location message carries a pin instead of text or a file, so it needs
+  // its own emptiness check rather than the content/attachment one.
+  if (body.type === 'location') {
+    if (body.locationLat === undefined || body.locationLng === undefined) {
+      return c.json({ error: 'A location message needs locationLat and locationLng' }, 400);
+    }
+  } else if (!body.content && !body.attachmentUrl) {
     return c.json({ error: 'Message must carry content or an attachment' }, 400);
   }
 
@@ -396,6 +406,8 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
     attachmentSize: body.attachmentSize ?? null,
     durationSeconds: body.durationSeconds ?? null,
     previewUrl: body.previewUrl ?? null,
+    locationLat: body.locationLat ?? null,
+    locationLng: body.locationLng ?? null,
   }).returning();
 
   await db.update(conversations)

@@ -8,6 +8,7 @@ import {
   unique,
   index,
   type AnyPgColumn,
+  doublePrecision,
 } from 'drizzle-orm/pg-core';
 import { aivitaUsers } from './aivita';
 import { adminUsers } from './admins';
@@ -98,6 +99,11 @@ export const messages = pgTable(
     // Static poster separate from the played asset — a GIF stores its
     // animation in attachmentUrl and its still frame here (migration 0034).
     previewUrl: text('preview_url'),
+    // Single pin for a location message (migration 0035). double precision,
+    // not numeric: these are GPS readings, and float8 carries far more
+    // precision than metre resolution needs.
+    locationLat: doublePrecision('location_lat'),
+    locationLng: doublePrecision('location_lng'),
     replyToId: uuid('reply_to_id').references((): AnyPgColumn => messages.id, {
       onDelete: 'set null',
     }),
