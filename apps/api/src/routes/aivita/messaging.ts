@@ -158,15 +158,36 @@ async function directConversationBetween(a: string, b: string) {
   return conv ?? null;
 }
 
-/** avChat.restrictNewChats lives in the user preferences jsonb — no column. */
-async function restrictsNewChats(userId: string): Promise<boolean> {
+/**
+ * Everything AV Chat stores per account lives in one avChat block inside the
+ * aivita_users.preferences jsonb — no columns, no migration. Defaults are
+ * applied on read so an account that never opened the settings screen behaves
+ * like the documented default.
+ */
+export type AvChatSettings = {
+  restrictNewChats: boolean;
+  notifPreview: boolean;
+  quietHours: boolean;
+};
+
+const SETTINGS_DEFAULTS: AvChatSettings = {
+  restrictNewChats: false,
+  notifPreview: true,
+  quietHours: false,
+};
+
+async function readAvChatSettings(userId: string): Promise<AvChatSettings> {
   const [row] = await db
     .select({ preferences: aivitaUsers.preferences })
     .from(aivitaUsers)
     .where(eq(aivitaUsers.id, userId))
     .limit(1);
-  const prefs = row?.preferences as { avChat?: { restrictNewChats?: boolean } } | null;
-  return prefs?.avChat?.restrictNewChats === true;
+  const stored = (row?.preferences as { avChat?: Partial<AvChatSettings> } | null)?.avChat ?? {};
+  return { ...SETTINGS_DEFAULTS, ...stored };
+}
+
+async function restrictsNewChats(userId: string): Promise<boolean> {
+  return (await readAvChatSettings(userId)).restrictNewChats;
 }
 
 // ─── POST /conversations ──────────────────────────────────────────────────────
@@ -607,17 +628,23 @@ aivitaMessagingRouter.get('/settings', async (c) => {
   const me = c.get('aivitaUserId');
   return c.json({
     data: {
-      restrictNewChats: await restrictsNewChats(me),
+      ...(await readAvChatSettings(me)),
       supportNickname: SUPPORT_NICKNAME,
     },
   });
 });
 
-const settingsSchema = z.object({ restrictNewChats: z.boolean() });
+// Every field optional: the settings screen sends only the switch that moved,
+// so one toggle can never clobber another.
+const settingsSchema = z.object({
+  restrictNewChats: z.boolean().optional(),
+  notifPreview: z.boolean().optional(),
+  quietHours: z.boolean().optional(),
+});
 
 aivitaMessagingRouter.put('/settings', zValidator('json', settingsSchema), async (c) => {
   const me = c.get('aivitaUserId');
-  const { restrictNewChats } = c.req.valid('json');
+  const patch = c.req.valid('json');
 
   const [row] = await db
     .select({ preferences: aivitaUsers.preferences })
@@ -625,17 +652,20 @@ aivitaMessagingRouter.put('/settings', zValidator('json', settingsSchema), async
     .where(eq(aivitaUsers.id, me))
     .limit(1);
 
+  // Merge, never replace: the same blob holds notification, theme and unit
+  // settings owned by other screens.
   const current = (row?.preferences ?? {}) as Record<string, unknown>;
   const avChat = (current.avChat ?? {}) as Record<string, unknown>;
+  const merged = { ...avChat, ...patch };
 
   await db.update(aivitaUsers)
     .set({
-      preferences: { ...current, avChat: { ...avChat, restrictNewChats } } as typeof aivitaUsers.$inferInsert.preferences,
+      preferences: { ...current, avChat: merged } as typeof aivitaUsers.$inferInsert.preferences,
       updatedAt: new Date(),
     })
     .where(eq(aivitaUsers.id, me));
 
-  return c.json({ data: { restrictNewChats } });
+  return c.json({ data: { ...SETTINGS_DEFAULTS, ...merged } });
 });
 
 // ─── Blocking ─────────────────────────────────────────────────────────────────
