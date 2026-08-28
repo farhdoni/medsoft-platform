@@ -16,7 +16,21 @@ const UPLOADS_DIR = path.join(__dirname, '..', '..', '..', 'uploads');
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const ALLOWED_MIME_PREFIXES = ['image/', 'audio/'];
-const ALLOWED_MIME_EXACT    = ['application/pdf'];
+// Allowlist, deliberately not a blocklist: anything not named here is refused,
+// so executables cannot be reached by inventing a new extension. Archives are
+// accepted on their declared type only — we do not read inside them.
+// TODO(prod): put attachment antivirus scanning in front of this before the
+// uploads directory is exposed to real patients.
+const ALLOWED_MIME_EXACT    = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  'application/x-zip-compressed',
+];
 
 function isAllowed(mime: string): boolean {
   return (
@@ -32,6 +46,11 @@ function mimeToExt(mime: string): string {
     'audio/webm': '.webm', 'audio/ogg': '.ogg', 'audio/mpeg': '.mp3',
     'audio/wav': '.wav', 'audio/mp4': '.m4a',
     'application/pdf': '.pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+    'text/plain': '.txt', 'text/csv': '.csv',
+    'application/zip': '.zip', 'application/x-zip-compressed': '.zip',
   };
   return map[mime] ?? '';
 }
@@ -71,7 +90,7 @@ uploadRouter.post('/', async (c) => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
     const url = `${apiBase}/v1/aivita/uploads/${filename}`;
 
-    return c.json({ data: { url, name: file.name ?? filename, mime } });
+    return c.json({ data: { url, name: file.name ?? filename, mime, size: bytes.byteLength } });
   } catch (e) {
     return c.json({ error: 'Upload failed', message: String(e) }, 500);
   }
@@ -99,6 +118,10 @@ uploadsServeRouter.get('/:filename', async (c) => {
       '.webm': 'audio/webm', '.ogg': 'audio/ogg',
       '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
       '.pdf': 'application/pdf',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.txt': 'text/plain', '.csv': 'text/csv', '.zip': 'application/zip',
     };
     const mime = mimeMap[ext] ?? 'application/octet-stream';
     return new Response(buf, { headers: { 'Content-Type': mime, 'Cache-Control': 'public,max-age=86400' } });

@@ -340,6 +340,9 @@ const sendSchema = z.object({
   attachmentName: z.string().optional(),
   attachmentMime: z.string().optional(),
   attachmentSize: z.number().int().optional(),
+  // Voice length; previewUrl is a GIF/image still frame (migration 0034).
+  durationSeconds: z.number().int().positive().max(3600).optional(),
+  previewUrl: z.string().url().optional(),
 });
 
 aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sendSchema), async (c) => {
@@ -391,6 +394,8 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
     attachmentName: body.attachmentName ?? null,
     attachmentMime: body.attachmentMime ?? null,
     attachmentSize: body.attachmentSize ?? null,
+    durationSeconds: body.durationSeconds ?? null,
+    previewUrl: body.previewUrl ?? null,
   }).returning();
 
   await db.update(conversations)

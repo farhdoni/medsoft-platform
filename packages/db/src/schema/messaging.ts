@@ -92,6 +92,12 @@ export const messages = pgTable(
     attachmentName: text('attachment_name'),
     attachmentMime: text('attachment_mime'),
     attachmentSize: integer('attachment_size'),
+    // Voice length in whole seconds, so the bubble can show 0:07 before the
+    // audio file is fetched (migration 0034).
+    durationSeconds: integer('duration_seconds'),
+    // Static poster separate from the played asset — a GIF stores its
+    // animation in attachmentUrl and its still frame here (migration 0034).
+    previewUrl: text('preview_url'),
     replyToId: uuid('reply_to_id').references((): AnyPgColumn => messages.id, {
       onDelete: 'set null',
     }),

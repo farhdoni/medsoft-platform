@@ -16,6 +16,9 @@ Thumbs.db
 /packages/db/migrations/meta/
 drizzle/
 
+# User-uploaded chat attachments — never belongs in the repo
+apps/api/uploads/
+
 # Expo / React Native
 .expo/
 apps/mobile-patient/.expo/
