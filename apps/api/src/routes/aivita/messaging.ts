@@ -111,6 +111,64 @@ async function pushToUser(
   ]);
 }
 
+/**
+ * The support account is identified by nickname, from SUPPORT_USER_NICKNAME,
+ * so no user id is baked into the code and the account can be reseeded.
+ */
+const SUPPORT_NICKNAME = (process.env.SUPPORT_USER_NICKNAME ?? 'aivita').toLowerCase();
+
+export function isSupportNickname(nickname: string | null): boolean {
+  return !!nickname && nickname.toLowerCase() === SUPPORT_NICKNAME;
+}
+
+async function userIsSupport(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ nickname: aivitaUsers.nickname })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.id, userId))
+    .limit(1);
+  return isSupportNickname(row?.nickname ?? null);
+}
+
+/** The 1:1 conversation these two already share, if any. */
+async function directConversationBetween(a: string, b: string) {
+  const mine = await db
+    .select({ id: conversationParticipants.conversationId })
+    .from(conversationParticipants)
+    .where(eq(conversationParticipants.userId, a));
+  if (mine.length === 0) return null;
+
+  const shared = await db
+    .select({ id: conversationParticipants.conversationId })
+    .from(conversationParticipants)
+    .where(and(
+      eq(conversationParticipants.userId, b),
+      inArray(conversationParticipants.conversationId, mine.map((r) => r.id)),
+    ));
+  if (shared.length === 0) return null;
+
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(and(
+      inArray(conversations.id, shared.map((r) => r.id)),
+      eq(conversations.type, 'direct'),
+    ))
+    .limit(1);
+  return conv ?? null;
+}
+
+/** avChat.restrictNewChats lives in the user preferences jsonb — no column. */
+async function restrictsNewChats(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ preferences: aivitaUsers.preferences })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.id, userId))
+    .limit(1);
+  const prefs = row?.preferences as { avChat?: { restrictNewChats?: boolean } } | null;
+  return prefs?.avChat?.restrictNewChats === true;
+}
+
 // ─── POST /conversations ──────────────────────────────────────────────────────
 // Start or fetch the 1:1 conversation with another user. Idempotent: calling
 // it twice returns the same conversation rather than creating a second one.
@@ -130,39 +188,41 @@ aivitaMessagingRouter.post('/conversations', zValidator('json', startSchema), as
     return c.json({ error: 'Conversation unavailable' }, 403);
   }
 
-  // A direct conversation both of us already belong to, if there is one.
-  const mine = await db
-    .select({ id: conversationParticipants.conversationId })
-    .from(conversationParticipants)
-    .where(eq(conversationParticipants.userId, me));
+  const otherIsSupport = isSupportNickname(other.nickname);
+  const iAmSupport = await userIsSupport(me);
 
-  if (mine.length > 0) {
-    const shared = await db
-      .select({ id: conversationParticipants.conversationId })
-      .from(conversationParticipants)
-      .where(and(
-        eq(conversationParticipants.userId, otherId),
-        inArray(conversationParticipants.conversationId, mine.map((r) => r.id)),
-      ));
-
-    if (shared.length > 0) {
-      const [existing] = await db
-        .select()
-        .from(conversations)
-        .where(and(
-          inArray(conversations.id, shared.map((r) => r.id)),
-          eq(conversations.type, 'direct'),
-        ))
-        .limit(1);
-      if (existing) return c.json({ data: { ...existing, participant: other, created: false } });
+  // "Only people I already talk to" gates NEW conversations only, and never
+  // applies to support in either direction: someone must always be able to
+  // reach help, and help must always be able to answer.
+  if (!otherIsSupport && !iAmSupport && (await restrictsNewChats(otherId))) {
+    if (!(await directConversationBetween(me, otherId))) {
+      return c.json({ error: 'User is not accepting new conversations', code: 'restricted' }, 403);
     }
   }
+
+  const existing = await directConversationBetween(me, otherId);
+  if (existing) return c.json({ data: { ...existing, participant: other, created: false } });
 
   const [conv] = await db.insert(conversations).values({ type: 'direct' }).returning();
   await db.insert(conversationParticipants).values([
     { conversationId: conv.id, userId: me },
     { conversationId: conv.id, userId: otherId },
   ]);
+
+  // A support conversation opens with a greeting from support, written
+  // server-side: whoever asks for help should land on something rather than
+  // an empty screen.
+  if (otherIsSupport) {
+    await db.insert(messages).values({
+      conversationId: conv.id,
+      senderId: otherId,
+      type: 'text',
+      content: 'Здравствуйте! Опишите вопрос — поможем. Можно приложить скриншот 📎',
+    });
+    await db.update(conversations)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(conversations.id, conv.id));
+  }
 
   return c.json({ data: { ...conv, participant: other, created: true } }, 201);
 });
@@ -253,13 +313,11 @@ aivitaMessagingRouter.get('/conversations/:id/messages', async (c) => {
 
   if (!(await participantOf(convId, me))) return c.json({ error: 'Forbidden' }, 403);
 
+  // Deleted messages are still selected here — they render as a tombstone.
+  // The conversation list and the unread count still skip them.
   const where = after
-    ? and(
-        eq(messages.conversationId, convId),
-        gt(messages.createdAt, new Date(after)),
-        isNull(messages.deletedAt),
-      )
-    : and(eq(messages.conversationId, convId), isNull(messages.deletedAt));
+    ? and(eq(messages.conversationId, convId), gt(messages.createdAt, new Date(after)))
+    : eq(messages.conversationId, convId);
 
   const rows = await db
     .select()
@@ -321,11 +379,30 @@ aivitaMessagingRouter.get('/conversations/:id/messages', async (c) => {
     }
   }
 
-  const data = rows.reverse().map((m) => ({
-    ...m,
-    replyTo: m.replyToId ? quotedMap.get(m.replyToId) ?? null : null,
-    reactions: reactionMap.get(m.id) ?? [],
-  }));
+  // A deleted message stays in the thread as a tombstone so replies and
+  // reactions pointing at it still make sense — but nothing of what it said
+  // survives the response: no content, no attachment, no coordinates.
+  const data = rows.reverse().map((m) => {
+    const base = {
+      ...m,
+      replyTo: m.replyToId ? quotedMap.get(m.replyToId) ?? null : null,
+      reactions: reactionMap.get(m.id) ?? [],
+    };
+    if (!m.deletedAt) return { ...base, deleted: false };
+    return {
+      ...base,
+      deleted: true,
+      content: null,
+      attachmentUrl: null,
+      attachmentName: null,
+      attachmentMime: null,
+      attachmentSize: null,
+      previewUrl: null,
+      durationSeconds: null,
+      locationLat: null,
+      locationLng: null,
+    };
+  });
 
   return c.json({ data });
 });
@@ -492,6 +569,73 @@ aivitaMessagingRouter.delete('/messages/:id/reactions', async (c) => {
   ));
 
   return c.json({ data: { ok: true } });
+});
+
+// ─── DELETE /messages/:id ─────────────────────────────────────────────────────
+// Soft delete, author only. The row survives so replies and reactions that
+// point at it still resolve, but GET history blanks every field that carried
+// what the message actually said.
+
+aivitaMessagingRouter.delete('/messages/:id', async (c) => {
+  const me = c.get('aivitaUserId');
+  const messageId = c.req.param('id');
+
+  const [msg] = await db
+    .select({ id: messages.id, senderId: messages.senderId, deletedAt: messages.deletedAt })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (!msg) return c.json({ error: 'Message not found' }, 404);
+  // Only the author. Deleting someone else's words is moderation, not a
+  // chat feature — that is what the report flow is for.
+  if (msg.senderId !== me) return c.json({ error: 'Only the author can delete a message' }, 403);
+
+  if (!msg.deletedAt) {
+    await db.update(messages).set({ deletedAt: new Date() }).where(eq(messages.id, messageId));
+  }
+
+  return c.json({ data: { id: messageId, deleted: true } });
+});
+
+// ─── Chat settings ────────────────────────────────────────────────────────────
+// avChat preferences live inside the aivita_users.preferences jsonb, so there
+// is no column and no migration. Written with a merge, never a replace: the
+// same blob holds notification, theme and unit settings owned by other screens.
+
+aivitaMessagingRouter.get('/settings', async (c) => {
+  const me = c.get('aivitaUserId');
+  return c.json({
+    data: {
+      restrictNewChats: await restrictsNewChats(me),
+      supportNickname: SUPPORT_NICKNAME,
+    },
+  });
+});
+
+const settingsSchema = z.object({ restrictNewChats: z.boolean() });
+
+aivitaMessagingRouter.put('/settings', zValidator('json', settingsSchema), async (c) => {
+  const me = c.get('aivitaUserId');
+  const { restrictNewChats } = c.req.valid('json');
+
+  const [row] = await db
+    .select({ preferences: aivitaUsers.preferences })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.id, me))
+    .limit(1);
+
+  const current = (row?.preferences ?? {}) as Record<string, unknown>;
+  const avChat = (current.avChat ?? {}) as Record<string, unknown>;
+
+  await db.update(aivitaUsers)
+    .set({
+      preferences: { ...current, avChat: { ...avChat, restrictNewChats } } as typeof aivitaUsers.$inferInsert.preferences,
+      updatedAt: new Date(),
+    })
+    .where(eq(aivitaUsers.id, me));
+
+  return c.json({ data: { restrictNewChats } });
 });
 
 // ─── Blocking ─────────────────────────────────────────────────────────────────
