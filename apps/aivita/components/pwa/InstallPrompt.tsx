@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,6 +12,7 @@ const DISMISS_KEY = 'aivita_pwa_dismissed';
 const DISMISS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function InstallPrompt() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -48,7 +50,9 @@ export function InstallPrompt() {
     setVisible(false);
   }
 
-  if (!visible) return null;
+  const isChatRoute = pathname ? (pathname.includes('/ai-chat') || pathname.includes('/messenger')) : false;
+
+  if (!visible || isChatRoute) return null;
 
   return (
     <div

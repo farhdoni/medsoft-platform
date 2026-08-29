@@ -20,14 +20,23 @@ import {
   subscriptions,
   payments,
   platformSettings,
+  conversations,
+  conversationParticipants,
+  messages,
+  messageReports,
+  aivitaDeviceTokens,
 } from '@medsoft/db';
 import {
   eq, ilike, or, and, isNull, desc, asc, gte, lte, lt, gte as sqlGte,
-  sql, count, avg, inArray,
+  sql, count, avg, inArray, ne,
 } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes, randomInt } from 'crypto';
+import {
+  sendPushNotification,
+  sendWebPushNotification,
+} from '../lib/push-notifications.js';
 
 const router = new Hono();
 router.use('*', requireAuth);
@@ -944,6 +953,364 @@ router.put('/home-settings', async (c) => {
       .onConflictDoUpdate({ target: platformSettings.key, set: { value, updatedAt: new Date() } });
   }
   await auditLog(adminId, 'home_settings_update', 'platform_settings', null, body as Record<string, unknown>, c.req);
+  return c.json({ success: true });
+});
+
+// ─── Helpers: support messaging ────────────────────────────────────────────────
+
+async function pushToUser(
+  userId: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  const tokens = await db
+    .select({ pushToken: aivitaDeviceTokens.pushToken, platform: aivitaDeviceTokens.platform })
+    .from(aivitaDeviceTokens)
+    .where(eq(aivitaDeviceTokens.userId, userId));
+
+  if (tokens.length === 0) return;
+
+  const expo = tokens.filter((t) => t.platform !== 'web').map((t) => t.pushToken);
+  const web = tokens.filter((t) => t.platform === 'web');
+
+  await Promise.all([
+    sendPushNotification(expo, title, body, data),
+    ...web.map((t) => sendWebPushNotification(t.pushToken, title, body, data)),
+  ]);
+}
+
+function formatConvTime(dateStr: string | Date | null) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } else if (diffDays <= 1) {
+    return 'вчера';
+  } else {
+    return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+  }
+}
+
+// ─── AIVITA SUPPORT & MODERATION ──────────────────────────────────────────────
+
+// GET /v1/aivita-admin/support/conversations — list all support conversations
+router.get('/support/conversations', async (c) => {
+  const supportNickname = (process.env.SUPPORT_USER_NICKNAME ?? 'aivita').toLowerCase();
+  
+  // Fetch support user
+  const [supportUser] = await db
+    .select({ id: aivitaUsers.id })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.nickname, supportNickname))
+    .limit(1);
+
+  if (!supportUser) {
+    return c.json({ data: [] });
+  }
+
+  const supportConvs = await db
+    .select({ conversationId: conversationParticipants.conversationId })
+    .from(conversationParticipants)
+    .where(eq(conversationParticipants.userId, supportUser.id));
+
+  if (supportConvs.length === 0) {
+    return c.json({ data: [] });
+  }
+
+  const convIds = supportConvs.map((sc) => sc.conversationId);
+  
+  const myPrefs = await db
+    .select()
+    .from(conversationParticipants)
+    .where(and(
+      eq(conversationParticipants.userId, supportUser.id),
+      inArray(conversationParticipants.conversationId, convIds)
+    ));
+
+  const others = await db
+    .select({
+      conversationId: conversationParticipants.conversationId,
+      user: {
+        id: aivitaUsers.id,
+        name: aivitaUsers.name,
+        nickname: aivitaUsers.nickname,
+        avatarUrl: aivitaUsers.avatarUrl,
+        createdAt: aivitaUsers.createdAt,
+        plan: aivitaUsers.plan,
+      }
+    })
+    .from(conversationParticipants)
+    .innerJoin(aivitaUsers, eq(aivitaUsers.id, conversationParticipants.userId))
+    .where(and(
+      inArray(conversationParticipants.conversationId, convIds),
+      ne(conversationParticipants.userId, supportUser.id)
+    ));
+
+  const otherUserIds = others.map((o) => o.user.id);
+  
+  const reportCounts = otherUserIds.length > 0
+    ? await db
+        .select({
+          reportedUserId: messages.senderId,
+          cnt: count()
+        })
+        .from(messageReports)
+        .innerJoin(messages, eq(messageReports.messageId, messages.id))
+        .where(inArray(messages.senderId, otherUserIds))
+        .groupBy(messages.senderId)
+    : [];
+    
+  const reportCountMap = new Map(reportCounts.map((r) => [r.reportedUserId, Number(r.cnt)]));
+
+  const data = await Promise.all(myPrefs.map(async (pref) => {
+    const [last] = await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.conversationId, pref.conversationId), isNull(messages.deletedAt)))
+      .orderBy(desc(messages.createdAt))
+      .limit(1);
+
+    const otherPart = others.find((o) => o.conversationId === pref.conversationId)?.user ?? null;
+
+    let state: 'wait' | 'open' | 'closed' = 'open';
+    if (pref.archivedAt) {
+      state = 'closed';
+    } else if (last && last.senderId !== supportUser.id) {
+      if (!pref.lastReadAt || last.createdAt > pref.lastReadAt) {
+        state = 'wait';
+      }
+    }
+
+    const [totalMsgs] = await db
+      .select({ total: count() })
+      .from(messages)
+      .where(eq(messages.conversationId, pref.conversationId));
+
+    return {
+      id: pref.conversationId,
+      name: otherPart?.name ?? 'Пользователь',
+      nick: otherPart?.nickname ? '@' + otherPart.nickname : null,
+      av: otherPart?.name ? otherPart.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'П',
+      c: '#7d6b9e',
+      time: formatConvTime(last?.createdAt ?? null),
+      prev: last?.content ?? '',
+      state,
+      reg: otherPart ? new Date(otherPart.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+      dlg: totalMsgs ? Number(totalMsgs.total) : 0,
+      rep: otherPart ? (reportCountMap.get(otherPart.id) ?? 0) : 0,
+      plan: otherPart?.plan ?? 'Free',
+    };
+  }));
+
+  // Sort: unanswered/wait first, then open, then closed
+  data.sort((a, b) => {
+    const stateWeight = { wait: 0, open: 1, closed: 2 };
+    return stateWeight[a.state] - stateWeight[b.state];
+  });
+
+  return c.json({ data });
+});
+
+// GET /v1/aivita-admin/support/conversations/:id/messages — messages thread
+router.get('/support/conversations/:id/messages', async (c) => {
+  const { id } = c.req.param();
+  const supportNickname = (process.env.SUPPORT_USER_NICKNAME ?? 'aivita').toLowerCase();
+
+  const [supportUser] = await db
+    .select({ id: aivitaUsers.id })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.nickname, supportNickname))
+    .limit(1);
+
+  const rows = await db
+    .select({
+      id: messages.id,
+      senderId: messages.senderId,
+      type: messages.type,
+      content: messages.content,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(and(eq(messages.conversationId, id), isNull(messages.deletedAt)))
+    .orderBy(asc(messages.createdAt));
+
+  const mapped = rows.map((m) => ({
+    t: supportUser && m.senderId === supportUser.id ? 'op' : 'user',
+    x: m.content,
+    mt: new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+  }));
+
+  return c.json({ data: mapped });
+});
+
+// POST /v1/aivita-admin/support/conversations/:id/messages — send reply
+const sendSupportMsgSchema = z.object({
+  content: z.string().min(1).max(4000),
+});
+
+router.post('/support/conversations/:id/messages', zValidator('json', sendSupportMsgSchema), async (c) => {
+  const { id } = c.req.param();
+  const { content } = c.req.valid('json');
+  const adminId = c.get('adminId') as string;
+  const supportNickname = (process.env.SUPPORT_USER_NICKNAME ?? 'aivita').toLowerCase();
+
+  const [supportUser] = await db
+    .select({ id: aivitaUsers.id })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.nickname, supportNickname))
+    .limit(1);
+
+  if (!supportUser) {
+    return c.json({ error: 'Support user not found' }, 404);
+  }
+
+  const [msg] = await db.insert(messages).values({
+    conversationId: id,
+    senderId: supportUser.id,
+    type: 'text',
+    content,
+  }).returning();
+
+  await db.update(conversations)
+    .set({ lastMessageAt: new Date() })
+    .where(eq(conversations.id, id));
+
+  await db.update(conversationParticipants)
+    .set({ lastReadAt: new Date() })
+    .where(and(
+      eq(conversationParticipants.conversationId, id),
+      eq(conversationParticipants.userId, supportUser.id)
+    ));
+
+  // Push to other participant
+  const otherPart = await db
+    .select({ userId: conversationParticipants.userId })
+    .from(conversationParticipants)
+    .where(and(
+      eq(conversationParticipants.conversationId, id),
+      ne(conversationParticipants.userId, supportUser.id)
+    ))
+    .limit(1);
+
+  if (otherPart[0]) {
+    await pushToUser(otherPart[0].userId, 'Поддержка AIVITA', content.slice(0, 120), {
+      conversationId: id,
+      messageId: msg.id,
+      url: '/chat/' + id,
+    });
+  }
+
+  await auditLog(adminId, 'send_support_message', 'conversation', id, { contentLength: content.length }, c.req);
+
+  return c.json({ data: msg });
+});
+
+// PATCH /v1/aivita-admin/support/conversations/:id/status — open/close ticket
+const patchSupportConvStatusSchema = z.object({
+  archived: z.boolean(),
+});
+
+router.patch('/support/conversations/:id/status', zValidator('json', patchSupportConvStatusSchema), async (c) => {
+  const { id } = c.req.param();
+  const { archived } = c.req.valid('json');
+  const adminId = c.get('adminId') as string;
+  const supportNickname = (process.env.SUPPORT_USER_NICKNAME ?? 'aivita').toLowerCase();
+
+  const [supportUser] = await db
+    .select({ id: aivitaUsers.id })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.nickname, supportNickname))
+    .limit(1);
+
+  if (!supportUser) {
+    return c.json({ error: 'Support user not found' }, 404);
+  }
+
+  await db.update(conversationParticipants)
+    .set({ archivedAt: archived ? new Date() : null })
+    .where(and(
+      eq(conversationParticipants.conversationId, id),
+      eq(conversationParticipants.userId, supportUser.id)
+    ));
+
+  await auditLog(adminId, archived ? 'archive_support_conversation' : 'unarchive_support_conversation', 'conversation', id, {}, c.req);
+
+  return c.json({ success: true });
+});
+
+// GET /v1/aivita-admin/support/reports — list message reports (complaints)
+router.get('/support/reports', async (c) => {
+  const rows = await db
+    .select({
+      id: messageReports.id,
+      reason: messageReports.reason,
+      status: messageReports.status,
+      createdAt: messageReports.createdAt,
+      messageContent: messages.content,
+      reporterName: aivitaUsers.name,
+      reporterNickname: aivitaUsers.nickname,
+      senderId: messages.senderId,
+    })
+    .from(messageReports)
+    .innerJoin(messages, eq(messageReports.messageId, messages.id))
+    .innerJoin(aivitaUsers, eq(messageReports.reporterId, aivitaUsers.id))
+    .orderBy(desc(messageReports.createdAt));
+
+  const senderIds = [...new Set(rows.map((r) => r.senderId).filter((v): v is string => !!v))];
+  const senders = senderIds.length > 0
+    ? await db
+        .select({
+          id: aivitaUsers.id,
+          name: aivitaUsers.name,
+          nickname: aivitaUsers.nickname,
+        })
+        .from(aivitaUsers)
+        .where(inArray(aivitaUsers.id, senderIds))
+    : [];
+
+  const senderMap = new Map(senders.map((s) => [s.id, s]));
+
+  const mapped = rows.map((r) => {
+    const sender = senderMap.get(r.senderId);
+    return {
+      id: r.id,
+      time: new Date(r.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + new Date(r.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      reporterNick: r.reporterNickname ? '@' + r.reporterNickname : 'user',
+      reportedNick: sender?.nickname ? '@' + sender.nickname : 'user',
+      message: r.messageContent,
+      status: r.status,
+      senderId: r.senderId,
+    };
+  });
+
+  return c.json({ data: mapped });
+});
+
+// PATCH /v1/aivita-admin/support/reports/:id — resolve/dismiss report
+const patchReportSchema = z.object({
+  status: z.enum(['reviewed', 'dismissed']),
+});
+
+router.patch('/support/reports/:id', zValidator('json', patchReportSchema), async (c) => {
+  const { id } = c.req.param();
+  const { status } = c.req.valid('json');
+  const adminId = c.get('adminId') as string;
+
+  await db.update(messageReports)
+    .set({
+      status,
+      reviewedBy: adminId,
+      reviewedAt: new Date(),
+    })
+    .where(eq(messageReports.id, id));
+
+  await auditLog(adminId, `resolve_report_${status}`, 'message_report', id, {}, c.req);
+
   return c.json({ success: true });
 });
 
