@@ -26,6 +26,7 @@ const translations = {
       cms:          'CMS лендинга',
       admins:       'Админы',
       account:      'Мой аккаунт',
+      support:      'Поддержка',
       logout:       'Выйти',
     },
     sections: {
@@ -99,6 +100,7 @@ const translations = {
       cms:          'Landing CMS',
       admins:       'Admins',
       account:      'My Account',
+      support:      'Support',
       logout:       'Log out',
     },
     sections: {
@@ -171,6 +173,7 @@ const translations = {
       cms:          'Landing CMS',
       admins:       'Adminlar',
       account:      'Mening hisobim',
+      support:      "Qo'llab-quvvatlash",
       logout:       'Chiqish',
     },
     sections: {

@@ -47,6 +47,7 @@ const baseNavItems = [
   { href: '/aivita/billing',       label: 'Биллинг',           icon: Wallet,        section: 'aivita' },
   { href: '/aivita/home-settings', label: 'Главная страница',  icon: Settings2,     section: 'aivita' },
   { href: '/aivita/notifications', label: 'Уведомления',       icon: Bell,          section: 'aivita' },
+  { href: '/aivita/support',       labelKey: 'support',        icon: HelpCircle,    section: 'aivita' },
   // ── ПАРТНЁРЫ ──
   { href: '/partners/pharmacies',  label: 'Аптеки',            icon: Pill,          section: 'partners' },
   { href: '/partners/labs',        label: 'Лаборатории',       icon: FlaskConical,  section: 'partners' },

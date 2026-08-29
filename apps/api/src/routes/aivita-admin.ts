@@ -20,14 +20,23 @@ import {
   subscriptions,
   payments,
   platformSettings,
+  conversations,
+  conversationParticipants,
+  messages,
+  messageReports,
+  aivitaDeviceTokens,
 } from '@medsoft/db';
 import {
   eq, ilike, or, and, isNull, desc, asc, gte, lte, lt, gte as sqlGte,
-  sql, count, avg, inArray,
+  sql, count, avg, inArray, ne,
 } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes, randomInt } from 'crypto';
+import {
+  sendPushNotification,
+  sendWebPushNotification,
+} from '../lib/push-notifications.js';
 
 const router = new Hono();
 router.use('*', requireAuth);
@@ -946,5 +955,46 @@ router.put('/home-settings', async (c) => {
   await auditLog(adminId, 'home_settings_update', 'platform_settings', null, body as Record<string, unknown>, c.req);
   return c.json({ success: true });
 });
+
+// ─── Helpers: support messaging ────────────────────────────────────────────────
+
+async function pushToUser(
+  userId: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  const tokens = await db
+    .select({ pushToken: aivitaDeviceTokens.pushToken, platform: aivitaDeviceTokens.platform })
+    .from(aivitaDeviceTokens)
+    .where(eq(aivitaDeviceTokens.userId, userId));
+
+  if (tokens.length === 0) return;
+
+  const expo = tokens.filter((t) => t.platform !== 'web').map((t) => t.pushToken);
+  const web = tokens.filter((t) => t.platform === 'web');
+
+  await Promise.all([
+    sendPushNotification(expo, title, body, data),
+    ...web.map((t) => sendWebPushNotification(t.pushToken, title, body, data)),
+  ]);
+}
+
+function formatConvTime(dateStr: string | Date | null) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } else if (diffDays <= 1) {
+    return 'вчера';
+  } else {
+    return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+  }
+}
+
 
 export { router as aivitaAdminRouter };

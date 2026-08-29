@@ -3,7 +3,7 @@
  * Saves to ./uploads/ dir and returns a public URL.
  * Max 10MB, allowed types: image/*, audio/*, application/pdf.
  */
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -69,10 +69,15 @@ function mimeToExt(mime: string): string {
   return map[baseType(mime)] ?? '';
 }
 
-export const uploadRouter = new Hono();
-uploadRouter.use('*', requireAivitaAuth);
-
-uploadRouter.post('/', async (c) => {
+/**
+ * Приём файла — один на всех.
+ *
+ * Кабинет поддержки грузит вложения оператора через свой роут с СВОИМ guard'ом
+ * (оператор, а не пациентская сессия), но самой записью занимается эта
+ * функция. Иначе появились бы две реализации хранения, и починка одной
+ * молча обходила бы вторую — ровно так уже случилось с расширениями файлов.
+ */
+export async function handleUpload(c: Context) {
   try {
     const body = await c.req.parseBody();
     const file = body['file'];
@@ -108,7 +113,11 @@ uploadRouter.post('/', async (c) => {
   } catch (e) {
     return c.json({ error: 'Upload failed', message: String(e) }, 500);
   }
-});
+}
+
+export const uploadRouter = new Hono();
+uploadRouter.use('*', requireAivitaAuth);
+uploadRouter.post('/', handleUpload);
 
 // ─── Serve uploaded files ──────────────────────────────────────────────────────
 export const uploadsServeRouter = new Hono();

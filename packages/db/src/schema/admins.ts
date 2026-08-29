@@ -26,6 +26,8 @@ export const adminUsers = pgTable('admin_users', {
   // Profile
   avatarUrl: text('avatar_url'),
   locale: varchar('locale', { length: 5 }).notNull().default('ru'),
+  /** 'offline' | 'online'. Читает автоответ вне часов: есть ли хоть кто-то на смене. */
+  shiftStatus: varchar('shift_status', { length: 20 }).notNull().default('offline'),
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

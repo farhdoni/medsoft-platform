@@ -284,6 +284,7 @@ auth.get('/me', requireAuth, async (c) => {
       createdAt: true,
       avatarUrl: true,
       locale: true,
+      shiftStatus: true,
     },
   });
   if (!admin) return c.json({ error: 'Not found' }, 404);

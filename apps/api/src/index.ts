@@ -21,6 +21,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 // Aivita routes
 import { aivitaAuthRouter } from './routes/aivita/auth.js';
 import { aivitaAdminRouter } from './routes/aivita-admin.js';
+import { aivitaAdminSupportRouter } from './routes/aivita-admin-support.js';
 import { aivitaUsersRouter } from './routes/aivita/users.js';
 import { aivitaHealthProfileRouter } from './routes/aivita/health-profile.js';
 import { aivitaHealthScoreRouter } from './routes/aivita/health-score.js';
@@ -142,6 +143,7 @@ app.route('/v1/aivita-admin/cms', landingAdminRouter);
 // Aivita
 app.route('/v1/aivita/auth', aivitaAuthRouter);
 app.route('/v1/aivita/onboarding', aivitaOnboardingRouter);
+app.route('/v1/aivita-admin/support', aivitaAdminSupportRouter);
 app.route('/v1/aivita-admin', aivitaAdminRouter);
 app.route('/v1/aivita/users', aivitaUsersRouter);
 app.route('/v1/aivita/health-profile', aivitaHealthProfileRouter);
