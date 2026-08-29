@@ -4,31 +4,44 @@ import { useState, useEffect } from "react";
 import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/cabinet/icons/Icon";
+import { DEFAULT_NAV, NAV_LS_KEY, repairNavConfig, type NavConfig } from './nav-config';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
-const NAV_LS_KEY = 'aivita_nav_config';
 
 export const ALL_NAV_OPTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: "home",        label: "Главная",   icon: "home"   },
-  { id: "chat",        label: "Чат",       icon: "chat"   },
   { id: "medications", label: "Лекарства", icon: "pill"   },
   { id: "vitals",      label: "Биометрия", icon: "heart"  },
   { id: "gadgets",     label: "Гаджеты",   icon: "steps"  },
   { id: "family",      label: "Семья",     icon: "family" },
 ];
 
-const DEFAULT_NAV = { left: ["home", "chat"], right: ["medications", "family"] };
 
-export function loadNavConfig(): { left: string[]; right: string[] } {
+/**
+ * Reads the saved tab layout, repairing anything the app no longer offers.
+ * The repair itself lives in nav-config.ts so it can be tested on its own.
+ */
+export function loadNavConfig(): NavConfig {
+  const valid = new Set(ALL_NAV_OPTIONS.map((o) => o.id));
   try {
-    const raw = localStorage.getItem(NAV_LS_KEY);
-    if (raw) return JSON.parse(raw) as { left: string[]; right: string[] };
-  } catch {}
-  return DEFAULT_NAV;
+    const stored = localStorage.getItem(NAV_LS_KEY);
+    if (!stored) return DEFAULT_NAV;
+
+    const repaired = repairNavConfig(JSON.parse(stored) as { left?: unknown; right?: unknown }, valid);
+
+    // Write the cleaned layout back so the repair happens once per device
+    // rather than on every mount.
+    const cleaned = JSON.stringify(repaired);
+    if (cleaned !== stored) localStorage.setItem(NAV_LS_KEY, cleaned);
+
+    return repaired;
+  } catch {
+    return DEFAULT_NAV;
+  }
 }
 
-export function saveNavConfig(cfg: { left: string[]; right: string[] }) {
+export function saveNavConfig(cfg: NavConfig) {
   try { localStorage.setItem(NAV_LS_KEY, JSON.stringify(cfg)); } catch {}
 }
 
@@ -42,12 +55,11 @@ function stripLocale(pathname: string): string {
 /**
  * Exactly ONE tab active at a time:
  * - exact match for "home" (avoids lighting up home for every sub-route)
- * - prefix match for others (e.g. /chat/123 → chat active)
+ * - prefix match for others (e.g. /vitals/42 → vitals active)
  */
 function computeActive(pathname: string, id: string): boolean {
   const norm = stripLocale(pathname);
   if (id === 'home') return norm === '/home' || norm === '/';
-  if (id === 'chat') return norm === '/messenger' || norm.startsWith('/messenger/');
   return norm === `/${id}` || norm.startsWith(`/${id}/`);
 }
 
@@ -60,7 +72,6 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
   const locale = (params?.locale as string) || "ru";
 
   const [navConfig, setNavConfig] = useState(DEFAULT_NAV);
-  const [unreadChatCount, setUnreadChatCount] = useState(2);
 
   useEffect(() => { setNavConfig(loadNavConfig()); }, []);
 
@@ -100,12 +111,11 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
 
   function renderTab(tab: (typeof ALL_NAV_OPTIONS)[0]) {
     const isActive = computeActive(pathname ?? '/', tab.id);
-    const isChat = tab.id === 'chat';
     return (
       <button
         key={tab.id}
         type="button"
-        onClick={() => (isChat ? openMessenger() : go(tab.id))}
+        onClick={() => go(tab.id)}
         className="relative flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition active:scale-95 sm:px-3 sm:py-2"
         style={{
           touchAction: 'manipulation',  // eliminates 300ms tap delay in WebView
@@ -117,11 +127,6 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
       >
         <div className="relative">
           <Icon name={tab.icon} size={22} />
-          {isChat && unreadChatCount > 0 && !isActive && (
-            <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9c5e6c] px-1 text-[8px] font-black text-white shadow-sm ring-1 ring-white">
-              {unreadChatCount}
-            </span>
-          )}
         </div>
         <span
           className="text-[10px] font-semibold"
