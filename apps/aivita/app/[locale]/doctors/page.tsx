@@ -182,7 +182,7 @@ export default function DoctorsCatalogPage() {
               const exp = calcExp(doc.experienceStartDate);
               const isVerified = doc.verificationStatus === 'verified';
               const profileUrl = `/${locale}/doctors/${doc.userId}`;
-              const chatUrl    = `/${locale}/chats/start?doctorId=${doc.userId}`;
+              const chatUrl    = `/${locale}/messenger/start?doctorId=${doc.userId}`;
               return (
                 <div key={doc.userId}
                   onClick={() => router.push(profileUrl)}

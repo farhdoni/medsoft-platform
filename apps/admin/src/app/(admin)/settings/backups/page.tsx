@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Database, Download, Plus, Save } from 'lucide-react';
+import { Database, Download, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,15 @@ export default function BackupsPage() {
     onError: () => toast.error('Ошибка создания бэкапа'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (filename: string) => api.delete(`/v1/admin/system/backups/${encodeURIComponent(filename)}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['system-backups'] });
+      toast.success('Резервная копия удалена');
+    },
+    onError: () => toast.error('Ошибка удаления бэкапа'),
+  });
+
   const saveAutoMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/system/auto-backup', autoForm),
     onSuccess: () => toast.success('Настройки автобэкапа сохранены'),
@@ -65,6 +74,12 @@ export default function BackupsPage() {
       toast.error('Ошибка скачивания');
     } finally {
       setDownloading(null);
+    }
+  }
+
+  function handleDelete(filename: string) {
+    if (confirm(`Вы уверены, что хотите удалить резервную копию ${filename}?`)) {
+      deleteMutation.mutate(filename);
     }
   }
 
@@ -104,14 +119,24 @@ export default function BackupsPage() {
                       {formatDate(b.createdAt)} · {formatSize(b.sizeBytes)}
                     </p>
                   </div>
-                  <Button
-                    size="sm" variant="outline" className="h-7"
-                    onClick={() => handleDownload(b.filename)}
-                    disabled={downloading === b.filename}
-                  >
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    {downloading === b.filename ? '...' : 'Скачать'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm" variant="outline" className="h-7"
+                      onClick={() => handleDownload(b.filename)}
+                      disabled={downloading === b.filename}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      {downloading === b.filename ? '...' : 'Скачать'}
+                    </Button>
+                    <Button
+                      size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(b.filename)}
+                      disabled={deleteMutation.isPending}
+                      title="Удалить"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

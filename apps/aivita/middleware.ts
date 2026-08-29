@@ -20,7 +20,6 @@ const APP_ROUTES = [
   '/medications',
   '/habits',
   '/nutrition',
-  '/chat',
   '/test',
   '/family',
   '/report',
@@ -29,7 +28,7 @@ const APP_ROUTES = [
   '/medical-card',
   '/ai-chat',
   '/ai-checkup',
-  '/chats',
+  '/messenger',
   '/pharmacy',
   '/install',
   // Doctor cabinet routes

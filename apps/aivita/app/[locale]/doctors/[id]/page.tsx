@@ -218,7 +218,7 @@ export default async function PublicDoctorPage({
           ) : null}
           <div className="flex gap-2">
             <BookingButton doctorId={id} doctorName={data.name} locale={locale} />
-            <Link href={`/${locale}/chats/start?doctorId=${id}`}
+            <Link href={`/${locale}/messenger/start?doctorId=${id}`}
               className="flex-1 py-3 text-sm font-semibold rounded-2xl text-center border-2"
               style={{ color: '#6BA3D6', borderColor: '#6BA3D6', background: '#fff' }}>
               💬 Написать

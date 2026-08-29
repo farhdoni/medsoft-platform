@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '@medsoft/db';
-import { videoCalls, aivitaUsers, doctorProfiles, doctorMessages, doctorConversations } from '@medsoft/db';
+import { videoCalls, aivitaUsers, doctorProfiles } from '@medsoft/db';
 import { eq, and, or, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { createNotification } from '../../lib/notification-service.js';
@@ -51,21 +51,11 @@ videoCallRouter.post('/create', async (c) => {
     }
   ).catch(() => {});
 
-  // Post video_call message to conversation if convId provided
-  if (convId) {
-    await db.insert(doctorMessages).values({
-      conversationId: convId,
-      senderId: doctorId,
-      senderRole: 'doctor',
-      type: 'video_call',
-      content: '📹 Видеоконсультация',
-      metadata: { callId: call.id, roomId, joinUrl, status: 'scheduled' },
-    }).catch(() => {});
-    await db.update(doctorConversations)
-      .set({ lastMessageAt: new Date() })
-      .where(eq(doctorConversations.id, convId))
-      .catch(() => {});
-  }
+  // The video-call card that used to be posted into the doctor-patient chat
+  // here went away with the legacy doctor_messages table (migration 0025).
+  // AV Chat's message_type has no 'video_call' variant and its messages table
+  // has no metadata column, so there is nowhere to write it yet. The call and
+  // the patient notification above are unaffected.
 
   return c.json({ data: { id: call.id, roomId, joinUrl } });
 });
@@ -142,14 +132,6 @@ videoCallRouter.post('/:id/join', async (c) => {
     .set({ status: 'active', startedAt: new Date() })
     .where(eq(videoCalls.id, callId));
 
-  // Update message metadata if conversation exists
-  if (call.conversationId) {
-    await db.update(doctorMessages)
-      .set({ metadata: { callId, roomId: call.roomId, joinUrl: `https://meet.jit.si/${call.roomId}`, status: 'active' } })
-      .where(and(eq(doctorMessages.conversationId, call.conversationId), eq(doctorMessages.type, 'video_call')))
-      .catch(() => {});
-  }
-
   return c.json({ data: { ok: true } });
 });
 
@@ -173,14 +155,6 @@ videoCallRouter.post('/:id/end', async (c) => {
   await db.update(videoCalls)
     .set({ status: 'completed', endedAt, duration })
     .where(eq(videoCalls.id, callId));
-
-  // Update message metadata
-  if (call.conversationId) {
-    await db.update(doctorMessages)
-      .set({ metadata: { callId, roomId: call.roomId, joinUrl: `https://meet.jit.si/${call.roomId}`, status: 'completed', duration } })
-      .where(and(eq(doctorMessages.conversationId, call.conversationId), eq(doctorMessages.type, 'video_call')))
-      .catch(() => {});
-  }
 
   return c.json({ data: { ok: true, duration } });
 });

@@ -54,14 +54,15 @@ import { aivitaDrugsRouter } from './routes/aivita/drugs.js';
 import { aivitaOnboardingRouter } from './routes/aivita/onboarding.js';
 import { aivitaCheckupRouter } from './routes/aivita/checkup.js';
 import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
-import { conversationsRouter } from './routes/aivita/conversations.js';
 import { aiChatRouter } from './routes/aivita/ai-chat.js';
 import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
+import { aivitaConsentsRouter } from './routes/aivita/consents.js';
 import { startPushReminders } from './jobs/push-reminders.js';
 import { startSubscriptionRenewal } from './jobs/subscription-renewal.js';
 import { startNotificationReminders } from './jobs/notification-reminders.js';
 import { startHealthAgents } from './jobs/health-agents.js';
 import { startMedicationReminders } from './jobs/medication-reminders.js';
+import { startBackupScheduler } from './jobs/backup-scheduler.js';
 import { clickRouter } from './routes/payments/click.js';
 import { paymeRouter } from './routes/payments/payme.js';
 import { uzumRouter } from './routes/payments/uzum.js';
@@ -70,6 +71,7 @@ import { doctorEarningsRouter } from './routes/aivita/doctor/earnings.js';
 import { doctorDashboardStatsRouter } from './routes/aivita/doctor/dashboard-stats.js';
 import { doctorScribeRouter } from './routes/aivita/doctor/scribe.js';
 import { videoCallRouter } from './routes/aivita/video-call.js';
+import { aivitaMessagingRouter } from './routes/aivita/messaging.js';
 import { adminDashboardRouter } from './routes/admin/dashboard.js';
 import { adminUsersRouter } from './routes/admin/users.js';
 import { aiSettingsRouter, aiUsageRouter } from './routes/admin/ai.js';
@@ -89,6 +91,7 @@ import { adminSystemRouter } from './routes/admin/system.js';
 import { adminPayoutsRouter } from './routes/admin/payouts.js';
 import { adminNotificationsRouter } from './routes/admin/notifications.js';
 import { adminMonitoringRouter } from './routes/admin-monitoring.js';
+import { adminPartnersRouter } from './routes/admin-partners.js';
 import { landingPublicRouter, landingAdminRouter } from './routes/landing-content.js';
 import { landingApiRouter } from './routes/landing-api.js';
 import { clinicPublicRouter, clinicAdminRouter } from './routes/clinic-requests.js';
@@ -103,6 +106,8 @@ import { symptomCheckerRouter } from './routes/aivita/symptom-checker.js';
 import { mentalHealthRouter } from './routes/aivita/mental-health.js';
 import { remindersRouter } from './routes/aivita/reminders.js';
 import { aivitaDiagRouter } from './routes/aivita/diag.js';
+import { ecosystemAppointmentsRouter } from './routes/ecosystem/appointments.js';
+import { ecosystemDischargeDocumentsRouter } from './routes/ecosystem/discharge-documents.js';
 
 const app = new Hono();
 
@@ -126,6 +131,8 @@ app.route('/v1/admins', adminsRouter);
 app.route('/v1/dashboard', dashboardRouter);
 // Monitoring (admin-only)
 app.route('/v1/admin/monitoring', adminMonitoringRouter);
+// Partner API key issuance (admin-only) — ecosystem/v1 M2M auth circuit
+app.route('/v1/admin/partners', adminPartnersRouter);
 // Landing public API (aivita.uz/api/*)
 app.route('/api', landingApiRouter);
 app.route('/api', clinicPublicRouter);
@@ -169,10 +176,10 @@ app.route('/v1/aivita/drugs', aivitaDrugsRouter);
 app.route('/v1/aivita/checkup', aivitaCheckupRouter);
 app.route('/v1/aivita/outbreak', outbreakRouter);
 app.route('/v1/aivita/symptoms', symptomsRouter);
-app.route('/v1/aivita/conversations', conversationsRouter);
 app.route('/v1/aivita/ai-chat', aiChatRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
+app.route('/v1/aivita/consents', aivitaConsentsRouter);
 // Pharmacy partner system
 app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
 app.route('/v1/pharmacy', pharmacyRouter);
@@ -198,6 +205,7 @@ app.route('/v1/aivita/doctor/earnings', doctorEarningsRouter);
 app.route('/v1/aivita/doctor/dashboard-stats', doctorDashboardStatsRouter);
 app.route('/v1/aivita/doctor/scribe', doctorScribeRouter);
 app.route('/v1/aivita/video-call', videoCallRouter);
+app.route('/v1/aivita/messaging', aivitaMessagingRouter);
 // Admin dashboard & users
 app.route('/v1/admin/dashboard', adminDashboardRouter);
 app.route('/v1/admin/users', adminUsersRouter);
@@ -220,6 +228,12 @@ app.route('/v1/admin/security', adminSecurityRouter);
 app.route('/v1/admin/reports', adminReportsRouter);
 app.route('/v1/aivita/faq', publicFaqRouter);
 app.route('/v1/admin/notifications', adminNotificationsRouter);
+
+// Deliberately NOT under /v1 — this is the versioned partner-facing
+// exchange contract (requirePartnerAuth, M2M), a separate lifecycle from
+// AIVITA's own internal /v1 API.
+app.route('/ecosystem/v1/appointments', ecosystemAppointmentsRouter);
+app.route('/ecosystem/v1/discharge-documents', ecosystemDischargeDocumentsRouter);
 
 app.onError((err, c) => {
   logger.error({ err }, 'Unhandled error');
@@ -313,6 +327,7 @@ async function main() {
   startNotificationReminders();
   startHealthAgents();
   startMedicationReminders();
+  startBackupScheduler();
 }
 
 main().catch((err) => {
