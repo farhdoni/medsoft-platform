@@ -20,6 +20,7 @@ import {
 import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { requireAuth, requireOperator, requireSuperadmin } from '../middleware/auth.js';
 import { deliverMessage } from './aivita/messaging.js';
+import { handleUpload } from './aivita/upload.js';
 import {
   SLA_ESCALATION_MINUTES,
   assignToOperator,
@@ -54,6 +55,11 @@ aivitaAdminSupportRouter.use('*', requireAuth);
 aivitaAdminSupportRouter.use('*', requireOperator);
 
 const r = aivitaAdminSupportRouter;
+
+// ─── Загрузка вложений оператора ──────────────────────────────────────────────
+// Тот же обработчик, что у пациента, но под guard'ом кабинета: пациентская
+// сессия у оператора отсутствует, и общий роут отдавал бы ему 401.
+r.post('/upload', handleUpload);
 
 // ─── Очереди и список обращений ───────────────────────────────────────────────
 
