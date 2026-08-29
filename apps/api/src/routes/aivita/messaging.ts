@@ -19,6 +19,7 @@ import {
   sendWebPushNotification,
 } from '../../lib/push-notifications.js';
 import { decidePush } from '../../lib/quiet-hours.js';
+import { getSupportUser, onUserMessage } from '../../lib/support-tickets.js';
 import { logger } from '../../lib/logger.js';
 
 // AV Chat — open messenger between AIVITA users. Replaces the legacy
@@ -528,22 +529,36 @@ const sendSchema = z.object({
   locationLng: z.number().min(-180).max(180).optional(),
 });
 
-aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sendSchema), async (c) => {
-  const me = c.get('aivitaUserId');
-  const convId = c.req.param('id');
-  const body = c.req.valid('json');
+/**
+ * Единственный путь, которым сообщение попадает в диалог.
+ *
+ * Кабинет поддержки отвечает от @aivita через эту же функцию, а не своей
+ * веткой. Иначе разъезжается всё, что висит на отправке: lastMessageAt,
+ * непрочитанные у получателя и — главное — гейтинг пуша, который решает
+ * decidePush по muted, quiet hours и настройке превью. Прошлая админская
+ * реализация дёргала pushToUser напрямую и все три правила игнорировала.
+ */
+export type DeliverInput = z.infer<typeof sendSchema>;
+export type DeliverResult =
+  | { ok: true; message: typeof messages.$inferSelect }
+  | { ok: false; status: 400 | 403; error: string };
 
-  // A location message carries a pin instead of text or a file, so it needs
+export async function deliverMessage(
+  convId: string,
+  me: string,
+  body: DeliverInput,
+): Promise<DeliverResult> {
+    // A location message carries a pin instead of text or a file, so it needs
   // its own emptiness check rather than the content/attachment one.
   if (body.type === 'location') {
     if (body.locationLat === undefined || body.locationLng === undefined) {
-      return c.json({ error: 'A location message needs locationLat and locationLng' }, 400);
+      return { ok: false as const, status: 400, error: 'A location message needs locationLat and locationLng' };
     }
   } else if (!body.content && !body.attachmentUrl) {
-    return c.json({ error: 'Message must carry content or an attachment' }, 400);
+    return { ok: false as const, status: 400, error: 'Message must carry content or an attachment' };
   }
 
-  if (!(await participantOf(convId, me))) return c.json({ error: 'Forbidden' }, 403);
+  if (!(await participantOf(convId, me))) return { ok: false as const, status: 403, error: 'Forbidden' };
 
   // Everyone else in the conversation — for a direct chat, exactly one person.
   const others = await db
@@ -558,7 +573,7 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
     if (await blockExists(me, o.userId)) {
       // Deliberately the same message whichever direction the block runs, so
       // the response does not disclose who blocked whom.
-      return c.json({ error: 'Message not delivered — conversation is blocked' }, 403);
+      return { ok: false as const, status: 403, error: 'Message not delivered — conversation is blocked' };
     }
   }
 
@@ -570,7 +585,7 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
       .from(messages)
       .where(and(eq(messages.id, body.replyToId), eq(messages.conversationId, convId)))
       .limit(1);
-    if (!target) return c.json({ error: 'replyToId does not belong to this conversation' }, 400);
+    if (!target) return { ok: false as const, status: 400, error: 'replyToId does not belong to this conversation' };
   }
 
   const [msg] = await db.insert(messages).values({
@@ -643,7 +658,28 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
     })().catch(() => {});
   }
 
-  return c.json({ data: msg }, 201);
+  return { ok: true as const, message: msg };
+}
+
+aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sendSchema), async (c) => {
+  const convId = c.req.param('id');
+  const me = c.get('aivitaUserId');
+  const result = await deliverMessage(convId, me, c.req.valid('json'));
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+
+  // Диалог с поддержкой ведёт себя как тикет: закрытый переоткрывается (с
+  // сохранением оператора), а вне рабочих часов уходит один автоответ.
+  // Проверка «отправитель не поддержка» здесь не косметическая: автоответ
+  // шлёт та же deliverMessage, и без неё он вызвал бы сам себя.
+  void (async () => {
+    if (await userIsSupport(me)) return;
+    const support = await getSupportUser();
+    if (!support) return;
+    if (!(await participantOf(convId, support.id))) return;
+    await onUserMessage(convId);
+  })().catch((err) => logger.warn({ err, conversationId: convId }, '[Support] обработка тикета не удалась'));
+
+  return c.json({ data: result.message }, 201);
 });
 
 // ─── PUT /conversations/:id/read ──────────────────────────────────────────────
