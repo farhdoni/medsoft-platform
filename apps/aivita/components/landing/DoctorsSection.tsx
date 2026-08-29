@@ -164,7 +164,7 @@ export default function DoctorsSection({ locale = 'ru' }: { locale?: string }) {
                     style={{ background: 'var(--accent-dark)' }}>
                     Подробнее
                   </a>
-                  <a href={`/${locale}/chat`}
+                  <a href={`/${locale}/messenger`}
                     className="px-4 py-2.5 rounded-xl text-xs font-medium"
                     style={{ background: '#f4f3ef', color: '#6a6580' }}>
                     Записаться

@@ -114,7 +114,7 @@ export function AvChatRoomClient({
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             type="button"
-            onClick={() => router.push(`/${locale}/chat`)}
+            onClick={() => router.push(`/${locale}/messenger`)}
             className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold text-[#2a2540] hover:bg-[#f4f3ef] transition"
           >
             ←

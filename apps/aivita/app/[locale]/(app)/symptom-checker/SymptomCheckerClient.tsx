@@ -308,7 +308,7 @@ export function SymptomCheckerClient() {
                         💬 Спросить AI
                       </button>
                       <button
-                        onClick={() => router.push(`/${locale}/chat`)}
+                        onClick={() => router.push(`/${locale}/messenger`)}
                         style={{ flex: 1, padding: '10px', borderRadius: 12, border: 'none', background: `linear-gradient(135deg, ${C.accent}, #7a3848)`, fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
                         📅 Записаться
                       </button>

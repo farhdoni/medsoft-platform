@@ -47,7 +47,7 @@ function stripLocale(pathname: string): string {
 function computeActive(pathname: string, id: string): boolean {
   const norm = stripLocale(pathname);
   if (id === 'home') return norm === '/home' || norm === '/';
-  if (id === 'chat') return norm === '/chat' || norm.startsWith('/chat/') || norm === '/chats' || norm.startsWith('/chats/');
+  if (id === 'chat') return norm === '/messenger' || norm.startsWith('/messenger/');
   return norm === `/${id}` || norm.startsWith(`/${id}/`);
 }
 
@@ -105,7 +105,7 @@ export function FloatingNav({ active: _ignoredLegacyProp }: { active?: string })
       <button
         key={tab.id}
         type="button"
-        onClick={() => go(tab.id)}
+        onClick={() => (isChat ? openMessenger() : go(tab.id))}
         className="relative flex flex-col items-center gap-0.5 rounded-[20px] px-2.5 py-1.5 transition active:scale-95 sm:px-3 sm:py-2"
         style={{
           touchAction: 'manipulation',  // eliminates 300ms tap delay in WebView

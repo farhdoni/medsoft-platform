@@ -37,7 +37,7 @@ export function HeroSection({ user }: Props) {
   function ask(q: string) {
     if (!q.trim() || submitting) return;
     setSubmitting(true);
-    router.push(`/${locale}/chat?q=${encodeURIComponent(q)}`);
+    router.push(`/${locale}/messenger?q=${encodeURIComponent(q)}`);
   }
 
   const prompts = [

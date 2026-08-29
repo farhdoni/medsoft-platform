@@ -595,7 +595,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
           <p className="text-[12px] mb-3" style={{ color: '#6a6580' }}>{aiRec.recommendation}</p>
           <div className="flex gap-2 flex-wrap">
             {aiRec.specialization && (
-              <Link href={`/${locale}/chat`}
+              <Link href={`/${locale}/messenger`}
                 className="px-3 py-1.5 rounded-full text-[12px] font-semibold text-white"
                 style={{ background: 'var(--accent-dark)' }}
               >

@@ -17,7 +17,7 @@ export function ActiveChatsWidget({ locale }: Props) {
         </h3>
         <button
           type="button"
-          onClick={() => router.push(`/${locale}/chat`)}
+          onClick={() => router.push(`/${locale}/messenger`)}
           className="text-[11px] font-bold text-[#9c5e6c] hover:underline"
         >
           Все чаты (2) →
@@ -25,7 +25,7 @@ export function ActiveChatsWidget({ locale }: Props) {
       </div>
 
       <div
-        onClick={() => router.push(`/${locale}/chat`)}
+        onClick={() => router.push(`/${locale}/messenger`)}
         className="group relative flex cursor-pointer items-center gap-3.5 rounded-[22px] border border-[#e8e4dc] bg-white p-3.5 shadow-card transition-all hover:border-[#f0d4dc] hover:shadow-md active:scale-[0.99]"
       >
         {/* Doctor Avatar */}
