@@ -20,3 +20,4 @@ export * from './content';
 export * from './security';
 export * from './system';
 export * from './messaging';
+export * from './support';

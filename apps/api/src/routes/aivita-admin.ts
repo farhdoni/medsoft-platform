@@ -30,7 +30,7 @@ import {
   eq, ilike, or, and, isNull, desc, asc, gte, lte, lt, gte as sqlGte,
   sql, count, avg, inArray, ne,
 } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireOperator } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes, randomInt } from 'crypto';
 import {
@@ -40,6 +40,8 @@ import {
 
 const router = new Hono();
 router.use('*', requireAuth);
+// Кабинет поддержки открыт оператору и выше — остальной админке хватает requireAuth.
+router.use('/support/*', requireOperator);
 
 // ─── Helper: write audit log ──────────────────────────────────────────────────
 
