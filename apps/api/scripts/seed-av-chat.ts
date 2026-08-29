@@ -28,6 +28,7 @@ import {
   conversationParticipants,
   messages,
   messageReactions,
+  messageReports,
   userBlocks,
 } from '@medsoft/db';
 import { eq, and, inArray, ne } from 'drizzle-orm';
@@ -255,6 +256,52 @@ async function main() {
 
   console.log(`сообщения: m1=${m1.id} m2(reply→m1)=${m2.id} m3=${m3.id} m4(unread)=${m4.id}`);
   console.log('реакции: ❤️ на m1 (от alice), 🔥 на m2 (от farhodni)');
+
+  // ── 5. Жалобы и блокировка (материал для вкладки «Жалобы») ───────
+  // Пустые message_reports/user_blocks не дают проверить модерацию: список
+  // жалоб рисуется пустым, а «разблокировать» нечего. Свои жалобы чистить
+  // не нужно — они ссылаются на messages с ON DELETE CASCADE, а лента выше
+  // пересоздаётся целиком, поэтому прошлые жалобы уходят вместе с ней.
+  await db.insert(messageReports).values([
+    // pending — то, что оператор видит в работе по умолчанию
+    {
+      messageId: m3.id,
+      reporterId: alice.id,
+      reason: 'Спам / реклама',
+      createdAt: new Date(now + 200_000),
+    },
+    {
+      messageId: m4.id,
+      reporterId: farhod.id,
+      reason: 'Оскорбление',
+      createdAt: new Date(now + 220_000),
+    },
+    // уже разобранная — чтобы фильтр по статусу отличался от пустого
+    {
+      messageId: m1.id,
+      reporterId: bob.id,
+      reason: 'Мошенничество',
+      status: 'reviewed',
+      reviewedAt: new Date(now + 240_000),
+      createdAt: new Date(now + 230_000),
+    },
+  ]);
+
+  // Блокировка между тестовыми юзерами. Намеренно не farhodni: его блокировки
+  // шаг 2 снимает на каждом прогоне, и такая запись не пережила бы сид.
+  await db.delete(userBlocks).where(and(
+    eq(userBlocks.blockerId, dave.id),
+    eq(userBlocks.blockedId, bob.id),
+  ));
+  await db.insert(userBlocks).values({
+    blockerId: dave.id,
+    blockedId: bob.id,
+    createdAt: new Date(now + 250_000),
+  });
+
+  console.log('жалобы: 2 pending (на m3 от alice, на m4 от farhodni) + 1 reviewed (на m1 от bob)');
+  console.log('блокировка: dave_av → bob_av');
+
   console.log('\nГОТОВО.');
   process.exit(0);
 }
