@@ -16,8 +16,10 @@ import {
   isGif,
   isSticker,
 } from '@/components/messenger/MessageMedia';
-import { useVoiceRecorder } from '@/components/messenger/useVoiceRecorder';
-import { dayKey, displayName, formatBubbleTime, formatDayLabel, formatDuration } from '@/components/messenger/format';
+import { useVoiceRecorder, extForMime } from '@/components/messenger/useVoiceRecorder';
+import { ChatComposer } from '@/components/messenger/ChatComposer';
+import { recorderErrorText } from '@/components/messenger/voice-copy';
+import { dayKey, displayName, formatBubbleTime, formatDayLabel } from '@/components/messenger/format';
 import type {
   ApiEnvelope,
   GifItem,
@@ -374,7 +376,7 @@ export function ThreadClient({
       });
       setReplyTo(null);
     } catch {
-      setNotice('Не удалось загрузить файл');
+      setNotice(kind === 'voice' ? 'Не удалось отправить' : 'Не удалось загрузить файл');
     } finally {
       setUploading(false);
     }
@@ -390,14 +392,16 @@ export function ThreadClient({
     if (recorder.state === 'recording') {
       const res = await recorder.stop();
       if (!res) { setNotice('Слишком короткая запись'); return; }
-      const ext = res.blob.type.includes('ogg') ? 'ogg' : 'webm';
-      const file = new File([res.blob], `voice-${Date.now()}.${ext}`, { type: res.blob.type });
+      // Extension follows the container the browser actually produced: the
+      // uploads route derives the served Content-Type from it, and a missing
+      // one comes back as application/octet-stream, which no player accepts.
+      const file = new File([res.blob], `voice-${Date.now()}.${extForMime(res.mime)}`, { type: res.mime });
       await uploadAndSend(file, 'voice', res.seconds);
       return;
     }
     setEmojiOpen(false);
-    const ok = await recorder.start();
-    if (!ok) setNotice('Нет доступа к микрофону');
+    const started = await recorder.start();
+    if (!started.ok) setNotice(recorderErrorText(started.kind));
   }
 
   /** Ask the browser where we are; the pin is only sent after confirmation. */
@@ -898,111 +902,25 @@ export function ThreadClient({
       )}
 
       {/* ── Composer ───────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-3 pt-1" style={{ paddingBottom: emojiOpen ? 4 : 'calc(8px + env(safe-area-inset-bottom))' }}>
-        {recording ? (
-          <div className="flex items-center gap-3 bg-white rounded-2xl px-3 py-2" style={{ border: '1px solid var(--accent, #cc8a96)' }}>
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: '#e4572e', animation: 'pulse 1s ease-in-out infinite' }} aria-hidden="true" />
-            <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--accent-dark, #9c5e6c)' }}>
-              {formatDuration(recorder.seconds)}
-            </span>
-            <span className="flex-1 text-[11px] text-app-t3">Идёт запись…</span>
-            <button
-              type="button"
-              aria-label="Отменить запись"
-              onClick={() => { recorder.cancel(); setNotice('Запись отменена'); }}
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-70"
-              style={{ background: '#faf9f7' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 6l12 12M18 6 6 18" stroke="#6a6580" strokeWidth="2.4" strokeLinecap="round" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              aria-label="Отправить голосовое"
-              onClick={toggleRecording}
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
-              style={{ background: 'linear-gradient(135deg, #cc8a96, #9c5e6c)' }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2v6.4Z" fill="#fff" />
-              </svg>
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-end gap-1.5 bg-white rounded-2xl px-2 py-1.5" style={{ border: '1px solid #e8e4dc' }}>
-            <button
-              type="button"
-              aria-label="Прикрепить файл"
-              onClick={() => { setEmojiOpen(false); setAttachOpen(true); }}
-              className="w-8 h-8 flex items-center justify-center flex-shrink-0 active:opacity-70"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 19a2 2 0 0 1-3-3l8-8" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            <textarea
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onFocus={() => { if (!programmaticFocus.current) setEmojiOpen(false); }}
-              onKeyDown={(e) => {
-                if (enterSend && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-              }}
-              rows={1}
-              placeholder="Сообщение…"
-              aria-label="Текст сообщения"
-              className="flex-1 resize-none bg-transparent text-sm text-app-t1 placeholder:text-app-t3 outline-none py-1.5 max-h-28"
-            />
-
-            <button
-              type="button"
-              aria-label="Эмодзи, стикеры и GIF"
-              aria-pressed={emojiOpen}
-              onClick={() => setEmojiOpen((v) => !v)}
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 active:opacity-80"
-              style={emojiOpen ? { background: 'var(--accent-light, #f0d4dc)' } : undefined}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" />
-                <circle cx="9" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
-                <circle cx="15" cy="10" r="1" fill={emojiOpen ? '#9c5e6c' : '#6a6580'} />
-                <path d="M8.5 14.5a4 4 0 0 0 7 0" stroke={emojiOpen ? '#9c5e6c' : '#6a6580'} strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-
-            <button
-              type="button"
-              aria-label="Записать голосовое"
-              onClick={toggleRecording}
-              className="w-8 h-8 flex items-center justify-center flex-shrink-0 active:opacity-70"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="9" y="3" width="6" height="11" rx="3" stroke="#6a6580" strokeWidth="1.8" />
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#6a6580" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-
-            <button
-              type="button"
-              onClick={send}
-              disabled={!canSend}
-              aria-label="Отправить"
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #cc8a96, #9c5e6c)',
-                opacity: canSend ? 1 : 0.4,
-                cursor: canSend ? 'pointer' : 'default',
-              }}
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2v6.4Z" fill="#fff" />
-              </svg>
-            </button>
-          </div>
-        )}
-      </div>
+      <ChatComposer
+        value={draft}
+        onChange={setDraft}
+        onSend={send}
+        canSend={canSend}
+        inputRef={inputRef}
+        onFocus={() => { if (!programmaticFocus.current) setEmojiOpen(false); }}
+        onKeyDown={(e) => {
+          if (enterSend && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+        }}
+        onAttach={() => { setEmojiOpen(false); setAttachOpen(true); }}
+        onEmoji={() => setEmojiOpen((v) => !v)}
+        emojiOpen={emojiOpen}
+        onMic={toggleRecording}
+        recording={recording}
+        seconds={recorder.seconds}
+        onCancelRecording={() => { recorder.cancel(); setNotice('Запись отменена'); }}
+        bottomInset={emojiOpen ? 4 : undefined}
+      />
 
       {emojiOpen && (
         <EmojiPanel onPick={insertEmoji} onBackspace={backspace} onPickSticker={sendSticker} onPickGif={sendGif} locale={locale} />

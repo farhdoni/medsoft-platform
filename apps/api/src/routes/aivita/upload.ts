@@ -32,10 +32,23 @@ const ALLOWED_MIME_EXACT    = [
   'application/x-zip-compressed',
 ];
 
+/**
+ * Media type with codec parameters stripped.
+ *
+ * MediaRecorder reports a recording's container as "audio/webm;codecs=opus",
+ * and matching that whole string against the tables below finds nothing — the
+ * upload then lands with no extension and comes back from the serve handler as
+ * application/octet-stream, which no <audio> element will play.
+ */
+function baseType(mime: string): string {
+  return mime.split(';')[0].trim().toLowerCase();
+}
+
 function isAllowed(mime: string): boolean {
+  const base = baseType(mime);
   return (
-    ALLOWED_MIME_PREFIXES.some(p => mime.startsWith(p)) ||
-    ALLOWED_MIME_EXACT.includes(mime)
+    ALLOWED_MIME_PREFIXES.some(p => base.startsWith(p)) ||
+    ALLOWED_MIME_EXACT.includes(base)
   );
 }
 
@@ -44,7 +57,8 @@ function mimeToExt(mime: string): string {
     'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif',
     'image/webp': '.webp', 'image/heic': '.heic',
     'audio/webm': '.webm', 'audio/ogg': '.ogg', 'audio/mpeg': '.mp3',
-    'audio/wav': '.wav', 'audio/mp4': '.m4a',
+    'audio/wav': '.wav', 'audio/x-wav': '.wav', 'audio/mp4': '.m4a',
+    'audio/aac': '.aac', 'audio/x-m4a': '.m4a',
     'application/pdf': '.pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
@@ -52,7 +66,7 @@ function mimeToExt(mime: string): string {
     'text/plain': '.txt', 'text/csv': '.csv',
     'application/zip': '.zip', 'application/x-zip-compressed': '.zip',
   };
-  return map[mime] ?? '';
+  return map[baseType(mime)] ?? '';
 }
 
 export const uploadRouter = new Hono();
@@ -117,6 +131,7 @@ uploadsServeRouter.get('/:filename', async (c) => {
       '.gif': 'image/gif',  '.webp': 'image/webp',
       '.webm': 'audio/webm', '.ogg': 'audio/ogg',
       '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
+      '.aac': 'audio/aac',
       '.pdf': 'application/pdf',
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

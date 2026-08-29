@@ -4,7 +4,10 @@ import {
   useState, useEffect, useRef, useCallback,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Send, Paperclip, Camera, Image, Mic, MicOff, X, Play, Pause, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, X, Play, Pause, MoreHorizontal } from 'lucide-react';
+import { ChatComposer } from '@/components/messenger/ChatComposer';
+import { EmojiPanel } from '@/components/messenger/EmojiPanel';
+import { AttachSheet } from '@/components/messenger/AttachSheet';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AiDocumentModal, type ParsedMedical } from '@/components/medical/AiDocumentModal';
@@ -72,6 +75,13 @@ interface Message {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function uid() { return Math.random().toString(36).slice(2); }
+
+/**
+ * Shown where the composer offers a control the AI chat cannot honour yet.
+ * The buttons stay in place so the bar matches the messenger one-for-one —
+ * an honest 'not yet' reads better than an icon that silently does nothing.
+ */
+const SOON = 'Скоро в AI-чате';
 
 /** Compress + resize an image File to max 1200px, return data URL (data:image/jpeg;base64,...) */
 async function compressImageToDataUrl(file: File, maxSide = 1200, quality = 0.78): Promise<string> {
@@ -250,21 +260,22 @@ export function AiChatClient({ locale }: { locale: string }) {
   const [text,        setText]        = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const textareaRef   = useRef<HTMLTextAreaElement>(null);
+  const [emojiOpen,  setEmojiOpen]  = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+
+  // Same transient toast the messenger thread uses, for the same reason: a tap
+  // that cannot do anything yet has to say so instead of looking broken.
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 2200);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // ── File inputs ────────────────────────────────────────────────────────────
   const fileInputRef    = useRef<HTMLInputElement>(null);
   const cameraInputRef  = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-
-  // ── Voice recording ────────────────────────────────────────────────────────
-  const [isRecording,       setIsRecording]       = useState(false);
-  const [recordingSeconds,  setRecordingSeconds]  = useState(0);
-  const mediaRecorderRef   = useRef<MediaRecorder | null>(null);
-  const audioChunksRef     = useRef<Blob[]>([]);
-  const mediaStreamRef     = useRef<MediaStream | null>(null);
-  const recordingTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const recordingSecondsRef = useRef(0);
-  const cancelledRef        = useRef(false);
 
   // ── Audio playback ──────────────────────────────────────────────────────────
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -320,6 +331,44 @@ export function AiChatClient({ locale }: { locale: string }) {
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  // ── Emoji insertion ────────────────────────────────────────────────────────
+  // Mirrors the messenger thread: emoji land at the caret, and the panel stays
+  // open because people type several in a row. Refocusing the textarea would
+  // otherwise trip onFocus and close the panel after every single pick, hence
+  // the guard flag.
+  const programmaticFocus = useRef(false);
+
+  function restoreCaret(el: HTMLTextAreaElement, pos: number) {
+    requestAnimationFrame(() => {
+      programmaticFocus.current = true;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+      requestAnimationFrame(() => { programmaticFocus.current = false; });
+    });
+  }
+
+  function insertEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) { setText(t => t + emoji); return; }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    setText(text.slice(0, start) + emoji + text.slice(end));
+    restoreCaret(el, start + emoji.length);
+  }
+
+  function backspaceEmoji() {
+    const el = textareaRef.current;
+    if (!el) { setText(t => [...t].slice(0, -1).join('')); return; }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    if (start === 0 && start === end) return;
+    // Emoji are multi-unit: step back by whole code points, not by char.
+    const cut = start === end ? [...text.slice(0, start)].pop()?.length ?? 1 : 0;
+    const from = start === end ? start - cut : start;
+    setText(text.slice(0, from) + text.slice(end));
+    restoreCaret(el, from);
   }
 
   // ── Native camera/gallery bridge ───────────────────────────────────────────
@@ -385,62 +434,6 @@ export function AiChatClient({ locale }: { locale: string }) {
         body: JSON.stringify(data),
       });
     } catch { /* non-critical */ }
-  }
-
-  // ── Voice recording ────────────────────────────────────────────────────────
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      audioChunksRef.current = [];
-      cancelledRef.current = false;
-
-      const recorder = new MediaRecorder(stream);
-      recorder.ondataavailable = (e: BlobEvent) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach(t => t.stop());
-        if (!cancelledRef.current) {
-          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(blob);
-          setAttachments(prev => [...prev, {
-            kind: 'audio', blob, url,
-            duration: recordingSecondsRef.current,
-            id: uid(),
-          }]);
-        }
-        audioChunksRef.current = [];
-      };
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-
-      recordingSecondsRef.current = 0;
-      setRecordingSeconds(0);
-      setIsRecording(true);
-
-      recordingTimerRef.current = setInterval(() => {
-        recordingSecondsRef.current += 1;
-        setRecordingSeconds(recordingSecondsRef.current);
-      }, 1000);
-    } catch {
-      // microphone denied — ignore silently
-    }
-  }
-
-  function stopRecording(cancel: boolean) {
-    cancelledRef.current = cancel;
-    mediaRecorderRef.current?.stop();
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    setIsRecording(false);
-    setRecordingSeconds(0);
-    recordingSecondsRef.current = 0;
-  }
-
-  function handleVoiceButton() {
-    if (isRecording) stopRecording(false);
-    else void startRecording();
   }
 
   // ── Medical document parsing ────────────────────────────────────────────────
@@ -1049,130 +1042,41 @@ export function AiChatClient({ locale }: { locale: string }) {
         </div>
       )}
 
-      {/* ── Input panel ─────────────────────────────────────────────────────── */}
-      <div
-        className="flex-shrink-0 px-3 pt-2 pb-3"
-        style={{
-          background: '#fff',
-          borderTop: attachments.length === 0 ? '1px solid #e8e4dc' : 'none',
-          paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-        }}
-      >
-        {/* Voice recording bar */}
-        {isRecording && (
-          <div
-            className="flex items-center justify-between px-4 py-2 rounded-2xl mb-2"
-            style={{ background: '#fff0f3', border: '1px solid #f0d4dc' }}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ background: '#c0392b', animation: 'aura-pulse 1s ease-in-out infinite' }}
-              />
-              <span className="text-[13px] font-semibold" style={{ color: '#c0392b' }}>
-                🔴 Запись… {fmtDur(recordingSeconds)}
-              </span>
-            </div>
-            <button
-              onClick={() => stopRecording(true)}
-              className="text-[12px] font-semibold px-3 py-1 rounded-full"
-              style={{ background: '#fde8e8', color: '#8a3a3a' }}
-            >
-              Отмена
-            </button>
-          </div>
-        )}
+      {/* ── Composer ────────────────────────────────────────────────────────── */}
+      <ChatComposer
+        value={text}
+        onChange={next => { setText(next); requestAnimationFrame(autoResize); }}
+        onSend={() => void sendMessage()}
+        canSend={canSend}
+        placeholder="Вопрос о здоровье…"
+        inputRef={textareaRef}
+        onKeyDown={handleKeyDown}
+        onFocus={() => { if (!programmaticFocus.current) setEmojiOpen(false); }}
+        onAttach={() => { setEmojiOpen(false); setAttachOpen(true); }}
+        onEmoji={() => setEmojiOpen(v => !v)}
+        emojiOpen={emojiOpen}
+        onMic={() => setNotice(SOON)}
+        bottomInset={emojiOpen ? 4 : undefined}
+      />
 
-        <div className="flex items-end gap-2">
-          {/* Media buttons */}
-          <div className="flex gap-1.5 flex-shrink-0 pb-0.5">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
-              style={{ background: '#f4f3ef' }}
-              aria-label="Прикрепить файл"
-            >
-              <Paperclip className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
-            </button>
-            {/* Camera — native bridge in WebView, label fallback in browser */}
-            {isInNativeWebView() ? (
-              <button
-                type="button"
-                onClick={() => nativePostMessage('open-camera')}
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
-                style={{ background: '#f4f3ef' }}
-                aria-label="Сделать фото"
-              >
-                <Camera className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
-              </button>
-            ) : (
-              <label
-                htmlFor="ai-chat-camera-input"
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80 cursor-pointer select-none"
-                style={{ background: '#f4f3ef' }}
-                aria-label="Сделать фото"
-              >
-                <Camera className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
-              </label>
-            )}
-            {/* Gallery — native bridge in WebView, file input fallback in browser */}
-            <button
-              type="button"
-              onClick={() => {
-                if (!nativePostMessage('open-gallery')) galleryInputRef.current?.click();
-              }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
-              style={{ background: '#f4f3ef' }}
-              aria-label="Выбрать из галереи"
-            >
-              <Image className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />
-            </button>
-            <button
-              onClick={handleVoiceButton}
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:opacity-80"
-              style={{
-                background: isRecording ? '#c0392b' : '#f4f3ef',
-                animation: isRecording ? 'aura-pulse 1s ease-in-out infinite' : 'none',
-              }}
-              aria-label={isRecording ? 'Остановить запись' : 'Голосовое сообщение'}
-            >
-              {isRecording
-                ? <MicOff className="w-4 h-4 text-white" aria-hidden="true" />
-                : <Mic    className="w-4 h-4" style={{ color: '#6a6580' }} aria-hidden="true" />}
-            </button>
-          </div>
+      {emojiOpen && (
+        <EmojiPanel
+          onPick={insertEmoji}
+          onBackspace={backspaceEmoji}
+          onPickSticker={() => setNotice(SOON)}
+          onPickGif={() => setNotice(SOON)}
+          locale={locale}
+        />
+      )}
 
-          {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={e => { setText(e.target.value); autoResize(); }}
-            onKeyDown={handleKeyDown}
-            placeholder="Напишите вопрос о здоровье…"
-            rows={1}
-            className="flex-1 resize-none rounded-2xl border px-3.5 py-2.5 text-sm outline-none focus:border-[var(--accent)] transition-colors"
-            style={{
-              minHeight: 40,
-              maxHeight: 120,
-              borderColor: '#e8e4dc',
-              color: '#2a2540',
-              lineHeight: '1.4',
-            }}
-          />
-
-          {/* Send button */}
-          <button
-            onClick={() => void sendMessage()}
-            disabled={!canSend}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition active:scale-90 disabled:opacity-40"
-            style={{ background: 'var(--accent, #9c5e6c)', flexShrink: 0 }}
-            aria-label="Отправить"
-          >
-            <Send className="w-4 h-4 text-white" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      {attachOpen && (
+        <AttachSheet
+          onClose={() => setAttachOpen(false)}
+          onPickPhoto={() => { setAttachOpen(false); if (!nativePostMessage('open-gallery')) galleryInputRef.current?.click(); }}
+          onPickDocument={() => { setAttachOpen(false); fileInputRef.current?.click(); }}
+          onPickCamera={() => { setAttachOpen(false); if (!nativePostMessage('open-camera')) cameraInputRef.current?.click(); }}
+        />
+      )}
 
       {/* ── Hidden file inputs ──────────────────────────────────────────────── */}
       <input ref={fileInputRef}    type="file" accept="*/*"              multiple className="hidden" onChange={handleFileInput} />
@@ -1219,6 +1123,14 @@ export function AiChatClient({ locale }: { locale: string }) {
               Отмена
             </button>
           </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 pointer-events-none" role="status">
+          <span className="px-4 py-2 rounded-full text-xs text-white shadow-lg" style={{ background: 'rgba(42,37,64,.92)' }}>
+            {notice}
+          </span>
         </div>
       )}
 
