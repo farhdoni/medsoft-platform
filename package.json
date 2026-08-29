@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel --filter './apps/*' dev",
-    "build": "pnpm --filter './packages/*' build && pnpm --filter './apps/*' build",
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm -r build",
     "lint": "pnpm --recursive lint",
     "typecheck": "pnpm --recursive typecheck",
     "test:unit": "vitest run apps/aivita"
