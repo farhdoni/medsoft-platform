@@ -266,7 +266,6 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
   const myRows = await db
     .select({
       convId: conversationParticipants.conversationId,
-      lastReadAt: conversationParticipants.lastReadAt,
       pinnedAt: conversationParticipants.pinnedAt,
       mutedUntil: conversationParticipants.mutedUntil,
       archivedAt: conversationParticipants.archivedAt,
@@ -300,6 +299,41 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
 
   const now = Date.now();
 
+  // Непрочитанное считаем одним запросом и — важно — сравниваем last_read_at с
+  // created_at ВНУТРИ Postgres, колонку с колонкой.
+  //
+  // Раньше отметка о прочтении вычитывалась в JS и возвращалась в условие
+  // параметром. Драйвер разбирает `timestamp without time zone` как локальное
+  // время (`new Date('2026-08-30 05:43:41')`), а обратно отдаёт `toISOString()`
+  // — то есть UTC. На базе, где колонка не `timestamptz` (а такую оставляет
+  // мина 0025: `CREATE TABLE IF NOT EXISTS` молча пропускает уже существующую
+  // таблицу, и 0038 чинит только отсутствующие колонки, но не их тип), отметка
+  // уезжала на смещение хоста назад — на +5 у нас это пять часов. Она
+  // оказывалась ГЛУБЖЕ прошлого, `created_at > last_read_at` оставалось
+  // истинным, и счётчик не обнулялся никогда: бейдж висел после прочтения
+  // вечно, а не до следующего опроса.
+  //
+  // Сравнение двух колонок одной базы такого перевода не проходит и верно
+  // при любом из двух типов — поэтому чинится здесь, а не миграцией типа.
+  const unreadRows = await db
+    .select({ convId: messages.conversationId, n: sql<number>`count(*)::int` })
+    .from(messages)
+    .innerJoin(conversationParticipants, and(
+      eq(conversationParticipants.conversationId, messages.conversationId),
+      eq(conversationParticipants.userId, me),
+    ))
+    .where(and(
+      inArray(messages.conversationId, convIds),
+      ne(messages.senderId, me),
+      isNull(messages.deletedAt),
+      or(
+        isNull(conversationParticipants.lastReadAt),
+        gt(messages.createdAt, conversationParticipants.lastReadAt),
+      ),
+    ))
+    .groupBy(messages.conversationId);
+  const unreadMap = new Map(unreadRows.map((r) => [r.convId, r.n]));
+
   const data = await Promise.all(convs.map(async (conv) => {
     const [last] = await db
       .select()
@@ -309,22 +343,12 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
       .limit(1);
 
     const prefs = prefsMap.get(conv.id);
-    const lastReadAt = prefs?.lastReadAt ?? null;
-    const [unread] = await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(messages)
-      .where(and(
-        eq(messages.conversationId, conv.id),
-        ne(messages.senderId, me),
-        isNull(messages.deletedAt),
-        lastReadAt ? gt(messages.createdAt, lastReadAt) : undefined,
-      ));
 
     return {
       ...conv,
       participant: otherMap.get(conv.id) ?? null,
       lastMessage: last ?? null,
-      unreadCount: unread?.n ?? 0,
+      unreadCount: unreadMap.get(conv.id) ?? 0,
       pinned: prefs?.pinnedAt != null,
       pinnedAt: prefs?.pinnedAt ?? null,
       // An expired mute simply stops counting — nothing has to clear it.

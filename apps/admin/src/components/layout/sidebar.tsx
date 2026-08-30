@@ -8,7 +8,7 @@ import {
   Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
   Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
   Pill, FlaskConical, MessageCircle, AtSign, Globe2, Database, ScrollText, Settings,
-  ChevronDown, User,
+  ChevronDown, User, X,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -95,7 +95,13 @@ function MiniAvatar({ src, name }: { src?: string | null; name: string }) {
   );
 }
 
-export function Sidebar() {
+/**
+ * `open` / `onClose` приходят из AdminShell и работают только под `lg`: там
+ * сайдбар — выдвижной оверлей, и его закрывают крестик, тап по подложке и
+ * переход по любому пункту. На широком экране он статичен, а `open` на него
+ * не влияет.
+ */
+export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void } = {}) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
@@ -176,11 +182,29 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 z-50 flex h-dvh w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground',
+        // visibility в переходе, а не только transform: закрытый ящик уезжает
+        // за край, но без этого остаётся в фокусе по Tab и в дереве
+        // доступности. Скрытие ждёт конца анимации, показ срабатывает сразу.
+        'transition-[transform,visibility] duration-200 ease-out',
+        'lg:static lg:z-auto lg:visible lg:translate-x-0',
+        open ? 'visible translate-x-0' : 'invisible -translate-x-full',
+      )}
+    >
       {/* Header */}
       <div className="flex h-16 items-center border-b border-white/10 px-6 shrink-0">
         <img src="/logo.png" alt="AIVITA" className="h-7 w-auto" />
         <span className="ml-2 text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">Admin</span>
+        <button
+          type="button"
+          aria-label="Закрыть меню"
+          onClick={onClose}
+          className="ml-auto -mr-2 flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-white/5 hover:text-white lg:hidden"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
@@ -231,6 +255,7 @@ export function Sidebar() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={onClose}
                         className={cn(
                           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                           isActive
@@ -255,6 +280,7 @@ export function Sidebar() {
         {me && (
           <Link
             href="/account"
+            onClick={onClose}
             className={cn(
               'flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors',
               pathname === '/account'

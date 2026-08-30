@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { Sidebar } from '@/components/layout/sidebar';
-import { CommandPalette } from '@/components/command-palette';
+import { AdminShell } from '@/components/layout/admin-shell';
 import { I18nProvider } from '@/lib/i18n';
 
 // Server-side auth guard: redirects to /auth/login if no access_token cookie present.
@@ -16,13 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <I18nProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-background">
-          <CommandPalette />
-          <div className="p-6">{children}</div>
-        </main>
-      </div>
+      <AdminShell>{children}</AdminShell>
     </I18nProvider>
   );
 }

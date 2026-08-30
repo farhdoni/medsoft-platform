@@ -378,7 +378,10 @@ export default function SupportPage() {
   const kpi = list.data?.kpi;
 
   return (
-    <div className="flex h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl border border-[#e8e4dc] bg-[#f0efe9]">
+    // --admin-chrome задаёт AdminShell: шапка (на мобильном) плюс отступы
+    // области контента. Раньше здесь стояло фиксированное 100vh-2rem —
+    // на телефоне это на 80px выше экрана, и композер уезжал под сгиб.
+    <div className="flex h-[calc(100dvh-var(--admin-chrome,3rem))] flex-col overflow-hidden rounded-2xl border border-[#e8e4dc] bg-[#f0efe9]">
       {/* ── Шапка ─────────────────────────────────────────────────────── */}
       <header className="flex flex-wrap items-center gap-3.5 bg-[#2a2540] px-4 py-2.5 text-white">
         <div className="flex items-center gap-2 font-extrabold">
@@ -444,9 +447,12 @@ export default function SupportPage() {
       {tab === 'tickets' && (
         <div className="flex min-h-0 flex-1">
           {/* Список */}
+          {/* Ширина едет через CSS-переменную, а не через style.width: инлайновая
+              ширина побеждала `max-[900px]:w-full`, и на телефоне список
+              оставался той ширины, куда оператор оттащил разделитель мышью. */}
           <div
-            className={`flex flex-none flex-col border-r border-[#e8e4dc] bg-white max-[900px]:w-full ${mobileThread ? 'max-[900px]:hidden' : ''}`}
-            style={{ width: listW }}
+            className={`flex flex-none flex-col border-r border-[#e8e4dc] bg-white w-full min-[901px]:w-[var(--col-list)] ${mobileThread ? 'max-[900px]:hidden' : ''}`}
+            style={{ '--col-list': `${listW}px` } as React.CSSProperties}
           >
             <div className="relative m-3 mb-2">
               <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#9a96a8]" />
@@ -643,7 +649,10 @@ export default function SupportPage() {
           <div onMouseDown={(e) => startDrag('card', e)} data-testid="resizer-card" className="w-1.5 flex-none cursor-col-resize hover:bg-[#f0d4dc] max-[900px]:hidden" />
 
           {/* Карточка пользователя */}
-          <aside className="flex-none overflow-y-auto border-l border-[#e8e4dc] bg-white p-4 max-[900px]:hidden" style={{ width: cardW }}>
+          <aside
+            className="flex-none overflow-y-auto border-l border-[#e8e4dc] bg-white p-4 max-[900px]:hidden min-[901px]:w-[var(--col-card)]"
+            style={{ '--col-card': `${cardW}px` } as React.CSSProperties}
+          >
             {!card.data ? (
               <p className="text-center text-xs text-[#9a96a8]">Карточка появится при выборе обращения.</p>
             ) : (
