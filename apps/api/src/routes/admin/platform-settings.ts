@@ -2,8 +2,13 @@ import { Hono } from 'hono';
 import { db } from '@medsoft/db';
 import { platformSettings } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
+import { requireAuth, requireSuperadmin } from '../../middleware/auth.js';
 
 export const platformSettingsRouter = new Hono();
+
+// Комиссии и график выплат — деньги наружу, уровень супер-админа, не общий
+// админский. Централизованно, по образцу admins.ts, а не по хендлеру.
+platformSettingsRouter.use('*', requireAuth, requireSuperadmin);
 
 const DEFAULTS: Record<string, string> = {
   commission_booking:       '10',
