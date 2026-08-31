@@ -49,6 +49,14 @@ export const partnerClinics = pgTable(
     // issued (a partner can be registered before it's ready to connect).
     apiKeyHash: text('api_key_hash'),
 
+    // Grace-period rotation (migration 0045): the key that was current right
+    // before the latest rotation, and the instant it stops being accepted.
+    // Both null when no rotation is in flight (or after immediate revoke).
+    // partner-auth accepts this hash too, but only while
+    // previous_key_expires_at is in the future.
+    previousApiKeyHash: text('previous_api_key_hash'),
+    previousKeyExpiresAt: timestamp('previous_key_expires_at', { withTimezone: true }),
+
     // 'pending' | 'active' | 'suspended'. Defaults to 'pending', same
     // reasoning as identity_links.status defaulting to 'quarantine': a
     // partner must never be treated as authorized just for existing in the

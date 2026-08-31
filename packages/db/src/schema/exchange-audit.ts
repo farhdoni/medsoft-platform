@@ -48,12 +48,27 @@ export const exchangeAudit = pgTable(
 
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
 
+    // Nullable since migration 0044: an auth-reject row for an unknown or
+    // absent partner code has no real partner to point at. The FK still
+    // applies to non-null values; the "business rows always carry a
+    // partner_code" invariant moved from NOT NULL to a CHECK
+    // (partner_code IS NOT NULL OR action = 'auth.reject'), see migration 0044.
     partnerCode: text('partner_code')
-      .notNull()
       .references(() => partnerClinics.code),
 
-    // e.g. 'appointment.push' | 'discharge.push' — one journal entry per
-    // ecosystem/v1 write attempt, whatever its outcome.
+    // Raw partner code the caller SENT, kept even when it matches no partner
+    // (a brute-forcer guessing codes) — the only trace of a guessed code.
+    // No FK, deliberately: it may reference a partner that does not exist.
+    // Migration 0044.
+    attemptedPartnerCode: text('attempted_partner_code'),
+
+    // Request source for auth-reject events (x-real-ip / x-forwarded-for).
+    // Migration 0044.
+    sourceIp: text('source_ip'),
+
+    // e.g. 'appointment.push' | 'discharge.push' | 'auth.reject' — one journal
+    // entry per ecosystem/v1 write attempt or auth rejection, whatever its
+    // outcome.
     action: text('action').notNull(),
 
     // Internal person id. Null when identity resolution never landed on a
@@ -87,5 +102,7 @@ export const exchangeAudit = pgTable(
     partnerIdx: index('exchange_audit_partner_idx').on(table.partnerCode),
     personIdx: index('exchange_audit_person_idx').on(table.personId),
     occurredIdx: index('exchange_audit_occurred_idx').on(table.occurredAt),
+    attemptedCodeIdx: index('exchange_audit_attempted_code_idx').on(table.attemptedPartnerCode),
+    sourceIpIdx: index('exchange_audit_source_ip_idx').on(table.sourceIp),
   })
 );
