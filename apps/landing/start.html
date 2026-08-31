@@ -230,6 +230,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
 .form-input:focus{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.16);}
 .form-input option{color:var(--dark);background:#fff;}
 .form-check{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);cursor:pointer;}
+.hp-field{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
 .form-check input{margin-top:3px;width:16px;height:16px;flex-shrink:0;cursor:pointer;}
 .form-check-text{font-size:13px;line-height:1.5;color:rgba(255,255,255,.85);}
 .form-check-text strong{color:#fff;}
@@ -543,6 +544,10 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
     <p class="section-sub" data-i18n="reg_sub">Заполните форму — мы свяжемся в течение 24 часов и подключим вашу клинику.</p>
 
     <form class="reg-form" id="startForm" onsubmit="submitStart(event)">
+      <!-- Honeypot: hidden from real users (off-screen + no tab stop + no
+           autofill), so only a bot filling every field in the DOM trips it.
+           Server: non-empty here answers 200 but writes nothing. -->
+      <input class="hp-field" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" data-i18n="rf_clinic">Название клиники *</label>
@@ -567,10 +572,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
         <label class="form-label" data-i18n="rf_doctors">Количество врачей *</label>
         <select class="form-input" name="doctorsCount" required>
           <option value="" disabled selected data-i18n="rf_select">Выберите</option>
-          <option value="1-3" data-i18n="rf_d1">1–3 врача</option>
-          <option value="3-5" data-i18n="rf_d2">3–5 врачей</option>
-          <option value="5-10" data-i18n="rf_d3">5–10 врачей</option>
-          <option value="10+" data-i18n="rf_d4">10+ врачей</option>
+          <option value="1-5" data-i18n="rf_d1">1–5 врачей</option>
+          <option value="5-20" data-i18n="rf_d2">5–20 врачей</option>
+          <option value="20+" data-i18n="rf_d3">20+ врачей</option>
         </select>
       </div>
       <label class="form-check">
@@ -664,8 +668,6 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line
 <script>
 const LANG_KEY = 'aivita_lang';
 let lang = localStorage.getItem(LANG_KEY) || 'ru';
-const TG_BOT = '8933564145:AAFBibVi2gNEG2yFcvCiCQ9mGZWaMo8e08c';
-const TG_CHAT = '-1002000000000'; // fallback — bot will forward to admin
 
 const I18N = {
   ru: {
@@ -726,7 +728,7 @@ const I18N = {
     rf_contact:'Контактное лицо *',rf_contact_ph:'Иванов Иван',
     rf_phone:'Телефон *',rf_email:'Email',
     rf_doctors:'Количество врачей *',rf_select:'Выберите',
-    rf_d1:'1–3 врача',rf_d2:'3–5 врачей',rf_d3:'5–10 врачей',rf_d4:'10+ врачей',
+    rf_d1:'1–5 врачей',rf_d2:'5–20 врачей',rf_d3:'20+ врачей',
     rf_aivita_title:'Подключить AIVITA',rf_aivita_sub:'Получать пациентов из AIVITA с готовой медкартой',
     rf_submit:'Зарегистрировать клинику →',
     rf_sending:'Отправляем...',
@@ -803,7 +805,7 @@ const I18N = {
     rf_contact:"Aloqa shaxsi *",rf_contact_ph:"Ivanov Ivan",
     rf_phone:"Telefon *",rf_email:"Email",
     rf_doctors:"Shifokorlar soni *",rf_select:"Tanlang",
-    rf_d1:"1–3 shifokor",rf_d2:"3–5 shifokor",rf_d3:"5–10 shifokor",rf_d4:"10+ shifokor",
+    rf_d1:"1–5 shifokor",rf_d2:"5–20 shifokor",rf_d3:"20+ shifokor",
     rf_aivita_title:"AIVITA ni ulash",rf_aivita_sub:"AIVITA dan tayyor tibbiy karta bilan bemorlar olish",
     rf_submit:"Klinikani ro'yxatdan o'tkazish →",
     rf_sending:"Yuborilmoqda...",
@@ -880,7 +882,7 @@ const I18N = {
     rf_contact:'Contact person *',rf_contact_ph:'John Smith',
     rf_phone:'Phone *',rf_email:'Email',
     rf_doctors:'Number of doctors *',rf_select:'Select',
-    rf_d1:'1–3 doctors',rf_d2:'3–5 doctors',rf_d3:'5–10 doctors',rf_d4:'10+ doctors',
+    rf_d1:'1–5 doctors',rf_d2:'5–20 doctors',rf_d3:'20+ doctors',
     rf_aivita_title:'Connect AIVITA',rf_aivita_sub:'Receive patients from AIVITA with ready medical records',
     rf_submit:'Register clinic →',
     rf_sending:'Sending...',
@@ -949,39 +951,19 @@ async function submitStart(e){
     doctorsCount:String(fd.get('doctorsCount')||'').trim(),
     connectAivita:fd.get('connectAivita')==='1',
     locale:lang,source:'start-landing',
+    website:String(fd.get('website')||''), // honeypot — empty for real users
   };
   if(!payload.clinicName||!payload.contactName||!payload.phone||!payload.doctorsCount)return;
   btn.disabled=true;
   statusEl.textContent=t('rf_sending');
   statusEl.className='form-status';
 
-  // Send Telegram notification directly
-  const msg=`🏥 Новая заявка MedSoft START!\n\nКлиника: ${payload.clinicName}\nКонтакт: ${payload.contactName}\nТелефон: ${payload.phone}\nEmail: ${payload.email||'—'}\nВрачей: ${payload.doctorsCount}\nAIVITA: ${payload.connectAivita?'✅ Да':'❌ Нет'}\nЯзык: ${payload.locale.toUpperCase()}\n\n#start #registration`;
-
   let sent=false;
-  // Try backend first
   try{
     const apiBase=window.location.hostname==='localhost'?'http://localhost:4000':'';
     const r=await fetch(apiBase+'/api/clinic-demo-request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
     if(r.ok)sent=true;
   }catch{}
-
-  // Fallback: Telegram Bot API directly
-  if(!sent){
-    try{
-      // Get admin chat id from bot first
-      const updatesRes=await fetch(`https://api.telegram.org/bot${TG_BOT}/getUpdates`);
-      const updates=await updatesRes.json();
-      const chatId=updates.result&&updates.result.length>0?updates.result[updates.result.length-1].message?.chat?.id:null;
-      if(chatId){
-        const tgRes=await fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`,{
-          method:'POST',headers:{'content-type':'application/json'},
-          body:JSON.stringify({chat_id:chatId,text:msg,parse_mode:'HTML'}),
-        });
-        if(tgRes.ok)sent=true;
-      }
-    }catch{}
-  }
 
   statusEl.className='form-status '+(sent?'ok':'err');
   statusEl.textContent=t(sent?'rf_ok':'rf_err');

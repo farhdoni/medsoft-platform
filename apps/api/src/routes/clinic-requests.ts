@@ -4,20 +4,34 @@ import { z } from 'zod';
 import { db, clinicDemoRequests, downloadLogs } from '@medsoft/db';
 import { eq, desc, count, sql, and, gte } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
+import { rateLimit } from '../middleware/rate-limit.js';
+import { logger } from '../lib/logger.js';
 
 const PHONE_RE = /^\+?[\d\s\-()]{7,20}$/;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';
 const TG_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID ?? '';
 
-async function notifyTelegram(text: string) {
-  if (!TG_TOKEN || !TG_CHAT_ID) return;
+// Best-effort: config presence is checked up front in the route handler
+// (503 before touching the DB), so by the time this runs both vars are
+// known to be set. A runtime Telegram failure here (network, bad chat id)
+// still leaves the lead saved in clinic_demo_requests — visible in the
+// admin queue — so it's logged, not surfaced to the client.
+async function notifyTelegram(text: string): Promise<boolean> {
   try {
-    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ chat_id: TG_CHAT_ID, text, parse_mode: 'HTML' }),
     });
-  } catch { /* non-fatal */ }
+    if (!res.ok) {
+      logger.warn({ status: res.status }, '[clinic-demo-request] Telegram sendMessage вернул ошибку');
+      return false;
+    }
+    return true;
+  } catch (err) {
+    logger.warn({ err }, '[clinic-demo-request] Telegram sendMessage упал');
+    return false;
+  }
 }
 
 // ─── Public routes ────────────────────────────────────────────────────────────
@@ -33,38 +47,70 @@ const demoRequestSchema = z.object({
   doctorsCount: z.enum(['1-5', '5-20', '20+']),
   comment: z.string().max(2000).optional(),
   locale: z.string().max(5).optional(),
+  // Both optional: clinics.html, the other caller of this endpoint, sends
+  // neither field and must keep working unchanged.
+  connectAivita: z.boolean().optional(),
+  source: z.string().max(50).optional(),
+  // Honeypot: a field real users never see or fill (hidden in start.html's
+  // CSS). Scrapers that auto-fill every input trip it. Any non-empty value
+  // here means "not a human" — answer exactly like success so the bot has
+  // no signal it was caught, but skip the DB write and the Telegram push.
+  website: z.string().max(200).optional(),
 });
 
-clinicPublicRouter.post('/clinic-demo-request', zValidator('json', demoRequestSchema), async (c) => {
-  const body = c.req.valid('json');
-  const ip = c.req.header('x-real-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
-  const ua = c.req.header('user-agent') ?? null;
+clinicPublicRouter.post(
+  '/clinic-demo-request',
+  rateLimit('clinic-demo-request', 5, 600),
+  zValidator('json', demoRequestSchema),
+  async (c) => {
+    const body = c.req.valid('json');
 
-  const [inserted] = await db.insert(clinicDemoRequests).values({
-    clinicName: body.clinicName,
-    contactName: body.contactName,
-    phone: body.phone,
-    email: body.email || null,
-    doctorsCount: body.doctorsCount,
-    comment: body.comment || null,
-    locale: body.locale || 'ru',
-    ip,
-    userAgent: ua,
-  }).returning({ id: clinicDemoRequests.id });
+    if (body.website) {
+      return c.json({ ok: true });
+    }
 
-  await notifyTelegram(
-    `🏥 <b>Новая заявка на демо MedSoft</b>\n\n` +
-    `<b>Клиника:</b> ${body.clinicName}\n` +
-    `<b>Контакт:</b> ${body.contactName}\n` +
-    `<b>Телефон:</b> ${body.phone}\n` +
-    `<b>Email:</b> ${body.email || '—'}\n` +
-    `<b>Врачей:</b> ${body.doctorsCount}\n` +
-    `<b>Комментарий:</b> ${body.comment || '—'}\n\n` +
-    `ID заявки: #${inserted.id}`,
-  );
+    if (!TG_TOKEN || !TG_CHAT_ID) {
+      logger.error(
+        '[clinic-demo-request] TELEGRAM_BOT_TOKEN/TELEGRAM_ADMIN_CHAT_ID не настроены — заявка отклонена',
+      );
+      return c.json({ error: 'service_unavailable' }, 503);
+    }
 
-  return c.json({ ok: true, id: inserted.id });
-});
+    const ip = c.req.header('x-real-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+    const ua = c.req.header('user-agent') ?? null;
+
+    const [inserted] = await db.insert(clinicDemoRequests).values({
+      clinicName: body.clinicName,
+      contactName: body.contactName,
+      phone: body.phone,
+      email: body.email || null,
+      doctorsCount: body.doctorsCount,
+      comment: body.comment || null,
+      locale: body.locale || 'ru',
+      connectAivita: body.connectAivita ?? false,
+      source: body.source || null,
+      ip,
+      userAgent: ua,
+    }).returning({ id: clinicDemoRequests.id });
+
+    const sent = await notifyTelegram(
+      `🏥 <b>Новая заявка на демо MedSoft</b>\n\n` +
+      `<b>Клиника:</b> ${body.clinicName}\n` +
+      `<b>Контакт:</b> ${body.contactName}\n` +
+      `<b>Телефон:</b> ${body.phone}\n` +
+      `<b>Email:</b> ${body.email || '—'}\n` +
+      `<b>Врачей:</b> ${body.doctorsCount}\n` +
+      `<b>AIVITA:</b> ${body.connectAivita ? '✅ Да' : '❌ Нет'}\n` +
+      `<b>Комментарий:</b> ${body.comment || '—'}\n\n` +
+      `ID заявки: #${inserted.id}`,
+    );
+    if (!sent) {
+      logger.warn({ id: inserted.id }, '[clinic-demo-request] заявка сохранена, но Telegram-уведомление не ушло');
+    }
+
+    return c.json({ ok: true, id: inserted.id });
+  },
+);
 
 // POST /api/download-log
 const downloadLogSchema = z.object({

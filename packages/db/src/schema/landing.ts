@@ -31,6 +31,8 @@ export const clinicDemoRequests = pgTable('clinic_demo_requests', {
   comment: text('comment'),
   locale: varchar('locale', { length: 5 }).default('ru'),
   status: varchar('status', { length: 20 }).default('new').notNull(),
+  connectAivita: boolean('connect_aivita').notNull().default(false),
+  source: varchar('source', { length: 50 }),
   ip: varchar('ip', { length: 45 }),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
