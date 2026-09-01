@@ -1,4 +1,4 @@
--- 0045: grace-period key rotation for partner_clinics (ecosystem/v1).
+-- 0047: grace-period key rotation for partner_clinics (ecosystem/v1).
 --
 -- Before this, issue-key overwrote api_key_hash unconditionally: the new key
 -- killed the old one the instant it was issued, so a real clinic's exchange

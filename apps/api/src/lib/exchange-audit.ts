@@ -6,7 +6,7 @@ import { logger } from './logger.js';
 // migration 0032) — who (partner), what (action), whom (person), when, under
 // which consent, and what happened (outcome). The two ecosystem/v1 routes
 // call this after every business outcome; requirePartnerAuth calls it for
-// every auth REJECTION (migration 0044) so key brute-force is no longer
+// every auth REJECTION (migration 0046) so key brute-force is no longer
 // invisible.
 //
 // Never throws: the journal is a record OF the operation, not a gate ON it.
@@ -32,7 +32,7 @@ export type ExchangeOutcome =
   | 'conflict'
   | 'denied_no_consent'
   | 'error'
-  // auth.reject outcomes (migration 0044)
+  // auth.reject outcomes (migration 0046)
   | 'no_key' // missing X-Partner-Key and/or X-Partner-Code header
   | 'bad_key' // no such partner, no key issued, or key mismatch (incl. expired grace key)
   | 'inactive' // valid key but partner status !== 'active'
@@ -45,9 +45,9 @@ export interface ExchangeEvent {
   // unknown/absent (business events always set it — DB CHECK enforces that).
   partnerCode?: string | null;
   // Raw partner code the caller SENT (no FK) — set on auth.reject events so a
-  // guessed/nonexistent code still leaves a trace. Migration 0044.
+  // guessed/nonexistent code still leaves a trace. Migration 0046.
   attemptedPartnerCode?: string | null;
-  // Request source ip for auth.reject events. Migration 0044.
+  // Request source ip for auth.reject events. Migration 0046.
   sourceIp?: string | null;
   // Internal aivita_users.id — never the partner-facing externalId. Omit/
   // null whenever identity resolution didn't land on a single person.

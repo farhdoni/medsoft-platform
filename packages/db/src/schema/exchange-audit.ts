@@ -48,22 +48,22 @@ export const exchangeAudit = pgTable(
 
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
 
-    // Nullable since migration 0044: an auth-reject row for an unknown or
+    // Nullable since migration 0046: an auth-reject row for an unknown or
     // absent partner code has no real partner to point at. The FK still
     // applies to non-null values; the "business rows always carry a
     // partner_code" invariant moved from NOT NULL to a CHECK
-    // (partner_code IS NOT NULL OR action = 'auth.reject'), see migration 0044.
+    // (partner_code IS NOT NULL OR action = 'auth.reject'), see migration 0046.
     partnerCode: text('partner_code')
       .references(() => partnerClinics.code),
 
     // Raw partner code the caller SENT, kept even when it matches no partner
     // (a brute-forcer guessing codes) — the only trace of a guessed code.
     // No FK, deliberately: it may reference a partner that does not exist.
-    // Migration 0044.
+    // Migration 0046.
     attemptedPartnerCode: text('attempted_partner_code'),
 
     // Request source for auth-reject events (x-real-ip / x-forwarded-for).
-    // Migration 0044.
+    // Migration 0046.
     sourceIp: text('source_ip'),
 
     // e.g. 'appointment.push' | 'discharge.push' | 'auth.reject' — one journal

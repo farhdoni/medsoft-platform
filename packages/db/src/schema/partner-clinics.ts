@@ -49,7 +49,7 @@ export const partnerClinics = pgTable(
     // issued (a partner can be registered before it's ready to connect).
     apiKeyHash: text('api_key_hash'),
 
-    // Grace-period rotation (migration 0045): the key that was current right
+    // Grace-period rotation (migration 0047): the key that was current right
     // before the latest rotation, and the instant it stops being accepted.
     // Both null when no rotation is in flight (or after immediate revoke).
     // partner-auth accepts this hash too, but only while

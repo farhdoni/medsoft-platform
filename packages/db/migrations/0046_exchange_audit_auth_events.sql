@@ -1,4 +1,4 @@
--- 0044: record ecosystem/v1 partner-auth REJECTIONS in exchange_audit.
+-- 0046: record ecosystem/v1 partner-auth REJECTIONS in exchange_audit.
 --
 -- Before this, requirePartnerAuth returned 401/403 BEFORE logExchangeEvent,
 -- so key brute-force left zero trace in the journal (confirmed on the live

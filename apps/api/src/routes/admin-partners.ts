@@ -29,7 +29,7 @@ const MAX_GRACE_HOURS = 24 * 7; // hard cap so a typo can't leave an old key ali
 // audit trail below either: metadata only ever carries the partner code,
 // whether this was a rotation, and the grace window).
 //
-// Rotation with grace (migration 0045): on an already-keyed partner the
+// Rotation with grace (migration 0047): on an already-keyed partner the
 // current hash is moved to previous_api_key_hash and kept valid until
 // now + graceHours, so the partner's in-flight traffic keeps working while
 // they switch keys. Pass { "graceHours": N } in the body to override the

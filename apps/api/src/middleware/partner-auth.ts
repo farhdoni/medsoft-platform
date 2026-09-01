@@ -22,7 +22,7 @@ import { logger } from '../lib/logger.js';
 // Both "no such partner" and "wrong key" return the same 401 body — never
 // tell a caller with a bad key whether the code they guessed exists.
 //
-// Three hardening additions (migrations 0044/0045):
+// Three hardening additions (migrations 0046/0047):
 //  1. Every rejection is journaled to exchange_audit via logExchangeEvent
 //     (action 'auth.reject'). Before this, 401/403 were returned before any
 //     audit call, so key brute-force left no trace. The raw key is NEVER
