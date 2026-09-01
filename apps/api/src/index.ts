@@ -278,9 +278,13 @@ async function runMigrationsAndSeed() {
       logger.info({ applied, skipped, total: sqlFiles.length }, 'Migrations complete.');
     }
 
-    // Seed superadmin (idempotent — only creates if email doesn't exist yet)
-    // Password must be set separately via SEED_SUPERADMIN_PASSWORD env var
-    // or via the Coolify Terminal after first deploy.
+    // Seed superadmin. The password from SEED_SUPERADMIN_PASSWORD is applied
+    // ONLY when the row is first created — never on the conflict/update path.
+    // Previously the update path also set passwordHash, so every single deploy
+    // silently reset the superadmin's password back to the env value, wiping
+    // any password the admin had set in the UI. If you need to reset a lost
+    // password, do it deliberately (UI "forgot password" flow or a one-off
+    // manual update), not as a side effect of shipping code.
     const { db: appDb, adminUsers } = await import('@medsoft/db');
     const { default: bcryptSeed } = await import('bcryptjs');
     const email = env.SEED_SUPERADMIN_EMAIL ?? 'farhodni@gmail.com';
@@ -297,10 +301,11 @@ async function runMigrationsAndSeed() {
       ...(passwordHash ? { passwordHash } : {}),
     }).onConflictDoUpdate({
       target: adminUsers.email,
+      // Keep the account present and privileged, but DO NOT touch passwordHash
+      // here — the admin owns their password after the first create.
       set: {
         role: 'superadmin',
         isActive: true,
-        ...(passwordHash ? { passwordHash } : {}),
       },
     });
     logger.info({ email, hasPassword: !!passwordHash }, 'Superadmin ensured.');
