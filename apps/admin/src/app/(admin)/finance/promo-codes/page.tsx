@@ -73,7 +73,7 @@ export default function PromoCodesPage() {
         {row.original.isActive ? 'Активен' : 'Отключён'}
       </Badge>
     )},
-    { header: '', cell: ({ row }) => (
+    { id: 'actions', header: '', cell: ({ row }) => (
       <Button
         size="sm" variant="outline" className="text-xs h-7"
         onClick={() => toggle.mutate({ id: row.original.id, isActive: !row.original.isActive })}

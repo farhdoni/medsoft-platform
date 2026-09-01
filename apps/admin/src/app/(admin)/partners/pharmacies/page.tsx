@@ -121,6 +121,7 @@ export default function PharmaciesPage() {
       ),
     },
     {
+      id: 'actions',
       header: '',
       cell: ({ row }) => (
         <Button

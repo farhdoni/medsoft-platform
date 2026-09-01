@@ -89,7 +89,7 @@ export default function DoctorPayoutsPage() {
       </Badge>
     )},
     { header: 'Дата', cell: ({ row }) => <span className="text-xs">{formatDate(row.original.payout.createdAt)}</span> },
-    { header: '', cell: ({ row }) => row.original.payout.status === 'pending' ? (
+    { id: 'actions', header: '', cell: ({ row }) => row.original.payout.status === 'pending' ? (
       <Button
         size="sm" variant="outline" className="text-xs h-7"
         onClick={() => markPaid.mutate(row.original.payout.id)}

@@ -81,6 +81,7 @@ export default function BlockedIpsPage() {
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.blockedAt)}</span>,
     },
     {
+      id: 'actions',
       header: '',
       cell: ({ row }) => (
         <Button

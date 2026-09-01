@@ -142,6 +142,7 @@ export default function PaymentsPage() {
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.payment.createdAt)}</span>,
     },
     {
+      id: 'actions',
       header: '',
       cell: ({ row }) => row.original.payment.status === 'completed' ? (
         <Button

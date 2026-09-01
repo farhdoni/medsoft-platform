@@ -86,7 +86,7 @@ export default function PharmacyPayoutsPage() {
         {STATUS_LABELS[row.original.status] ?? row.original.status}
       </Badge>
     )},
-    { header: '', cell: ({ row }) => row.original.status === 'pending' ? (
+    { id: 'actions', header: '', cell: ({ row }) => row.original.status === 'pending' ? (
       <Button
         size="sm" variant="outline" className="text-xs h-7"
         onClick={() => markPaid.mutate(row.original.id)}

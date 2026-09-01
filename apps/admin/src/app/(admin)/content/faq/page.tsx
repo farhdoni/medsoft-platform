@@ -98,6 +98,7 @@ export default function FaqPage() {
       ),
     },
     {
+      id: 'actions',
       header: '',
       cell: ({ row }) => (
         <div className="flex gap-1">
