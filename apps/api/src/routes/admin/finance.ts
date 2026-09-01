@@ -49,7 +49,7 @@ adminFinanceRouter.get('/overview', async (c) => {
         gte(payments.createdAt, startOfLastMonth),
         lte(payments.createdAt, endOfLastMonth),
       )),
-    db.select({ total: sql<number>`coalesce(sum(sp.price), 0)` })
+    db.select({ total: sql<number>`coalesce(sum(${subscriptionPlans.price}), 0)` })
       .from(subscriptions)
       .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
       .where(eq(subscriptions.status, 'active')),
@@ -371,7 +371,7 @@ adminFinanceRouter.get('/subscriptions/overview', async (c) => {
     db.select({ cnt: count() })
       .from(subscriptions)
       .where(and(eq(subscriptions.status, 'cancelled'), gte(subscriptions.createdAt, startOfMonth))),
-    db.select({ total: sql<number>`coalesce(sum(sp.price), 0)` })
+    db.select({ total: sql<number>`coalesce(sum(${subscriptionPlans.price}), 0)` })
       .from(subscriptions)
       .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
       .where(eq(subscriptions.status, 'active')),
@@ -448,7 +448,7 @@ adminFinanceRouter.get('/subscriptions', async (c) => {
   ]);
 
   const mrrResult = await db.select({
-    total: sql<number>`coalesce(sum(sp.price), 0)`,
+    total: sql<number>`coalesce(sum(${subscriptionPlans.price}), 0)`,
   })
     .from(subscriptions)
     .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
