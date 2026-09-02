@@ -704,15 +704,31 @@ router.patch('/aivita-doctors/:id/verify', async (c) => {
   const verificationStatus = action === 'approve' ? 'verified' : 'rejected';
   const now = new Date();
 
-  await db.update(doctorProfiles)
-    .set({
-      verificationStatus,
-      verifiedAt: action === 'approve' ? now : null,
-      verifiedBy: action === 'approve' ? adminId : null,
-      rejectionReason: action === 'reject' ? (reason ?? 'Отклонено администратором') : null,
-      updatedAt: now,
-    })
-    .where(eq(doctorProfiles.userId, id));
+  await db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({ verificationStatus: doctorProfiles.verificationStatus })
+      .from(doctorProfiles)
+      .where(eq(doctorProfiles.userId, id))
+      .limit(1);
+
+    // Первое подтверждение открывает карточку в публичном каталоге. Если
+    // врач уже был verified и админ повторно жмёт approve (например, после
+    // правки профиля), не трогаем showInCatalog — не перезаписываем выбор,
+    // который врач мог сам сделать в настройках видимости.
+    const justVerified = action === 'approve' && current?.verificationStatus !== 'verified';
+
+    await tx.update(doctorProfiles)
+      .set({
+        verificationStatus,
+        verifiedAt: action === 'approve' ? now : null,
+        verifiedBy: action === 'approve' ? adminId : null,
+        rejectionReason: action === 'reject' ? (reason ?? 'Отклонено администратором') : null,
+        ...(justVerified ? { showInCatalog: true, isActive: true } : {}),
+        ...(action === 'reject' ? { showInCatalog: false } : {}),
+        updatedAt: now,
+      })
+      .where(eq(doctorProfiles.userId, id));
+  });
 
   await auditLog(adminId, `doctor_${action}`, 'doctor_profile', id, { reason }, c.req);
 
