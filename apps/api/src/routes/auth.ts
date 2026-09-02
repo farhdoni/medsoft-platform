@@ -13,6 +13,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import { redis } from '../lib/redis.js';
 import { env } from '../env.js';
+import { sendPasswordReset } from '../lib/email.js';
+import { logger } from '../lib/logger.js';
 import { loginSchema, changePasswordSchema } from '@medsoft/shared';
 
 async function isIpBlocked(ip: string): Promise<boolean> {
@@ -402,10 +404,19 @@ auth.post('/forgot-password',
   rateLimit('forgot-password', 5, 300),
   zValidator('json', z.object({ email: z.string().email() })),
   async (c) => {
-    const { email } = c.req.valid('json');
+    const email = c.req.valid('json').email.toLowerCase().trim();
+
+    // Per-IP limiting (above) doesn't stop this: one request against a known
+    // email is already enough to get a usable token. Cap per target email too.
+    const emailRlKey = `rl:forgot-password-email:${email}`;
+    const emailRequests = await redis.incr(emailRlKey);
+    if (emailRequests === 1) await redis.expire(emailRlKey, 300);
+    if (emailRequests > 5) {
+      return c.json({ error: 'Too many requests' }, 429);
+    }
 
     const admin = await db.query.adminUsers.findFirst({
-      where: eq(adminUsers.email, email.toLowerCase().trim()),
+      where: eq(adminUsers.email, email),
       columns: { id: true, email: true, isActive: true },
     });
 
@@ -417,7 +428,17 @@ auth.post('/forgot-password',
     const token = randomBytes(32).toString('hex');
     await redis.set(`pwd_reset:${token}`, admin.id, 'EX', 15 * 60); // 15 min
 
-    // In production you'd send email; for admin panel return token directly
+    // Step A (parallel, gated): send the real email alongside the existing
+    // on-screen token, so delivery can be confirmed before the screen (and
+    // the token in this response) are removed in a follow-up change.
+    await sendPasswordReset(admin.email, token, {
+      linkUrl: `${env.ADMIN_URL}/auth/reset-password?token=${token}`,
+      expiryLabel: '15 минут',
+      subject: 'Сброс пароля — AIVITA Admin',
+    }).catch((err) => {
+      logger.error({ err, email: admin.email }, 'Failed to send admin password reset email');
+    });
+
     return c.json({ ok: true, resetToken: token });
   },
 );

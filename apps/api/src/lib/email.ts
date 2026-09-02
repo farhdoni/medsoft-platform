@@ -99,8 +99,14 @@ export async function sendVerificationCode(email: string, code: string) {
   logger.info({ email, messageId: info.messageId }, 'Verification code sent');
 }
 
-export async function sendPasswordReset(email: string, token: string) {
-  const url = `${env.AIVITA_URL}/ru/reset-password?token=${token}`;
+export async function sendPasswordReset(
+  email: string,
+  token: string,
+  opts?: { linkUrl?: string; expiryLabel?: string; subject?: string },
+) {
+  const url = opts?.linkUrl ?? `${env.AIVITA_URL}/ru/reset-password?token=${token}`;
+  const expiryLabel = opts?.expiryLabel ?? '1 час';
+  const subject = opts?.subject ?? 'Сброс пароля Aivita';
 
   if (env.EMAIL_PROVIDER === 'mock') {
     logger.info({ email, url }, '[MOCK EMAIL] Password reset');
@@ -112,7 +118,7 @@ export async function sendPasswordReset(email: string, token: string) {
 <!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
   <h2 style="color:#1a1a2e;">Сброс пароля</h2>
-  <p>Нажми кнопку ниже, чтобы задать новый пароль. Ссылка действительна 1 час.</p>
+  <p>Нажми кнопку ниже, чтобы задать новый пароль. Ссылка действительна ${expiryLabel}.</p>
   <a href="${url}" style="display:inline-block;background:#e879a0;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:16px;margin:16px 0;">Сбросить пароль</a>
   <p style="color:#666;font-size:13px;">Если ты не запрашивал сброс — проигнорируй это письмо.</p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
@@ -121,9 +127,9 @@ export async function sendPasswordReset(email: string, token: string) {
 
   const info = await getTransporter().sendMail({
     from, to: email,
-    subject: 'Сброс пароля Aivita',
+    subject,
     html,
-    text: `Ссылка для сброса пароля: ${url}\n\nДействительна 1 час.`,
+    text: `Ссылка для сброса пароля: ${url}\n\nДействительна ${expiryLabel}.`,
   });
   logger.info({ email, messageId: info.messageId }, 'Password reset email sent');
 }
