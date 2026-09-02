@@ -428,9 +428,8 @@ auth.post('/forgot-password',
     const token = randomBytes(32).toString('hex');
     await redis.set(`pwd_reset:${token}`, admin.id, 'EX', 15 * 60); // 15 min
 
-    // Step A (parallel, gated): send the real email alongside the existing
-    // on-screen token, so delivery can be confirmed before the screen (and
-    // the token in this response) are removed in a follow-up change.
+    // Delivery confirmed 2026-09-02 (real inbox, correct link, correct expiry
+    // label) — the token no longer leaves this response.
     await sendPasswordReset(admin.email, token, {
       linkUrl: `${env.ADMIN_URL}/auth/reset-password?token=${token}`,
       expiryLabel: '15 минут',
@@ -439,7 +438,7 @@ auth.post('/forgot-password',
       logger.error({ err, email: admin.email }, 'Failed to send admin password reset email');
     });
 
-    return c.json({ ok: true, resetToken: token });
+    return c.json({ ok: true });
   },
 );
 

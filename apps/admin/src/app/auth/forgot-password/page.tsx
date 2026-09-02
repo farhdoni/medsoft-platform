@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Mail, Copy, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,36 +14,20 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [resetLink, setResetLink] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await api.post<{ ok: boolean; resetToken?: string }>(
-        '/v1/auth/forgot-password',
-        { email },
-      );
-      if (res.resetToken) {
-        const link = `${window.location.origin}/auth/reset-password?token=${res.resetToken}`;
-        setResetLink(link);
-      } else {
-        // No token returned (user not found) — show generic success
-        setResetLink('__not_found__');
-      }
+      await api.post('/v1/auth/forgot-password', { email });
+      setSubmitted(true);
     } catch {
       setError('Ошибка при запросе. Попробуйте позже.');
     } finally {
       setLoading(false);
     }
-  }
-
-  async function copyLink() {
-    await navigator.clipboard.writeText(resetLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -61,7 +45,7 @@ export default function ForgotPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!resetLink ? (
+          {!submitted ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -96,10 +80,10 @@ export default function ForgotPasswordPage() {
                 Назад к входу
               </button>
             </form>
-          ) : resetLink === '__not_found__' ? (
+          ) : (
             <div className="space-y-4 text-center">
               <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-                Если аккаунт с таким email существует, ссылка для сброса была сгенерирована.
+                Если аккаунт с таким email существует, письмо со ссылкой для сброса отправлено.
               </div>
               <button
                 type="button"
@@ -109,25 +93,6 @@ export default function ForgotPasswordPage() {
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Назад к входу
               </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-lg bg-muted p-3 text-xs break-all font-mono text-foreground select-all">
-                {resetLink}
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Ссылка действительна <strong>15 минут</strong>. Скопируйте и откройте в браузере.
-              </p>
-              <Button className="w-full" variant="outline" onClick={copyLink}>
-                {copied ? (
-                  <><CheckCheck className="h-4 w-4 mr-2 text-green-500" />Скопировано!</>
-                ) : (
-                  <><Copy className="h-4 w-4 mr-2" />Скопировать ссылку</>
-                )}
-              </Button>
-              <Button className="w-full" onClick={() => router.push(resetLink)}>
-                Открыть сейчас
-              </Button>
             </div>
           )}
         </CardContent>
