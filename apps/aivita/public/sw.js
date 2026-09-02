@@ -43,21 +43,29 @@ self.addEventListener('activate', (event) => {
 // ─── Push Notifications (medication reminders) ────────────────────────────────
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'Aivita 💊', body: 'Время принять лекарство', tag: 'medication', scheduleId: null, time: null };
-  try { if (event.data) Object.assign(data, event.data.json()); } catch {}
+  // The API always sends { title, body, data: {...} } — data is nested one
+  // level down, not spread into the top-level payload. This used to be
+  // missed here: every notification (medication AND chat messages alike)
+  // fell back to the medication-only defaults below, so a message push
+  // always opened /ru/medications with no scheduleId/time either.
+  let payload = { title: 'Aivita 💊', body: 'Время принять лекарство' };
+  try { if (event.data) Object.assign(payload, event.data.json()); } catch {}
+  const notifData = (payload.data && typeof payload.data === 'object') ? payload.data : {};
+
+  const isMedication = notifData.scheduleId != null;
 
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
-      tag: data.tag,
-      data: { url: '/ru/medications', scheduleId: data.scheduleId, time: data.time },
-      actions: [
+      tag: isMedication ? 'medication' : (notifData.conversationId ? 'message' : 'default'),
+      data: { url: notifData.url || '/ru/medications', scheduleId: notifData.scheduleId ?? null, time: notifData.time ?? null },
+      actions: isMedication ? [
         { action: 'take', title: '✅ Принял' },
         { action: 'skip', title: '⏭️ Позже' },
-      ],
-      requireInteraction: true,
+      ] : [],
+      requireInteraction: isMedication,
     })
   );
 });

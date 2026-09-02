@@ -286,12 +286,22 @@ async function runMigrationsAndSeed() {
     // password, do it deliberately (UI "forgot password" flow or a one-off
     // manual update), not as a side effect of shipping code.
     const { db: appDb, adminUsers } = await import('@medsoft/db');
+    const { eq: eqSeed } = await import('drizzle-orm');
     const { default: bcryptSeed } = await import('bcryptjs');
     const email = env.SEED_SUPERADMIN_EMAIL ?? 'farhodni@gmail.com';
     const rawPassword = env.SEED_SUPERADMIN_PASSWORD;
     const passwordHash = rawPassword
       ? await bcryptSeed.hash(rawPassword, 12)
       : null;
+
+    // Checked before the upsert (not inferred from it) so the log can say
+    // plainly which branch ran — "created" vs "existing, password untouched"
+    // read identically otherwise, and that ambiguity is exactly what let the
+    // password-reset bug above go unnoticed for months.
+    const existed = !!(await appDb.query.adminUsers.findFirst({
+      where: eqSeed(adminUsers.email, email),
+      columns: { id: true },
+    }));
 
     await appDb.insert(adminUsers).values({
       email,
@@ -308,7 +318,12 @@ async function runMigrationsAndSeed() {
         isActive: true,
       },
     });
-    logger.info({ email, hasPassword: !!passwordHash }, 'Superadmin ensured.');
+
+    if (existed) {
+      logger.info({ email }, 'Superadmin already existed — role/isActive refreshed, password left untouched.');
+    } else {
+      logger.info({ email, passwordSetFromEnv: !!passwordHash }, 'Superadmin created.');
+    }
   } catch (err) {
     logger.error({ err }, 'Migration/seed error — continuing anyway');
   } finally {
