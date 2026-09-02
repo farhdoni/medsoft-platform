@@ -208,12 +208,21 @@ API AIVITA для пациентов/врачей (отдельный перим
 маршрутов из более ранней (верхнеуровневой) разведки — где старая цифра
 была явно завышена/занижена, указана рядом со сноской.
 
+### Цены отдельно от движения денег (2026-09-01)
+
+`finance:edit` до правки покрывало бы разом и возврат платежа, и смену цены
+тарифа подписки — разные по природе действия: одно бухгалтерское (деньги уже
+внутри системы, работа с движением), другое продуктовое (сколько стоит
+продукт). Заведено отдельное `finance:prices_manage` — установка цен на
+продукты AIVITA. Не даётся Бухгалтеру: цена продукта — решение владельца
+продукта, а не бухгалтерии (подробности и код — сноска⁴ под таблицей).
+
 | Раздел панели | Файл(ы) роутера | Маршрутов | Права |
 |---|---|---|---|
 | Основное (дашборд, пациенты, врачи, клиники, приёмы, SOS, мониторинг) | `admin/dashboard.ts`, `admin-monitoring.ts` + читающая часть общих таблиц | 7¹ | `main:read` |
 | Пользователи (Aivita) | `aivita-admin.ts` (`/users/*`), частично дублируется в `admin/users.ts` (см. «Главный вывод») | ~9 | `users:read`, `users:edit` (patch/verify/подписка), `users:delete` (block/delete) |
 | AIVITA → Врачи | `aivita-admin.ts` (`/aivita-doctors/*`) | 5 | `aivita:doctors_read`, `aivita:doctors_manage` |
-| AIVITA → Биллинг | `aivita-admin.ts` (`/billing/*`) | 5² | `aivita:billing_read`, `aivita:billing_manage` |
+| AIVITA → Биллинг | `aivita-admin.ts` (`/billing/*`) | 5² | `aivita:billing_read`, `aivita:billing_manage` — ⚠ `POST`/`PATCH /billing/plans` пишут ту же таблицу, что и `finance:prices_manage` ниже, см. сноску⁴ |
 | AIVITA → Главная / Уведомления | `aivita-admin.ts` (`/home-settings`) | 2² | `aivita:content_read`, `aivita:content_manage` |
 | AIVITA → Поддержка | `aivita-admin-support.ts` | 38 | `aivita:support` (базовый). Полная карточка/разблокировка PII — это не право на раздел, а `pii:reveal`, вынесено в раздел 4 (третий уровень); сегодня в коде это `requireSuperadmin` внутри файла |
 | Партнёры (аптеки/лаборатории/клиники) | `admin-partners.ts`, `admin-pharmacies.ts` | 8 | `partners:read`, `partners:manage` (создание карточки, активация/деактивация — `POST /`, `PATCH /:code/status`), `partners:issue_key` (выпуск и перевыпуск ключа — `POST /:code/issue-key`, `POST /:code/revoke-previous-key`; **только супер-админ**) |
@@ -222,7 +231,8 @@ API AIVITA для пациентов/врачей (отдельный перим
 | Контент → Заявки клиник | `clinic-requests.ts` (админ-часть) | 3 | `content:clinic_requests_read`, `content:clinic_requests_manage` |
 | Безопасность | `admin/security.ts` | 5 | `security:read` (журнал входов), `security:manage` (блокировки IP) |
 | Отчёты | `admin/reports.ts` | 3 | `reports:generate` |
-| Финансы — обзор/платежи/подписки/транзакции | `admin/finance.ts` | 16³ | `finance:read` (включая транзакции — перенесены сюда с 2026-09-01, раньше были частью `main:read`), `finance:edit` (возврат, ручное создание выплаты, промокод) |
+| Финансы — обзор/платежи/подписки/транзакции | `admin/finance.ts` | 14³ | `finance:read` (включая транзакции — перенесены сюда с 2026-09-01, раньше были частью `main:read`), `finance:edit` (возврат, ручное создание выплаты, промокод) |
+| Финансы → Тарифы (цены на продукты AIVITA) | `admin/finance.ts` (`GET/PATCH /plans`) — дублируется `aivita-admin.ts` (`/billing/plans`), см. сноску⁴ | 2 | `finance:prices_manage` — установка цены/статуса тарифного плана подписки (`PATCH /plans/:id`); чтение цен уже покрыто `finance:read` (`GET /plans`) |
 | Финансы → Выплаты | `admin/payouts.ts` | 8 | `finance:edit` |
 | Финансы → Настройки (комиссии) | `admin/platform-settings.ts` | 2 | `finance:settings_read`, `finance:settings_manage` — сегодня в коде это жёстко `requireSuperadmin`, в целевой модели — отдельные права |
 | Система (логи/бэкапы/домены/общие/SMS/email) | `admin/system.ts`, `admin/settings.ts` | 20 | `system:read` (логи/мониторинг), `system:manage` (бэкапы, домены, рассылка-конфиг) |
@@ -240,12 +250,31 @@ API AIVITA для пациентов/врачей (отдельный перим
 цифры были верхнеуровневой оценкой, не построчным подсчётом.
 ³ Включает перенесённые транзакции, число ориентировочное по той же причине,
 что и сноска ¹.
+⁴ Проверено по коду: `admin/finance.ts:507-519` (`GET /plans`, `PATCH
+/plans/:id` — поля `name`/`price`/`isActive`) и `aivita-admin.ts:808-848`
+(`GET/POST/PATCH /billing/plans`) читают и пишут **одну и ту же таблицу**
+`subscriptionPlans` из двух разных файлов — та же картина дублирования, что
+и с `aivitaUsers` (раздел 8, пункты 5-6). Практической дыры сегодня нет:
+`aivita:billing_manage` (единственное право, гейтящее второй путь записи)
+есть только у Супер-админа. Но если его когда-нибудь выдадут не-суперадмину,
+он получит запись цен в обход `finance:prices_manage`, пока дублирующий
+маршрут не убран — держать в уме на этапе разделения роутеров.
+«Стоимость платной консультации», упомянутая в задаче как второй пример
+цены — по коду **не находится**: `doctorProfiles.consultationPrice`
+выставляет сам врач (`aivita/doctor/catalog.ts`), в 205 админских маршрутах
+нет ни одного, который бы её менял (`PATCH /aivita-doctors/:id/catalog`,
+`aivita:doctors_manage`, трогает только `showInCatalog`/`isActive`, не
+цену). `finance:prices_manage` сегодня реально покрывает только тарифы
+подписки; если/когда в админке появится маршрут для цены консультации —
+логично закрыть его тем же правом, а не заводить третье, но сейчас
+закрывать нечего.
 
-Итого предложенных прав: **36** (без учёта раздела 4). Было 27 до сегодняшней
-проверки на «слипшиеся» пары — рост за счёт честного разведения (10 пар
-×2 минус 10 старых имён = +10), а не за счёт новой функциональности. Ни
-одна роль в разделе 6 не работает напрямую со всеми 36 — большинство ролей
-используют 5-12 прав или один-два wildcard (`marketing:*`, `content:*`).
+Итого предложенных прав: **37** (без учёта раздела 4). Было 27 до проверки на
+«слипшиеся» пары (+10 — раздел выше), плюс `finance:prices_manage` (+1) —
+рост за счёт честного разведения смысла, не за счёт новой функциональности.
+Ни одна роль в разделе 6 не работает напрямую со всеми 37 — большинство
+используют 6-14 прав, перечисленных поимённо (см. правку по Маркетологу в
+разделе 6 — wildcard-исключений в ролевых списках больше нет).
 
 ---
 
@@ -331,14 +360,39 @@ timestamp}`. Добавлен в список выше пятым маршрут
 | Роль | Права |
 |---|---|
 | **Супер-админ** | всё, включая `admins:manage`, `settings:roles_manage`, `partners:issue_key`, `medical:*`, `pii:reveal` |
-| **Директор** | `main:read`, `users:read`, `partners:read`, `partners:manage`, `aivita:doctors_read`, `aivita:billing_read`, `marketing:read`, `security:read`, `reports:generate`, `finance:read`, `finance:settings_read`, `finance:settings_manage` (тарифы, комиссии), `system:read` — **нет** `users:edit`, `aivita:doctors_manage`, `aivita:billing_manage`, `aivita:content_read/manage`, `content:*`, `marketing:manage`, `finance:edit`, `settings:team*`, `partners:issue_key`, `settings:roles*`, `admins:manage`, `system:manage`, `aivita:support` (см. решение по `OPERATOR_ROLES`, раздел 1.2), `medical:*`, `pii:reveal` |
+| **Директор** | `main:read`, `users:read`, `partners:read`, `partners:manage`, `aivita:doctors_read`, `aivita:billing_read`, `marketing:read`, `finance:prices_manage`, `security:read`, `reports:generate`, `finance:read`, `finance:settings_read`, `finance:settings_manage` (комиссии платформы), `system:read` — **нет** `users:edit`, `aivita:doctors_manage`, `aivita:billing_manage`, `aivita:content_read/manage`, `content:*`, `marketing:manage`, `finance:edit`, `settings:team*`, `partners:issue_key`, `settings:roles*`, `admins:manage`, `system:manage`, `aivita:support` (см. решение по `OPERATOR_ROLES`, раздел 1.2), `medical:*`, `pii:reveal` |
 | **Оператор поддержки** | `aivita:support`, `users:read`, `main:read` |
 | **Оператор поддержки (старший)** | + `pii:reveal` (каждое раскрытие — с причиной в журнал, см. раздел 4), `users:edit` |
-| **Бухгалтер** | `finance:read`, `finance:edit`, `reports:generate`, `users:read`, `main:read` — **нет** `finance:settings_read/manage` (тарифы и комиссии — уровень Директора и Супер-админа; бухгалтер работает с движениями денег, не со ставками) |
+| **Бухгалтер** | `finance:read`, `finance:edit`, `finance:settings_read`, `reports:generate`, `users:read`, `main:read` — **нет** `finance:settings_manage` (менять комиссии — уровень Директора и Супер-админа) и **нет** `finance:prices_manage` (цена продукта — решение Маркетолога/Директора, не бухгалтерии) |
 | **Программист** | `system:read/manage`, `security:read/manage`, `settings:ai_read`, `settings:ai_manage`, `main:read`, `reports:generate` — без доступа к финансам и персональным данным пользователей |
-| **Маркетолог** | `marketing:*`, `content:*`, `main:read`, `reports:generate` |
+| **Маркетолог** | `marketing:read`, `marketing:manage`, `content:read`, `content:manage`, `finance:prices_manage`, `main:read`, `reports:generate` |
 | **Продавец MedSoft** | `partners:read`, `partners:manage`, `content:clinic_requests_read`, `content:clinic_requests_manage`, `main:read` — без `partners:issue_key` (заявки клиник с лендинга это и есть его воронка лидов, выпуск ключей — не его функция) |
 | **Кадры** | `settings:team_read`, `settings:team_manage`, `main:read` |
+
+**Бухгалтер — видит ставки, не меняет (2026-09-01).** `finance:settings_read`
+добавлено: комиссии — то, с чем бухгалтер работает каждый день, и не видеть
+текущие ставки при этом было странно. Менять их по-прежнему нельзя —
+`finance:settings_manage` остаётся у Директора и Супер-админа.
+
+**Маркетолог — звёздочки развёрнуты в список (2026-09-01).**
+`marketing:*`/`content:*` были единственным местом в разделе 6, где право
+выдавалось оптом, а не поимённо — после разведения пар (раздел 3) звёздочка
+стала означать «и чтение, и запись» без явного перечисления, то есть
+единственным исключением из общего правила. Развёрнуто в явный список.
+Побочный эффект вскрылся при развороте: `content:*` через общий префикс
+`content:` заодно захватывал `content:clinic_requests_read/manage` —
+Маркетологу это не нужно (это инструмент Продавца MedSoft), в явном списке
+его больше нет. Ровно та находка, ради которой просили разворачивать:
+звёздочка расширяла доступ незаметно.
+
+**`finance:prices_manage` — маркетинг, не бухгалтерия.** Цена на продукт
+(сколько стоит подписка) — решение о позиционировании, которое принимает
+владелец продукта; движение уже заплаченных денег (возврат, выплата,
+промокод — `finance:edit`) — бухгалтерская операция. Разные по природе
+вещи, которые без разведения легли бы в одно право. Выдано Маркетологу и
+Директору, не выдано Бухгалтеру (видит ставки через `finance:settings_read`,
+но не устанавливает розничную цену продукта). Что физически покрывает
+право сегодня и чего не покрывает («консультация») — раздел 3, сноска⁴.
 
 **Директор — правка 2026-09-01 (доктора/биллинг).** Разведение
 `aivita:doctors_manage`/`aivita:billing` на `_read`/`_manage` (раздел 3)
@@ -403,7 +457,7 @@ timestamp}`. Добавлен в список выше пятым маршрут
    заполняет, миграции данных для существующих 2 аккаунтов нет.
 
 2. **`admin_roles.permissions` — несовместимый по форме набор.** 13
-   косметических флагов (раздел 2) придётся полностью заменить на 36+3
+   косметических флагов (раздел 2) придётся полностью заменить на 37+3
    права из разделов 3-4, а не расширить — старые 6 строк в этой таблице
    не мигрируют автоматически, значения нужно переписывать заново под новую
    схему ключей.
@@ -423,8 +477,22 @@ timestamp}`. Добавлен в список выше пятым маршрут
    раздела 6.
 
 5. **Дублирование `aivitaUsers` CRUD в двух файлах** (`admin/users.ts` и
-   `aivita-admin.ts`, см. «Главный вывод», сноска ¹) — не разобрано, что из
-   двух актуально, а что задублировано или мертво. Пока оба файла попадают
-   под одни и те же права `users:read/edit/delete`, поведение снаружи не
-   меняется, но это ещё одна причина, по которой `admin/users.ts` нельзя
-   закрыть одним гейтом на весь роутер.
+   `aivita-admin.ts`, см. «Главный вывод», сноска ¹) — один и тот же ресурс
+   (пользователи AIVITA), две точки входа, и по этой разведке не видно,
+   какая из них живая, а какая — задублированный или мёртвый код на боевом
+   API. Это находка за рамками прав: пока оба файла попадают под одни и те
+   же права `users:read/edit/delete`, поведение снаружи не меняется — но
+   вопрос «что из двух реально используется» требует отдельной, не ролевой
+   разведки, и его нельзя потерять. Пока права не мешают — оба файла под
+   одним и тем же гейтом дают одинаковый результат снаружи; но именно
+   поэтому `admin/users.ts` нельзя закрыть одной строкой на весь роутер.
+
+6. **То же дублирование, вторым экземпляром: цены `subscriptionPlans`**
+   (раздел 3, сноска⁴) — `admin/finance.ts` (`PATCH /plans/:id`,
+   `finance:prices_manage`) и `aivita-admin.ts` (`POST/PATCH /billing/plans`,
+   `aivita:billing_manage`) пишут одну и ту же таблицу из двух разных
+   файлов под разными правами. Сегодня безопасно — `aivita:billing_manage`
+   есть только у Супер-админа — но это тот же класс проблемы, что и пункт
+   5, найденный тем же способом (построчная проверка при разведении прав) в
+   другом месте кода. Оба дублирования стоит разобрать в одном заходе на
+   этапе разделения роутеров, а не по отдельности.
