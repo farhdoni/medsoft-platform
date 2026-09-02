@@ -7,7 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import { WEB_URL } from '../constants/config';
 import type { Screen } from '../../App';
 
-const AUTH_PATHS = ['/home', '/profile', '/checkup', '/chats', '/doctors', '/ai-checkup'];
+const AUTH_PATHS = ['/home', '/profile', '/checkup', '/messenger', '/doctors', '/ai-checkup'];
 
 type Props = { onNavigate: (screen: Screen) => void };
 
