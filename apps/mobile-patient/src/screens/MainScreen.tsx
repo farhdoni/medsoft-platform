@@ -49,7 +49,7 @@ function deepLinkToPath(url: string): string | null {
     const withProto = url.startsWith('aivita://') ? url.replace('aivita://', 'aivita-app://') : url;
     const parsed = new URL(withProto);
     const path = parsed.host + parsed.pathname;
-    if (path.startsWith('chat/')) return `/ru/chats/${path.slice(5)}`;
+    if (path.startsWith('chat/')) return `/ru/messenger/${path.slice(5)}`;
     if (path.startsWith('doctor/')) return `/ru/doctors/${path.slice(7)}`;
     if (path === 'checkup') return '/ru/ai-checkup';
     return null;
@@ -202,12 +202,12 @@ export function MainScreen({ onNavigate, initialDeepLink }: Props) {
       if (type === 'medication') return;
       const url = (data as Record<string, unknown>).url as string | undefined;
       if (url && response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
-        const path = deepLinkToPath(url);
-        if (path) {
-          webViewRef.current?.injectJavaScript(
-            `window.location.href = ${JSON.stringify(`${WEB_URL}${path}`)}; true;`
-          );
-        }
+        // `url` here is a relative path from the API push payload (e.g. "/messenger/<id>"),
+        // not an aivita:// deep link — deepLinkToPath expects the latter (new URL() on a
+        // bare path throws, so this silently no-oped for every message push until now).
+        webViewRef.current?.injectJavaScript(
+          `window.location.href = ${JSON.stringify(`${WEB_URL}${url}`)}; true;`
+        );
       }
     });
 

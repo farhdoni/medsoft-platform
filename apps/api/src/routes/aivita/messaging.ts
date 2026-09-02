@@ -870,7 +870,7 @@ export async function deliverMessage(
       await pushToUser(o.userId, title, bodyText, {
         conversationId: convId,
         messageId: msg.id,
-        url: '/chat/' + convId,
+        url: '/messenger/' + convId,
       });
     })().catch(() => {});
   }

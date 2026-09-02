@@ -18,7 +18,7 @@ import {
 } from '../services/auth';
 import type { Screen } from '../../App';
 
-const AUTH_PATHS = ['/home', '/profile', '/checkup', '/chats', '/doctors', '/ai-checkup'];
+const AUTH_PATHS = ['/home', '/profile', '/checkup', '/messenger', '/doctors', '/ai-checkup'];
 
 // Shown at most once — never nags on every login if the user dismissed it.
 const BIOMETRIC_PROMPT_SHOWN_KEY = 'aivita:biometric-prompt-shown';
