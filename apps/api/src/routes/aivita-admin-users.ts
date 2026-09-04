@@ -1,7 +1,7 @@
 /**
- * Aivita Admin API
- * All routes require admin authentication.
- * Audit log written for sensitive actions (view_chat, deactivate, delete, export).
+ * Split out of aivita-admin.ts (docs/routes-split-plan.md) — the "users:*"
+ * group (10 routes). Still mounted at /v1/aivita-admin, so external paths
+ * are unchanged. No permission checks added here.
  */
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
@@ -14,53 +14,22 @@ import {
   chatSessions,
   chatMessages,
   healthScores,
-  auditLogs,
-  doctorProfiles,
   subscriptionPlans,
   subscriptions,
-  payments,
-  platformSettings,
-  conversations,
-  conversationParticipants,
-  messages,
-  messageReports,
   aivitaDeviceTokens,
 } from '@medsoft/db';
 import {
-  eq, ilike, or, and, isNull, desc, asc, gte, lte, lt, gte as sqlGte,
-  sql, count, avg, inArray, ne,
+  eq, ilike, or, and, isNull, desc, asc, gte, lte, lt, sql, count, inArray,
 } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
-import bcrypt from 'bcryptjs';
-import { randomBytes, randomInt } from 'crypto';
 import {
   sendPushNotification,
   sendWebPushNotification,
 } from '../lib/push-notifications.js';
+import { auditLog } from './aivita-admin-audit.js';
 
 const router = new Hono();
 router.use('*', requireAuth);
-
-// ─── Helper: write audit log ──────────────────────────────────────────────────
-
-async function auditLog(
-  adminId: string,
-  action: string,
-  targetType: string,
-  targetId: string | null,
-  metadata?: Record<string, unknown>,
-  req?: { header: (k: string) => string | undefined },
-) {
-  await db.insert(auditLogs).values({
-    actorAdminId: adminId,
-    action,
-    entityType: targetType,
-    entityId: targetId ?? undefined,
-    metadata: metadata ?? null,
-    actorIp: req?.header('x-forwarded-for') ?? req?.header('x-real-ip') ?? null,
-    actorUserAgent: req?.header('user-agent') ?? null,
-  }).catch(() => {}); // non-fatal
-}
 
 // ─── Helper: period SQL filter ────────────────────────────────────────────────
 
@@ -96,7 +65,7 @@ router.get('/users', zValidator('query', listQuerySchema), async (c) => {
   const conds: ReturnType<typeof eq>[] = [];
 
   if (filter === 'active')   conds.push(and(isNull(aivitaUsers.deletedAt), gte(aivitaUsers.lastLoginAt, sevenDaysAgo))!);
-  if (filter === 'inactive') conds.push(and(isNull(aivitaUsers.deletedAt), or(isNull(aivitaUsers.lastLoginAt), lt(aivitaUsers.lastLoginAt, sevenDaysAgo))!)!);
+  if (filter === 'inactive') conds.push(and(isNull(aivitaUsers.deletedAt), or(isNull(aivitaUsers.lastLoginAt), lt(aivitaUsers.lastLoginAt, sevenDaysAgo)))!);
   if (filter === 'deleted')  conds.push(sql`${aivitaUsers.deletedAt} IS NOT NULL`);
   if (filter === 'all')      conds.push(isNull(aivitaUsers.deletedAt));
 
@@ -620,359 +589,10 @@ router.post('/users/:id/subscription', async (c) => {
   return c.json({ data: { subscription: sub, plan } });
 });
 
-
-// ══════════════════════════════════════════════════════════════════════════════
-// AIVITA DOCTORS MANAGEMENT
-// ══════════════════════════════════════════════════════════════════════════════
-
-// GET /v1/aivita-admin/aivita-doctors — list all aivita doctors
-router.get('/aivita-doctors', async (c) => {
-  const { page = '1', limit = '25', search = '', status = '' } = c.req.query();
-  const offset = (Number(page) - 1) * Number(limit);
-
-  const conds = [];
-  if (search) conds.push(ilike(aivitaUsers.name, `%${search}%`));
-  if (status) conds.push(eq(doctorProfiles.verificationStatus, status));
-
-  const rows = await db
-    .select({
-      userId: doctorProfiles.userId,
-      name: aivitaUsers.name,
-      email: aivitaUsers.email,
-      phone: aivitaUsers.phone,
-      specialization: doctorProfiles.specialization,
-      city: doctorProfiles.city,
-      verificationStatus: doctorProfiles.verificationStatus,
-      diplomaVerified: doctorProfiles.diplomaVerified,
-      licenseVerified: doctorProfiles.licenseVerified,
-      showInCatalog: doctorProfiles.showInCatalog,
-      isActive: doctorProfiles.isActive,
-      rating: doctorProfiles.rating,
-      totalConsultations: doctorProfiles.totalConsultations,
-      consultationPrice: doctorProfiles.consultationPrice,
-      createdAt: doctorProfiles.createdAt,
-      verifiedAt: doctorProfiles.verifiedAt,
-      rejectionReason: doctorProfiles.rejectionReason,
-    })
-    .from(doctorProfiles)
-    .innerJoin(aivitaUsers, eq(doctorProfiles.userId, aivitaUsers.id))
-    .where(conds.length > 0 ? and(...conds) : undefined)
-    .orderBy(desc(doctorProfiles.createdAt))
-    .limit(Number(limit))
-    .offset(offset);
-
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(doctorProfiles)
-    .innerJoin(aivitaUsers, eq(doctorProfiles.userId, aivitaUsers.id))
-    .where(conds.length > 0 ? and(...conds) : undefined);
-
-  return c.json({ data: rows, total, page: Number(page), limit: Number(limit) });
-});
-
-// GET /v1/aivita-admin/aivita-doctors/:id — single doctor full profile
-router.get('/aivita-doctors/:id', async (c) => {
-  const { id } = c.req.param();
-
-  const [row] = await db
-    .select({
-      profile: doctorProfiles,
-      name: aivitaUsers.name,
-      email: aivitaUsers.email,
-      phone: aivitaUsers.phone,
-      avatarUrl: aivitaUsers.avatarUrl,
-    })
-    .from(doctorProfiles)
-    .innerJoin(aivitaUsers, eq(doctorProfiles.userId, aivitaUsers.id))
-    .where(eq(doctorProfiles.userId, id))
-    .limit(1);
-
-  if (!row) return c.json({ error: 'Not found' }, 404);
-  return c.json({ data: row });
-});
-
-// PATCH /v1/aivita-admin/aivita-doctors/:id/verify — approve or reject
-router.patch('/aivita-doctors/:id/verify', async (c) => {
-  const adminId = c.get('adminId') as string;
-  const { id } = c.req.param();
-  const { action, reason } = await c.req.json() as { action: 'approve' | 'reject'; reason?: string };
-
-  if (!['approve', 'reject'].includes(action)) {
-    return c.json({ error: 'action must be approve or reject' }, 400);
-  }
-
-  const verificationStatus = action === 'approve' ? 'verified' : 'rejected';
-  const now = new Date();
-
-  await db.transaction(async (tx) => {
-    const [current] = await tx
-      .select({ verificationStatus: doctorProfiles.verificationStatus })
-      .from(doctorProfiles)
-      .where(eq(doctorProfiles.userId, id))
-      .limit(1);
-
-    // Первое подтверждение открывает карточку в публичном каталоге. Если
-    // врач уже был verified и админ повторно жмёт approve (например, после
-    // правки профиля), не трогаем showInCatalog — не перезаписываем выбор,
-    // который врач мог сам сделать в настройках видимости.
-    const justVerified = action === 'approve' && current?.verificationStatus !== 'verified';
-
-    await tx.update(doctorProfiles)
-      .set({
-        verificationStatus,
-        verifiedAt: action === 'approve' ? now : null,
-        verifiedBy: action === 'approve' ? adminId : null,
-        rejectionReason: action === 'reject' ? (reason ?? 'Отклонено администратором') : null,
-        ...(justVerified ? { showInCatalog: true, isActive: true } : {}),
-        ...(action === 'reject' ? { showInCatalog: false } : {}),
-        updatedAt: now,
-      })
-      .where(eq(doctorProfiles.userId, id));
-  });
-
-  await auditLog(adminId, `doctor_${action}`, 'doctor_profile', id, { reason }, c.req);
-
-  return c.json({ data: { verificationStatus, userId: id } });
-});
-
-// PATCH /v1/aivita-admin/aivita-doctors/:id/catalog — toggle showInCatalog / isActive
-router.patch('/aivita-doctors/:id/catalog', async (c) => {
-  const adminId = c.get('adminId') as string;
-  const { id } = c.req.param();
-  const body = await c.req.json() as { showInCatalog?: boolean; isActive?: boolean };
-
-  await db.update(doctorProfiles)
-    .set({ ...body, updatedAt: new Date() })
-    .where(eq(doctorProfiles.userId, id));
-
-  await auditLog(adminId, 'doctor_catalog_update', 'doctor_profile', id, body as Record<string, unknown>, c.req);
-
-  return c.json({ data: { updated: true } });
-});
-
-// POST /v1/aivita-admin/aivita-doctors — create a doctor account (admin)
-router.post('/aivita-doctors', async (c) => {
-  const adminId = c.get('adminId') as string;
-  const body = await c.req.json() as {
-    name: string;
-    email: string;
-    phone?: string;
-    specialization?: string;
-    password?: string;
-  };
-
-  const { name, email, phone, specialization, password: providedPassword } = body;
-  if (!name?.trim() || !email?.trim()) {
-    return c.json({ error: 'name and email are required' }, 400);
-  }
-
-  // Check email uniqueness
-  const existing = await db.query.aivitaUsers.findFirst({
-    where: eq(aivitaUsers.email, email.trim().toLowerCase()),
-  });
-  if (existing) return c.json({ error: 'email_taken' }, 409);
-
-  // Generate password if not provided
-  const plainPassword = providedPassword?.trim() || randomBytes(8).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-  const passwordHash = await bcrypt.hash(plainPassword, 12);
-
-  // Generate unique nickname
-  const base = name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 16) || 'doctor';
-  const suffix = randomInt(1000, 9999);
-  const nickname = `${base}_${suffix}`;
-
-  const now = new Date();
-
-  const [user] = await db.insert(aivitaUsers).values({
-    email: email.trim().toLowerCase(),
-    nickname,
-    name: name.trim(),
-    passwordHash,
-    provider: 'email',
-    locale: 'ru',
-    role: 'doctor',
-    plan: 'free',
-    referralCode: `DR${suffix}`,
-    emailVerified: now, // auto-verify since admin created
-  }).returning();
-
-  await db.insert(doctorProfiles).values({
-    userId: user.id,
-    specialization: specialization?.trim() ?? null,
-    phone: phone?.trim() ?? null,
-    verificationStatus: 'not_verified',
-  });
-
-  await auditLog(adminId, 'doctor_create', 'aivita_user', user.id, { email, name, specialization }, c.req);
-
-  return c.json({
-    data: {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      password: plainPassword,
-      specialization: specialization ?? null,
-    },
-  }, 201);
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
-// BILLING — subscription plans & subscriptions
-// ══════════════════════════════════════════════════════════════════════════════
-
-// GET /v1/aivita-admin/billing/plans
-router.get('/billing/plans', async (c) => {
-  const plans = await db.select().from(subscriptionPlans).orderBy(asc(subscriptionPlans.price));
-  return c.json({ data: plans });
-});
-
-// POST /v1/aivita-admin/billing/plans
-router.post('/billing/plans', async (c) => {
-  const adminId = c.get('adminId') as string;
-  const body = await c.req.json() as {
-    name: string; slug: string; price: number; period: string;
-    targetRole: string; features?: string[];
-  };
-
-  const [plan] = await db.insert(subscriptionPlans).values({
-    name: body.name,
-    slug: body.slug,
-    price: body.price,
-    period: body.period,
-    targetRole: body.targetRole,
-    features: body.features ?? [],
-    isActive: true,
-  }).returning();
-
-  await auditLog(adminId, 'billing_plan_create', 'subscription_plan', String(plan.id), body as Record<string, unknown>, c.req);
-  return c.json({ data: plan });
-});
-
-// PATCH /v1/aivita-admin/billing/plans/:id
-router.patch('/billing/plans/:id', async (c) => {
-  const adminId = c.get('adminId') as string;
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json() as Partial<{ name: string; price: number; period: string; features: string[]; isActive: boolean }>;
-
-  const [updated] = await db.update(subscriptionPlans)
-    .set(body)
-    .where(eq(subscriptionPlans.id, id))
-    .returning();
-
-  await auditLog(adminId, 'billing_plan_update', 'subscription_plan', String(id), body as Record<string, unknown>, c.req);
-  return c.json({ data: updated });
-});
-
-// GET /v1/aivita-admin/billing/subscriptions
-router.get('/billing/subscriptions', async (c) => {
-  const { page = '1', status = '' } = c.req.query();
-  const offset = (Number(page) - 1) * 25;
-
-  const conds = [];
-  if (status) conds.push(eq(subscriptions.status, status));
-
-  const rows = await db
-    .select({
-      id: subscriptions.id,
-      userId: subscriptions.userId,
-      userName: aivitaUsers.name,
-      userEmail: aivitaUsers.email,
-      planId: subscriptions.planId,
-      planName: subscriptionPlans.name,
-      planPrice: subscriptionPlans.price,
-      status: subscriptions.status,
-      startedAt: subscriptions.startedAt,
-      expiresAt: subscriptions.expiresAt,
-      autoRenew: subscriptions.autoRenew,
-    })
-    .from(subscriptions)
-    .innerJoin(aivitaUsers, eq(subscriptions.userId, aivitaUsers.id))
-    .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-    .where(conds.length > 0 ? and(...conds) : undefined)
-    .orderBy(desc(subscriptions.startedAt))
-    .limit(25)
-    .offset(offset);
-
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(subscriptions)
-    .where(conds.length > 0 ? and(...conds) : undefined);
-
-  return c.json({ data: rows, total });
-});
-
-// GET /v1/aivita-admin/billing/stats — revenue overview
-router.get('/billing/stats', async (c) => {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const [totalRow] = await db
-    .select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` })
-    .from(payments)
-    .where(and(eq(payments.status, 'completed')));
-
-  const [monthRow] = await db
-    .select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` })
-    .from(payments)
-    .where(and(eq(payments.status, 'completed'), gte(payments.createdAt, monthStart)));
-
-  const [activeSubs] = await db
-    .select({ cnt: count() })
-    .from(subscriptions)
-    .where(eq(subscriptions.status, 'active'));
-
-  return c.json({
-    data: {
-      totalRevenue: Number(totalRow.total),
-      monthRevenue: Number(monthRow.total),
-      activeSubscriptions: activeSubs.cnt,
-    },
-  });
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
-// HOME SETTINGS — app home page configuration
-// ══════════════════════════════════════════════════════════════════════════════
-
-const HOME_DEFAULTS: Record<string, string> = {
-  aivita_home_show_doctors: 'true',
-  aivita_home_show_ai_checkup: 'true',
-  aivita_home_announcement_text: '',
-  aivita_home_announcement_active: 'false',
-  aivita_home_announcement_color: '#6BA3D6',
-  aivita_home_hero_greeting_ru: 'Добро пожаловать',
-  aivita_home_hero_greeting_uz: 'Xush kelibsiz',
-  aivita_doctor_home_hero_sub_ru: 'Ваш AI-кабинет врача',
-  aivita_doctor_home_hero_sub_uz: 'Shifokor AI kabinetingiz',
-  aivita_home_maintenance: 'false',
-  aivita_home_maintenance_msg: 'Проводятся технические работы',
-};
-
-// GET /v1/aivita-admin/home-settings
-router.get('/home-settings', async (c) => {
-  const rows = await db.select().from(platformSettings)
-    .where(sql`${platformSettings.key} LIKE 'aivita_%'`);
-  const map: Record<string, string> = { ...HOME_DEFAULTS };
-  for (const r of rows) if (r.key) map[r.key] = r.value ?? '';
-  return c.json({ data: map });
-});
-
-// PUT /v1/aivita-admin/home-settings
-router.put('/home-settings', async (c) => {
-  const adminId = c.get('adminId') as string;
-  const body = await c.req.json() as Record<string, string>;
-
-  for (const [key, value] of Object.entries(body)) {
-    if (!key.startsWith('aivita_')) continue;
-    await db.insert(platformSettings)
-      .values({ key, value })
-      .onConflictDoUpdate({ target: platformSettings.key, set: { value, updatedAt: new Date() } });
-  }
-  await auditLog(adminId, 'home_settings_update', 'platform_settings', null, body as Record<string, unknown>, c.req);
-  return c.json({ success: true });
-});
-
-// ─── Helpers: support messaging ────────────────────────────────────────────────
+// ─── Dead code carried over as-is from aivita-admin.ts, unused there too ──────
+// Neither function has a call site in the original file (grep-confirmed before
+// the split) and neither was exported — flagged in the report, not removed as
+// part of this layout-only split.
 
 async function pushToUser(
   userId: string,
@@ -1002,7 +622,7 @@ function formatConvTime(dateStr: string | Date | null) {
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - date.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (date.toDateString() === now.toDateString()) {
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   } else if (diffDays <= 1) {
@@ -1012,5 +632,4 @@ function formatConvTime(dateStr: string | Date | null) {
   }
 }
 
-
-export { router as aivitaAdminRouter };
+export { router as aivitaAdminUsersRouter };
