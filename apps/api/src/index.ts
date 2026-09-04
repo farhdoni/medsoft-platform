@@ -75,6 +75,9 @@ import { videoCallRouter } from './routes/aivita/video-call.js';
 import { aivitaMessagingRouter } from './routes/aivita/messaging.js';
 import { adminDashboardRouter } from './routes/admin/dashboard.js';
 import { adminUsersRouter } from './routes/admin/users.js';
+import { usersRolesRouter } from './routes/admin/users-roles.js';
+import { usersTeamRouter } from './routes/admin/users-team.js';
+import { usersDoctorVerifyRouter } from './routes/admin/users-doctor-verify.js';
 import { aiSettingsRouter, aiUsageRouter } from './routes/admin/ai.js';
 import { adminMarketingRouter } from './routes/admin/marketing.js';
 import { adminContentRouter, publicFaqRouter } from './routes/admin/content.js';
@@ -211,6 +214,9 @@ app.route('/v1/aivita/video-call', videoCallRouter);
 app.route('/v1/aivita/messaging', aivitaMessagingRouter);
 // Admin dashboard & users
 app.route('/v1/admin/dashboard', adminDashboardRouter);
+app.route('/v1/admin/users', usersRolesRouter);
+app.route('/v1/admin/users', usersTeamRouter);
+app.route('/v1/admin/users', usersDoctorVerifyRouter);
 app.route('/v1/admin/users', adminUsersRouter);
 // Admin finance
 app.route('/v1/admin/finance', adminFinanceRouter);
