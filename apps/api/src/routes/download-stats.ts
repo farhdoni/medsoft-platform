@@ -2,15 +2,21 @@ import { Hono } from 'hono';
 import { db, downloadLogs } from '@medsoft/db';
 import { eq, and, gte, count, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth.js';
+import { requireRight } from '../lib/rbac.js';
 
 // Split out of clinic-requests.ts (docs/routes-split-plan.md) — was the
 // `/stats/downloads` route on `clinicAdminRouter`, right `main:read`, not
 // `content:clinic_requests_*`. Mounted at the same two prefixes as before
 // (`/v1/admin/content`, `/v1/admin/stats`) to keep every external path
 // byte-for-byte identical to pre-split behaviour.
+//
+// docs/rbac-model.md enforcement, first pass (feat/rbac-enforce-1): one
+// right for the whole file, same as admins.ts's own requireSuperadmin
+// pattern — this router only ever had the one route/one right, so a
+// per-route split wasn't needed here.
 
 export const downloadStatsRouter = new Hono();
-downloadStatsRouter.use('*', requireAuth);
+downloadStatsRouter.use('*', requireAuth, requireRight('main:read'));
 
 // GET /stats/downloads
 downloadStatsRouter.get('/stats/downloads', async (c) => {

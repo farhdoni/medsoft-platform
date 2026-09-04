@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { adminRoles, adminUserRoles, adminUsers } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
@@ -10,13 +11,18 @@ import bcrypt from 'bcryptjs';
 // Split out of admin/users.ts (docs/routes-split-plan.md) — right
 // settings:team_read/manage. Mounted at the same prefix as before
 // (/v1/admin/users), so external paths are unchanged.
+//
+// docs/rbac-model.md enforcement, first pass (feat/rbac-enforce-1): this
+// file carries two different rights (read vs manage), so — per the task —
+// requireRight goes on each route individually, not on `router.use('*', ...)`
+// for the whole file. Only requireAuth is router-wide.
 
 export const usersTeamRouter = new Hono();
 usersTeamRouter.use('*', requireAuth);
 
 // ─── GET /team ─────────────────────────────────────────────────────────────────
 
-usersTeamRouter.get('/team', async (c) => {
+usersTeamRouter.get('/team', requireRight('settings:team_read'), async (c) => {
   try {
     const admins = await db
       .select({
@@ -47,6 +53,7 @@ usersTeamRouter.get('/team', async (c) => {
 
 usersTeamRouter.post(
   '/team/invite',
+  requireRight('settings:team_manage'),
   zValidator('json', z.object({
     email: z.string().email(),
     fullName: z.string(),
