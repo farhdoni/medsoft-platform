@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
-  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
+  Server, Globe, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
   Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
   Pill, FlaskConical, MessageCircle, AtSign, Globe2, Database, ScrollText, Settings,
-  ChevronDown, User, X,
+  ChevronDown, User, X, Repeat, Ticket, Layers,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -35,7 +35,6 @@ const baseNavItems = [
   { href: '/clinics',              labelKey: 'clinics',      icon: Building2,       section: 'main' },
   { href: '/appointments',         labelKey: 'appointments', icon: Calendar,        section: 'main' },
   { href: '/transactions',         labelKey: 'transactions', icon: CreditCard,      section: 'main' },
-  { href: '/finance',              labelKey: 'finance',      icon: Banknote,        section: 'main' },
   { href: '/sos-calls',            labelKey: 'sosCalls',     icon: AlertTriangle,   section: 'main' },
   { href: '/monitoring',           labelKey: 'monitoring',   icon: Server,          section: 'main' },
   { href: '/cms',                  labelKey: 'cms',          icon: Globe,           section: 'main' },
@@ -52,6 +51,17 @@ const baseNavItems = [
   { href: '/partners/pharmacies',  label: 'Аптеки',            icon: Pill,          section: 'partners' },
   { href: '/partners/labs',        label: 'Лаборатории',       icon: FlaskConical,  section: 'partners' },
   { href: '/partners/clinics',     label: 'Клиники',           icon: Building2,     section: 'partners' },
+  // ── ФИНАНСЫ ──
+  // Порядок и подписи повторяют вкладки в app/(admin)/finance/layout.tsx —
+  // это один и тот же набор страниц, и расходиться им нельзя.
+  { href: '/finance',                    label: 'Дашборд',         icon: LayoutDashboard, section: 'finance' },
+  { href: '/finance/payments',           label: 'Платежи',         icon: CreditCard,      section: 'finance' },
+  { href: '/finance/subscriptions',      label: 'Подписки',        icon: Repeat,          section: 'finance' },
+  { href: '/finance/payouts/doctors',    label: 'Выплаты врачам',  icon: Stethoscope,     section: 'finance' },
+  { href: '/finance/payouts/pharmacies', label: 'Выплаты аптекам', icon: Pill,            section: 'finance' },
+  { href: '/finance/promo-codes',        label: 'Промокоды',       icon: Ticket,          section: 'finance' },
+  { href: '/finance/plans',              label: 'Тарифы',          icon: Layers,          section: 'finance' },
+  { href: '/finance/settings',           label: 'Настройки',       icon: Settings2,       section: 'finance' },
   // ── МАРКЕТИНГ ──
   { href: '/marketing/email',      label: 'Email рассылки',    icon: Mail,          section: 'marketing' },
   { href: '/marketing/push',       label: 'Push уведомления',  icon: MessageSquare, section: 'marketing' },
@@ -151,6 +161,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
     aivita:    t.sections.aivita,
     users:     t.sections.users,
     partners:  t.sections.partners,
+    finance:   t.sections.finance,
     marketing: t.sections.marketing,
     content:   t.sections.content,
     security:  t.sections.security,
@@ -167,7 +178,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
       : []),
   ];
 
-  const sections = ['main', 'users', 'aivita', 'partners', 'marketing', 'content', 'security', 'reports', 'system', 'settings'];
+  const sections = ['main', 'users', 'aivita', 'partners', 'finance', 'marketing', 'content', 'security', 'reports', 'system', 'settings'];
 
   function getLabel(item: { label?: string; labelKey?: string }): string {
     if (item.labelKey) {
