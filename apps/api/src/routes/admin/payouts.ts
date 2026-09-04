@@ -1,9 +1,17 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { doctorPayouts, pharmacyPayouts, payments, aivitaUsers, doctorPayoutSettings } from '@medsoft/db';
 import { eq, desc, and, sql, gte, lte } from 'drizzle-orm';
 
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, fourth pass):
+// requireRight goes per-route (requireAuth stays router-wide). No
+// payouts:* right exists in the catalog — payouts are a finance
+// sub-domain (accountant's own reason for finance:edit is payroll to
+// doctors/pharmacies), so this file is gated with the same finance:read/
+// finance:edit as finance.ts rather than a new right — see commit
+// message for the full reasoning.
 export const adminPayoutsRouter = new Hono();
 
 adminPayoutsRouter.use('*', requireAuth);
@@ -12,7 +20,7 @@ const COMMISSION_PERCENT = 20;
 
 // ─── GET /v1/admin/payouts/doctors ───────────────────────────────────────────
 
-adminPayoutsRouter.get('/doctors', async (c) => {
+adminPayoutsRouter.get('/doctors', requireRight('finance:read'), async (c) => {
   const { period, status } = c.req.query();
 
   const conditions = [];
@@ -33,7 +41,7 @@ adminPayoutsRouter.get('/doctors', async (c) => {
 
 // ─── GET /v1/admin/payouts/doctors/export ────────────────────────────────────
 
-adminPayoutsRouter.get('/doctors/export', async (c) => {
+adminPayoutsRouter.get('/doctors/export', requireRight('finance:read'), async (c) => {
   const rows = await db.select({
     payout: doctorPayouts,
     doctorName: aivitaUsers.name,
@@ -69,7 +77,7 @@ adminPayoutsRouter.get('/doctors/export', async (c) => {
 
 // ─── POST /v1/admin/payouts/doctors/generate ─────────────────────────────────
 
-adminPayoutsRouter.post('/doctors/generate', async (c) => {
+adminPayoutsRouter.post('/doctors/generate', requireRight('finance:edit'), async (c) => {
   const { period, from, to } = await c.req.json() as { period: string; from?: string; to?: string };
 
   const fromDate = from ? new Date(from) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -121,7 +129,7 @@ adminPayoutsRouter.post('/doctors/generate', async (c) => {
 
 // ─── POST /v1/admin/payouts/doctors/:id/mark-paid ────────────────────────────
 
-adminPayoutsRouter.post('/doctors/:id/mark-paid', async (c) => {
+adminPayoutsRouter.post('/doctors/:id/mark-paid', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.update(doctorPayouts)
     .set({ status: 'completed', paidAt: new Date() })
@@ -131,14 +139,14 @@ adminPayoutsRouter.post('/doctors/:id/mark-paid', async (c) => {
 
 // ─── GET /v1/admin/payouts/pharmacies ────────────────────────────────────────
 
-adminPayoutsRouter.get('/pharmacies', async (c) => {
+adminPayoutsRouter.get('/pharmacies', requireRight('finance:read'), async (c) => {
   const rows = await db.select().from(pharmacyPayouts).orderBy(desc(pharmacyPayouts.createdAt));
   return c.json({ data: rows });
 });
 
 // ─── GET /v1/admin/payouts/pharmacies/export ─────────────────────────────────
 
-adminPayoutsRouter.get('/pharmacies/export', async (c) => {
+adminPayoutsRouter.get('/pharmacies/export', requireRight('finance:read'), async (c) => {
   const rows = await db.select().from(pharmacyPayouts).orderBy(desc(pharmacyPayouts.createdAt));
 
   const STATUS_LABELS: Record<string, string> = {
@@ -167,7 +175,7 @@ adminPayoutsRouter.get('/pharmacies/export', async (c) => {
 
 // ─── POST /v1/admin/payouts/pharmacies/generate ──────────────────────────────
 
-adminPayoutsRouter.post('/pharmacies/generate', async (c) => {
+adminPayoutsRouter.post('/pharmacies/generate', requireRight('finance:edit'), async (c) => {
   const { period, pharmacyId, amount, bankAccount, mfo, inn } = await c.req.json() as {
     period: string; pharmacyId: number; amount: number;
     bankAccount?: string; mfo?: string; inn?: string;
@@ -188,7 +196,7 @@ adminPayoutsRouter.post('/pharmacies/generate', async (c) => {
 
 // ─── POST /v1/admin/payouts/pharmacies/:id/mark-paid ─────────────────────────
 
-adminPayoutsRouter.post('/pharmacies/:id/mark-paid', async (c) => {
+adminPayoutsRouter.post('/pharmacies/:id/mark-paid', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.update(pharmacyPayouts)
     .set({ status: 'completed', paidAt: new Date() })

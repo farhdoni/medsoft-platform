@@ -1,11 +1,19 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import {
   payments, subscriptions, subscriptionPlans, aivitaUsers, promoCodes,
 } from '@medsoft/db';
 import { eq, and, gte, lte, desc, sql, count, lt } from 'drizzle-orm';
 
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, fourth pass):
+// requireRight goes per-route (requireAuth stays router-wide) —
+// finance:read on every GET, finance:edit on every route that mutates
+// (refund, promo-code create/update/delete, plan price/status patch).
+// The catalog has finance:edit, not finance:manage — same "edit" naming
+// already used for users:edit — so finance:edit is what's wired below,
+// including where the task that requested this pass said finance:manage.
 export const adminFinanceRouter = new Hono();
 
 adminFinanceRouter.use('*', requireAuth);
@@ -23,7 +31,7 @@ function dateRangeFilter(period: string) {
 
 // ─── GET /v1/admin/finance/overview ──────────────────────────────────────────
 
-adminFinanceRouter.get('/overview', async (c) => {
+adminFinanceRouter.get('/overview', requireRight('finance:read'), async (c) => {
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const startOfLastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
@@ -151,7 +159,7 @@ adminFinanceRouter.get('/overview', async (c) => {
 
 // ─── GET /v1/admin/finance/dashboard (legacy) ─────────────────────────────────
 
-adminFinanceRouter.get('/dashboard', async (c) => {
+adminFinanceRouter.get('/dashboard', requireRight('finance:read'), async (c) => {
   const period = c.req.query('period') ?? 'month';
   const since = dateRangeFilter(period);
 
@@ -225,7 +233,7 @@ adminFinanceRouter.get('/dashboard', async (c) => {
 
 // ─── GET /v1/admin/finance/payments/export ────────────────────────────────────
 
-adminFinanceRouter.get('/payments/export', async (c) => {
+adminFinanceRouter.get('/payments/export', requireRight('finance:read'), async (c) => {
   const { dateFrom, dateTo, status, provider, type } = c.req.query();
 
   const conditions = [];
@@ -285,7 +293,7 @@ adminFinanceRouter.get('/payments/export', async (c) => {
 
 // ─── GET /v1/admin/finance/payments ──────────────────────────────────────────
 
-adminFinanceRouter.get('/payments', async (c) => {
+adminFinanceRouter.get('/payments', requireRight('finance:read'), async (c) => {
   const { status, provider, type, from, to, dateFrom, dateTo, page = '1', limit = '50' } = c.req.query();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -318,7 +326,7 @@ adminFinanceRouter.get('/payments', async (c) => {
 
 // ─── GET /v1/admin/finance/payments/:id ──────────────────────────────────────
 
-adminFinanceRouter.get('/payments/:id', async (c) => {
+adminFinanceRouter.get('/payments/:id', requireRight('finance:read'), async (c) => {
   const id = parseInt(c.req.param('id'));
   const [row] = await db.select({
     payment: payments,
@@ -336,7 +344,7 @@ adminFinanceRouter.get('/payments/:id', async (c) => {
 
 // ─── POST /v1/admin/finance/payments/:id/refund ───────────────────────────────
 
-adminFinanceRouter.post('/payments/:id/refund', async (c) => {
+adminFinanceRouter.post('/payments/:id/refund', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   let reason = '';
   try {
@@ -359,7 +367,7 @@ adminFinanceRouter.post('/payments/:id/refund', async (c) => {
 
 // ─── GET /v1/admin/finance/subscriptions/overview ────────────────────────────
 
-adminFinanceRouter.get('/subscriptions/overview', async (c) => {
+adminFinanceRouter.get('/subscriptions/overview', requireRight('finance:read'), async (c) => {
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
@@ -422,7 +430,7 @@ adminFinanceRouter.get('/subscriptions/overview', async (c) => {
 
 // ─── GET /v1/admin/finance/subscriptions ─────────────────────────────────────
 
-adminFinanceRouter.get('/subscriptions', async (c) => {
+adminFinanceRouter.get('/subscriptions', requireRight('finance:read'), async (c) => {
   const { status, page = '1', limit = '50' } = c.req.query();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -463,12 +471,12 @@ adminFinanceRouter.get('/subscriptions', async (c) => {
 
 // ─── GET /v1/admin/finance/promo-codes ────────────────────────────────────────
 
-adminFinanceRouter.get('/promo-codes', async (c) => {
+adminFinanceRouter.get('/promo-codes', requireRight('finance:read'), async (c) => {
   const rows = await db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
   return c.json({ data: rows });
 });
 
-adminFinanceRouter.post('/promo-codes', async (c) => {
+adminFinanceRouter.post('/promo-codes', requireRight('finance:edit'), async (c) => {
   const body = await c.req.json() as {
     code: string; discountType: string; discountValue: number;
     maxUses?: number; validUntil?: string; planSlugs?: string[];
@@ -485,7 +493,7 @@ adminFinanceRouter.post('/promo-codes', async (c) => {
   return c.json({ data: promo });
 });
 
-adminFinanceRouter.patch('/promo-codes/:id', async (c) => {
+adminFinanceRouter.patch('/promo-codes/:id', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json() as Partial<{ isActive: boolean; maxUses: number; validUntil: string }>;
   await db.update(promoCodes).set({
@@ -496,7 +504,7 @@ adminFinanceRouter.patch('/promo-codes/:id', async (c) => {
   return c.json({ success: true });
 });
 
-adminFinanceRouter.delete('/promo-codes/:id', async (c) => {
+adminFinanceRouter.delete('/promo-codes/:id', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.update(promoCodes).set({ isActive: false }).where(eq(promoCodes.id, id));
   return c.json({ success: true });
@@ -504,12 +512,12 @@ adminFinanceRouter.delete('/promo-codes/:id', async (c) => {
 
 // ─── GET/PATCH /v1/admin/finance/plans ───────────────────────────────────────
 
-adminFinanceRouter.get('/plans', async (c) => {
+adminFinanceRouter.get('/plans', requireRight('finance:read'), async (c) => {
   const rows = await db.select().from(subscriptionPlans).orderBy(subscriptionPlans.id);
   return c.json({ data: rows });
 });
 
-adminFinanceRouter.patch('/plans/:id', async (c) => {
+adminFinanceRouter.patch('/plans/:id', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json() as Partial<{ price: number; isActive: boolean; name: string }>;
   await db.update(subscriptionPlans).set({
