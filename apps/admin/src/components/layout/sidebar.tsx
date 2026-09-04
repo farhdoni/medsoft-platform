@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, Stethoscope, Building2, Calendar,
   CreditCard, AlertTriangle, Shield, LogOut, Moon, Sun,
-  Server, Globe, Banknote, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
+  Server, Globe, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
   Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
   Pill, FlaskConical, MessageCircle, AtSign, Globe2, Database, ScrollText, Settings,
   ChevronDown, User, X, Repeat, Ticket, Layers,
@@ -35,7 +35,6 @@ const baseNavItems = [
   { href: '/clinics',              labelKey: 'clinics',      icon: Building2,       section: 'main' },
   { href: '/appointments',         labelKey: 'appointments', icon: Calendar,        section: 'main' },
   { href: '/transactions',         labelKey: 'transactions', icon: CreditCard,      section: 'main' },
-  { href: '/finance',              labelKey: 'finance',      icon: Banknote,        section: 'main' },
   { href: '/sos-calls',            labelKey: 'sosCalls',     icon: AlertTriangle,   section: 'main' },
   { href: '/monitoring',           labelKey: 'monitoring',   icon: Server,          section: 'main' },
   { href: '/cms',                  labelKey: 'cms',          icon: Globe,           section: 'main' },
