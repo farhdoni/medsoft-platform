@@ -36,18 +36,26 @@ type AdminUser = {
   createdAt: string;
 };
 
+// The 8 real, assignable roles (is_deprecated = false) — same endpoint the
+// read-only roles reference page uses, filtered server-side.
+type RoleOption = {
+  id: number;
+  name: string;
+  displayName: string;
+};
+
 type InviteForm = {
   email: string;
   fullName: string;
   password: string;
-  role: string;
+  roleId: string;
 };
 
 const defaultInviteForm = (): InviteForm => ({
   email: '',
   fullName: '',
   password: '',
-  role: 'admin',
+  roleId: '',
 });
 
 const ROLE_LABELS: Record<string, string> = {
@@ -82,6 +90,13 @@ export default function TeamPage() {
 
   const admins = data?.data ?? [];
 
+  const { data: rolesData } = useQuery<{ data: RoleOption[] }>({
+    queryKey: ['admin-roles-assignable'],
+    queryFn: () => api.get('/v1/admin/users/roles'),
+  });
+
+  const assignableRoles = rolesData?.data ?? [];
+
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.patch(`/v1/admins/${id}`, { isActive }),
@@ -93,7 +108,12 @@ export default function TeamPage() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: (body: InviteForm) => api.post('/v1/admin/users/team/invite', body),
+    mutationFn: (body: InviteForm) => api.post('/v1/admin/users/team/invite', {
+      email: body.email,
+      fullName: body.fullName,
+      password: body.password,
+      roleId: Number(body.roleId),
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-team'] });
       toast.success('Администратор создан');
@@ -103,7 +123,7 @@ export default function TeamPage() {
     onError: () => toast.error('Ошибка при создании администратора'),
   });
 
-  const isFormValid = form.email && form.fullName && form.password && form.role;
+  const isFormValid = form.email && form.fullName && form.password && form.roleId;
 
   return (
     <div className="p-6 space-y-6">
@@ -234,16 +254,16 @@ export default function TeamPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Роль</Label>
-              <Select value={form.role} onValueChange={(val) => setForm((f) => ({ ...f, role: val }))}>
+              <Select value={form.roleId} onValueChange={(val) => setForm((f) => ({ ...f, roleId: val }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Выберите роль" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Администратор</SelectItem>
-                  <SelectItem value="moderator">Модератор</SelectItem>
-                  <SelectItem value="support">Поддержка</SelectItem>
-                  <SelectItem value="marketing">Маркетинг</SelectItem>
-                  <SelectItem value="finance">Финансы</SelectItem>
+                  {assignableRoles.map((role) => (
+                    <SelectItem key={role.id} value={String(role.id)}>
+                      {role.displayName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

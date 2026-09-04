@@ -28,6 +28,10 @@ export const PERMISSIONS = [
   'content:read', 'content:manage',
   'content:clinic_requests_read', 'content:clinic_requests_manage',
 
+  'notifications:read', 'notifications:manage',
+
+  'dashboard:read',
+
   'security:read', 'security:manage',
 
   'reports:generate',
@@ -58,6 +62,14 @@ export type RoleSlug =
   | 'superadmin' | 'director' | 'support_operator' | 'accountant'
   | 'developer' | 'marketer' | 'medsoft_seller' | 'hr';
 
+// Vocabulary unification pass (feat/rbac-enforce-2): notifications:read/
+// manage went to whichever roles already held marketing:read/marketing:manage
+// respectively (director+marketer for read, marketer alone for manage) —
+// copied verbatim, not re-derived. dashboard:read went to whichever roles
+// hold BOTH finance:read AND users:read at once (director, accountant) —
+// computed by intersecting the two lists below, not guessed. superadmin
+// needs no edit: it's `[...PERMISSIONS]`, so all three new rights flow in
+// automatically from the catalog above.
 export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
   superadmin: [...PERMISSIONS],
 
@@ -66,6 +78,7 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
     'aivita:doctors_read', 'aivita:billing_read', 'marketing:read',
     'finance:prices_manage', 'security:read', 'reports:generate',
     'finance:read', 'finance:settings_read', 'finance:settings_manage',
+    'notifications:read', 'dashboard:read',
   ],
 
   support_operator: ['aivita:support', 'users:read', 'main:read'],
@@ -73,6 +86,7 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
   accountant: [
     'finance:read', 'finance:edit', 'finance:settings_read',
     'reports:generate', 'users:read', 'main:read',
+    'dashboard:read',
   ],
 
   developer: [
@@ -83,6 +97,7 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
   marketer: [
     'marketing:read', 'marketing:manage', 'content:read', 'content:manage',
     'finance:prices_manage', 'main:read', 'reports:generate',
+    'notifications:read', 'notifications:manage',
   ],
 
   medsoft_seller: [
@@ -96,6 +111,22 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
 
 /** Extra rights `is_senior=true` adds on top of a support_operator's base rights. */
 export const SENIOR_SUPPORT_EXTRA_RIGHTS: Permission[] = ['pii:reveal', 'users:edit'];
+
+/**
+ * Groups a role's rights by domain (the part of the slug before the first
+ * ':'), for the read-only /roles reference page — every slug in this
+ * catalog is "domain:action", so splitting on the first colon is safe and
+ * uniform across all of them.
+ */
+export function groupRightsByDomain(rights: Permission[]): Record<string, string[]> {
+  const byDomain: Record<string, string[]> = {};
+  for (const right of rights) {
+    const domain = right.split(':')[0];
+    (byDomain[domain] ??= []).push(right);
+  }
+  for (const domain of Object.keys(byDomain)) byDomain[domain].sort();
+  return byDomain;
+}
 
 // ─── Check function — written, not applied anywhere yet ──────────────────────
 

@@ -5,8 +5,13 @@ import { db } from '@medsoft/db';
 import { notifications, aivitaUsers } from '@medsoft/db';
 import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { createBroadcastNotifications } from '../../lib/notification-service.js';
 
+// Vocabulary unification pass (feat/rbac-enforce-2): notifications:read/
+// manage now exist in the catalog (previously this domain had no right at
+// all — left ungated in the fifth pass pending this decision). requireRight
+// goes per-route, requireAuth stays router-wide.
 export const adminNotificationsRouter = new Hono();
 
 adminNotificationsRouter.use('*', requireAuth);
@@ -14,6 +19,7 @@ adminNotificationsRouter.use('*', requireAuth);
 // ─── POST /broadcast ──────────────────────────────────────────────────────────
 adminNotificationsRouter.post(
   '/broadcast',
+  requireRight('notifications:manage'),
   zValidator('json', z.object({
     audience: z.enum(['all', 'patients', 'doctors']),
     title:    z.string().min(1).max(200),
@@ -42,7 +48,7 @@ adminNotificationsRouter.post(
 
 // ─── GET /broadcasts ──────────────────────────────────────────────────────────
 // List recent admin_broadcast notifications (one per unique title/createdAt window)
-adminNotificationsRouter.get('/broadcasts', async (c) => {
+adminNotificationsRouter.get('/broadcasts', requireRight('notifications:read'), async (c) => {
   const limit = Math.min(Number(c.req.query('limit') ?? 20), 100);
 
   const rows = await db
@@ -63,7 +69,7 @@ adminNotificationsRouter.get('/broadcasts', async (c) => {
 });
 
 // ─── GET /log ─────────────────────────────────────────────────────────────────
-adminNotificationsRouter.get('/log', async (c) => {
+adminNotificationsRouter.get('/log', requireRight('notifications:read'), async (c) => {
   const limit  = Math.min(Number(c.req.query('limit') ?? 50), 200);
   const offset = Number(c.req.query('offset') ?? 0);
   const type   = c.req.query('type');

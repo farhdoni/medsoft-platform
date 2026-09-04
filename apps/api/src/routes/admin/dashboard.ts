@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { redis } from '../../lib/redis.js';
 import { db } from '@medsoft/db';
 import {
@@ -11,6 +12,12 @@ import {
 } from '@medsoft/db';
 import { eq, and, gte, lte, isNull, sql, count, sum, desc } from 'drizzle-orm';
 
+// Vocabulary unification pass (feat/rbac-enforce-2): dashboard:read now
+// exists (previously no right existed for this route, and it was left
+// open — see the fifth-pass finding that this handler aggregates finance
+// figures and named user PII, bypassing finance:read/users:read
+// entirely). Granted to whichever roles hold both finance:read AND
+// users:read (director, accountant) — see rbac.ts.
 const router = new Hono();
 
 router.use('*', requireAuth);
@@ -42,7 +49,7 @@ function getLast30Days(): string[] {
   return days;
 }
 
-router.get('/', async (c) => {
+router.get('/', requireRight('dashboard:read'), async (c) => {
   try {
     const cached = await redis.get('admin:dashboard');
     if (cached) {

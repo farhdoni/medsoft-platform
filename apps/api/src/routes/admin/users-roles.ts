@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth.js';
-import { requireRight } from '../../lib/rbac.js';
+import { requireRight, ROLE_RIGHTS, groupRightsByDomain, type RoleSlug } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { adminRoles } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
@@ -21,11 +21,39 @@ export const usersRolesRouter = new Hono();
 usersRolesRouter.use('*', requireAuth);
 
 // ─── GET /roles ────────────────────────────────────────────────────────────────
+//
+// Vocabulary unification pass: rights now come from ROLE_RIGHTS (code) —
+// the catalog requireRight actually enforces against — not
+// admin_roles.permissions, the legacy 13-checkbox column the old UI
+// matrix edited and that was never a real gate anywhere. Only the 8 rows
+// with is_deprecated = false are returned (the 5 pre-RBAC-foundation
+// legacy roles — admin/moderator/support/marketing/finance — are
+// excluded); this is also the list the team-invite role picker consumes,
+// so it doubles as "assignable roles" (id + name + displayName) and
+// "what can each role do" (rightsByDomain) in one response.
 
 usersRolesRouter.get('/roles', requireRight('settings:roles_read'), async (c) => {
   try {
-    const roles = await db.select().from(adminRoles).orderBy(adminRoles.id);
-    return c.json({ data: roles });
+    const roles = await db.select({
+      id: adminRoles.id,
+      name: adminRoles.name,
+      displayName: adminRoles.displayName,
+    })
+      .from(adminRoles)
+      .where(eq(adminRoles.isDeprecated, false))
+      .orderBy(adminRoles.id);
+
+    const data = roles.map((role) => {
+      const rights = ROLE_RIGHTS[role.name as RoleSlug] ?? [];
+      return {
+        id: role.id,
+        name: role.name,
+        displayName: role.displayName,
+        rightsByDomain: groupRightsByDomain(rights),
+      };
+    });
+
+    return c.json({ data });
   } catch (err) {
     console.error('List roles error:', err);
     return c.json({ error: 'Failed to list roles' }, 500);
