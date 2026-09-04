@@ -1,13 +1,17 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { payments, subscriptions, subscriptionPlans, aivitaUsers, doctorProfiles } from '@medsoft/db';
 import { eq, and, gte, lte, count, sql, isNull } from 'drizzle-orm';
 import { platformSettings } from '@medsoft/db';
 import { inArray } from 'drizzle-orm';
 
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2): reports:generate is
+// not a CRUD resource with read/write — it's an action — so one right for
+// the whole file, same pattern as download-stats.ts in the first pass.
 export const adminReportsRouter = new Hono();
-adminReportsRouter.use('*', requireAuth);
+adminReportsRouter.use('*', requireAuth, requireRight('reports:generate'));
 
 const AUTO_REPORT_KEYS = ['auto_report_enabled', 'auto_report_email'];
 

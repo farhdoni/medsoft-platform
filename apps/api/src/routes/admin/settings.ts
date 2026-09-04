@@ -1,8 +1,15 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { platformSettings } from '@medsoft/db';
 import { inArray } from 'drizzle-orm';
+
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2): every router below
+// carries both a read and a write route, so requireRight goes per-route
+// (requireAuth stays router-wide) — system:read on the GETs that read back
+// current settings, system:manage on the PUTs that change them and the
+// POST /test routes that send a real SMS/email using those settings.
 
 // ─── Shared upsert helper ─────────────────────────────────────────────────────
 
@@ -39,7 +46,7 @@ const GENERAL_KEYS = [
   'registration_open',
 ];
 
-adminGeneralSettingsRouter.get('/', async (c) => {
+adminGeneralSettingsRouter.get('/', requireRight('system:read'), async (c) => {
   const settings = await getSettings(GENERAL_KEYS);
   // Apply defaults
   const defaults: Record<string, string> = {
@@ -53,7 +60,7 @@ adminGeneralSettingsRouter.get('/', async (c) => {
   return c.json({ settings: { ...defaults, ...settings } });
 });
 
-adminGeneralSettingsRouter.put('/', async (c) => {
+adminGeneralSettingsRouter.put('/', requireRight('system:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   await saveSettings(body, GENERAL_KEYS);
   return c.json({ ok: true });
@@ -71,7 +78,7 @@ const PAYMENT_KEYS = [
   'payments_test_mode',
 ];
 
-adminPaymentSettingsRouter.get('/', async (c) => {
+adminPaymentSettingsRouter.get('/', requireRight('system:read'), async (c) => {
   const settings = await getSettings(PAYMENT_KEYS);
   const defaults: Record<string, string> = {
     click_active: 'false',
@@ -83,7 +90,7 @@ adminPaymentSettingsRouter.get('/', async (c) => {
   return c.json({ settings: { ...defaults, ...settings } });
 });
 
-adminPaymentSettingsRouter.put('/', async (c) => {
+adminPaymentSettingsRouter.put('/', requireRight('system:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   await saveSettings(body, PAYMENT_KEYS);
   return c.json({ ok: true });
@@ -96,7 +103,7 @@ adminSmsSettingsRouter.use('*', requireAuth);
 
 const SMS_KEYS = ['sms_provider', 'sms_eskiz_token', 'sms_test_mode'];
 
-adminSmsSettingsRouter.get('/', async (c) => {
+adminSmsSettingsRouter.get('/', requireRight('system:read'), async (c) => {
   const settings = await getSettings(SMS_KEYS);
   const defaults: Record<string, string> = {
     sms_provider: 'eskiz',
@@ -105,13 +112,13 @@ adminSmsSettingsRouter.get('/', async (c) => {
   return c.json({ settings: { ...defaults, ...settings } });
 });
 
-adminSmsSettingsRouter.put('/', async (c) => {
+adminSmsSettingsRouter.put('/', requireRight('system:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   await saveSettings(body, SMS_KEYS);
   return c.json({ ok: true });
 });
 
-adminSmsSettingsRouter.post('/test', requireAuth, async (c) => {
+adminSmsSettingsRouter.post('/test', requireAuth, requireRight('system:manage'), async (c) => {
   const { phone, text } = await c.req.json() as { phone: string; text: string };
   if (!phone || !text) return c.json({ error: 'phone and text required' }, 400);
 
@@ -152,7 +159,7 @@ const EMAIL_KEYS = [
   'smtp_password', 'smtp_from', 'email_test_mode',
 ];
 
-adminEmailSettingsRouter.get('/', async (c) => {
+adminEmailSettingsRouter.get('/', requireRight('system:read'), async (c) => {
   const settings = await getSettings(EMAIL_KEYS);
   const defaults: Record<string, string> = {
     email_provider: 'mock',
@@ -162,13 +169,13 @@ adminEmailSettingsRouter.get('/', async (c) => {
   return c.json({ settings: { ...defaults, ...settings } });
 });
 
-adminEmailSettingsRouter.put('/', async (c) => {
+adminEmailSettingsRouter.put('/', requireRight('system:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   await saveSettings(body, EMAIL_KEYS);
   return c.json({ ok: true });
 });
 
-adminEmailSettingsRouter.post('/test', requireAuth, async (c) => {
+adminEmailSettingsRouter.post('/test', requireAuth, requireRight('system:manage'), async (c) => {
   const { to, subject, text } = await c.req.json() as { to: string; subject: string; text: string };
   if (!to) return c.json({ error: 'to is required' }, 400);
 

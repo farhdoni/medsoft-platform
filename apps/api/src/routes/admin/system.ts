@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { systemBackups, systemLogs, platformSettings } from '@medsoft/db';
 import { eq, desc, and, gte, lte, inArray } from 'drizzle-orm';
@@ -20,6 +21,13 @@ adminSystemRouter.get('/health', (c) => {
 });
 
 adminSystemRouter.use('*', requireAuth);
+
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2): this file carries
+// two rights, so requireRight goes per-route (requireAuth stays
+// router-wide, /health above stays public and ungated) — system:read on
+// the read routes (logs, listing/downloading backups, reading auto-backup
+// settings), system:manage on the routes that mutate backups or their
+// settings.
 
 // Backup storage directory (relative to project root in Docker or local)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,7 +83,7 @@ export async function createPlatformBackup(): Promise<{ id: number; filename: st
 
 // ─── POST /backup — run pg_dump ────────────────────────────────────────────────
 
-adminSystemRouter.post('/backup', async (c) => {
+adminSystemRouter.post('/backup', requireRight('system:manage'), async (c) => {
   try {
     const row = await createPlatformBackup();
     return c.json({ data: row }, 201);
@@ -87,14 +95,14 @@ adminSystemRouter.post('/backup', async (c) => {
 
 // ─── GET /backups — list ───────────────────────────────────────────────────────
 
-adminSystemRouter.get('/backups', async (c) => {
+adminSystemRouter.get('/backups', requireRight('system:read'), async (c) => {
   const rows = await db.select().from(systemBackups).orderBy(desc(systemBackups.createdAt)).limit(50);
   return c.json({ data: rows });
 });
 
 // ─── GET /backups/:filename — download ────────────────────────────────────────
 
-adminSystemRouter.get('/backups/:filename', async (c) => {
+adminSystemRouter.get('/backups/:filename', requireRight('system:read'), async (c) => {
   const filename = c.req.param('filename');
   if (!validateSafeFilename(filename)) {
     return c.json({ error: 'Invalid filename' }, 400);
@@ -111,7 +119,7 @@ adminSystemRouter.get('/backups/:filename', async (c) => {
 
 // ─── DELETE /backups/:filename — delete backup archive & record ───────────────
 
-adminSystemRouter.delete('/backups/:filename', async (c) => {
+adminSystemRouter.delete('/backups/:filename', requireRight('system:manage'), async (c) => {
   const filename = c.req.param('filename');
   if (!validateSafeFilename(filename)) {
     return c.json({ error: 'Invalid filename' }, 400);
@@ -134,7 +142,7 @@ adminSystemRouter.delete('/backups/:filename', async (c) => {
 
 // ─── POST /backups/:filename/restore — restore database from backup ───────────
 
-adminSystemRouter.post('/backups/:filename/restore', async (c) => {
+adminSystemRouter.post('/backups/:filename/restore', requireRight('system:manage'), async (c) => {
   const filename = c.req.param('filename');
   if (!validateSafeFilename(filename)) {
     return c.json({ error: 'Invalid filename' }, 400);
@@ -158,7 +166,7 @@ adminSystemRouter.post('/backups/:filename/restore', async (c) => {
 
 // ─── GET /logs — system logs with filters ─────────────────────────────────────
 
-adminSystemRouter.get('/logs', async (c) => {
+adminSystemRouter.get('/logs', requireRight('system:read'), async (c) => {
   const { level, module, dateFrom, dateTo, page = '1', limit = '100' } = c.req.query();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -179,7 +187,7 @@ adminSystemRouter.get('/logs', async (c) => {
 
 // ─── GET /auto-backup — settings ──────────────────────────────────────────────
 
-adminSystemRouter.get('/auto-backup', async (c) => {
+adminSystemRouter.get('/auto-backup', requireRight('system:read'), async (c) => {
   const rows = await db.select().from(platformSettings)
     .where(inArray(platformSettings.key, ['auto_backup_enabled', 'auto_backup_schedule', 'auto_backup_time']));
   const settings: Record<string, string> = {};
@@ -189,7 +197,7 @@ adminSystemRouter.get('/auto-backup', async (c) => {
 
 // ─── PUT /auto-backup — settings ──────────────────────────────────────────────
 
-adminSystemRouter.put('/auto-backup', async (c) => {
+adminSystemRouter.put('/auto-backup', requireRight('system:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   const allowed = ['auto_backup_enabled', 'auto_backup_schedule', 'auto_backup_time'];
   for (const [key, value] of Object.entries(body)) {

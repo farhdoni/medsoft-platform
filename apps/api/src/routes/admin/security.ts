@@ -1,15 +1,21 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { authLogs, blockedIps } from '@medsoft/db';
 import { eq, desc, gte, lte, and, or, gt, isNull, count } from 'drizzle-orm';
 
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2): this file carries
+// two rights, so requireRight goes per-route (requireAuth stays
+// router-wide) — security:read on the read routes (auth-logs, and reading
+// the current blocked-ips list), security:manage on the routes that
+// mutate blocked IPs.
 export const adminSecurityRouter = new Hono();
 adminSecurityRouter.use('*', requireAuth);
 
 // ─── GET /auth-logs ───────────────────────────────────────────────────────────
 
-adminSecurityRouter.get('/auth-logs', async (c) => {
+adminSecurityRouter.get('/auth-logs', requireRight('security:read'), async (c) => {
   const { status, email, ip, dateFrom, dateTo, page = '1', limit = '50' } = c.req.query();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -35,7 +41,7 @@ adminSecurityRouter.get('/auth-logs', async (c) => {
 
 // ─── GET /blocked-ips ─────────────────────────────────────────────────────────
 
-adminSecurityRouter.get('/blocked-ips', async (c) => {
+adminSecurityRouter.get('/blocked-ips', requireRight('security:read'), async (c) => {
   const now = new Date();
   const rows = await db.select()
     .from(blockedIps)
@@ -48,7 +54,7 @@ adminSecurityRouter.get('/blocked-ips', async (c) => {
 
 // ─── POST /blocked-ips ────────────────────────────────────────────────────────
 
-adminSecurityRouter.post('/blocked-ips', async (c) => {
+adminSecurityRouter.post('/blocked-ips', requireRight('security:manage'), async (c) => {
   const body = await c.req.json() as {
     ip: string;
     reason?: string;
@@ -74,7 +80,7 @@ adminSecurityRouter.post('/blocked-ips', async (c) => {
 
 // ─── DELETE /blocked-ips/:id ──────────────────────────────────────────────────
 
-adminSecurityRouter.delete('/blocked-ips/:id', async (c) => {
+adminSecurityRouter.delete('/blocked-ips/:id', requireRight('security:manage'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.delete(blockedIps).where(eq(blockedIps.id, id));
   return c.json({ ok: true });
