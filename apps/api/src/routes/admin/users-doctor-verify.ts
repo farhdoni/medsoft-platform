@@ -10,13 +10,18 @@ import { eq } from 'drizzle-orm';
 // own file deliberately: this route doesn't fit any of the three groups
 // docs/rbac-model.md documents for this file (settings:roles_*,
 // settings:team_*, users:*) — it's a doctor-verification action, physically
-// living here rather than in aivita-admin.ts's own doctor-verify route
-// (PATCH /v1/aivita-admin/aivita-doctors/:id/verify). The two are NOT
+// living here rather than in aivita-admin-doctors.ts's own doctor-verify
+// route (PATCH /v1/aivita-admin/aivita-doctors/:id/verify). The two are NOT
 // equivalent: this one also flips aivitaUsers.role to 'doctor'; the other
 // manages doctorProfiles.showInCatalog/isActive instead. Both are called by
-// different admin-panel screens today — see the report for details. No
-// permission is assigned to this route by this split; that decision (which
-// right it should carry, or whether it should be merged/removed) is open.
+// different admin-panel screens today — see docs/route-duplication-findings.md.
+//
+// Right (decided 2026-09-04): aivita:doctors_manage — logically this belongs
+// with the doctors section, not users:*. It stays physically in THIS file
+// (mounted at /v1/admin/users, not /v1/aivita-admin) because moving it would
+// change the external path, which is off-limits. Physical location and the
+// permission it carries deliberately disagree — this file is the one
+// exception to "one file, one right" on this mount prefix.
 
 export const usersDoctorVerifyRouter = new Hono();
 usersDoctorVerifyRouter.use('*', requireAuth);
