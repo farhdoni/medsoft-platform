@@ -39,6 +39,73 @@ const DOMAIN_LABELS: Record<string, string> = {
   medical: 'Медданные',
 };
 
+// Readability pass: human labels for every slug in apps/api/src/lib/rbac.ts
+// PERMISSIONS (checked against the catalog directly, not just what's visible
+// on a role today — a slug not yet granted to any role still needs a label
+// once it is). The raw slug is still shown (small, muted) next to the label
+// for anyone who needs to find it in code — this map only changes what's
+// displayed, not the data. Unmapped slugs fall back to showing the raw slug
+// as-is (see RIGHT_LABELS[slug] ?? slug below) — no blank/broken cards.
+const RIGHT_LABELS: Record<string, string> = {
+  'main:read': 'Просмотр',
+
+  'users:read': 'Просмотр пользователей',
+  'users:edit': 'Редактирование пользователей',
+  'users:delete': 'Удаление пользователей',
+
+  'aivita:doctors_read': 'Врачи AIVITA — просмотр',
+  'aivita:doctors_manage': 'Врачи AIVITA — управление',
+  'aivita:billing_read': 'Биллинг AIVITA — просмотр',
+  'aivita:billing_manage': 'Биллинг AIVITA — управление',
+  'aivita:content_read': 'Контент AIVITA — просмотр',
+  'aivita:content_manage': 'Контент AIVITA — управление',
+  'aivita:support': 'Поддержка AIVITA',
+
+  'partners:read': 'Просмотр партнёров',
+  'partners:manage': 'Управление партнёрами',
+  'partners:issue_key': 'Выпуск ключей доступа партнёрам',
+
+  'marketing:read': 'Просмотр',
+  'marketing:manage': 'Управление',
+
+  'content:read': 'Просмотр',
+  'content:manage': 'Управление',
+  'content:clinic_requests_read': 'Заявки клиник — просмотр',
+  'content:clinic_requests_manage': 'Заявки клиник — управление',
+
+  'notifications:read': 'Просмотр',
+  'notifications:manage': 'Отправка рассылок',
+
+  'dashboard:read': 'Просмотр',
+
+  'security:read': 'Просмотр (журнал входов, блокировки)',
+  'security:manage': 'Управление блокировками IP',
+
+  'reports:generate': 'Формирование отчётов',
+
+  'finance:read': 'Просмотр',
+  'finance:edit': 'Возвраты, промокоды, выплаты',
+  'finance:prices_manage': 'Изменение цен',
+  'finance:settings_read': 'Настройки (комиссии) — просмотр',
+  'finance:settings_manage': 'Настройки (комиссии) — управление',
+
+  'system:read': 'Просмотр (логи, мониторинг)',
+  'system:manage': 'Бэкапы и системные настройки',
+
+  'settings:ai_read': 'Настройки AI — просмотр',
+  'settings:ai_manage': 'Настройки AI — управление',
+  'settings:roles_read': 'Роли — просмотр',
+  'settings:roles_manage': 'Роли — управление',
+  'settings:team_read': 'Команда — просмотр',
+  'settings:team_manage': 'Команда — управление',
+
+  'admins:manage': 'Управление супер-админами',
+
+  'pii:reveal': 'Раскрытие персональных данных',
+  'medical:read_phi': 'Просмотр медданных',
+  'medical:manage_phi': 'Изменение медданных',
+};
+
 export default function RolesPage() {
   const { data, isLoading } = useQuery<{ data: Role[] }>({
     queryKey: ['admin-roles'],
@@ -68,18 +135,27 @@ export default function RolesPage() {
                   <CardTitle className="text-base leading-tight">{role.displayName}</CardTitle>
                   <code className="text-xs text-muted-foreground font-mono">{role.name}</code>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   {domains.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Нет прав</p>
                   ) : (
                     domains.map((domain) => (
                       <div key={domain}>
-                        <p className="text-xs font-medium text-foreground mb-1">
+                        <p className="text-xs font-medium text-foreground mb-1.5">
                           {DOMAIN_LABELS[domain] ?? domain}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {role.rightsByDomain[domain].join(', ')}
-                        </p>
+                        <div className="space-y-1.5">
+                          {role.rightsByDomain[domain].map((slug) => (
+                            <div key={slug}>
+                              <p className="text-xs text-foreground/90 break-words">
+                                {RIGHT_LABELS[slug] ?? slug}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/70 font-mono break-all">
+                                {slug}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))
                   )}
