@@ -2,8 +2,9 @@ import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
 import { verifyToken } from '../lib/jwt.js';
 import { db } from '@medsoft/db';
-import { adminUsers, adminSessions, adminRoles, adminUserRoles } from '@medsoft/db';
+import { adminUsers, adminSessions } from '@medsoft/db';
 import { eq, and, gt, isNull } from 'drizzle-orm';
+import { hasRight } from '../lib/rbac.js';
 
 type AdminPayload = {
   sub: string;
@@ -50,38 +51,23 @@ export const requireSuperadmin = createMiddleware(async (c, next) => {
   await next();
 });
 
-/** Роли, которым открыт кабинет поддержки. */
-const OPERATOR_ROLES = ['superadmin', 'admin', 'moderator', 'support'];
-
 /**
  * «Оператор или выше» — ступень между requireAuth и requireSuperadmin.
+ * Единственный потребитель — aivita-admin-support.ts.
  *
- * Проверок две, и обе нужны. Сначала строковая роль из JWT: сегодня все
- * существующие админы ходят по admin_users.role, а admin_user_roles пуста —
- * guard, читающий только её, закрыл бы кабинет всем. Затем ролевые таблицы из
- * 0010: они позволяют завести оператора, не выдавая ему superadmin, и именно
- * они целевой источник истины.
- *
- * Цена — один индексированный запрос, и только для тех, кому не хватило роли
- * из токена. Обратная сторона быстрого пути: роль в JWT зафиксирована на
- * момент логина, поэтому отзыв прав по нему сработает после перелогина.
+ * Было: строковая роль из JWT сверялась с хардкод-массивом OPERATOR_ROLES
+ * (['superadmin','admin','moderator','support']) — третий, отдельный от
+ * schema-enum и от admin_roles.name словарь ролей (docs/rbac-model.md §1.2).
+ * Заменено на право `aivita:support` из общего каталога (lib/rbac.ts) —
+ * тот же результат сегодня (единственный живой путь, кроме superadmin, всё
+ * равно шёл через 0 строк в admin_user_roles и никогда не срабатывал), но
+ * без отдельного списка ролей, который надо было держать в уме синхронно
+ * с restrictions.
  */
 export const requireOperator = createMiddleware(async (c, next) => {
-  if (OPERATOR_ROLES.includes(c.get('adminRole'))) {
+  if (await hasRight(c.get('adminId'), c.get('adminRole'), 'aivita:support')) {
     await next();
     return;
   }
-
-  const granted = await db
-    .select({ name: adminRoles.name })
-    .from(adminUserRoles)
-    .innerJoin(adminRoles, eq(adminRoles.id, adminUserRoles.roleId))
-    .where(eq(adminUserRoles.userId, c.get('adminId')));
-
-  if (granted.some((r) => OPERATOR_ROLES.includes(r.name))) {
-    await next();
-    return;
-  }
-
   return c.json({ error: 'Forbidden' }, 403);
 });
