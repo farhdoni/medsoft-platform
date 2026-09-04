@@ -6,13 +6,18 @@ import {
 } from '@medsoft/db';
 import { eq, desc, and, gte, lte, count, sql, isNull } from 'drizzle-orm';
 import { createBroadcastNotifications } from '../../lib/notification-service.js';
+import { requireRight } from '../../lib/rbac.js';
 
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, fifth pass):
+// requireRight goes per-route (requireAuth stays router-wide) —
+// marketing:read on every GET, marketing:manage on every mutation
+// (email send, template create/update/delete, push send).
 export const adminMarketingRouter = new Hono();
 adminMarketingRouter.use('*', requireAuth);
 
 // ─── Email campaigns ──────────────────────────────────────────────────────────
 
-adminMarketingRouter.get('/email/campaigns', async (c) => {
+adminMarketingRouter.get('/email/campaigns', requireRight('marketing:read'), async (c) => {
   const { page = '1', limit = '20' } = c.req.query();
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const [rows, total] = await Promise.all([
@@ -25,7 +30,7 @@ adminMarketingRouter.get('/email/campaigns', async (c) => {
   return c.json({ data: rows, total: Number(total[0]?.cnt ?? 0) });
 });
 
-adminMarketingRouter.post('/email/send', async (c) => {
+adminMarketingRouter.post('/email/send', requireRight('marketing:manage'), async (c) => {
   const adminId = c.get('adminId');
   const body = await c.req.json() as {
     subject: string;
@@ -71,18 +76,18 @@ adminMarketingRouter.post('/email/send', async (c) => {
 
 // ─── Email templates ──────────────────────────────────────────────────────────
 
-adminMarketingRouter.get('/email/templates', async (c) => {
+adminMarketingRouter.get('/email/templates', requireRight('marketing:read'), async (c) => {
   const rows = await db.select().from(emailTemplates).orderBy(emailTemplates.id);
   return c.json({ data: rows });
 });
 
-adminMarketingRouter.post('/email/templates', async (c) => {
+adminMarketingRouter.post('/email/templates', requireRight('marketing:manage'), async (c) => {
   const body = await c.req.json() as { name: string; subject: string; body: string };
   const [row] = await db.insert(emailTemplates).values(body).returning();
   return c.json({ data: row }, 201);
 });
 
-adminMarketingRouter.put('/email/templates/:id', async (c) => {
+adminMarketingRouter.put('/email/templates/:id', requireRight('marketing:manage'), async (c) => {
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json() as Partial<{ name: string; subject: string; body: string }>;
   const [row] = await db.update(emailTemplates)
@@ -93,7 +98,7 @@ adminMarketingRouter.put('/email/templates/:id', async (c) => {
   return c.json({ data: row });
 });
 
-adminMarketingRouter.delete('/email/templates/:id', async (c) => {
+adminMarketingRouter.delete('/email/templates/:id', requireRight('marketing:manage'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
   return c.json({ ok: true });
@@ -101,7 +106,7 @@ adminMarketingRouter.delete('/email/templates/:id', async (c) => {
 
 // ─── Push notifications ───────────────────────────────────────────────────────
 
-adminMarketingRouter.get('/push/history', async (c) => {
+adminMarketingRouter.get('/push/history', requireRight('marketing:read'), async (c) => {
   // Reuse notifications broadcast grouping approach
   const { notifications } = await import('@medsoft/db');
   const limit = Math.min(Number(c.req.query('limit') ?? 20), 100);
@@ -120,7 +125,7 @@ adminMarketingRouter.get('/push/history', async (c) => {
   return c.json({ data: rows });
 });
 
-adminMarketingRouter.post('/push/send', async (c) => {
+adminMarketingRouter.post('/push/send', requireRight('marketing:manage'), async (c) => {
   const body = await c.req.json() as {
     title: string;
     body: string;
@@ -143,7 +148,7 @@ adminMarketingRouter.post('/push/send', async (c) => {
 
 // ─── Referral stats ───────────────────────────────────────────────────────────
 
-adminMarketingRouter.get('/referrals', async (c) => {
+adminMarketingRouter.get('/referrals', requireRight('marketing:read'), async (c) => {
   const [totals, topReferrers, dailyChart] = await Promise.all([
     db.select({
       total: count(),
@@ -202,7 +207,7 @@ adminMarketingRouter.get('/referrals', async (c) => {
 
 // ─── Analytics (funnel + retention) ──────────────────────────────────────────
 
-adminMarketingRouter.get('/analytics', async (c) => {
+adminMarketingRouter.get('/analytics', requireRight('marketing:read'), async (c) => {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 

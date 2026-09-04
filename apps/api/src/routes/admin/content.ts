@@ -1,9 +1,15 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { faqItems, platformSettings } from '@medsoft/db';
 import { eq, asc, inArray } from 'drizzle-orm';
 
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, fifth pass):
+// requireRight goes per-route (requireAuth stays router-wide) —
+// content:read on every GET, content:manage on every mutation.
+// publicFaqRouter below is untouched — it's intentionally public
+// (no requireAuth), a different mount (/v1/aivita/faq), out of scope.
 export const adminContentRouter = new Hono();
 adminContentRouter.use('*', requireAuth);
 
@@ -31,7 +37,7 @@ const LANDING_KEYS = [
   'landing_doctors_block',
 ];
 
-adminContentRouter.get('/landing', async (c) => {
+adminContentRouter.get('/landing', requireRight('content:read'), async (c) => {
   const rows = await db.select()
     .from(platformSettings)
     .where(inArray(platformSettings.key, LANDING_KEYS));
@@ -40,7 +46,7 @@ adminContentRouter.get('/landing', async (c) => {
   return c.json({ config });
 });
 
-adminContentRouter.put('/landing', async (c) => {
+adminContentRouter.put('/landing', requireRight('content:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   for (const [key, value] of Object.entries(body)) {
     if (!LANDING_KEYS.includes(key)) continue;
@@ -64,7 +70,7 @@ const SOCIAL_KEYS = [
   'social_youtube',
 ];
 
-adminContentRouter.get('/social', async (c) => {
+adminContentRouter.get('/social', requireRight('content:read'), async (c) => {
   const rows = await db.select()
     .from(platformSettings)
     .where(inArray(platformSettings.key, SOCIAL_KEYS));
@@ -73,7 +79,7 @@ adminContentRouter.get('/social', async (c) => {
   return c.json({ links });
 });
 
-adminContentRouter.put('/social', async (c) => {
+adminContentRouter.put('/social', requireRight('content:manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   for (const [key, value] of Object.entries(body)) {
     if (!SOCIAL_KEYS.includes(key)) continue;
@@ -89,12 +95,12 @@ adminContentRouter.put('/social', async (c) => {
 
 // ─── FAQ management ───────────────────────────────────────────────────────────
 
-adminContentRouter.get('/faq', async (c) => {
+adminContentRouter.get('/faq', requireRight('content:read'), async (c) => {
   const rows = await db.select().from(faqItems).orderBy(asc(faqItems.sortOrder), asc(faqItems.id));
   return c.json({ data: rows });
 });
 
-adminContentRouter.post('/faq', async (c) => {
+adminContentRouter.post('/faq', requireRight('content:manage'), async (c) => {
   const body = await c.req.json() as {
     question: string;
     answer: string;
@@ -111,7 +117,7 @@ adminContentRouter.post('/faq', async (c) => {
   return c.json({ data: row }, 201);
 });
 
-adminContentRouter.put('/faq/:id', async (c) => {
+adminContentRouter.put('/faq/:id', requireRight('content:manage'), async (c) => {
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json() as Partial<{
     question: string; answer: string;
@@ -125,7 +131,7 @@ adminContentRouter.put('/faq/:id', async (c) => {
   return c.json({ data: row });
 });
 
-adminContentRouter.delete('/faq/:id', async (c) => {
+adminContentRouter.delete('/faq/:id', requireRight('content:manage'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.delete(faqItems).where(eq(faqItems.id, id));
   return c.json({ ok: true });

@@ -1,8 +1,17 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { platformSettings, aiUsageLogs } from '@medsoft/db';
 import { eq, desc, gte, lte, and, sql, count, sum, inArray } from 'drizzle-orm';
+
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, fifth pass): no
+// ai:read/ai:manage right exists in the catalog — the AI domain is
+// settings:ai_read/settings:ai_manage, already documented as covering
+// both this settings sub-router AND aiUsageRouter's /logs and
+// /usage-summary below (same domain as the settings themselves, no
+// separate "ai_logs" right exists). requireRight per-route, requireAuth
+// stays router-wide.
 
 // ─── /v1/admin/settings/ai ───────────────────────────────────────────────────
 
@@ -21,7 +30,7 @@ const AI_KEYS = [
   'ai_monthly_limit_per_user',
 ];
 
-aiSettingsRouter.get('/', async (c) => {
+aiSettingsRouter.get('/', requireRight('settings:ai_read'), async (c) => {
   const rows = await db.select()
     .from(platformSettings)
     .where(inArray(platformSettings.key, AI_KEYS));
@@ -30,7 +39,7 @@ aiSettingsRouter.get('/', async (c) => {
   return c.json({ settings });
 });
 
-aiSettingsRouter.put('/', async (c) => {
+aiSettingsRouter.put('/', requireRight('settings:ai_manage'), async (c) => {
   const body = await c.req.json() as Record<string, string>;
   for (const [key, value] of Object.entries(body)) {
     if (!AI_KEYS.includes(key)) continue;
@@ -49,7 +58,7 @@ aiSettingsRouter.put('/', async (c) => {
 export const aiUsageRouter = new Hono();
 aiUsageRouter.use('*', requireAuth);
 
-aiUsageRouter.get('/logs', async (c) => {
+aiUsageRouter.get('/logs', requireRight('settings:ai_read'), async (c) => {
   const { module, model, page = '1', limit = '50', dateFrom, dateTo } = c.req.query();
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -79,7 +88,7 @@ aiUsageRouter.get('/logs', async (c) => {
   });
 });
 
-aiUsageRouter.get('/usage-summary', async (c) => {
+aiUsageRouter.get('/usage-summary', requireRight('settings:ai_read'), async (c) => {
   const { dateFrom, dateTo } = c.req.query();
   const now = new Date();
   const from = dateFrom ? new Date(dateFrom) : new Date(now.getFullYear(), now.getMonth(), 1);
