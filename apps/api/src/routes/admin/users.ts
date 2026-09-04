@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { aivitaUsers, doctorProfiles } from '@medsoft/db';
 import { eq, ilike, or, and, isNull, lte, gt, asc, desc, count } from 'drizzle-orm';
@@ -11,6 +12,13 @@ import bcrypt from 'bcryptjs';
 // users-roles.ts / users-team.ts / users-doctor-verify.ts. This file keeps
 // the aivitaUsers CRUD (users:read/edit/delete). Still mounted at
 // /v1/admin/users, same as the other three — external paths unchanged.
+//
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, third pass):
+// requireRight goes per-route (requireAuth stays router-wide) — users:read
+// on the two GETs, users:edit on the three routes that mutate an existing
+// user without deleting it, users:delete on the soft-delete route. Placed
+// before zValidator in every case, so a bad query/body never leaks past
+// the gate either.
 
 const router = new Hono();
 
@@ -29,7 +37,7 @@ const listSchema = z.object({
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 
-router.get('/', zValidator('query', listSchema), async (c) => {
+router.get('/', requireRight('users:read'), zValidator('query', listSchema), async (c) => {
   try {
     const query = c.req.valid('query');
     const { role, q, tier, status, page, limit, sort, order } = query;
@@ -118,7 +126,7 @@ router.get('/', zValidator('query', listSchema), async (c) => {
 
 // ─── GET /:id ──────────────────────────────────────────────────────────────────
 
-router.get('/:id', async (c) => {
+router.get('/:id', requireRight('users:read'), async (c) => {
   try {
     const id = c.req.param('id');
     const [user] = await db.select({
@@ -175,6 +183,7 @@ router.get('/:id', async (c) => {
 
 router.put(
   '/:id',
+  requireRight('users:edit'),
   zValidator('json', z.object({
     tier: z.string().optional(),
     status: z.enum(['active', 'blocked']).optional(),
@@ -214,7 +223,7 @@ router.put(
 
 // ─── POST /:id/block ───────────────────────────────────────────────────────────
 
-router.post('/:id/block', async (c) => {
+router.post('/:id/block', requireRight('users:edit'), async (c) => {
   try {
     const id = c.req.param('id');
     await db.update(aivitaUsers)
@@ -232,7 +241,7 @@ router.post('/:id/block', async (c) => {
 
 // ─── POST /:id/reset-password ──────────────────────────────────────────────────
 
-router.post('/:id/reset-password', async (c) => {
+router.post('/:id/reset-password', requireRight('users:edit'), async (c) => {
   try {
     const id = c.req.param('id');
     const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -256,7 +265,7 @@ router.post('/:id/reset-password', async (c) => {
 
 // ─── DELETE /:id ───────────────────────────────────────────────────────────────
 
-router.delete('/:id', async (c) => {
+router.delete('/:id', requireRight('users:delete'), async (c) => {
   try {
     const id = c.req.param('id');
     await db.update(aivitaUsers)

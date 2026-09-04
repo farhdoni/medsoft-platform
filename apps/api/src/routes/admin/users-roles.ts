@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireRight } from '../../lib/rbac.js';
 import { db } from '@medsoft/db';
 import { adminRoles } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
@@ -9,13 +10,19 @@ import { eq } from 'drizzle-orm';
 // Split out of admin/users.ts (docs/routes-split-plan.md) — right
 // settings:roles_read/manage. Mounted at the same prefix as before
 // (/v1/admin/users), so external paths are unchanged.
+//
+// docs/rbac-model.md enforcement (feat/rbac-enforce-2, third pass): this
+// file edits the role/right catalog itself, so it's the most sensitive of
+// the three files in this pass — requireRight goes per-route (requireAuth
+// stays router-wide), settings:roles_read on GET, settings:roles_manage on
+// every mutation, before zValidator in every case.
 
 export const usersRolesRouter = new Hono();
 usersRolesRouter.use('*', requireAuth);
 
 // ─── GET /roles ────────────────────────────────────────────────────────────────
 
-usersRolesRouter.get('/roles', async (c) => {
+usersRolesRouter.get('/roles', requireRight('settings:roles_read'), async (c) => {
   try {
     const roles = await db.select().from(adminRoles).orderBy(adminRoles.id);
     return c.json({ data: roles });
@@ -29,6 +36,7 @@ usersRolesRouter.get('/roles', async (c) => {
 
 usersRolesRouter.post(
   '/roles',
+  requireRight('settings:roles_manage'),
   zValidator('json', z.object({
     name: z.string(),
     displayName: z.string(),
@@ -54,6 +62,7 @@ usersRolesRouter.post(
 
 usersRolesRouter.put(
   '/roles/:id',
+  requireRight('settings:roles_manage'),
   zValidator('json', z.object({
     name: z.string().optional(),
     displayName: z.string().optional(),
@@ -83,7 +92,7 @@ usersRolesRouter.put(
 
 // ─── DELETE /roles/:id ─────────────────────────────────────────────────────────
 
-usersRolesRouter.delete('/roles/:id', async (c) => {
+usersRolesRouter.delete('/roles/:id', requireRight('settings:roles_manage'), async (c) => {
   try {
     const id = Number(c.req.param('id'));
     const existing = await db.select().from(adminRoles).where(eq(adminRoles.id, id)).limit(1);
