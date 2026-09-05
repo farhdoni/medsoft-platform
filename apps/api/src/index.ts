@@ -10,6 +10,7 @@ import postgres from 'postgres';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { auth } from './routes/auth.js';
+import { accountRouter } from './routes/account.js';
 import { patientsRouter } from './routes/patients.js';
 import { doctorsRouter } from './routes/doctors.js';
 import { clinicsRouter } from './routes/clinics.js';
@@ -129,6 +130,7 @@ app.use('*', honoLogger());
 app.get('/v1/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 app.route('/v1/auth', auth);
+app.route('/v1/account', accountRouter);
 app.route('/v1/patients', patientsRouter);
 app.route('/v1/doctors', doctorsRouter);
 app.route('/v1/clinics', clinicsRouter);

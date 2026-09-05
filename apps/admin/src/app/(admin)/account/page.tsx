@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   User, Camera, Trash2, Sun, Moon, Monitor, Lock, ShieldCheck,
-  ShieldOff, Languages, Check, Eye, EyeOff,
+  ShieldOff, Languages, Check, Eye, EyeOff, Laptop, LogOut,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,9 +21,18 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useI18n, LOCALES, type Locale } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
+
+type AccountSession = {
+  id: string;
+  device: string;
+  ip: string | null;
+  createdAt: string;
+  isCurrent: boolean;
+};
 
 type AdminMe = {
   id: string;
@@ -286,6 +295,21 @@ export default function AccountPage() {
     if (newPwd !== confirmPwd) { setPwdError(t.errors.pwdMismatch); return; }
     pwdMutation.mutate({ currentPassword: currentPwd, newPassword: newPwd });
   }
+
+  // ── Sessions ─────────────────────────────────────────────────────────────────
+  const { data: sessions } = useQuery<{ data: AccountSession[] }>({
+    queryKey: ['account-sessions'],
+    queryFn: () => api.get('/v1/account/sessions'),
+  });
+
+  const terminateSessionMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/v1/account/sessions/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['account-sessions'] });
+      toast.success('Сессия завершена');
+    },
+    onError: () => toast.error('Ошибка'),
+  });
 
   const displayAvatar = avatarPreview ?? avatarUrl ?? me?.avatarUrl;
 
@@ -636,6 +660,47 @@ export default function AccountPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── ACTIVE SESSIONS ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Laptop className="h-4 w-4" />
+            Активные сессии
+          </CardTitle>
+          <CardDescription>Устройства, с которых выполнен вход в аккаунт</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(sessions?.data ?? []).map((s) => (
+            <div key={s.id} className="rounded-xl border p-4 flex items-center gap-4">
+              <Laptop className="h-6 w-6 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm flex items-center gap-2">
+                  {s.device}
+                  {s.isCurrent && <Badge variant="outline" className="text-xs">это устройство</Badge>}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {s.ip ?? '—'} · вход {formatDate(s.createdAt)}
+                </p>
+              </div>
+              {!s.isCurrent && (
+                <Button
+                  variant="outline" size="sm"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/5 shrink-0"
+                  onClick={() => terminateSessionMutation.mutate(s.id)}
+                  disabled={terminateSessionMutation.isPending}
+                >
+                  <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                  Завершить
+                </Button>
+              )}
+            </div>
+          ))}
+          {sessions && sessions.data.length === 0 && (
+            <p className="text-sm text-muted-foreground">Активных сессий не найдено</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

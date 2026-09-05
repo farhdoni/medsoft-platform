@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { Activity, Ban } from 'lucide-react';
+import { Activity, Ban, Laptop } from 'lucide-react';
 
 const tabs = [
   { href: '/security/auth-logs', label: 'Журнал входов', icon: Activity },
   { href: '/security/blocked-ips', label: 'Блокировки IP', icon: Ban },
+  { href: '/security/sessions', label: 'Сессии команды', icon: Laptop },
 ];
 
 export default function SecurityLayout({ children }: { children: React.ReactNode }) {
