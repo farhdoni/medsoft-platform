@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRight } from '../../lib/rbac.js';
+import { auditLog } from '../aivita-admin-audit.js';
 import { db } from '@medsoft/db';
 import {
   payments, subscriptions, subscriptionPlans, aivitaUsers, promoCodes,
@@ -362,6 +363,15 @@ adminFinanceRouter.post('/payments/:id/refund', requireRight('finance:edit'), as
       metadata: { ...(existing.metadata ?? {}), refundReason: reason, refundedAt: new Date().toISOString() },
     })
     .where(eq(payments.id, id));
+
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'refund', 'payment', null, {
+    paymentId: id,
+    amount: existing.amount,
+    oldStatus: existing.status,
+    newStatus: 'refunded',
+  }, c.req);
+
   return c.json({ success: true });
 });
 
@@ -490,23 +500,57 @@ adminFinanceRouter.post('/promo-codes', requireRight('finance:edit'), async (c) 
     planSlugs: body.planSlugs ?? [],
     isActive: true,
   }).returning();
+
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'create', 'promo_code', null, { promoCodeId: promo.id, ...body }, c.req);
+
   return c.json({ data: promo });
 });
 
 adminFinanceRouter.patch('/promo-codes/:id', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json() as Partial<{ isActive: boolean; maxUses: number; validUntil: string }>;
+
+  const [existing] = await db.select().from(promoCodes).where(eq(promoCodes.id, id)).limit(1);
+  if (!existing) return c.json({ error: 'Promo code not found' }, 404);
+
   await db.update(promoCodes).set({
     ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
     ...(body.maxUses !== undefined ? { maxUses: body.maxUses } : {}),
     ...(body.validUntil ? { validUntil: new Date(body.validUntil) } : {}),
   }).where(eq(promoCodes.id, id));
+
+  const changes: Record<string, unknown> = { promoCodeId: id };
+  if (body.isActive !== undefined && body.isActive !== existing.isActive) {
+    changes.oldIsActive = existing.isActive;
+    changes.newIsActive = body.isActive;
+  }
+  if (body.maxUses !== undefined && body.maxUses !== existing.maxUses) {
+    changes.oldMaxUses = existing.maxUses;
+    changes.newMaxUses = body.maxUses;
+  }
+  if (body.validUntil && new Date(body.validUntil).getTime() !== existing.validUntil?.getTime()) {
+    changes.oldValidUntil = existing.validUntil;
+    changes.newValidUntil = body.validUntil;
+  }
+
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'update', 'promo_code', null, changes, c.req);
+
   return c.json({ success: true });
 });
 
 adminFinanceRouter.delete('/promo-codes/:id', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
+
+  const [existing] = await db.select().from(promoCodes).where(eq(promoCodes.id, id)).limit(1);
+  if (!existing) return c.json({ error: 'Promo code not found' }, 404);
+
   await db.update(promoCodes).set({ isActive: false }).where(eq(promoCodes.id, id));
+
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'delete', 'promo_code', null, { promoCodeId: id, snapshot: existing }, c.req);
+
   return c.json({ success: true });
 });
 

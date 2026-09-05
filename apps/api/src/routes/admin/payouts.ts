@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRight } from '../../lib/rbac.js';
+import { auditLog } from '../aivita-admin-audit.js';
 import { db } from '@medsoft/db';
 import { doctorPayouts, pharmacyPayouts, payments, aivitaUsers, doctorPayoutSettings } from '@medsoft/db';
 import { eq, desc, and, sql, gte, lte } from 'drizzle-orm';
@@ -124,6 +125,12 @@ adminPayoutsRouter.post('/doctors/generate', requireRight('finance:edit'), async
     created.push(payout);
   }
 
+  const totalAmount = created.reduce((sum, p) => sum + p.amount, 0);
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'generate', 'payout_batch', null, {
+    type: 'doctors', period, count: created.length, totalAmount,
+  }, c.req);
+
   return c.json({ created, count: created.length });
 });
 
@@ -131,9 +138,17 @@ adminPayoutsRouter.post('/doctors/generate', requireRight('finance:edit'), async
 
 adminPayoutsRouter.post('/doctors/:id/mark-paid', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
+
+  const [existing] = await db.select().from(doctorPayouts).where(eq(doctorPayouts.id, id)).limit(1);
+  if (!existing) return c.json({ error: 'Payout not found' }, 404);
+
   await db.update(doctorPayouts)
     .set({ status: 'completed', paidAt: new Date() })
     .where(eq(doctorPayouts.id, id));
+
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'mark_paid', 'payout', null, { payoutId: id, amount: existing.amount }, c.req);
+
   return c.json({ success: true });
 });
 
@@ -191,6 +206,11 @@ adminPayoutsRouter.post('/pharmacies/generate', requireRight('finance:edit'), as
     status: 'pending',
   }).returning();
 
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'generate', 'payout_batch', null, {
+    type: 'pharmacies', period, count: 1, totalAmount: amount, pharmacyId,
+  }, c.req);
+
   return c.json({ data: payout });
 });
 
@@ -198,8 +218,16 @@ adminPayoutsRouter.post('/pharmacies/generate', requireRight('finance:edit'), as
 
 adminPayoutsRouter.post('/pharmacies/:id/mark-paid', requireRight('finance:edit'), async (c) => {
   const id = parseInt(c.req.param('id'));
+
+  const [existing] = await db.select().from(pharmacyPayouts).where(eq(pharmacyPayouts.id, id)).limit(1);
+  if (!existing) return c.json({ error: 'Payout not found' }, 404);
+
   await db.update(pharmacyPayouts)
     .set({ status: 'completed', paidAt: new Date() })
     .where(eq(pharmacyPayouts.id, id));
+
+  const adminId = c.get('adminId');
+  await auditLog(adminId, 'mark_paid', 'payout', null, { payoutId: id, amount: existing.amount }, c.req);
+
   return c.json({ success: true });
 });

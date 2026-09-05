@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRight } from '../../lib/rbac.js';
 import { wouldOrphanSuperadmins } from '../../lib/team-guard.js';
+import { auditLog } from '../aivita-admin-audit.js';
 import { db } from '@medsoft/db';
 import { adminRoles, adminUserRoles, adminUsers, adminSessions } from '@medsoft/db';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -177,6 +178,12 @@ usersTeamRouter.patch(
         .limit(1);
       if (!newRole) return c.json({ error: 'Роль не найдена' }, 400);
 
+      const [oldAssignment] = await db.select({ roleId: adminUserRoles.roleId, roleName: adminRoles.name })
+        .from(adminUserRoles)
+        .innerJoin(adminRoles, eq(adminRoles.id, adminUserRoles.roleId))
+        .where(eq(adminUserRoles.userId, targetId))
+        .limit(1);
+
       const activeSuperadmins = await getActiveSuperadminIds();
       if (wouldOrphanSuperadmins(activeSuperadmins, targetId, newRole.name === 'superadmin')) {
         return c.json({
@@ -196,6 +203,13 @@ usersTeamRouter.patch(
       });
 
       await revokeActiveSessions(targetId);
+
+      await auditLog(selfId, 'role_change', 'admin_user', targetId, {
+        oldRoleId: oldAssignment?.roleId ?? null,
+        oldRoleName: oldAssignment?.roleName ?? null,
+        newRoleId: newRole.id,
+        newRoleName: newRole.name,
+      }, c.req);
 
       return c.json({ ok: true });
     } catch (err) {
@@ -238,6 +252,11 @@ usersTeamRouter.patch(
         .where(eq(adminUsers.id, targetId));
 
       if (!isActive) await revokeActiveSessions(targetId);
+
+      await auditLog(selfId, isActive ? 'activate' : 'deactivate', 'admin_user', targetId, {
+        oldActive: target.isActive,
+        newActive: isActive,
+      }, c.req);
 
       return c.json({ ok: true });
     } catch (err) {
