@@ -22,7 +22,13 @@ export const adminUsers = pgTable('admin_users', {
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: timestamp('locked_until', { withTimezone: true }),
 
-  // Legacy TOTP fields — kept for safe rollback, no longer used in auth flow
+  // TOTP 2FA — actively used, not legacy: apps/api/src/routes/auth.ts's
+  // /login checks totpSecret + totpActivatedAt on every login for anyone
+  // who has enabled it (routes/auth.ts's /2fa/setup + /2fa/confirm), and
+  // /2fa/disable clears both. backupCodesHash/backupCodesUsedCount below
+  // are the exception — those two really are unused: no generate/verify
+  // flow exists anywhere, so losing the authenticator device today has no
+  // self-service recovery path (password reset doesn't touch TOTP).
   totpSecret: text('totp_secret'),
   totpActivatedAt: timestamp('totp_activated_at', { withTimezone: true }),
   backupCodesHash: text('backup_codes_hash').array(),
