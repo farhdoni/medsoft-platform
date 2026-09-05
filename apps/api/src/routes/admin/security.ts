@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRight } from '../../lib/rbac.js';
+import { describeUserAgent } from '../../lib/user-agent.js';
 import { db } from '@medsoft/db';
-import { authLogs, blockedIps } from '@medsoft/db';
+import { authLogs, blockedIps, adminSessions, adminUsers } from '@medsoft/db';
 import { eq, desc, gte, lte, and, or, gt, isNull, count } from 'drizzle-orm';
 
 // docs/rbac-model.md enforcement (feat/rbac-enforce-2): this file carries
@@ -83,5 +84,48 @@ adminSecurityRouter.post('/blocked-ips', requireRight('security:manage'), async 
 adminSecurityRouter.delete('/blocked-ips/:id', requireRight('security:manage'), async (c) => {
   const id = parseInt(c.req.param('id'));
   await db.delete(blockedIps).where(eq(blockedIps.id, id));
+  return c.json({ ok: true });
+});
+
+// ─── GET /sessions ──────────────────────────────────────────────────────────────
+
+adminSecurityRouter.get('/sessions', requireRight('security:read'), async (c) => {
+  const rows = await db.select({
+    id: adminSessions.id,
+    userAgent: adminSessions.userAgent,
+    ipAddress: adminSessions.ipAddress,
+    createdAt: adminSessions.createdAt,
+    email: adminUsers.email,
+    fullName: adminUsers.fullName,
+    role: adminUsers.role,
+  })
+    .from(adminSessions)
+    .innerJoin(adminUsers, eq(adminUsers.id, adminSessions.adminUserId))
+    .where(and(
+      gt(adminSessions.expiresAt, new Date()),
+      isNull(adminSessions.revokedAt),
+    ))
+    .orderBy(desc(adminSessions.createdAt));
+
+  return c.json({
+    data: rows.map((s) => ({
+      id: s.id,
+      email: s.email,
+      fullName: s.fullName,
+      role: s.role,
+      device: describeUserAgent(s.userAgent),
+      ip: s.ipAddress,
+      createdAt: s.createdAt,
+    })),
+  });
+});
+
+// ─── DELETE /sessions/:id ───────────────────────────────────────────────────────
+
+adminSecurityRouter.delete('/sessions/:id', requireRight('security:manage'), async (c) => {
+  const id = c.req.param('id');
+  await db.update(adminSessions)
+    .set({ revokedAt: new Date() })
+    .where(eq(adminSessions.id, id));
   return c.json({ ok: true });
 });
