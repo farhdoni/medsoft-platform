@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,13 @@ type AdminUser = {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  // From the admin_user_roles join — the real assignment, not the legacy
+  // admin_users.role enum. Null for an admin that was never assigned one
+  // (shouldn't happen for anyone created through invite, but the enum-only
+  // legacy accounts predate that).
+  roleId: number | null;
+  roleName: string | null;
+  roleDisplayName: string | null;
 };
 
 // The 8 real, assignable roles (is_deprecated = false) — same endpoint the
@@ -83,6 +91,12 @@ export default function TeamPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [form, setForm] = useState<InviteForm>(defaultInviteForm());
 
+  const { data: meData } = useQuery<{ id: string }>({
+    queryKey: ['auth-me'],
+    queryFn: () => api.get('/v1/auth/me'),
+  });
+  const currentAdminId = meData?.id;
+
   const { data, isLoading } = useQuery<{ data: AdminUser[] }>({
     queryKey: ['admin-team'],
     queryFn: () => api.get('/v1/admin/users/team'),
@@ -97,14 +111,24 @@ export default function TeamPage() {
 
   const assignableRoles = rolesData?.data ?? [];
 
+  const roleChangeMutation = useMutation({
+    mutationFn: ({ id, roleId }: { id: string; roleId: number }) =>
+      api.patch(`/v1/admin/users/team/${id}/role`, { roleId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-team'] });
+      toast.success('Роль обновлена');
+    },
+    onError: (err: Error) => toast.error(err.message || 'Ошибка при смене роли'),
+  });
+
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      api.patch(`/v1/admins/${id}`, { isActive }),
+      api.patch(`/v1/admin/users/team/${id}/active`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-team'] });
       toast.success('Статус обновлён');
     },
-    onError: () => toast.error('Ошибка при обновлении статуса'),
+    onError: (err: Error) => toast.error(err.message || 'Ошибка при обновлении статуса'),
   });
 
   const inviteMutation = useMutation({
@@ -153,62 +177,80 @@ export default function TeamPage() {
                 <th className="text-left px-4 py-3 font-medium">Статус</th>
                 <th className="text-left px-4 py-3 font-medium">Последний вход</th>
                 <th className="text-left px-4 py-3 font-medium">Дата создания</th>
-                <th className="text-left px-4 py-3 font-medium">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {admins.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                     Нет администраторов
                   </td>
                 </tr>
               ) : (
-                admins.map((admin) => (
-                  <tr key={admin.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-medium">{admin.fullName}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{admin.email}</td>
-                    <td className="px-4 py-3">
-                      <RoleBadge role={admin.role} />
-                    </td>
-                    <td className="px-4 py-3">
-                      {admin.isActive ? (
-                        <Badge variant="success">Активен</Badge>
-                      ) : (
-                        <Badge variant="secondary">Неактивен</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {admin.lastLoginAt ? formatDate(admin.lastLoginAt) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {formatDate(admin.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {admin.isActive ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          disabled={toggleActiveMutation.isPending}
-                          onClick={() => toggleActiveMutation.mutate({ id: admin.id, isActive: false })}
-                        >
-                          Деактивировать
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          disabled={toggleActiveMutation.isPending}
-                          onClick={() => toggleActiveMutation.mutate({ id: admin.id, isActive: true })}
-                        >
-                          Активировать
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                admins.map((admin) => {
+                  const isSelf = admin.id === currentAdminId;
+                  return (
+                    <tr key={admin.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 font-medium">
+                        {admin.fullName}
+                        {isSelf && <span className="text-muted-foreground font-normal"> (вы)</span>}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{admin.email}</td>
+                      <td className="px-4 py-3">
+                        {isSelf ? (
+                          admin.roleDisplayName ?? <RoleBadge role={admin.role} />
+                        ) : (
+                          <Select
+                            value={admin.roleId ? String(admin.roleId) : undefined}
+                            onValueChange={(val) =>
+                              roleChangeMutation.mutate({ id: admin.id, roleId: Number(val) })
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[190px] text-xs">
+                              <SelectValue placeholder="Роль не назначена">
+                                {admin.roleDisplayName ?? 'Роль не назначена'}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {assignableRoles.map((role) => (
+                                <SelectItem key={role.id} value={String(role.id)}>
+                                  {role.displayName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {isSelf ? (
+                          admin.isActive ? (
+                            <Badge variant="success">Активен</Badge>
+                          ) : (
+                            <Badge variant="secondary">Неактивен</Badge>
+                          )
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={admin.isActive}
+                              onCheckedChange={(checked) =>
+                                toggleActiveMutation.mutate({ id: admin.id, isActive: checked })
+                              }
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {admin.isActive ? 'Активен' : 'Неактивен'}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {admin.lastLoginAt ? formatDate(admin.lastLoginAt) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {formatDate(admin.createdAt)}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
