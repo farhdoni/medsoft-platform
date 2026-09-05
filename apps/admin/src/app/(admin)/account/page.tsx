@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   User, Camera, Trash2, Sun, Moon, Monitor, Lock, ShieldCheck,
   ShieldOff, Languages, Check, Eye, EyeOff,
@@ -12,6 +13,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { useI18n, LOCALES, type Locale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -130,6 +139,71 @@ export default function AccountPage() {
   const { data: twoFaStatus } = useQuery<{ enabled: boolean }>({
     queryKey: ['2fa-status'],
     queryFn: () => api.get('/v1/auth/2fa/status'),
+  });
+
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupData, setSetupData] = useState<{ secret: string; otpauthUrl: string } | null>(null);
+  const [setupCode, setSetupCode] = useState('');
+  const [setupError, setSetupError] = useState('');
+
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const [disableError, setDisableError] = useState('');
+
+  function closeSetup() {
+    setSetupOpen(false);
+    setSetupData(null);
+    setSetupCode('');
+    setSetupError('');
+  }
+
+  function closeDisable() {
+    setDisableOpen(false);
+    setDisableCode('');
+    setDisableError('');
+  }
+
+  const setupStartMutation = useMutation({
+    mutationFn: () => api.post<{ secret: string; otpauthUrl: string }>('/v1/auth/2fa/setup'),
+    onSuccess: (data) => {
+      setSetupData(data);
+      setSetupCode('');
+      setSetupError('');
+      setSetupOpen(true);
+    },
+    onError: (err: Error) => toast.error(err.message || 'Не удалось начать настройку 2FA'),
+  });
+
+  const setupConfirmMutation = useMutation({
+    mutationFn: (token: string) => api.post('/v1/auth/2fa/confirm', { token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['2fa-status'] });
+      toast.success('Двухфакторная аутентификация включена');
+      closeSetup();
+    },
+    onError: (err: Error) => {
+      setSetupError(
+        err.message?.includes('Invalid code')
+          ? 'Неверный код. Проверьте время на устройстве и попробуйте снова.'
+          : 'Не удалось подтвердить код'
+      );
+    },
+  });
+
+  const disableMutation = useMutation({
+    mutationFn: (token: string) => api.post('/v1/auth/2fa/disable', { token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['2fa-status'] });
+      toast.success('Двухфакторная аутентификация отключена');
+      closeDisable();
+    },
+    onError: (err: Error) => {
+      setDisableError(
+        err.message?.includes('Invalid code')
+          ? 'Неверный код. Попробуйте снова.'
+          : 'Не удалось отключить 2FA'
+      );
+    },
   });
 
   // ── Avatar upload ─────────────────────────────────────────────────────────────
@@ -426,18 +500,142 @@ export default function AccountPage() {
             </div>
             {twoFaStatus?.enabled
               ? (
-                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/5 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/5 shrink-0"
+                  onClick={() => setDisableOpen(true)}
+                >
                   {t.account.disable2fa}
                 </Button>
               )
               : (
-                <Button variant="outline" size="sm" className="shrink-0">
-                  {t.account.setup2fa}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => setupStartMutation.mutate()}
+                  disabled={setupStartMutation.isPending}
+                >
+                  {setupStartMutation.isPending ? 'Загрузка...' : t.account.setup2fa}
                 </Button>
               )}
           </div>
         </CardContent>
       </Card>
+
+      {/* ── 2FA setup dialog ── */}
+      <Dialog open={setupOpen} onOpenChange={(open) => { if (!open) closeSetup(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Настройка двухфакторной аутентификации</DialogTitle>
+            <DialogDescription>
+              Отсканируйте QR-код приложением-аутентификатором (Google Authenticator, Authy и т.п.)
+              или введите секрет вручную.
+            </DialogDescription>
+          </DialogHeader>
+          {setupData && (
+            <div className="space-y-4 py-2">
+              <div className="flex justify-center">
+                <div className="rounded-lg border p-3 bg-white">
+                  <QRCodeSVG value={setupData.otpauthUrl} size={180} level="M" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="setup2faSecret">Секрет (если QR не сканируется)</Label>
+                <Input
+                  id="setup2faSecret"
+                  readOnly
+                  value={setupData.secret}
+                  className="font-mono text-xs"
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="setup2faCode">Код из приложения (6 цифр)</Label>
+                <Input
+                  id="setup2faCode"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={setupCode}
+                  onChange={(e) => {
+                    setSetupCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                    setSetupError('');
+                  }}
+                  className="text-center text-xl tracking-widest font-mono"
+                  autoFocus
+                />
+              </div>
+              {setupError && (
+                <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                  {setupError}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={closeSetup}>
+              Отмена
+            </Button>
+            <Button
+              onClick={() => setupConfirmMutation.mutate(setupCode)}
+              disabled={setupConfirmMutation.isPending || setupCode.length !== 6}
+            >
+              {setupConfirmMutation.isPending ? 'Проверяю...' : 'Подтвердить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 2FA disable dialog ── */}
+      <Dialog open={disableOpen} onOpenChange={(open) => { if (!open) closeDisable(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Отключить двухфакторную аутентификацию</DialogTitle>
+            <DialogDescription>
+              Введите текущий код из приложения-аутентификатора, чтобы подтвердить отключение.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="disable2faCode">Код из приложения (6 цифр)</Label>
+              <Input
+                id="disable2faCode"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                placeholder="123456"
+                value={disableCode}
+                onChange={(e) => {
+                  setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  setDisableError('');
+                }}
+                className="text-center text-xl tracking-widest font-mono"
+                autoFocus
+              />
+            </div>
+            {disableError && (
+              <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                {disableError}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDisable}>
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => disableMutation.mutate(disableCode)}
+              disabled={disableMutation.isPending || disableCode.length !== 6}
+            >
+              {disableMutation.isPending ? 'Отключаю...' : 'Отключить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
