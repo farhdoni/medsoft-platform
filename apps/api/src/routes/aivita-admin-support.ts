@@ -132,6 +132,19 @@ r.get('/conversations/:id/messages', async (c) => {
   const ticket = await ensureTicket(conversationId);
   if (!ticket) return c.json({ error: 'Ticket not found' }, 404);
 
+  // Тот же counterpartOf, что уже используют transfer/status — не гадать по
+  // тому, кто написал первым/последним (это ломалось, когда первым писал
+  // пациент — обычный случай), а явно исключить служебный аккаунт @aivita.
+  const support = await getSupportUser();
+  const partnerUserId = support ? await counterpartOf(conversationId, support.id) : null;
+  const [partner] = partnerUserId
+    ? await db
+        .select({ id: aivitaUsers.id, name: aivitaUsers.name, nickname: aivitaUsers.nickname })
+        .from(aivitaUsers)
+        .where(eq(aivitaUsers.id, partnerUserId))
+        .limit(1)
+    : [];
+
   const rows = await db
     .select({
       id: messages.id,
@@ -154,6 +167,7 @@ r.get('/conversations/:id/messages', async (c) => {
   return c.json({
     data: {
       ticket,
+      partner: partner ?? null,
       messages: rows,
       // Заметки отдаются ТОЛЬКО здесь, в админской выдаче. В пользовательский
       // ответ они не попадают ни при каких условиях: они лежат в отдельной

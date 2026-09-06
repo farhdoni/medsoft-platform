@@ -44,6 +44,7 @@ type Msg = { id: string; senderId: string; content: string | null; type: string;
 type Note = { id: string; operatorId: string | null; text: string; createdAt: string };
 type ThreadData = {
   ticket: { id: string; status: string; assignedOperatorId: string | null; rating: number | null };
+  partner: { id: string; name: string | null; nickname: string | null } | null;
   messages: Msg[];
   notes: Note[];
 };
@@ -151,19 +152,16 @@ export default function SupportPage() {
 
   const partner = list.data?.data.find((t) => t.conversationId === selected) ?? null;
 
-  /** Собеседник — единственный отправитель в треде, который не поддержка. */
-  const partnerId = useMemo(() => {
-    const msgs = thread.data?.messages ?? [];
-    const supportIds = new Set(msgs.map((m) => m.senderId));
-    // Сообщения поддержки идут от @aivita; их id один и тот же во всём треде.
-    // Берём первого отправителя, который не совпадает с автором последнего
-    // сообщения оператора — надёжнее спросить карточку по нему.
-    const first = msgs.find((m) => m.senderId);
-    if (!first) return null;
-    const distinct = [...supportIds];
-    if (distinct.length < 2) return null;
-    return distinct.find((id) => id !== first.senderId) ?? distinct[0];
-  }, [thread.data]);
+  /**
+   * Собеседник — участник диалога, который не служебный аккаунт @aivita.
+   * Раньше это угадывалось по тому, кто написал первое сообщение — ломалось
+   * ровно в самом частом случае (пациент пишет первым: тогда «первый
+   * отправитель» и есть пациент, а искали «любого другого», получая бота).
+   * Теперь id приходит с бэкенда (`thread.data.partner`), который резолвит
+   * его тем же counterpartOf, что уже используют transfer/status — участник
+   * диалога, исключая support.id, независимо от порядка сообщений.
+   */
+  const partnerId = thread.data?.partner?.id ?? null;
 
   const card = useQuery({
     queryKey: ['support-card', partnerId],
@@ -172,17 +170,16 @@ export default function SupportPage() {
   });
 
   /**
-   * Шапка треда предпочитает `partner` (из списка текущей очереди — уже
-   * готовые name/nick, без лишнего запроса), но им нельзя ограничиваться:
-   * `list` фильтруется по активной очереди, и тикет, реально открытый в
-   * `selected`, может из неё выпасть (сменили вкладку, тикет закрыли/
-   * переназначили фоновым поллингом). `card` же, как и `thread`, читается
-   * по partnerId по одному и тому же ID независимо от очереди — этого
-   * достаточно, чтобы шапка не проваливалась в заглушку «? Пользователь»
-   * для реально открытого треда.
+   * Шапка треда предпочитает `thread.data.partner` (тот же надёжный ID, что
+   * и partnerId выше), затем `partner` из списка текущей очереди, затем
+   * `card` — так шапка не проваливается в заглушку «? Пользователь», даже
+   * если тикет уже выпал из списка активной очереди (сменили вкладку,
+   * закрыли/переназначили фоновым поллингом) или карточка ещё грузится.
    */
-  const contactName = partner?.name ?? card.data?.name ?? null;
-  const contactNick = partner?.nick ?? (card.data?.nickname ? `@${card.data.nickname}` : null);
+  const contactName = thread.data?.partner?.name ?? partner?.name ?? card.data?.name ?? null;
+  const contactNick = thread.data?.partner?.nickname
+    ? `@${thread.data.partner.nickname}`
+    : partner?.nick ?? (card.data?.nickname ? `@${card.data.nickname}` : null);
 
   // ── Уведомления оператору ───────────────────────────────────────────────
   const waiting = counts.data?.unassigned ?? 0;
