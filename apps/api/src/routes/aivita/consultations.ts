@@ -129,20 +129,20 @@ aivitaConsultationsRouter.post('/invoices/:id/pay', async (c) => {
     return c.json({ error: 'Payment failed', payment }, 402);
   }
 
-  await db.update(payments).set({
+  const [completedPayment] = await db.update(payments).set({
     status: 'completed',
     completedAt: new Date(),
     providerTransactionId: result.transactionId ?? null,
-  }).where(eq(payments.id, payment.id));
+  }).where(eq(payments.id, payment.id)).returning();
 
-  await markInvoicePaidForPayment(payment);
+  await markInvoicePaidForPayment(completedPayment);
 
   const [paidInvoice] = await db.select().from(consultationInvoices)
     .where(eq(consultationInvoices.id, invoice.id)).limit(1);
 
   return c.json({
     data: {
-      payment: { ...payment, status: 'completed' },
+      payment: completedPayment,
       invoice: paidInvoice ?? invoice,
     },
   });
