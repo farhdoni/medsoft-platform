@@ -171,6 +171,19 @@ export default function SupportPage() {
     enabled: !!partnerId,
   });
 
+  /**
+   * Шапка треда предпочитает `partner` (из списка текущей очереди — уже
+   * готовые name/nick, без лишнего запроса), но им нельзя ограничиваться:
+   * `list` фильтруется по активной очереди, и тикет, реально открытый в
+   * `selected`, может из неё выпасть (сменили вкладку, тикет закрыли/
+   * переназначили фоновым поллингом). `card` же, как и `thread`, читается
+   * по partnerId по одному и тому же ID независимо от очереди — этого
+   * достаточно, чтобы шапка не проваливалась в заглушку «? Пользователь»
+   * для реально открытого треда.
+   */
+  const contactName = partner?.name ?? card.data?.name ?? null;
+  const contactNick = partner?.nick ?? (card.data?.nickname ? `@${card.data.nickname}` : null);
+
   // ── Уведомления оператору ───────────────────────────────────────────────
   const waiting = counts.data?.unassigned ?? 0;
 
@@ -469,7 +482,16 @@ export default function SupportPage() {
                 <button
                   key={q.key}
                   type="button"
-                  onClick={() => setQueue(q.key)}
+                  onClick={() => {
+                    // Мои/Нераспределённые/Архив — взаимоисключающие срезы по
+                    // (status, assignedOperatorId): выбранный тикет физически
+                    // не может остаться в списке новой очереди. Не сбрасывая
+                    // selected здесь, правая панель держала старый тред и
+                    // тёрла контакта в шапке — это и был баг.
+                    setQueue(q.key);
+                    setSelected(null);
+                    setMobileThread(false);
+                  }}
                   className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-[.74rem] font-bold ${
                     queue === q.key ? 'border-[#2a2540] bg-[#2a2540] text-white' : 'border-[#e8e4dc] bg-[#faf9f5] text-[#6a6580]'
                   }`}
@@ -549,11 +571,11 @@ export default function SupportPage() {
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-[#7d6b9e] text-xs font-extrabold text-white">
-                    {(partner?.name ?? '?').slice(0, 2).toUpperCase()}
+                    {(contactName ?? '?').slice(0, 2).toUpperCase()}
                   </span>
                   <span>
-                    <b className="text-[.95rem]">{partner?.name ?? 'Пользователь'}</b>
-                    {partner?.nick && <small className="block text-[.7rem] font-bold text-[#9c5e6c]">{partner.nick}</small>}
+                    <b className="text-[.95rem]">{contactName ?? 'Пользователь'}</b>
+                    {contactNick && <small className="block text-[.7rem] font-bold text-[#9c5e6c]">{contactNick}</small>}
                   </span>
                   <div className="ml-auto flex flex-wrap gap-1.5">
                     {partner && !partner.assignedOperatorId && partner.status === 'open' && (
