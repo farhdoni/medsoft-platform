@@ -22,6 +22,7 @@ import { recorderErrorText } from '@/components/messenger/voice-copy';
 import { dayKey, displayName, formatBubbleTime, formatDayLabel } from '@/components/messenger/format';
 import type {
   ApiEnvelope,
+  ConsultationInvoice,
   GifItem,
   MessengerConversation,
   MessengerMessage,
@@ -69,10 +70,12 @@ export function ThreadClient({
   locale,
   conversationId,
   meId,
+  meRole,
 }: {
   locale: string;
   conversationId: string;
   meId: string;
+  meRole?: 'patient' | 'doctor' | 'admin';
 }) {
   const router = useRouter();
   const recorder = useVoiceRecorder();
@@ -103,6 +106,12 @@ export function ThreadClient({
   const [attachOpen, setAttachOpen] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [invoiceNote, setInvoiceNote] = useState('');
+  const [invoiceSubmitting, setInvoiceSubmitting] = useState(false);
+  const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -444,6 +453,97 @@ export function ThreadClient({
     });
   }
 
+  /** Only a doctor talking to a patient (never another doctor, never support). */
+  const canInvoice = meRole === 'doctor' && !!partner && partner.role === 'patient' && !isSupportUser(partner);
+
+  async function openInvoiceModal() {
+    setInvoiceModalOpen(true);
+    if (invoiceAmount) return;
+    try {
+      const res = await fetch(`${PROXY}/doctor/profile`);
+      if (!res.ok) return;
+      const json = (await res.json()) as ApiEnvelope<{ consultationPrice?: number }>;
+      if (json.data?.consultationPrice) setInvoiceAmount(String(json.data.consultationPrice));
+    } catch { /* leave blank — the doctor can type it in */ }
+  }
+
+  async function submitInvoice() {
+    const amount = parseInt(invoiceAmount, 10);
+    if (!amount || amount <= 0 || invoiceSubmitting) return;
+    setInvoiceSubmitting(true);
+    try {
+      const res = await fetch(`${PROXY}/messaging/conversations/${conversationId}/invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, ...(invoiceNote.trim() ? { note: invoiceNote.trim() } : {}) }),
+      });
+      const json = (await res.json()) as ApiEnvelope<MessengerMessage> & { error?: string };
+      if (!res.ok) {
+        setNotice('Не удалось отправить счёт');
+        return;
+      }
+      if (json.data) {
+        setMessages((prev) => [...prev, json.data]);
+        stickToBottom.current = true;
+      }
+      setInvoiceModalOpen(false);
+      setInvoiceNote('');
+    } catch {
+      setNotice('Сеть недоступна');
+    } finally {
+      setInvoiceSubmitting(false);
+    }
+  }
+
+  async function payInvoice(invoiceId: string) {
+    if (payingInvoiceId) return;
+    setPayingInvoiceId(invoiceId);
+    try {
+      const res = await fetch(`${PROXY}/consultations/invoices/${invoiceId}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const json = (await res.json()) as ApiEnvelope<{
+        payment?: unknown;
+        invoice?: ConsultationInvoice;
+        checkoutUrl?: string;
+        requiresRedirect?: boolean;
+      }> & { error?: string };
+      if (!res.ok) {
+        setNotice(payErrorText(res.status));
+        return;
+      }
+      if (json.data?.requiresRedirect && json.data.checkoutUrl) {
+        window.location.href = json.data.checkoutUrl;
+        return;
+      }
+      if (json.data?.invoice) {
+        const paid = json.data.invoice;
+        setMessages((prev) => prev.map((m) => (m.invoice?.id === invoiceId ? { ...m, invoice: paid } : m)));
+        setNotice('Оплата прошла успешно');
+      }
+    } catch {
+      setNotice('Сеть недоступна');
+    } finally {
+      setPayingInvoiceId(null);
+    }
+  }
+
+  async function cancelInvoice(invoiceId: string) {
+    const before = messages;
+    setMessages((prev) =>
+      prev.map((m) => (m.invoice?.id === invoiceId ? { ...m, invoice: { ...m.invoice!, status: 'cancelled' } } : m)),
+    );
+    try {
+      const res = await fetch(`${PROXY}/consultations/invoices/${invoiceId}/cancel`, { method: 'POST' });
+      if (!res.ok) throw new Error('cancel failed');
+    } catch {
+      setMessages(before);
+      setNotice('Не удалось отменить счёт');
+    }
+  }
+
   /** Soft-deletes one of my own messages; the API refuses anyone else’s. */
   async function deleteMessage(messageId: string) {
     setConfirmDelete(null);
@@ -757,6 +857,55 @@ export function ThreadClient({
                             </div>
                           )}
 
+                          {m.type === 'invoice' && m.invoice && (
+                            <div className="mb-0.5 min-w-[168px]" style={{ opacity: m.invoice.status === 'cancelled' ? 0.6 : 1 }}>
+                              <p
+                                className="text-[10px] font-semibold uppercase tracking-wide"
+                                style={{ opacity: own ? 0.85 : 0.6 }}
+                              >
+                                Счёт за консультацию
+                              </p>
+                              <p className="text-lg font-bold leading-tight mt-0.5">
+                                {m.invoice.amount.toLocaleString('ru-RU')} сум
+                              </p>
+                              <p
+                                className="text-[11px] font-medium mt-0.5"
+                                style={{
+                                  color: m.invoice.status === 'paid'
+                                    ? (own ? '#d7f0d8' : '#3a8f4a')
+                                    : m.invoice.status === 'cancelled'
+                                      ? (own ? 'rgba(255,255,255,.75)' : '#8a8598')
+                                      : (own ? 'rgba(255,255,255,.85)' : 'var(--accent-dark, #9c5e6c)'),
+                                }}
+                              >
+                                {invoiceStatusLabel(m.invoice.status)}
+                              </p>
+
+                              {!own && m.invoice.status === 'pending' && (
+                                <button
+                                  type="button"
+                                  onClick={() => payInvoice(m.invoice!.id)}
+                                  disabled={payingInvoiceId === m.invoice.id}
+                                  className="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-60"
+                                  style={{ background: 'var(--accent-dark, #9c5e6c)' }}
+                                >
+                                  {payingInvoiceId === m.invoice.id ? 'Оплата…' : 'Оплатить'}
+                                </button>
+                              )}
+
+                              {own && m.invoice.status === 'pending' && (
+                                <button
+                                  type="button"
+                                  onClick={() => cancelInvoice(m.invoice!.id)}
+                                  className="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold"
+                                  style={{ color: '#fff', border: '1px solid rgba(255,255,255,.6)' }}
+                                >
+                                  Отменить
+                                </button>
+                              )}
+                            </div>
+                          )}
+
                           {m.deleted ? (
                             <p
                               className="italic"
@@ -916,6 +1065,7 @@ export function ThreadClient({
         onEmoji={() => setEmojiOpen((v) => !v)}
         emojiOpen={emojiOpen}
         onMic={toggleRecording}
+        onInvoice={canInvoice ? openInvoiceModal : undefined}
         recording={recording}
         seconds={recorder.seconds}
         onCancelRecording={() => { recorder.cancel(); setNotice('Запись отменена'); }}
@@ -940,6 +1090,53 @@ export function ThreadClient({
       )}
 
       {lightbox && <Lightbox url={lightbox} onClose={() => setLightbox(null)} />}
+
+      {/* ── Invoice dialog ─────────────────────────────────────────────── */}
+      {invoiceModalOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center px-6" style={{ background: 'rgba(42,37,64,.35)' }} onClick={() => setInvoiceModalOpen(false)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4" style={{ border: '1px solid #e8e4dc' }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-app-t1">Выставить счёт</p>
+
+            <label className="block mt-3 text-[11px] font-medium text-app-t3">Сумма, сум</label>
+            <input
+              type="number"
+              min={1}
+              value={invoiceAmount}
+              onChange={(e) => setInvoiceAmount(e.target.value)}
+              placeholder="150000"
+              aria-label="Сумма счёта"
+              className="mt-1 w-full rounded-xl text-sm text-app-t1 placeholder:text-app-t3 outline-none p-2"
+              style={{ border: '1px solid #e8e4dc' }}
+            />
+
+            <label className="block mt-3 text-[11px] font-medium text-app-t3">Комментарий (необязательно)</label>
+            <textarea
+              value={invoiceNote}
+              onChange={(e) => setInvoiceNote(e.target.value)}
+              rows={2}
+              placeholder="Например: за приём 15 марта"
+              aria-label="Комментарий к счёту"
+              className="mt-1 w-full resize-none rounded-xl text-sm text-app-t1 placeholder:text-app-t3 outline-none p-2"
+              style={{ border: '1px solid #e8e4dc' }}
+            />
+
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={() => setInvoiceModalOpen(false)} className="flex-1 py-2 rounded-xl text-sm font-semibold" style={{ color: '#6a6580', border: '1px solid #e8e4dc' }}>
+                Отмена
+              </button>
+              <button
+                type="button"
+                disabled={!invoiceAmount || parseInt(invoiceAmount, 10) <= 0 || invoiceSubmitting}
+                onClick={submitInvoice}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                style={{ background: 'var(--accent-dark, #9c5e6c)' }}
+              >
+                {invoiceSubmitting ? 'Отправка…' : 'Отправить счёт'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Report dialog ──────────────────────────────────────────────── */}
       {reportFor && (
@@ -1008,6 +1205,20 @@ function sendErrorText(status: number): string {
   if (status === 401) return 'Сессия истекла — войдите заново';
   if (status === 400) return 'Сообщение не отправлено — проверьте содержимое';
   return 'Не удалось отправить сообщение';
+}
+
+function payErrorText(status: number): string {
+  if (status === 400) return 'Счёт уже оплачен или отменён';
+  if (status === 402) return 'Оплата не прошла';
+  if (status === 403) return 'Недоступно';
+  if (status === 401) return 'Сессия истекла — войдите заново';
+  return 'Не удалось оплатить счёт';
+}
+
+function invoiceStatusLabel(status: ConsultationInvoice['status']): string {
+  if (status === 'paid') return 'Оплачено';
+  if (status === 'cancelled') return 'Отменено';
+  return 'Ожидает оплаты';
 }
 
 function uploadErrorText(status: number): string {

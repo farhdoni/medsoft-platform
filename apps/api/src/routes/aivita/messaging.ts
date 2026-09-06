@@ -49,6 +49,7 @@ type PublicUser = {
   nickname: string | null;
   name: string | null;
   avatarUrl: string | null;
+  role: string;
 };
 
 type QuotedRef = {
@@ -57,12 +58,18 @@ type QuotedRef = {
   content: string | null;
 };
 
-/** Public-safe projection of a user — never leaks email/phone/externalId. */
+/**
+ * Public-safe projection of a user — never leaks email/phone/externalId.
+ * `role` is included: AV Chat needs it client-side to gate the "Выставить
+ * счёт" button, and it's already public elsewhere (the doctor catalog exists
+ * to advertise exactly this).
+ */
 const publicUser = {
   id: aivitaUsers.id,
   nickname: aivitaUsers.nickname,
   name: aivitaUsers.name,
   avatarUrl: aivitaUsers.avatarUrl,
+  role: aivitaUsers.role,
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────

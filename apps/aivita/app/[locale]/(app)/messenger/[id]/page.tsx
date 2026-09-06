@@ -18,7 +18,7 @@ export default async function MessengerThreadPage({
   return (
     <ChatPageShell active="messenger" locale={locale} hideNav>
       <ChatSurface paint>
-        <ThreadClient locale={locale} conversationId={id} meId={session.userId} />
+        <ThreadClient locale={locale} conversationId={id} meId={session.userId} meRole={session.role} />
       </ChatSurface>
     </ChatPageShell>
   );

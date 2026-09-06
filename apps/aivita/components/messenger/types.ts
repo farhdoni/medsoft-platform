@@ -10,6 +10,23 @@ export type MessengerUser = {
   nickname: string | null;
   name: string | null;
   avatarUrl: string | null;
+  role?: 'patient' | 'doctor' | 'admin';
+};
+
+export type ConsultationInvoiceStatus = 'pending' | 'paid' | 'cancelled';
+
+/** Mirrors consultation_invoices (packages/db/src/schema/payments.ts). */
+export type ConsultationInvoice = {
+  id: string;
+  conversationId: string;
+  messageId: string;
+  doctorId: string;
+  patientId: string;
+  amount: number;
+  status: ConsultationInvoiceStatus;
+  createdAt: string;
+  paidAt: string | null;
+  paymentId: number | null;
 };
 
 export type ReactionAggregate = {
@@ -30,7 +47,7 @@ export type MessengerMessage = {
   id: string;
   conversationId: string;
   senderId: string;
-  type: 'text' | 'voice' | 'file' | 'image' | 'location';
+  type: 'text' | 'voice' | 'file' | 'image' | 'location' | 'invoice';
   content: string | null;
   attachmentUrl: string | null;
   attachmentName: string | null;
@@ -51,6 +68,8 @@ export type MessengerMessage = {
   reactions?: ReactionAggregate[];
   /** True once the author soft-deletes it; every content field comes back null. */
   deleted?: boolean;
+  /** Only for type 'invoice' — amount/status live here, not on the message. */
+  invoice?: ConsultationInvoice | null;
 };
 
 export type MessengerConversation = {
