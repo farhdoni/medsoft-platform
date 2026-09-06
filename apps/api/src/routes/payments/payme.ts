@@ -4,6 +4,7 @@ import { payments } from '@medsoft/db';
 import { eq, and, gte, lte, isNotNull } from 'drizzle-orm';
 import { verifyPaymeAuth, paymeCardCreate, paymeCardVerify, paymeCardCharge } from '../../lib/payme.js';
 import { activateSubscription } from '../aivita/payments.js';
+import { markInvoicePaidForPayment } from '../aivita/consultations.js';
 
 export const paymeRouter = new Hono();
 
@@ -107,6 +108,15 @@ paymeRouter.post('/', async (c) => {
       } catch {
         // Payment stays completed; activation can be retried out of band.
       }
+    }
+
+    // Transition the consultation invoice tied to this payment, if any — the
+    // checkout-redirect path (no saved card) completes here rather than in
+    // POST .../invoices/:id/pay.
+    if (payment.type === 'consultation') {
+      await markInvoicePaidForPayment(payment).catch(() => {
+        // Payment stays completed; the invoice can be reconciled out of band.
+      });
     }
 
     return c.json({ result: { transaction: txId, perform_time: performTime, state: 2 }, id });

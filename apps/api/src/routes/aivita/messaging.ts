@@ -11,6 +11,8 @@ import {
   messageReactions,
   aivitaUsers,
   aivitaDeviceTokens,
+  consultationInvoices,
+  doctorProfiles,
 } from '@medsoft/db';
 import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
@@ -112,6 +114,40 @@ async function pushToUser(
     sendPushNotification(expo, title, body, data),
     ...web.map((t) => sendWebPushNotification(t.pushToken, title, body, data)),
   ]);
+}
+
+/**
+ * Push a participant of a conversation, honouring the same mute/quiet-hours/
+ * preview rules deliverMessage applies to a new message — so an invoice being
+ * paid notifies the doctor exactly like the rest of AV Chat notifies anyone,
+ * not through a separate, unrelated path.
+ */
+export async function notifyConversationParticipant(
+  convId: string,
+  userId: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  const [recipient] = await db
+    .select({ timezone: aivitaUsers.timezone })
+    .from(aivitaUsers)
+    .where(eq(aivitaUsers.id, userId))
+    .limit(1);
+
+  const seat = await participantOf(convId, userId);
+  const settings = await readAvChatSettings(userId);
+
+  const decision = decidePush({
+    now: new Date(),
+    mutedUntil: seat?.mutedUntil ?? null,
+    quietHours: settings.quietHours,
+    notifPreview: settings.notifPreview,
+    timeZone: recipient?.timezone,
+  });
+
+  if (!decision.send) return;
+  await pushToUser(userId, title, decision.preview ? body : 'Новое уведомление', data);
 }
 
 /**
@@ -506,6 +542,16 @@ aivitaMessagingRouter.get('/conversations/:id/messages', async (c) => {
     }
   }
 
+  // Invoice details for the page's invoice-type messages — amount/status live
+  // on consultation_invoices, not on the message row itself.
+  const invoiceMsgIds = rows.filter((m) => m.type === 'invoice').map((m) => m.id);
+  const invoiceMap = new Map<string, typeof consultationInvoices.$inferSelect>();
+  if (invoiceMsgIds.length > 0) {
+    const invoiceRows = await db.select().from(consultationInvoices)
+      .where(inArray(consultationInvoices.messageId, invoiceMsgIds));
+    for (const inv of invoiceRows) invoiceMap.set(inv.messageId, inv);
+  }
+
   // A deleted message stays in the thread as a tombstone so replies and
   // reactions pointing at it still make sense — but nothing of what it said
   // survives the response: no content, no attachment, no coordinates.
@@ -514,6 +560,7 @@ aivitaMessagingRouter.get('/conversations/:id/messages', async (c) => {
       ...m,
       replyTo: m.replyToId ? quotedMap.get(m.replyToId) ?? null : null,
       reactions: reactionMap.get(m.id) ?? [],
+      invoice: m.type === 'invoice' ? invoiceMap.get(m.id) ?? null : undefined,
     };
     if (!m.deletedAt) return { ...base, deleted: false };
     return {
@@ -562,7 +609,13 @@ const sendSchema = z.object({
  * decidePush по muted, quiet hours и настройке превью. Прошлая админская
  * реализация дёргала pushToUser напрямую и все три правила игнорировала.
  */
-export type DeliverInput = z.infer<typeof sendSchema>;
+// A superset of sendSchema's inferred type, widened with 'invoice'. The HTTP
+// endpoint below still validates against sendSchema (invoice is deliberately
+// NOT postable there — issuing one has its own rules, see POST .../invoice),
+// so this wider type only matters to that one internal caller.
+export type DeliverInput = Omit<z.infer<typeof sendSchema>, 'type'> & {
+  type: z.infer<typeof sendSchema>['type'] | 'invoice';
+};
 export type DeliverResult =
   | { ok: true; message: typeof messages.$inferSelect }
   | { ok: false; status: 400 | 403; error: string };
@@ -573,12 +626,15 @@ export async function deliverMessage(
   body: DeliverInput,
 ): Promise<DeliverResult> {
     // A location message carries a pin instead of text or a file, so it needs
-  // its own emptiness check rather than the content/attachment one.
+  // its own emptiness check rather than the content/attachment one. An
+  // invoice message carries neither — amount and status live on
+  // consultation_invoices, keyed by this message's id; content here is only
+  // the doctor's optional note.
   if (body.type === 'location') {
     if (body.locationLat === undefined || body.locationLng === undefined) {
       return { ok: false as const, status: 400, error: 'A location message needs locationLat and locationLng' };
     }
-  } else if (!body.content && !body.attachmentUrl) {
+  } else if (body.type !== 'invoice' && !body.content && !body.attachmentUrl) {
     return { ok: false as const, status: 400, error: 'Message must carry content or an attachment' };
   }
 
@@ -642,7 +698,9 @@ export async function deliverMessage(
   // and their unread count still rises.
   const [sender] = await db.select(publicUser).from(aivitaUsers).where(eq(aivitaUsers.id, me)).limit(1);
   const senderName = sender?.name ?? (sender?.nickname ? '@' + sender.nickname : 'Новое сообщение');
-  const fullPreview = body.content ? body.content.slice(0, REPLY_PREVIEW_CHARS) : '📎 Вложение';
+  const fullPreview = body.content
+    ? body.content.slice(0, REPLY_PREVIEW_CHARS)
+    : body.type === 'invoice' ? '💳 Выставлен счёт на оплату' : '📎 Вложение';
 
   for (const o of others) {
     void (async () => {
@@ -704,6 +762,73 @@ aivitaMessagingRouter.post('/conversations/:id/messages', zValidator('json', sen
   })().catch((err) => logger.warn({ err, conversationId: convId }, '[Support] обработка тикета не удалась'));
 
   return c.json({ data: result.message }, 201);
+});
+
+// ─── POST /conversations/:id/invoice ──────────────────────────────────────────
+// A doctor bills the patient on the other end of this direct conversation.
+// Deliberately narrow: doctor-only, patient-only counterpart (not another
+// doctor, not support) — a consultation invoice is not a general-purpose
+// billing tool, it is this one specific relationship.
+
+const invoiceSchema = z.object({
+  amount: z.number().int().positive().optional(),
+  note: z.string().max(500).optional(),
+});
+
+aivitaMessagingRouter.post('/conversations/:id/invoice', zValidator('json', invoiceSchema), async (c) => {
+  const me = c.get('aivitaUserId');
+  const convId = c.req.param('id');
+  const { amount: requestedAmount, note } = c.req.valid('json');
+
+  const [author] = await db.select({ role: aivitaUsers.role })
+    .from(aivitaUsers).where(eq(aivitaUsers.id, me)).limit(1);
+  if (author?.role !== 'doctor') return c.json({ error: 'Only a doctor can issue an invoice' }, 403);
+
+  if (!(await participantOf(convId, me))) return c.json({ error: 'Forbidden' }, 403);
+
+  const others = await db
+    .select({ userId: conversationParticipants.userId })
+    .from(conversationParticipants)
+    .where(and(
+      eq(conversationParticipants.conversationId, convId),
+      ne(conversationParticipants.userId, me),
+    ));
+  if (others.length !== 1) {
+    return c.json({ error: 'Invoices can only be issued in a direct conversation' }, 400);
+  }
+  const patientId = others[0].userId;
+
+  const [counterpart] = await db.select({ role: aivitaUsers.role, nickname: aivitaUsers.nickname })
+    .from(aivitaUsers).where(eq(aivitaUsers.id, patientId)).limit(1);
+  if (!counterpart || counterpart.role !== 'patient' || isSupportNickname(counterpart.nickname)) {
+    return c.json({ error: 'Invoices can only be sent to a patient' }, 403);
+  }
+
+  let amount = requestedAmount;
+  if (amount === undefined) {
+    const [profile] = await db.select({ consultationPrice: doctorProfiles.consultationPrice })
+      .from(doctorProfiles).where(eq(doctorProfiles.userId, me)).limit(1);
+    amount = profile?.consultationPrice ?? 0;
+  }
+  if (!amount || amount <= 0) {
+    return c.json({ error: 'Invoice amount must be set — configure your consultation price or pass amount' }, 400);
+  }
+
+  const result = await deliverMessage(convId, me, { type: 'invoice', content: note });
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+
+  const [invoice] = await db.insert(consultationInvoices).values({
+    conversationId: convId,
+    messageId: result.message.id,
+    doctorId: me,
+    patientId,
+    amount,
+  }).returning();
+
+  // Same shape as a message row from GET .../messages (invoice nested inside),
+  // so the client renders a freshly-sent invoice the same way it renders one
+  // that arrived via polling.
+  return c.json({ data: { ...result.message, invoice } }, 201);
 });
 
 // ─── PUT /conversations/:id/read ──────────────────────────────────────────────

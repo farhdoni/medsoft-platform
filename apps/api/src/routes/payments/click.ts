@@ -4,6 +4,7 @@ import { payments, userPaymentMethods } from '@medsoft/db';
 import { eq, and } from 'drizzle-orm';
 import { verifyClickSign, clickCardCreate, clickCardVerify, clickCardCharge } from '../../lib/click.js';
 import { activateSubscription } from '../aivita/payments.js';
+import { markInvoicePaidForPayment } from '../aivita/consultations.js';
 import { env } from '../../env.js';
 
 export const clickRouter = new Hono();
@@ -90,6 +91,15 @@ clickRouter.post('/complete', async (c) => {
     } catch {
       // Payment stays completed; activation can be retried out of band.
     }
+  }
+
+  // Transition the consultation invoice tied to this payment, if any — the
+  // checkout-redirect path (no saved card) completes here rather than in
+  // POST .../invoices/:id/pay.
+  if (payment.type === 'consultation') {
+    await markInvoicePaidForPayment(payment).catch(() => {
+      // Payment stays completed; the invoice can be reconciled out of band.
+    });
   }
 
   return c.json({ click_trans_id, merchant_trans_id, error: 0, error_note: 'Success' });

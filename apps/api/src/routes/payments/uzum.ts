@@ -4,6 +4,7 @@ import { payments } from '@medsoft/db';
 import { eq } from 'drizzle-orm';
 import { verifyUzumSignature, uzumCreatePayment, uzumCardCreate, uzumCardVerify, uzumCardCharge } from '../../lib/uzum.js';
 import { activateSubscription } from '../aivita/payments.js';
+import { markInvoicePaidForPayment } from '../aivita/consultations.js';
 
 export const uzumRouter = new Hono();
 
@@ -60,6 +61,12 @@ uzumRouter.post('/callback', async (c) => {
         } catch {
           // Payment stays completed; activation can be retried out of band.
         }
+      }
+
+      if (payment.type === 'consultation') {
+        await markInvoicePaidForPayment(payment).catch(() => {
+          // Payment stays completed; the invoice can be reconciled out of band.
+        });
       }
     }
   } else if (payment.status !== 'completed') {

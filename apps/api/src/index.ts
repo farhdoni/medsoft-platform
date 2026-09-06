@@ -77,6 +77,7 @@ import { doctorDashboardStatsRouter } from './routes/aivita/doctor/dashboard-sta
 import { doctorScribeRouter } from './routes/aivita/doctor/scribe.js';
 import { videoCallRouter } from './routes/aivita/video-call.js';
 import { aivitaMessagingRouter } from './routes/aivita/messaging.js';
+import { aivitaConsultationsRouter } from './routes/aivita/consultations.js';
 import { adminDashboardRouter } from './routes/admin/dashboard.js';
 import { adminUsersRouter } from './routes/admin/users.js';
 import { usersRolesRouter } from './routes/admin/users-roles.js';
@@ -220,6 +221,7 @@ app.route('/v1/aivita/doctor/dashboard-stats', doctorDashboardStatsRouter);
 app.route('/v1/aivita/doctor/scribe', doctorScribeRouter);
 app.route('/v1/aivita/video-call', videoCallRouter);
 app.route('/v1/aivita/messaging', aivitaMessagingRouter);
+app.route('/v1/aivita/consultations', aivitaConsultationsRouter);
 // Admin dashboard & users
 app.route('/v1/admin/dashboard', adminDashboardRouter);
 app.route('/v1/admin/users', usersRolesRouter);

@@ -67,7 +67,7 @@ export async function activateSubscription(userId: string, planId: number, payme
   return sub;
 }
 
-async function chargeByToken(
+export async function chargeByToken(
   provider: string,
   cardToken: string,
   amount: number,
