@@ -32,6 +32,10 @@ export const messageTypeEnum = pgEnum('message_type', [
   'file',
   'image',
   'location',
+  // Consultation invoice — no amount/status columns on `messages` itself;
+  // those live on consultation_invoices (schema/payments.ts), keyed by this
+  // message's id. `content` stays null for this type.
+  'invoice',
 ]);
 
 export const messageReportStatusEnum = pgEnum('message_report_status', [

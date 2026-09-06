@@ -10,6 +10,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { aivitaUsers } from './aivita';
+import { messages, conversations } from './messaging';
 
 // ─── 1. subscription_plans ─────────────────────────────────────────────────────
 
@@ -70,6 +71,29 @@ export const payments = pgTable('payments', {
   metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
+});
+
+// ─── 4b. consultation_invoices ─────────────────────────────────────────────────
+//
+// A doctor-initiated bill inside an AV Chat conversation (message type
+// 'invoice' — see schema/messaging.ts). The message row itself carries no
+// amount/status: those live here, keyed by messageId, so the chat schema
+// doesn't need payment columns and this table doesn't need message columns.
+// `paymentId` stays null until paid — it points at the `payments` row created
+// at that moment (type='consultation', userId=doctorId per the payout
+// convention below), never the other way around.
+
+export const consultationInvoices = pgTable('consultation_invoices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  messageId: uuid('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }).unique(),
+  doctorId: uuid('doctor_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+  patientId: uuid('patient_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending | paid | cancelled
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  paidAt: timestamp('paid_at'),
+  paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'set null' }),
 });
 
 // ─── 5. doctor_payouts ─────────────────────────────────────────────────────────
