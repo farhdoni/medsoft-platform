@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRight } from '../../lib/rbac.js';
 import { auditLog } from '../aivita-admin-audit.js';
+import { getConsultationCommissionPercent } from '../../lib/commission.js';
 import { db } from '@medsoft/db';
 import { doctorPayouts, pharmacyPayouts, payments, aivitaUsers, doctorPayoutSettings } from '@medsoft/db';
 import { eq, desc, and, sql, gte, lte } from 'drizzle-orm';
@@ -16,8 +17,6 @@ import { eq, desc, and, sql, gte, lte } from 'drizzle-orm';
 export const adminPayoutsRouter = new Hono();
 
 adminPayoutsRouter.use('*', requireAuth);
-
-const COMMISSION_PERCENT = 20;
 
 // ─── GET /v1/admin/payouts/doctors ───────────────────────────────────────────
 
@@ -101,10 +100,11 @@ adminPayoutsRouter.post('/doctors/generate', requireRight('finance:edit'), async
     ))
     .groupBy(payments.userId, aivitaUsers.name);
 
+  const commissionPercent = await getConsultationCommissionPercent();
   const created = [];
   for (const d of doctorEarnings) {
     const gross = Number(d.total);
-    const commission = Math.round(gross * COMMISSION_PERCENT / 100);
+    const commission = Math.round(gross * commissionPercent / 100);
     const net = gross - commission;
 
     if (net <= 0) continue;

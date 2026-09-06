@@ -3,10 +3,9 @@ import { db } from '@medsoft/db';
 import { payments, doctorPayouts, doctorPayoutSettings } from '@medsoft/db';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../../middleware/aivita-auth.js';
+import { getConsultationCommissionPercent } from '../../../lib/commission.js';
 
 export const doctorEarningsRouter = new Hono();
-
-const COMMISSION_PERCENT = 20;
 
 // ─── GET /v1/aivita/doctor/earnings ──────────────────────────────────────────
 
@@ -26,8 +25,12 @@ doctorEarningsRouter.get('/', requireAivitaAuth, async (c) => {
     ))
     .orderBy(desc(payments.createdAt));
 
+  // Each row already carries its own commission/netAmount, locked in at the
+  // moment it was paid — summing those (not recomputing from the current
+  // setting) is what keeps a rate change from silently rewriting history.
+  const commissionPercent = await getConsultationCommissionPercent();
   const totalGross = rows.reduce((s, r) => s + r.amount, 0);
-  const totalCommission = Math.round(totalGross * COMMISSION_PERCENT / 100);
+  const totalCommission = rows.reduce((s, r) => s + (r.commission ?? Math.round(r.amount * commissionPercent / 100)), 0);
   const totalNet = totalGross - totalCommission;
 
   const payoutsHistory = await db.select().from(doctorPayouts)
@@ -39,7 +42,7 @@ doctorEarningsRouter.get('/', requireAivitaAuth, async (c) => {
     gross: totalGross,
     commission: totalCommission,
     net: totalNet,
-    commissionPercent: COMMISSION_PERCENT,
+    commissionPercent,
     consultations: rows.length,
     payoutsHistory,
     transactions: rows,

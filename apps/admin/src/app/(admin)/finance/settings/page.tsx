@@ -49,11 +49,12 @@ const PROVIDERS: ProviderConfig[] = [
 ];
 
 const COMMISSION_ROWS = [
-  { key: 'commission_booking',  label: 'Запись к врачу (офлайн)' },
-  { key: 'commission_online',   label: 'Онлайн-консультация' },
-  { key: 'commission_repeat',   label: 'Повторный визит' },
-  { key: 'commission_pharmacy', label: 'Заказы аптеки' },
-  { key: 'commission_lab',      label: 'Лабораторные исследования' },
+  { key: 'commission_booking',       label: 'Запись к врачу (офлайн)' },
+  { key: 'commission_online',        label: 'Онлайн-консультация' },
+  { key: 'commission_repeat',        label: 'Повторный визит' },
+  { key: 'commission_pharmacy',      label: 'Заказы аптеки' },
+  { key: 'commission_lab',           label: 'Лабораторные исследования' },
+  { key: 'commission_consultation',  label: 'Платная консультация в AV Chat' },
 ];
 
 const PAYOUT_DAY_OPTIONS = [

@@ -16,6 +16,7 @@ const DEFAULTS: Record<string, string> = {
   commission_repeat:        '5',
   commission_pharmacy:      '10',
   commission_lab:           '12',
+  commission_consultation:  '20',
   payout_day:               'friday',
   payout_minimum:           '50000',
   payout_pharmacy_period:   'monthly',
