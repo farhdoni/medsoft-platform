@@ -205,9 +205,11 @@ async function handleProxy(req: NextRequest) {
 
   // ─── 3. Проксирование к маркетинговому движку ──────────────────────────────
   const targetUrl = `${MARKETING_ENGINE_URL}${pathname}${search}`;
+  // Значение X-Operator-Name может содержать кириллицу (ФИО оператора) — HTTP-заголовки
+  // требуют ByteString (0-255), поэтому percent-encode перед отправкой, engine делает urldecode().
   const fwdHeaders: Record<string, string> = {
     'X-Operator-Id': String(operator.id),
-    'X-Operator-Name': String(operator.fullName || operator.name || 'Оператор MedSoft'),
+    'X-Operator-Name': encodeURIComponent(String(operator.fullName || operator.name || 'Оператор MedSoft')),
     'X-Operator-Role': String(operator.role || 'operator'),
   };
 

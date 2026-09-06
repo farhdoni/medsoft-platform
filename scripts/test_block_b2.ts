@@ -1,258 +1,182 @@
 /**
  * scripts/test_block_b2.ts — Валидация интеграции Маркетинга в админку (Блок Б2)
- * 
- * Проверяет 6 ключевых условий:
- * 1. Без сессии на /marketing — редирект на вход админки (/auth/login).
- * 2. С сессией без права — 403 экраном админки (Доступ запрещён).
- * 3. С правом marketing / superadmin — открывается движок, действие пишется в журнал с именем оператора.
- * 4. Без сессии на /marketing/public-media/<опубликованный_файл> — файл отдаётся (200 + Accept-Ranges).
- * 5. Без сессии на /marketing/public-media/<черновик_или_несуществующий> — 404 Not Found.
- * 6. Без сессии на /marketing/api/... — редирект на вход, а не отдача данных.
+ *
+ * ВНИМАНИЕ: предыдущая версия этого скрипта вызывала middleware()/route-хендлеры
+ * напрямую и подменяла global.fetch — это ничего не гоняло по сети и подделывало
+ * сессии литеральными cookie-строками. Такой прогон не мог поймать ни одну из
+ * двух реальных проблем, которые вскрылись при живой проверке:
+ *   1. X-Operator-Name с кириллицей падал в фейковом fetch() без ByteString-валидации
+ *      (реальный fetch/undici её проверяет) — proxy отдавал 502 на любого оператора
+ *      с русским ФИО.
+ *   2. BASE_PATH/TRUSTED_PROXIES читались движком через $_ENV, который PHP built-in
+ *      сервер не заполняет из окружения ОС при стандартном variables_order=GPCS —
+ *      прокси на /marketing/* тихо проваливался в дефолтную страницу движка.
+ *
+ * Этот скрипт делает реальные HTTP-запросы к уже поднятым сервисам:
+ *   - Admin (Next.js)     — http://localhost:3000
+ *   - API (Hono)          — http://localhost:3001
+ *   - Marketing engine    — http://127.0.0.1:8080, ОБЯЗАТЕЛЬНО с BASE_PATH=/marketing
+ *
+ * Перед прогоном:
+ *   cd apps/api && npx tsx --env-file .env src/index.ts        (порт 3001)
+ *   cd apps/admin && pnpm dev                                   (порт 3000)
+ *   cd ../marketing-engine-php && BASE_PATH=/marketing php -S 127.0.0.1:8080 -t public public/index.php
+ *
+ * Нужны два реальных аккаунта в admin_users (см. B2TEST_* переменные ниже) —
+ * один с правом marketing (role=marketer), один без (role=accountant).
+ * Создать их (пароли задаются локально, не для прода):
+ *   INSERT INTO admin_users (email, full_name, role, is_active, password_hash) VALUES (...);
+ *   INSERT INTO admin_user_roles (user_id, role_id) VALUES (...);  -- id из admin_roles
+ *
+ * Запуск: npx tsx scripts/test_block_b2.ts
  */
 
-import { NextRequest } from 'next/server';
-import { middleware } from '../apps/admin/src/middleware';
-import { GET as handleMarketingProxy } from '../apps/admin/src/app/marketing/[[...path]]/route';
+const ADMIN_BASE = process.env.B2TEST_ADMIN_URL || 'http://localhost:3000';
+const API_BASE = process.env.B2TEST_API_URL || 'http://localhost:3001';
 
-async function runTests() {
+const MARKETER_EMAIL = process.env.B2TEST_MARKETER_EMAIL || 'b2test.marketer@local.dev';
+const MARKETER_PASSWORD = process.env.B2TEST_MARKETER_PASSWORD || 'B2test-Marketer-9f13';
+const NOACCESS_EMAIL = process.env.B2TEST_NOACCESS_EMAIL || 'b2test.noaccess@local.dev';
+const NOACCESS_PASSWORD = process.env.B2TEST_NOACCESS_PASSWORD || 'B2test-NoAccess-9f13';
+
+// Реальный опубликованный видео-файл из очереди движка (marketing_publications.status='published').
+const PUBLISHED_FILE = process.env.B2TEST_PUBLISHED_FILE || 'media_master_intro_1080x1920.mp4';
+// Файл, физически лежащий в storage/media, но не привязанный ни к одной публикации/пакету.
+const UNPUBLISHED_FILE = process.env.B2TEST_UNPUBLISHED_FILE || 'media_ver_0b0005dd29.mp4';
+
+let passed = 0;
+let total = 0;
+
+function check(name: string, ok: boolean, detail: string) {
+  total++;
+  if (ok) {
+    passed++;
+    console.log(`  [OK] ${name}`);
+    console.log(`       -> ${detail}`);
+  } else {
+    console.log(`  [FAIL] ${name}`);
+    console.log(`       -> ${detail}`);
+  }
+}
+
+async function login(email: string, password: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    throw new Error(`Login failed for ${email}: HTTP ${res.status} ${await res.text()}`);
+  }
+  const setCookie = res.headers.get('set-cookie') || '';
+  const match = setCookie.match(/access_token=([^;]+)/);
+  if (!match) throw new Error(`No access_token cookie in login response for ${email}`);
+  return match[1];
+}
+
+async function main() {
   console.log('========================================================================');
-  console.log('🔍 ТЕСТИРОВАНИЕ БЛОКА Б2: РАЗДЕЛ «МАРКЕТИНГ» В АДМИНКЕ (6 ПРОВЕРОК)');
+  console.log('🔍 ТЕСТИРОВАНИЕ БЛОКА Б2: РАЗДЕЛ «МАРКЕТИНГ» В АДМИНКЕ (живые HTTP-запросы)');
   console.log('========================================================================\n');
 
-  let passed = 0;
-  let total = 6;
+  console.log(`Admin: ${ADMIN_BASE}  |  API: ${API_BASE}\n`);
 
   // ---------------------------------------------------------------------------
   // 1. Без сессии на /marketing — редирект на вход админки
   // ---------------------------------------------------------------------------
-  console.log('--- 1. Проверка: без сессии на /marketing ---');
-  const req1 = new NextRequest('http://localhost:3000/marketing', {
-    method: 'GET',
-    headers: { 'accept': 'text/html' }
+  console.log('--- 1. Без сессии на /marketing ---');
+  const res1 = await fetch(`${ADMIN_BASE}/marketing`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual',
   });
-  const mid1 = middleware(req1);
-  const isRedirect1 = mid1.status >= 300 && mid1.status < 400;
-  const location1 = mid1.headers.get('location') || '';
+  const loc1 = res1.headers.get('location') || '';
+  check(
+    'Редирект на /auth/login',
+    res1.status >= 300 && res1.status < 400 && loc1.includes('/auth/login'),
+    `HTTP ${res1.status} Location: ${loc1}`,
+  );
 
-  if (isRedirect1 && location1.includes('/auth/login')) {
-    console.log(`  [OK] Middleware перенаправляет неавторизованного пользователя:`);
-    console.log(`       -> HTTP ${mid1.status} Redirect to: ${location1}`);
-    passed++;
-  } else {
-    throw new Error(`Expected redirect to /auth/login, got: ${mid1.status} ${location1}`);
-  }
+  // ---------------------------------------------------------------------------
+  // Реальный логин двух аккаунтов
+  // ---------------------------------------------------------------------------
+  console.log('\n--- Логин: аккаунт без права marketing и с правом marketing ---');
+  const noAccessToken = await login(NOACCESS_EMAIL, NOACCESS_PASSWORD);
+  const marketerToken = await login(MARKETER_EMAIL, MARKETER_PASSWORD);
+  console.log(`  [OK] Оба логина прошли через реальный /v1/auth/login (реальный ES256 JWT)`);
 
   // ---------------------------------------------------------------------------
   // 2. С сессией без права — 403 экраном админки
   // ---------------------------------------------------------------------------
-  console.log('\n--- 2. Проверка: с сессией без права marketing ---');
-  // Эмуляция вызова handleMarketingProxy с фиктивным пользователем без права marketing
-  // Запрос с токеном оператора без прав
-  const req2 = new NextRequest('http://localhost:3000/marketing', {
-    method: 'GET',
-    headers: {
-      'cookie': 'access_token=token_support_no_marketing',
-      'accept': 'text/html'
-    }
+  console.log('\n--- 2. С сессией без права marketing ---');
+  const res2 = await fetch(`${ADMIN_BASE}/marketing`, {
+    headers: { Accept: 'text/html', Cookie: `access_token=${noAccessToken}` },
   });
-
-  // Мокаем fetch для /v1/auth/me внутри getOperator
-  const originalFetch = global.fetch;
-  global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const urlStr = String(input);
-    if (urlStr.includes('/v1/auth/me')) {
-      return new Response(JSON.stringify({
-        id: 'usr_support_001',
-        email: 'support@medsoft.uz',
-        fullName: 'Азиз (Оператор поддержки)',
-        role: 'support_operator',
-        isActive: true,
-        rights: ['aivita:support', 'users:read', 'main:read']
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    return originalFetch(input, init);
-  };
-
-  const res2 = await handleMarketingProxy(req2);
-  const html2 = await res2.text();
-
-  if (res2.status === 403 && (html2.includes('403') || html2.includes('Доступ запрещён'))) {
-    console.log(`  [OK] Запрос оператора без прав заблокирован:`);
-    console.log(`       -> HTTP ${res2.status} Forbidden, отображён защитный экран 403 админки.`);
-    passed++;
-  } else {
-    throw new Error(`Expected HTTP 403 with forbidden screen, got: ${res2.status}`);
-  }
+  const body2 = await res2.text();
+  check(
+    'HTTP 403 с защитным экраном админки',
+    res2.status === 403 && body2.includes('Доступ запрещён'),
+    `HTTP ${res2.status}`,
+  );
 
   // ---------------------------------------------------------------------------
-  // 3. С правом marketing — открывается движок, передаются X-Operator-*
+  // 3. С правом marketing — открывается движок, реальный оператор в разметке
   // ---------------------------------------------------------------------------
-  console.log('\n--- 3. Проверка: с правом marketing (суперадмин / маркетолог) ---');
-  let capturedHeaders: Record<string, string> = {};
-  global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const urlStr = String(input);
-    if (urlStr.includes('/v1/auth/me')) {
-      return new Response(JSON.stringify({
-        id: 'usr_marketer_007',
-        email: 'marketer@medsoft.uz',
-        fullName: 'Камилла Маркетолог',
-        role: 'marketer',
-        isActive: true,
-        rights: ['marketing', 'marketing:read', 'marketing:manage']
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    if (urlStr.includes('8080/marketing')) {
-      // Сохраняем заголовки, отправленные маркетинговому движку
-      if (init?.headers) {
-        capturedHeaders = init.headers as Record<string, string>;
-      }
-      return new Response(`<!DOCTYPE html><html><body><div class="app-layout">AIVITA Media Hub — Движок запущен</div></body></html>`, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8'
-        }
-      });
-    }
-    return originalFetch(input, init);
-  };
-
-  const req3 = new NextRequest('http://localhost:3000/marketing', {
-    method: 'GET',
-    headers: {
-      'cookie': 'access_token=token_marketer_valid',
-      'accept': 'text/html'
-    }
+  console.log('\n--- 3. С правом marketing (marketer) ---');
+  const res3 = await fetch(`${ADMIN_BASE}/marketing`, {
+    headers: { Accept: 'text/html', Cookie: `access_token=${marketerToken}` },
   });
-  const res3 = await handleMarketingProxy(req3);
-  const text3 = await res3.text();
-
-  if (res3.status === 200 &&
-      text3.includes('AIVITA Media Hub') &&
-      capturedHeaders['X-Operator-Id'] === 'usr_marketer_007' &&
-      capturedHeaders['X-Operator-Name'] === 'Камилла Маркетолог') {
-    console.log(`  [OK] Движок успешно проксирован (HTTP 200 OK).`);
-    console.log(`       -> Переданы безопасные заголовки оператора:`);
-    console.log(`          X-Operator-Id: ${capturedHeaders['X-Operator-Id']}`);
-    console.log(`          X-Operator-Name: ${capturedHeaders['X-Operator-Name']}`);
-    console.log(`          X-Operator-Role: ${capturedHeaders['X-Operator-Role']}`);
-    passed++;
-  } else {
-    throw new Error(`Expected proxy to engine with headers, got status ${res3.status}, headers: ${JSON.stringify(capturedHeaders)}`);
-  }
+  const body3 = await res3.text();
+  check(
+    'HTTP 200, движок отрисован, CURRENT_OPERATOR проброшен',
+    res3.status === 200 && body3.includes('window.CURRENT_OPERATOR'),
+    `HTTP ${res3.status}, CURRENT_OPERATOR присутствует: ${body3.includes('window.CURRENT_OPERATOR')}`,
+  );
 
   // ---------------------------------------------------------------------------
-  // 4. Без сессии на /marketing/public-media/<опубликованный_файл> — файл отдаётся
+  // 4. Без сессии на /marketing/public-media/<опубликованный> — файл отдаётся
   // ---------------------------------------------------------------------------
-  console.log('\n--- 4. Проверка: без сессии на /marketing/public-media/<опубликованный_файл> ---');
-  // Проверяем middleware исключение
-  const req4 = new NextRequest('http://localhost:3000/marketing/public-media/media_master_intro_1080x1920.mp4', {
-    method: 'GET',
-    headers: {
-      'user-agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
-    }
-  });
-  const mid4 = middleware(req4);
-  // Не должно быть редиректа на /auth/login
-  if (mid4.status >= 300 && mid4.status < 400 && mid4.headers.get('location')?.includes('/auth/login')) {
-    throw new Error('Public media must not be redirected to login!');
-  }
-
-  // Проверяем отработку прокси
-  global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const urlStr = String(input);
-    if (urlStr.includes('/marketing/public-media/media_master_intro_1080x1920.mp4')) {
-      // Убеждаемся, что заголовки оператора НЕ передаются для публичного медиа
-      const h = (init?.headers || {}) as Record<string, string>;
-      if (h['X-Operator-Id'] || h['X-Operator-Name']) {
-        throw new Error('Operator headers must NOT be sent for unauthenticated public media requests!');
-      }
-      return new Response(new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]), {
-        status: 200,
-        headers: {
-          'Content-Type': 'video/mp4',
-          'Content-Length': '9923450',
-          'Accept-Ranges': 'bytes',
-          'Cache-Control': 'public, max-age=31536000, immutable'
-        }
-      });
-    }
-    return originalFetch(input, init);
-  };
-
-  const res4 = await handleMarketingProxy(req4);
-  if (res4.status === 200 &&
-      res4.headers.get('content-type') === 'video/mp4' &&
-      res4.headers.get('accept-ranges') === 'bytes') {
-    console.log(`  [OK] Публичный медиафайл отдан роботу Meta без сессии:`);
-    console.log(`       -> HTTP ${res4.status} OK, Content-Type: ${res4.headers.get('content-type')}`);
-    console.log(`       -> Accept-Ranges: ${res4.headers.get('accept-ranges')}`);
-    console.log(`       -> Заголовки оператора не передавались.`);
-    passed++;
-  } else {
-    throw new Error(`Expected HTTP 200 video/mp4 with Accept-Ranges, got: ${res4.status} ${res4.headers.get('content-type')}`);
-  }
+  console.log('\n--- 4. Без сессии на /marketing/public-media/<опубликованный> ---');
+  const res4 = await fetch(`${ADMIN_BASE}/marketing/public-media/${PUBLISHED_FILE}`);
+  check(
+    'HTTP 200, video/mp4, Accept-Ranges: bytes',
+    res4.status === 200 &&
+      (res4.headers.get('content-type') || '').includes('video/mp4') &&
+      res4.headers.get('accept-ranges') === 'bytes',
+    `HTTP ${res4.status}, Content-Type: ${res4.headers.get('content-type')}, Accept-Ranges: ${res4.headers.get('accept-ranges')}, Content-Length: ${res4.headers.get('content-length')}`,
+  );
+  await res4.body?.cancel();
 
   // ---------------------------------------------------------------------------
-  // 5. Без сессии на /marketing/public-media/<черновик_или_несуществующий> — 404
+  // 5. Без сессии на /marketing/public-media/<не из очереди> — 404
   // ---------------------------------------------------------------------------
-  console.log('\n--- 5. Проверка: без сессии на /marketing/public-media/<черновик_или_несуществующий> ---');
-  global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const urlStr = String(input);
-    if (urlStr.includes('/marketing/public-media/draft_unpublished_video.mp4')) {
-      return new Response('Not Found', {
-        status: 404,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-      });
-    }
-    return originalFetch(input, init);
-  };
-
-  const req5 = new NextRequest('http://localhost:3000/marketing/public-media/draft_unpublished_video.mp4', {
-    method: 'GET'
-  });
-  const res5 = await handleMarketingProxy(req5);
-  if (res5.status === 404) {
-    console.log(`  [OK] Запрос к неопубликованному файлу возвращает HTTP 404 Not Found без утечки данных.`);
-    passed++;
-  } else {
-    throw new Error(`Expected HTTP 404 for draft file, got: ${res5.status}`);
-  }
+  console.log('\n--- 5. Без сессии на /marketing/public-media/<не из очереди> ---');
+  const res5 = await fetch(`${ADMIN_BASE}/marketing/public-media/${UNPUBLISHED_FILE}`);
+  check('HTTP 404 Not Found', res5.status === 404, `HTTP ${res5.status}`);
 
   // ---------------------------------------------------------------------------
-  // 6. Без сессии на /marketing/api/... — редирект на вход
+  // 6. Без сессии на /marketing/api/... — редирект на вход, не данные
   // ---------------------------------------------------------------------------
-  console.log('\n--- 6. Проверка: без сессии на /marketing/api/... ---');
-  const req6 = new NextRequest('http://localhost:3000/marketing/api/reaction/snapshots', {
-    method: 'GET'
-  });
-  const mid6 = middleware(req6);
-  const isRedirect6 = mid6.status >= 300 && mid6.status < 400;
-  const location6 = mid6.headers.get('location') || '';
-
-  if (isRedirect6 && location6.includes('/auth/login')) {
-    console.log(`  [OK] Запрос к внутреннему API /marketing/api/... без сессии перенаправлен на вход:`);
-    console.log(`       -> HTTP ${mid6.status} Redirect to: ${location6}`);
-    console.log(`       -> Сырые данные API защищены от прямого неавторизованного доступа.`);
-    passed++;
-  } else {
-    throw new Error(`Expected API request to redirect to login, got: ${mid6.status} ${location6}`);
-  }
-
-  // Восстанавливаем оригинальный fetch
-  global.fetch = originalFetch;
+  console.log('\n--- 6. Без сессии на /marketing/api/... ---');
+  const res6 = await fetch(`${ADMIN_BASE}/marketing/api/reaction/snapshots`, { redirect: 'manual' });
+  const loc6 = res6.headers.get('location') || '';
+  check(
+    'Редирект на /auth/login (не отдаёт данные)',
+    res6.status >= 300 && res6.status < 400 && loc6.includes('/auth/login'),
+    `HTTP ${res6.status} Location: ${loc6}`,
+  );
 
   console.log('\n========================================================================');
-  console.log(`🎉 ВСЕ ${passed} ИЗ ${total} ПРОВЕРОК БЛОКА Б2 УСПЕШНО ПРОЙДЕНЫ (100% OK)!`);
+  if (passed === total) {
+    console.log(`🎉 ВСЕ ${passed} ИЗ ${total} ПРОВЕРОК БЛОКА Б2 ПРОЙДЕНЫ НА ЖИВЫХ СЕРВИСАХ`);
+  } else {
+    console.log(`❌ ${passed} ИЗ ${total} ПРОВЕРОК ПРОЙДЕНО — ЕСТЬ ПРОВАЛЫ, СМ. ВЫШЕ`);
+  }
   console.log('========================================================================');
+
+  if (passed !== total) process.exit(1);
 }
 
-runTests().catch((err) => {
-  console.error('\n❌ Ошибка валидации Блока Б2:', err);
+main().catch((err) => {
+  console.error('\n❌ Ошибка прогона Блока Б2:', err);
   process.exit(1);
 });
