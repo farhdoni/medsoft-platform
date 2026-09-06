@@ -91,7 +91,7 @@ function render403Html(): string {
   <div class="card">
     <div class="icon">🛡️</div>
     <h1>403 — Доступ запрещён</h1>
-    <p>У вас нет права доступа к разделу «Маркетинг». Обратитесь к главному администратору клиники для назначения прав.</p>
+    <p>У вас нет права доступа к разделу «Маркетинг» → «Движок». Обратитесь к главному администратору клиники для назначения прав.</p>
     <a href="/dashboard" class="btn">Вернуться в Панель управления</a>
   </div>
 </body>
@@ -100,13 +100,13 @@ function render403Html(): string {
 
 async function handleProxy(req: NextRequest) {
   const url = req.nextUrl;
-  const pathname = url.pathname; // e.g. /marketing or /marketing/campaigns or /marketing/public-media/...
+  const pathname = url.pathname; // e.g. /marketing/engine or /marketing/engine/campaigns or /marketing/engine/public-media/...
   const search = url.search || '';
   const method = req.method;
 
-  // ─── 1. Исключение: Публичные медиафайлы (/marketing/public-media/*) ────────
+  // ─── 1. Исключение: Публичные медиафайлы (/marketing/engine/public-media/*) ─
   // Доступны без сессии роботам соцсетей (Meta facebookexternalhit) строго для GET и HEAD
-  const isPublicMedia = pathname.startsWith('/marketing/public-media/') && (method === 'GET' || method === 'HEAD');
+  const isPublicMedia = pathname.startsWith('/marketing/engine/public-media/') && (method === 'GET' || method === 'HEAD');
 
   if (isPublicMedia) {
     const targetUrl = `${MARKETING_ENGINE_URL}${pathname}${search}`;
@@ -161,11 +161,6 @@ async function handleProxy(req: NextRequest) {
   const isHtmlRequest = req.headers.get('accept')?.includes('text/html');
 
   if (!token) {
-    if (isHtmlRequest) {
-      const loginUrl = new URL('/auth/login', req.url);
-      loginUrl.searchParams.set('from', pathname + search);
-      return NextResponse.redirect(loginUrl);
-    }
     const loginUrl = new URL('/auth/login', req.url);
     loginUrl.searchParams.set('from', pathname + search);
     return NextResponse.redirect(loginUrl);
@@ -173,27 +168,17 @@ async function handleProxy(req: NextRequest) {
 
   const operator = await getOperator(token);
   if (!operator || operator.isActive === false) {
-    if (isHtmlRequest) {
-      const loginUrl = new URL('/auth/login', req.url);
-      loginUrl.searchParams.set('from', pathname + search);
-      return NextResponse.redirect(loginUrl);
-    }
     const loginUrl = new URL('/auth/login', req.url);
     loginUrl.searchParams.set('from', pathname + search);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Проверка права 'marketing'
+  // Движок публикует наружу — это управление, не чтение. Единственное право
+  // в словаре, которое сюда пускает: 'marketing:manage' (см. apps/api/src/lib/rbac.ts).
   const isSuperadmin = operator.role === 'superadmin';
-  const hasMarketingRight =
-    isSuperadmin ||
-    operator.rights?.includes('marketing') ||
-    operator.rights?.includes('marketing:read') ||
-    operator.rights?.includes('marketing:manage') ||
-    operator.role === 'director' ||
-    operator.role === 'marketer';
+  const hasEngineRight = isSuperadmin || operator.rights?.includes('marketing:manage');
 
-  if (!hasMarketingRight) {
+  if (!hasEngineRight) {
     if (isHtmlRequest) {
       return new Response(render403Html(), {
         status: 403,

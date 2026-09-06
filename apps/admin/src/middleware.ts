@@ -7,9 +7,9 @@ export function middleware(request: NextRequest) {
   const method = request.method;
 
   // Исключение для публичных медиафайлов маркетингового движка:
-  // /marketing/public-media/* доступен без сессии роботам соцсетей (Meta facebookexternalhit),
+  // /marketing/engine/public-media/* доступен без сессии роботам соцсетей (Meta facebookexternalhit),
   // но строго только для методов GET и HEAD.
-  if (pathname.startsWith('/marketing/public-media/') && (method === 'GET' || method === 'HEAD')) {
+  if (pathname.startsWith('/marketing/engine/public-media/') && (method === 'GET' || method === 'HEAD')) {
     return NextResponse.next();
   }
 

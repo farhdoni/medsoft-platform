@@ -1,6 +1,14 @@
 /**
  * scripts/test_block_b2.ts — Валидация интеграции Маркетинга в админку (Блок Б2)
  *
+ * Раздел «Маркетинг» живёт под одним префиксом /marketing/* — движок теперь на
+ * /marketing/engine/*, остальные инструменты (email/push/referrals/analytics)
+ * на своих /marketing/<имя>. Этот скрипт проверяет именно движок (проверки 1, 3-6
+ * бьют по /marketing/engine — единственный кусок раздела, что идёт через прокси
+ * и внешний PHP-процесс; email/push/referrals/analytics — обычные React-страницы
+ * админки поверх apps/api/src/routes/admin/marketing.ts, у них нет отдельного
+ * прокси-слоя для проверки этим скриптом).
+ *
  * ВНИМАНИЕ: предыдущая версия этого скрипта вызывала middleware()/route-хендлеры
  * напрямую и подменяла global.fetch — это ничего не гоняло по сети и подделывало
  * сессии литеральными cookie-строками. Такой прогон не мог поймать ни одну из
@@ -10,20 +18,22 @@
  *      с русским ФИО.
  *   2. BASE_PATH/TRUSTED_PROXIES читались движком через $_ENV, который PHP built-in
  *      сервер не заполняет из окружения ОС при стандартном variables_order=GPCS —
- *      прокси на /marketing/* тихо проваливался в дефолтную страницу движка.
+ *      прокси на /marketing/engine/* тихо проваливался в дефолтную страницу движка.
  *
  * Этот скрипт делает реальные HTTP-запросы к уже поднятым сервисам:
  *   - Admin (Next.js)     — http://localhost:3000
  *   - API (Hono)          — http://localhost:3001
- *   - Marketing engine    — http://127.0.0.1:8080, ОБЯЗАТЕЛЬНО с BASE_PATH=/marketing
+ *   - Marketing engine    — http://127.0.0.1:8080, ОБЯЗАТЕЛЬНО с BASE_PATH=/marketing/engine
  *
  * Перед прогоном:
  *   cd apps/api && npx tsx --env-file .env src/index.ts        (порт 3001)
  *   cd apps/admin && pnpm dev                                   (порт 3000)
- *   cd ../marketing-engine-php && BASE_PATH=/marketing php -S 127.0.0.1:8080 -t public public/index.php
+ *   cd ../marketing-engine-php && BASE_PATH=/marketing/engine php -S 127.0.0.1:8080 -t public public/index.php
  *
  * Нужны два реальных аккаунта в admin_users (см. B2TEST_* переменные ниже) —
- * один с правом marketing (role=marketer), один без (role=accountant).
+ * один с marketing:manage (role=marketer — «Движок» требует именно manage,
+ * публикация наружу это не чтение), один без вообще каких-либо marketing:*
+ * прав (role=accountant).
  * Создать их (пароли задаются локально, не для прода):
  *   INSERT INTO admin_users (email, full_name, role, is_active, password_hash) VALUES (...);
  *   INSERT INTO admin_user_roles (user_id, role_id) VALUES (...);  -- id из admin_roles
@@ -82,10 +92,10 @@ async function main() {
   console.log(`Admin: ${ADMIN_BASE}  |  API: ${API_BASE}\n`);
 
   // ---------------------------------------------------------------------------
-  // 1. Без сессии на /marketing — редирект на вход админки
+  // 1. Без сессии на /marketing/engine — редирект на вход админки
   // ---------------------------------------------------------------------------
-  console.log('--- 1. Без сессии на /marketing ---');
-  const res1 = await fetch(`${ADMIN_BASE}/marketing`, {
+  console.log('--- 1. Без сессии на /marketing/engine ---');
+  const res1 = await fetch(`${ADMIN_BASE}/marketing/engine`, {
     headers: { Accept: 'text/html' },
     redirect: 'manual',
   });
@@ -107,8 +117,8 @@ async function main() {
   // ---------------------------------------------------------------------------
   // 2. С сессией без права — 403 экраном админки
   // ---------------------------------------------------------------------------
-  console.log('\n--- 2. С сессией без права marketing ---');
-  const res2 = await fetch(`${ADMIN_BASE}/marketing`, {
+  console.log('\n--- 2. С сессией без marketing:manage на /marketing/engine ---');
+  const res2 = await fetch(`${ADMIN_BASE}/marketing/engine`, {
     headers: { Accept: 'text/html', Cookie: `access_token=${noAccessToken}` },
   });
   const body2 = await res2.text();
@@ -119,10 +129,10 @@ async function main() {
   );
 
   // ---------------------------------------------------------------------------
-  // 3. С правом marketing — открывается движок, реальный оператор в разметке
+  // 3. С marketing:manage — открывается движок, реальный оператор в разметке
   // ---------------------------------------------------------------------------
-  console.log('\n--- 3. С правом marketing (marketer) ---');
-  const res3 = await fetch(`${ADMIN_BASE}/marketing`, {
+  console.log('\n--- 3. С marketing:manage (marketer) на /marketing/engine ---');
+  const res3 = await fetch(`${ADMIN_BASE}/marketing/engine`, {
     headers: { Accept: 'text/html', Cookie: `access_token=${marketerToken}` },
   });
   const body3 = await res3.text();
@@ -133,10 +143,10 @@ async function main() {
   );
 
   // ---------------------------------------------------------------------------
-  // 4. Без сессии на /marketing/public-media/<опубликованный> — файл отдаётся
+  // 4. Без сессии на /marketing/engine/public-media/<опубликованный> — файл отдаётся
   // ---------------------------------------------------------------------------
-  console.log('\n--- 4. Без сессии на /marketing/public-media/<опубликованный> ---');
-  const res4 = await fetch(`${ADMIN_BASE}/marketing/public-media/${PUBLISHED_FILE}`);
+  console.log('\n--- 4. Без сессии на /marketing/engine/public-media/<опубликованный> ---');
+  const res4 = await fetch(`${ADMIN_BASE}/marketing/engine/public-media/${PUBLISHED_FILE}`);
   check(
     'HTTP 200, video/mp4, Accept-Ranges: bytes',
     res4.status === 200 &&
@@ -147,17 +157,17 @@ async function main() {
   await res4.body?.cancel();
 
   // ---------------------------------------------------------------------------
-  // 5. Без сессии на /marketing/public-media/<не из очереди> — 404
+  // 5. Без сессии на /marketing/engine/public-media/<не из очереди> — 404
   // ---------------------------------------------------------------------------
-  console.log('\n--- 5. Без сессии на /marketing/public-media/<не из очереди> ---');
-  const res5 = await fetch(`${ADMIN_BASE}/marketing/public-media/${UNPUBLISHED_FILE}`);
+  console.log('\n--- 5. Без сессии на /marketing/engine/public-media/<не из очереди> ---');
+  const res5 = await fetch(`${ADMIN_BASE}/marketing/engine/public-media/${UNPUBLISHED_FILE}`);
   check('HTTP 404 Not Found', res5.status === 404, `HTTP ${res5.status}`);
 
   // ---------------------------------------------------------------------------
-  // 6. Без сессии на /marketing/api/... — редирект на вход, не данные
+  // 6. Без сессии на /marketing/engine/api/... — редирект на вход, не данные
   // ---------------------------------------------------------------------------
-  console.log('\n--- 6. Без сессии на /marketing/api/... ---');
-  const res6 = await fetch(`${ADMIN_BASE}/marketing/api/reaction/snapshots`, { redirect: 'manual' });
+  console.log('\n--- 6. Без сессии на /marketing/engine/api/... ---');
+  const res6 = await fetch(`${ADMIN_BASE}/marketing/engine/api/reaction/snapshots`, { redirect: 'manual' });
   const loc6 = res6.headers.get('location') || '';
   check(
     'Редирект на /auth/login (не отдаёт данные)',
