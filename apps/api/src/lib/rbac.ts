@@ -23,7 +23,7 @@ export const PERMISSIONS = [
 
   'partners:read', 'partners:manage', 'partners:issue_key',
 
-  'marketing:read', 'marketing:manage',
+  'marketing', 'marketing:read', 'marketing:manage',
 
   'content:read', 'content:manage',
   'content:clinic_requests_read', 'content:clinic_requests_manage',
@@ -75,7 +75,7 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
 
   director: [
     'main:read', 'users:read', 'partners:read', 'partners:manage',
-    'aivita:doctors_read', 'aivita:billing_read', 'marketing:read',
+    'aivita:doctors_read', 'aivita:billing_read', 'marketing', 'marketing:read',
     'finance:prices_manage', 'security:read', 'reports:generate',
     'finance:read', 'finance:settings_read', 'finance:settings_manage',
     'notifications:read', 'dashboard:read',
@@ -95,7 +95,7 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
   ],
 
   marketer: [
-    'marketing:read', 'marketing:manage', 'content:read', 'content:manage',
+    'marketing', 'marketing:read', 'marketing:manage', 'content:read', 'content:manage',
     'finance:prices_manage', 'main:read', 'reports:generate',
     'notifications:read', 'notifications:manage',
   ],

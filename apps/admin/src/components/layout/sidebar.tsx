@@ -25,6 +25,7 @@ type AdminMe = {
   role: string;
   isActive: boolean;
   avatarUrl?: string | null;
+  rights?: string[];
 };
 
 // All nav items — section:'main' = top collapsible group
@@ -63,10 +64,7 @@ const baseNavItems = [
   { href: '/finance/plans',              label: 'Тарифы',          icon: Layers,          section: 'finance' },
   { href: '/finance/settings',           label: 'Настройки',       icon: Settings2,       section: 'finance' },
   // ── МАРКЕТИНГ ──
-  { href: '/marketing/email',      label: 'Email рассылки',    icon: Mail,          section: 'marketing' },
-  { href: '/marketing/push',       label: 'Push уведомления',  icon: MessageSquare, section: 'marketing' },
-  { href: '/marketing/referrals',  label: 'Реферальная',       icon: Share2,        section: 'marketing' },
-  { href: '/marketing/analytics',  label: 'Аналитика',         icon: BarChart2,     section: 'marketing' },
+  { href: '/marketing',            label: 'Маркетинг',         icon: BarChart2,     section: 'marketing', requiredRight: 'marketing' },
   // ── КОНТЕНТ ──
   { href: '/content/landing',      label: 'Лендинг',           icon: Globe,         section: 'content' },
   { href: '/content/social',       label: 'Соцсети',           icon: Link2,         section: 'content' },
@@ -89,7 +87,7 @@ const baseNavItems = [
   { href: '/settings/roles',       label: 'Роли',              icon: Shield,        section: 'settings' },
   { href: '/settings/team',        label: 'Команда',           icon: UsersRound,    section: 'settings' },
   { href: '/settings/ai',          label: 'AI настройки',      icon: BrainCircuit,  section: 'settings' },
-] as { href: string; label?: string; labelKey?: string; icon: React.ElementType; section: string }[];
+] as { href: string; label?: string; labelKey?: string; icon: React.ElementType; section: string; requiredRight?: string }[];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';
 
@@ -170,9 +168,21 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
     settings:  t.sections.settings,
   };
 
-  // Add /admins for superadmin
+  // Filter base items by permission and add /admins for superadmin
+  const hasItemAccess = (item: { requiredRight?: string }) => {
+    if (!item.requiredRight) return true;
+    if (me?.role === 'superadmin') return true;
+    return (
+      me?.rights?.includes(item.requiredRight) ||
+      me?.rights?.includes('marketing:read') ||
+      me?.rights?.includes('marketing:manage') ||
+      me?.role === 'director' ||
+      me?.role === 'marketer'
+    );
+  };
+
   const navItems = [
-    ...baseNavItems,
+    ...baseNavItems.filter(hasItemAccess),
     ...(me?.role === 'superadmin'
       ? [{ href: '/admins', labelKey: 'admins', icon: Shield, section: 'main' }]
       : []),
