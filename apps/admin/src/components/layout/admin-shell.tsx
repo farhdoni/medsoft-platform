@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { CommandPalette } from '@/components/command-palette';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Каркас админки: боковое меню + область контента.
@@ -21,6 +22,7 @@ import { CommandPalette } from '@/components/command-palette';
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
   const pathname = usePathname();
+  const { t } = useI18n();
 
   // Переход по ссылке закрывает меню. Ссылки закрывают его и сами (клик по
   // активному пункту не меняет pathname), но переходы бывают и не из меню.
@@ -53,7 +55,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4 lg:hidden">
           <button
             type="button"
-            aria-label="Открыть меню"
+            aria-label={t.common.openMenu}
             aria-expanded={navOpen}
             onClick={() => setNavOpen(true)}
             className="-ml-2 flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-muted"

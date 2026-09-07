@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,7 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
+  const { t } = useI18n();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['admin-dashboard'],
@@ -114,9 +116,9 @@ export default function DashboardPage() {
       api.put(`/v1/admin/users/doctors/${id}/verify`, { action, reason }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
-      toast.success(vars.action === 'approve' ? 'Врач одобрен ✓' : 'Врач отклонён');
+      toast.success(vars.action === 'approve' ? t.dashboard.doctorApproved : t.dashboard.doctorRejected);
     },
-    onError: () => toast.error('Не удалось выполнить действие'),
+    onError: () => toast.error(t.dashboard.actionFailed),
   });
 
   function handleApprove(doctorId: string) {
@@ -124,7 +126,7 @@ export default function DashboardPage() {
   }
 
   function handleReject(doctorId: string) {
-    const reason = window.prompt('Причина отклонения:');
+    const reason = window.prompt(t.dashboard.rejectReason);
     if (reason === null) return;
     verifyMutation.mutate({ id: doctorId, action: 'reject', reason: reason || undefined });
   }
@@ -137,8 +139,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Дашборд</h1>
-        <p className="text-muted-foreground">Обзор платформы aivita.uz</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.nav.dashboard}</h1>
+        <p className="text-muted-foreground">{t.dashboard.subtitle}</p>
       </div>
 
       {/* ── KPI Cards 3×2 ── */}
@@ -147,7 +149,7 @@ export default function DashboardPage() {
         {/* 1. Всего пользователей */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Всего пользователей</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.usersTotal}</CardTitle>
             <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -161,21 +163,21 @@ export default function DashboardPage() {
         {/* 2. Активные сегодня */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Активные сегодня</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.activeToday}</CardTitle>
             <Activity className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
               {isLoading ? '...' : (data?.usersActiveToday ?? 0).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">уникальных за 24ч</p>
+            <p className="text-xs text-muted-foreground mt-1">{t.dashboard.uniquePer24h}</p>
           </CardContent>
         </Card>
 
         {/* 3. Врачи */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Врачи</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.nav.doctors}</CardTitle>
             <Stethoscope className="h-4 w-4 text-violet-500" />
           </CardHeader>
           <CardContent>
@@ -184,8 +186,8 @@ export default function DashboardPage() {
             </div>
             {!isLoading && (
               (data?.doctorsPending ?? 0) > 0
-                ? <Badge variant="warning" className="mt-1 text-xs">{data!.doctorsPending} на модерации</Badge>
-                : <p className="text-xs text-muted-foreground mt-1">Все верифицированы ✓</p>
+                ? <Badge variant="warning" className="mt-1 text-xs">{data!.doctorsPending} {t.dashboard.pendingModeration}</Badge>
+                : <p className="text-xs text-muted-foreground mt-1">{t.dashboard.allVerified}</p>
             )}
           </CardContent>
         </Card>
@@ -193,7 +195,7 @@ export default function DashboardPage() {
         {/* 4. Подписки */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Подписки</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.subscriptions}</CardTitle>
             <CreditCard className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
@@ -209,21 +211,21 @@ export default function DashboardPage() {
         {/* 5. Выручка за месяц */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Выручка за месяц</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.revenueMonth}</CardTitle>
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
               {isLoading ? '...' : formatCurrency(data?.revenueMonth ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">текущий месяц</p>
+            <p className="text-xs text-muted-foreground mt-1">{t.dashboard.currentMonth}</p>
           </CardContent>
         </Card>
 
         {/* 5b. APK Пациент */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">📱 APK Пациент</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">📱 {t.dashboard.apkPatient}</CardTitle>
             <Smartphone className="h-4 w-4 text-pink-500" />
           </CardHeader>
           <CardContent>
@@ -231,7 +233,7 @@ export default function DashboardPage() {
               {dlStats?.patientTotal?.toLocaleString() ?? '...'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              +{dlStats?.patientToday ?? 0} сегодня
+              +{dlStats?.patientToday ?? 0} {t.dashboard.today}
             </p>
           </CardContent>
         </Card>
@@ -239,7 +241,7 @@ export default function DashboardPage() {
         {/* 5c. APK Врач */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">📱 APK Врач</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">📱 {t.dashboard.apkDoctor}</CardTitle>
             <Smartphone className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -247,7 +249,7 @@ export default function DashboardPage() {
               {dlStats?.doctorTotal?.toLocaleString() ?? '...'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              +{dlStats?.doctorToday ?? 0} сегодня
+              +{dlStats?.doctorToday ?? 0} {t.dashboard.today}
             </p>
           </CardContent>
         </Card>
@@ -255,7 +257,7 @@ export default function DashboardPage() {
         {/* 6. Состояние системы */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Состояние системы</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.systemHealth}</CardTitle>
             <Server className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
@@ -268,11 +270,11 @@ export default function DashboardPage() {
                 <XCircle className="h-5 w-5 text-red-500" />
               )}
               <span className="text-sm font-medium">
-                {systemOk === null ? 'Проверка...' : systemOk ? 'Работает нормально' : 'Есть проблемы'}
+                {systemOk === null ? t.dashboard.checking : systemOk ? t.dashboard.healthy : t.dashboard.unhealthy}
               </span>
             </div>
             {!healthLoading && (
-              <p className="text-xs text-muted-foreground mt-1">{healthPassed}/{healthTotal} сервисов</p>
+              <p className="text-xs text-muted-foreground mt-1">{healthPassed}/{healthTotal} {t.dashboard.services}</p>
             )}
           </CardContent>
         </Card>
@@ -284,7 +286,7 @@ export default function DashboardPage() {
         {/* Registrations chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Регистрации за 30 дней</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.registrations30}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -297,10 +299,10 @@ export default function DashboardPage() {
                   <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{ fontSize: 12 }}
-                    labelFormatter={(v) => `Дата: ${v}`}
-                    formatter={(v, name) => [v, name === 'patients' ? 'Пациенты' : 'Врачи']}
+                    labelFormatter={(v) => `${t.dashboard.date}: ${v}`}
+                    formatter={(v, name) => [v, name === 'patients' ? t.nav.patients : t.nav.doctors]}
                   />
-                  <Legend formatter={(v) => v === 'patients' ? 'Пациенты' : 'Врачи'} />
+                  <Legend formatter={(v) => v === 'patients' ? t.nav.patients : t.nav.doctors} />
                   <Line type="monotone" dataKey="patients" stroke="#6366f1" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="doctors" stroke="#10b981" strokeWidth={2} dot={false} />
                 </LineChart>
@@ -312,7 +314,7 @@ export default function DashboardPage() {
         {/* Revenue chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Выручка за 30 дней</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dashboard.revenue30}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -325,8 +327,8 @@ export default function DashboardPage() {
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={formatRevY} />
                   <Tooltip
                     contentStyle={{ fontSize: 12 }}
-                    labelFormatter={(v) => `Дата: ${v}`}
-                    formatter={(v) => [formatCurrency(v as number), 'Выручка']}
+                    labelFormatter={(v) => `${t.dashboard.date}: ${v}`}
+                    formatter={(v) => [formatCurrency(v as number), t.dashboard.revenue]}
                   />
                   <Bar dataKey="amount" fill="#6366f1" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -342,7 +344,7 @@ export default function DashboardPage() {
         {/* Recent registrations */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Последние регистрации</CardTitle>
+            <CardTitle className="text-base">{t.dashboard.recentRegistrations}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -350,7 +352,7 @@ export default function DashboardPage() {
                 {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10" />)}
               </div>
             ) : !data?.recentRegistrations?.length ? (
-              <p className="text-sm text-muted-foreground">Нет данных</p>
+              <p className="text-sm text-muted-foreground">{t.common.noData}</p>
             ) : (
               <ul className="space-y-3">
                 {data.recentRegistrations.map((u) => (
@@ -360,7 +362,7 @@ export default function DashboardPage() {
                         {(u.name ?? u.email ?? '?')[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{u.name ?? u.email ?? 'Аноним'}</p>
+                        <p className="font-medium truncate">{u.name ?? u.email ?? t.dashboard.anon}</p>
                         <p className="text-xs text-muted-foreground truncate">{u.email ?? '—'}</p>
                       </div>
                     </div>
@@ -378,7 +380,7 @@ export default function DashboardPage() {
         {/* Pending doctors */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base">На модерации</CardTitle>
+            <CardTitle className="text-base">{t.dashboard.moderation}</CardTitle>
             {(data?.doctorsPending ?? 0) > 0 && (
               <Badge variant="warning">{data!.doctorsPending}</Badge>
             )}
@@ -389,14 +391,14 @@ export default function DashboardPage() {
                 {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14" />)}
               </div>
             ) : !data?.pendingDoctors?.length ? (
-              <p className="text-sm text-green-600">Нет врачей на модерации ✓</p>
+              <p className="text-sm text-green-600">{t.dashboard.noPending}</p>
             ) : (
               <ul className="space-y-3">
                 {data.pendingDoctors.map((d) => (
                   <li key={d.id} className="border-b pb-3 last:border-0 last:pb-0">
                     <p className="font-medium text-sm">{d.name ?? '—'}</p>
                     <p className="text-xs text-muted-foreground mb-2">
-                      {d.specialization ?? 'Специализация не указана'}
+                      {d.specialization ?? t.dashboard.noSpecialization}
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -406,7 +408,7 @@ export default function DashboardPage() {
                         onClick={() => handleApprove(d.id)}
                         disabled={verifyMutation.isPending}
                       >
-                        Одобрить
+                        {t.dashboard.approve}
                       </Button>
                       <Button
                         size="sm"
@@ -415,7 +417,7 @@ export default function DashboardPage() {
                         onClick={() => handleReject(d.id)}
                         disabled={verifyMutation.isPending}
                       >
-                        Отклонить
+                        {t.dashboard.reject}
                       </Button>
                     </div>
                   </li>
@@ -428,7 +430,7 @@ export default function DashboardPage() {
         {/* Recent payments */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Последние платежи</CardTitle>
+            <CardTitle className="text-base">{t.dashboard.recentPayments}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -436,7 +438,7 @@ export default function DashboardPage() {
                 {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10" />)}
               </div>
             ) : !data?.recentPayments?.length ? (
-              <p className="text-sm text-muted-foreground">Нет платежей</p>
+              <p className="text-sm text-muted-foreground">{t.dashboard.noPayments}</p>
             ) : (
               <ul className="space-y-3">
                 {data.recentPayments.map((p) => (

@@ -4,16 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
 import { LayoutDashboard, Users, Stethoscope, Building2, Calendar, CreditCard, AlertTriangle, Shield, Search } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
-const commands = [
-  { label: 'Дашборд', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Пациенты', href: '/patients', icon: Users },
-  { label: 'Врачи', href: '/doctors', icon: Stethoscope },
-  { label: 'Клиники', href: '/clinics', icon: Building2 },
-  { label: 'Приёмы', href: '/appointments', icon: Calendar },
-  { label: 'Транзакции', href: '/transactions', icon: CreditCard },
-  { label: 'SOS вызовы', href: '/sos-calls', icon: AlertTriangle },
-  { label: 'Админы', href: '/admins', icon: Shield },
+// Labels come from the same nav dictionary the sidebar uses, so the palette
+// can never drift out of sync with the menu it mirrors.
+const COMMANDS = [
+  { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { key: 'patients', href: '/patients', icon: Users },
+  { key: 'doctors', href: '/doctors', icon: Stethoscope },
+  { key: 'clinics', href: '/clinics', icon: Building2 },
+  { key: 'appointments', href: '/appointments', icon: Calendar },
+  { key: 'transactions', href: '/transactions', icon: CreditCard },
+  { key: 'sosCalls', href: '/sos-calls', icon: AlertTriangle },
+  { key: 'admins', href: '/admins', icon: Shield },
 ];
 
 export function CommandPalette() {
@@ -21,7 +24,9 @@ export function CommandPalette() {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { t } = useI18n();
 
+  const commands = COMMANDS.map((c) => ({ ...c, label: t.nav[c.key] ?? c.key }));
   const filtered = query
     ? commands.filter((c) => c.label.toLowerCase().includes(query.toLowerCase()))
     : commands;
@@ -60,7 +65,7 @@ export function CommandPalette() {
             inputRef.current?.focus();
           }}
         >
-          <Dialog.Title className="sr-only">Поиск команд</Dialog.Title>
+          <Dialog.Title className="sr-only">{t.common.searchCommands}</Dialog.Title>
 
           {/* Search input */}
           <div className="flex items-center border-b px-3">
@@ -69,7 +74,7 @@ export function CommandPalette() {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск..."
+              placeholder={t.common.search}
               className="flex h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setOpen(false);
@@ -80,10 +85,10 @@ export function CommandPalette() {
           {/* Results */}
           <div className="max-h-[300px] overflow-y-auto p-2">
             {filtered.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Ничего не найдено.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">{t.common.nothingFound}</p>
             ) : (
               <div>
-                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Навигация</p>
+                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{t.common.navigation}</p>
                 {filtered.map(({ label, href, icon: Icon }) => (
                   <button
                     key={href}
@@ -101,9 +106,9 @@ export function CommandPalette() {
           {/* Footer hint */}
           <div className="border-t px-3 py-2">
             <p className="text-xs text-muted-foreground">
-              <kbd className="rounded border px-1 font-mono text-xs">↵</kbd> выбрать
+              <kbd className="rounded border px-1 font-mono text-xs">↵</kbd> {t.common.select}
               <span className="mx-2">·</span>
-              <kbd className="rounded border px-1 font-mono text-xs">Esc</kbd> закрыть
+              <kbd className="rounded border px-1 font-mono text-xs">Esc</kbd> {t.common.close}
             </p>
           </div>
         </Dialog.Content>
