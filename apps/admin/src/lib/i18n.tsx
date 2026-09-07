@@ -86,6 +86,30 @@ const translations = {
       updateFailed:  'Ошибка при обновлении',
       pwdWrong:      'Неверный текущий пароль',
     },
+    auth: {
+      eyebrow:       'панель администратора',
+      greeting1:     'Добро пожаловать,',
+      greeting2:     'рады снова вас видеть',
+      brandSub:      'Клиники, врачи, платежи и заявки экосистемы AIVITA — в одной панели. Войдите, чтобы продолжить работу.',
+      formTitle:     'Вход в систему',
+      emailLabel:    'Email',
+      pwdLabel:      'Пароль',
+      forgot:        'Забыли пароль?',
+      submit:        'Войти',
+      submitting:    'Вход...',
+      title2fa:      'Подтверждение входа',
+      desc2fa:       'Введите код из приложения аутентификатора',
+      code2fa:       'Код 2FA (6 цифр)',
+      verify:        'Подтвердить',
+      verifying:     'Проверяю...',
+      back:          'Назад',
+      trust:         'Вход защищён двухфакторной аутентификацией',
+      foot:          'Внутренняя система',
+      showPwd:       'Показать пароль',
+      hidePwd:       'Скрыть пароль',
+      toggleTheme:   'Сменить тему',
+      loginFailed:   'Ошибка при входе',
+    },
   },
   en: {
     nav: {
@@ -159,6 +183,30 @@ const translations = {
       pwdMismatch:   'Passwords do not match',
       updateFailed:  'Update failed',
       pwdWrong:      'Current password is incorrect',
+    },
+    auth: {
+      eyebrow:       'admin panel',
+      greeting1:     'Welcome back,',
+      greeting2:     'good to see you again',
+      brandSub:      'Clinics, doctors, payments and requests across the AIVITA ecosystem — in one panel. Sign in to continue.',
+      formTitle:     'Sign in',
+      emailLabel:    'Email',
+      pwdLabel:      'Password',
+      forgot:        'Forgot password?',
+      submit:        'Sign in',
+      submitting:    'Signing in...',
+      title2fa:      'Confirm sign-in',
+      desc2fa:       'Enter the code from your authenticator app',
+      code2fa:       '2FA code (6 digits)',
+      verify:        'Confirm',
+      verifying:     'Checking...',
+      back:          'Back',
+      trust:         'Sign-in is protected by two-factor authentication',
+      foot:          'Internal system',
+      showPwd:       'Show password',
+      hidePwd:       'Hide password',
+      toggleTheme:   'Toggle theme',
+      loginFailed:   'Sign-in failed',
     },
   },
   uz: {
@@ -234,6 +282,30 @@ const translations = {
       updateFailed:  'Yangilashda xato',
       pwdWrong:      'Joriy parol noto\'g\'ri',
     },
+    auth: {
+      eyebrow:       'administrator paneli',
+      greeting1:     'Xush kelibsiz,',
+      greeting2:     'sizni yana ko\'rganimizdan xursandmiz',
+      brandSub:      'AIVITA ekotizimidagi klinikalar, shifokorlar, to\'lovlar va arizalar — bitta panelda. Davom etish uchun tizimga kiring.',
+      formTitle:     'Tizimga kirish',
+      emailLabel:    'Email',
+      pwdLabel:      'Parol',
+      forgot:        'Parolni unutdingizmi?',
+      submit:        'Kirish',
+      submitting:    'Kirilmoqda...',
+      title2fa:      'Kirishni tasdiqlash',
+      desc2fa:       'Autentifikator ilovasidagi kodni kiriting',
+      code2fa:       '2FA kodi (6 raqam)',
+      verify:        'Tasdiqlash',
+      verifying:     'Tekshirilmoqda...',
+      back:          'Orqaga',
+      trust:         'Kirish ikki faktorli autentifikatsiya bilan himoyalangan',
+      foot:          'Ichki tizim',
+      showPwd:       'Parolni ko\'rsatish',
+      hidePwd:       'Parolni yashirish',
+      toggleTheme:   'Mavzuni almashtirish',
+      loginFailed:   'Kirishda xatolik',
+    },
   },
 };
 
@@ -242,6 +314,7 @@ export type Translations = {
   sections: Record<string, string>;
   account: Record<string, string>;
   errors: Record<string, string>;
+  auth: Record<string, string>;
 };
 
 type ContextValue = {
@@ -268,6 +341,13 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Keep <html lang> honest — screen readers and the browser's own
+  // translation prompt both read it, and the root layout can only ship a
+  // static value.
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
   function setLocale(l: Locale) {
     setLocaleState(l);
     localStorage.setItem(STORAGE_KEY, l);
@@ -282,4 +362,22 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
 export function useI18n() {
   return useContext(I18nContext);
+}
+
+// Intl has no usable data for Uzbek in Chrome — `uz-UZ` renders as "M09 7,
+// Mon" — so that one locale is spelled out by hand while ru/en go through
+// Intl as normal.
+const UZ_WEEKDAYS = ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'];
+const UZ_MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+
+/** "понедельник, 7 сентября" / "dushanba, 7 sentabr" / "Monday, 7 September" */
+export function formatLongDate(date: Date, locale: Locale): string {
+  if (locale === 'uz') {
+    return `${UZ_WEEKDAYS[date.getDay()]}, ${date.getDate()} ${UZ_MONTHS[date.getMonth()]}`;
+  }
+  return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 }

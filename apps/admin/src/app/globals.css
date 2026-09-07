@@ -54,3 +54,81 @@ body {
   color: var(--color-foreground);
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* ─── Sign-in screen ────────────────────────────────────────────────────────
+   The brand panel keeps one fixed identity in both themes: it is a dark
+   ground the cloth sits on, not a surface that follows the UI palette. */
+
+.login-brand {
+  background: linear-gradient(165deg, #171331 0%, #221C42 100%);
+  color: #F3EFE6;
+}
+
+/* A bolt of khan-atlas rising out of the bottom-left corner. The mask is
+   anchored to that corner so the cloth dissolves into the panel with no cut
+   line, and the woven area stays a corner accent rather than a wallpaper. */
+.atlas-layer {
+  position: absolute;
+  left: -6%;
+  bottom: -8%;
+  width: 60%;
+  height: 88%;
+  overflow: hidden;
+  opacity: 0.6;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(108% 108% at 0% 100%, #000 0%, #000 30%, rgba(0,0,0,0.5) 58%, rgba(0,0,0,0) 85%);
+  mask-image: radial-gradient(108% 108% at 0% 100%, #000 0%, #000 30%, rgba(0,0,0,0.5) 58%, rgba(0,0,0,0) 85%);
+}
+
+.atlas-photo {
+  position: absolute;
+  inset: -7%;
+  background-image: url('/atlas-bukhara.webp');
+  background-size: cover;
+  background-position: 34% 68%;
+  animation: atlas-breathe 48s ease-in-out infinite alternate;
+}
+
+/* A photograph cannot tile, so the cloth breathes in place instead of
+   scrolling — no edge ever enters frame. */
+@keyframes atlas-breathe {
+  from { transform: scale(1); }
+  to   { transform: scale(1.07) translateY(-1.5%); }
+}
+
+/* Light rocking across silk. */
+.atlas-sheen {
+  position: absolute;
+  inset: -20% -55%;
+  pointer-events: none;
+  background: linear-gradient(105deg,
+    rgba(243,239,230,0) 40%,
+    rgba(243,239,230,0.11) 50%,
+    rgba(243,239,230,0.03) 56%,
+    rgba(243,239,230,0) 66%);
+  animation: atlas-sheen 17s ease-in-out infinite alternate;
+}
+
+@keyframes atlas-sheen {
+  from { transform: translateX(-16%); }
+  to   { transform: translateX(16%); }
+}
+
+/* Just enough veil under the centred type to keep it clean where the cloth's
+   fade reaches it. */
+.login-brand-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(56% 42% at 50% 47%, rgba(11,9,20,0.5) 0%, rgba(11,9,20,0.22) 58%, rgba(11,9,20,0) 80%),
+    linear-gradient(180deg, rgba(11,9,20,0.3) 0%, rgba(11,9,20,0) 30%, rgba(11,9,20,0.08) 62%, rgba(11,9,20,0.52) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-photo,
+  .atlas-sheen {
+    animation: none;
+    transform: none;
+  }
+}
