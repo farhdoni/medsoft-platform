@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,20 +63,20 @@ const emptyForm: AppointmentForm = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const APPOINTMENT_TYPES = [
-  { value: 'offline_clinic',   label: 'Очный приём' },
-  { value: 'telemedicine_video', label: 'Телемедицина (видео)' },
-  { value: 'telemedicine_chat',  label: 'Телемедицина (чат)' },
-  { value: 'home_visit',        label: 'Выезд на дом' },
+  { value: 'offline_clinic',     key: 'tOffline' },
+  { value: 'telemedicine_video', key: 'tVideo' },
+  { value: 'telemedicine_chat',  key: 'tChat' },
+  { value: 'home_visit',         key: 'tHome' },
 ];
 
 const APPOINTMENT_STATUSES = [
-  { value: 'scheduled',           label: 'Запланирован' },
-  { value: 'confirmed',           label: 'Подтверждён' },
-  { value: 'in_progress',         label: 'Идёт' },
-  { value: 'completed',           label: 'Завершён' },
-  { value: 'cancelled_by_patient', label: 'Отменён пациентом' },
-  { value: 'cancelled_by_doctor',  label: 'Отменён врачом' },
-  { value: 'no_show',             label: 'Не явился' },
+  { value: 'scheduled',            key: 'sScheduled' },
+  { value: 'confirmed',            key: 'sConfirmed' },
+  { value: 'in_progress',          key: 'sInProgress' },
+  { value: 'completed',            key: 'sCompleted' },
+  { value: 'cancelled_by_patient', key: 'sCancelledPatient' },
+  { value: 'cancelled_by_doctor',  key: 'sCancelledDoctor' },
+  { value: 'no_show',              key: 'sNoShow' },
 ];
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
@@ -91,6 +92,7 @@ const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destruct
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AppointmentsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [page, setPage]           = useState(1);
   const [search, setSearch]       = useState('');
@@ -130,8 +132,8 @@ export default function AppointmentsPage() {
         clinicId: body.clinicId || undefined,
         patientComplaint: body.patientComplaint || undefined,
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success('Запись создана'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при создании'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success(t.appointments.created); setDialogOpen(false); },
+    onError: () => toast.error(t.appointments.createFailed),
   });
 
   const updateMutation = useMutation({
@@ -141,14 +143,14 @@ export default function AppointmentsPage() {
         clinicId: body.clinicId || undefined,
         patientComplaint: body.patientComplaint || undefined,
       }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success('Запись обновлена'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при обновлении'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success(t.appointments.updated); setDialogOpen(false); },
+    onError: () => toast.error(t.appointments.updateFailed),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/v1/appointments/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success('Удалено'); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['appointments'] }); toast.success(t.misc.deleted); },
+    onError: () => toast.error(t.common.error),
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -198,21 +200,21 @@ export default function AppointmentsPage() {
   // ── Columns ───────────────────────────────────────────────────────────────
   const columns: ColumnDef<Appointment>[] = [
     {
-      accessorKey: 'patientId', header: 'Пациент',
+      accessorKey: 'patientId', header: t.appointments.colPatient,
       cell: ({ row }) => patientMap[row.original.patientId] ?? row.original.patientId.slice(0, 8) + '…',
     },
     {
-      accessorKey: 'doctorId', header: 'Врач',
+      accessorKey: 'doctorId', header: t.appointments.colDoctor,
       cell: ({ row }) => doctorMap[row.original.doctorId] ?? row.original.doctorId.slice(0, 8) + '…',
     },
-    { accessorKey: 'type', header: 'Тип', cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge> },
+    { accessorKey: 'type', header: t.appointments.colType, cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge> },
     {
-      accessorKey: 'status', header: 'Статус',
+      accessorKey: 'status', header: t.common.status,
       cell: ({ row }) => <Badge variant={statusColors[row.original.status] ?? 'outline'}>{row.original.status}</Badge>,
     },
-    { accessorKey: 'scheduledAt', header: 'Дата', cell: ({ row }) => formatDate(row.original.scheduledAt) },
-    { accessorKey: 'priceUzs', header: 'Цена', cell: ({ row }) => formatCurrency(row.original.priceUzs) },
-    { accessorKey: 'isPaid', header: 'Оплачено', cell: ({ row }) => row.original.isPaid ? '✓' : '✗' },
+    { accessorKey: 'scheduledAt', header: t.appointments.colDate, cell: ({ row }) => formatDate(row.original.scheduledAt) },
+    { accessorKey: 'priceUzs', header: t.appointments.colPrice, cell: ({ row }) => formatCurrency(row.original.priceUzs) },
+    { accessorKey: 'isPaid', header: t.appointments.colPaid, cell: ({ row }) => row.original.isPaid ? '✓' : '✗' },
     {
       id: 'actions', header: '',
       cell: ({ row }) => (
@@ -221,7 +223,7 @@ export default function AppointmentsPage() {
             <Pencil className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="ghost" className="text-destructive" onClick={() => {
-            if (confirm('Удалить запись?')) deleteMutation.mutate(row.original.id);
+            if (confirm(t.appointments.deleteAsk)) deleteMutation.mutate(row.original.id);
           }}>
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -235,14 +237,14 @@ export default function AppointmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Приёмы</h1>
-          <p className="text-muted-foreground">Управление записями к врачам</p>
+          <h1 className="text-2xl font-bold">{t.appointments.title}</h1>
+          <p className="text-muted-foreground">{t.appointments.subtitle}</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Создать запись</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />{t.appointments.create}</Button>
       </div>
 
       <Input
-        placeholder="Поиск..."
+        placeholder={t.appointments.searchHint}
         value={search}
         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         className="max-w-sm"
@@ -262,15 +264,15 @@ export default function AppointmentsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Редактировать запись' : 'Новая запись к врачу'}</DialogTitle>
+            <DialogTitle>{editing ? t.appointments.editTitle : t.appointments.newTitle}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
 
             {/* Patient */}
             <div className="space-y-2">
-              <Label>Пациент *</Label>
+              <Label>{t.appointments.patientReq}</Label>
               <Select value={form.patientId} onValueChange={(v) => setField('patientId', v)} required>
-                <SelectTrigger><SelectValue placeholder="Выберите пациента" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t.appointments.selectPatient} /></SelectTrigger>
                 <SelectContent>
                   {(patients?.data ?? []).map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.fullName} — {p.phone}</SelectItem>
@@ -281,9 +283,9 @@ export default function AppointmentsPage() {
 
             {/* Doctor */}
             <div className="space-y-2">
-              <Label>Врач *</Label>
+              <Label>{t.appointments.doctorReq}</Label>
               <Select value={form.doctorId} onValueChange={(v) => setField('doctorId', v)} required>
-                <SelectTrigger><SelectValue placeholder="Выберите врача" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t.appointments.selectDoctor} /></SelectTrigger>
                 <SelectContent>
                   {(doctors?.data ?? []).map((d) => (
                     <SelectItem key={d.id} value={d.id}>{d.fullName} — {d.specialization}</SelectItem>
@@ -294,9 +296,9 @@ export default function AppointmentsPage() {
 
             {/* Clinic (optional) */}
             <div className="space-y-2">
-              <Label>Клиника</Label>
+              <Label>{t.appointments.clinic}</Label>
               <Select value={form.clinicId} onValueChange={(v) => setField('clinicId', v)}>
-                <SelectTrigger><SelectValue placeholder="Выберите клинику (необязательно)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t.appointments.selectClinic} /></SelectTrigger>
                 <SelectContent>
                   {(clinics?.data ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name} — {c.city}</SelectItem>
@@ -307,12 +309,12 @@ export default function AppointmentsPage() {
 
             {/* Type */}
             <div className="space-y-2">
-              <Label>Тип приёма *</Label>
+              <Label>{t.appointments.typeReq}</Label>
               <Select value={form.type} onValueChange={(v) => setField('type', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {APPOINTMENT_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {APPOINTMENT_TYPES.map((x) => (
+                    <SelectItem key={x.value} value={x.value}>{t.appointments[x.key]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -320,12 +322,12 @@ export default function AppointmentsPage() {
 
             {/* Status */}
             <div className="space-y-2">
-              <Label>Статус</Label>
+              <Label>{t.common.status}</Label>
               <Select value={form.status} onValueChange={(v) => setField('status', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {APPOINTMENT_STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem key={s.value} value={s.value}>{t.appointments[s.key]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -333,7 +335,7 @@ export default function AppointmentsPage() {
 
             {/* Scheduled At */}
             <div className="space-y-2">
-              <Label>Дата и время *</Label>
+              <Label>{t.appointments.datetimeReq}</Label>
               <Input
                 type="datetime-local"
                 value={form.scheduledAt}
@@ -344,7 +346,7 @@ export default function AppointmentsPage() {
 
             {/* Duration */}
             <div className="space-y-2">
-              <Label>Длительность (минут)</Label>
+              <Label>{t.appointments.duration}</Label>
               <Input
                 type="number"
                 min={5}
@@ -356,7 +358,7 @@ export default function AppointmentsPage() {
 
             {/* Price */}
             <div className="space-y-2">
-              <Label>Цена (сум) *</Label>
+              <Label>{t.appointments.priceReq}</Label>
               <Input
                 type="number"
                 min={0}
@@ -368,11 +370,11 @@ export default function AppointmentsPage() {
 
             {/* Patient Complaint */}
             <div className="space-y-2">
-              <Label>Жалоба пациента</Label>
+              <Label>{t.appointments.complaint}</Label>
               <Input
                 value={form.patientComplaint}
                 onChange={(e) => setField('patientComplaint', e.target.value)}
-                placeholder="Опишите жалобу..."
+                placeholder={t.appointments.complaintHint}
               />
             </div>
 
@@ -381,7 +383,7 @@ export default function AppointmentsPage() {
               className="w-full"
               disabled={createMutation.isPending || updateMutation.isPending}
             >
-              {editing ? 'Сохранить' : 'Создать запись'}
+              {editing ? t.settings.saveShort : t.appointments.create}
             </Button>
           </form>
         </DialogContent>
