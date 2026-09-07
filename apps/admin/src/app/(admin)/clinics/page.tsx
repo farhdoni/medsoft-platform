@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Clinic = {
   id: string;
@@ -35,6 +36,7 @@ type ClinicForm = {
 const emptyForm: ClinicForm = { name: '', address: '', city: '', phone: '' };
 
 export default function ClinicsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -49,20 +51,20 @@ export default function ClinicsPage() {
 
   const createMutation = useMutation({
     mutationFn: (body: ClinicForm) => api.post('/v1/clinics', body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clinics'] }); toast.success('Клиника создана'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clinics'] }); toast.success(t.misc.clinicCreated); setDialogOpen(false); },
+    onError: () => toast.error(t.common.error),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<ClinicForm> }) => api.patch(`/v1/clinics/${id}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clinics'] }); toast.success('Клиника обновлена'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при обновлении'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clinics'] }); toast.success(t.misc.clinicUpdated); setDialogOpen(false); },
+    onError: () => toast.error(t.misc.updateFailed),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/v1/clinics/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clinics'] }); toast.success('Удалено'); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clinics'] }); toast.success(t.misc.deleted); },
+    onError: () => toast.error(t.common.error),
   });
 
   function openCreate() {
@@ -87,22 +89,22 @@ export default function ClinicsPage() {
   }
 
   const fields: [string, keyof ClinicForm][] = [
-    ['Название', 'name'],
-    ['Адрес', 'address'],
-    ['Город', 'city'],
-    ['Телефон', 'phone'],
+    [t.misc.title, 'name'],
+    [t.misc.address, 'address'],
+    [t.misc.city, 'city'],
+    [t.users.phone, 'phone'],
   ];
 
   const columns: ColumnDef<Clinic>[] = [
-    { accessorKey: 'name', header: 'Название' },
-    { accessorKey: 'type', header: 'Тип', cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge> },
+    { accessorKey: 'name', header: t.misc.title },
+    { accessorKey: 'type', header: t.common.type, cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge> },
     {
-      accessorKey: 'status', header: 'Статус',
+      accessorKey: 'status', header: t.common.status,
       cell: ({ row }) => <Badge variant={row.original.status === 'active' ? 'success' : 'warning'}>{row.original.status}</Badge>,
     },
-    { accessorKey: 'city', header: 'Город' },
-    { accessorKey: 'phone', header: 'Телефон' },
-    { accessorKey: 'createdAt', header: 'Создана', cell: ({ row }) => formatDate(row.original.createdAt) },
+    { accessorKey: 'city', header: t.misc.city },
+    { accessorKey: 'phone', header: t.users.phone },
+    { accessorKey: 'createdAt', header: t.misc.clinicCreatedAt, cell: ({ row }) => formatDate(row.original.createdAt) },
     {
       id: 'actions', header: '',
       cell: ({ row }) => (
@@ -111,7 +113,7 @@ export default function ClinicsPage() {
             <Pencil className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="ghost" className="text-destructive" onClick={() => {
-            if (confirm('Удалить клинику?')) deleteMutation.mutate(row.original.id);
+            if (confirm(t.misc.deleteClinicAsk)) deleteMutation.mutate(row.original.id);
           }}>
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -124,14 +126,14 @@ export default function ClinicsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Клиники</h1>
-          <p className="text-muted-foreground">Управление клиниками</p>
+          <h1 className="text-2xl font-bold">{t.nav.clinics}</h1>
+          <p className="text-muted-foreground">{t.misc.clinicsSubtitle}</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Добавить</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />{t.misc.add}</Button>
       </div>
 
       <Input
-        placeholder="Поиск..."
+        placeholder={t.misc.searchHint}
         value={search}
         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         className="max-w-sm"
@@ -150,7 +152,7 @@ export default function ClinicsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Редактировать клинику' : 'Новая клиника'}</DialogTitle>
+            <DialogTitle>{editing ? t.misc.editClinic : t.misc.newClinic}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
             {fields.map(([label, key]) => (
@@ -164,7 +166,7 @@ export default function ClinicsPage() {
               </div>
             ))}
             <Button type="submit" className="w-full" disabled={createMutation.isPending || updateMutation.isPending}>
-              {editing ? 'Сохранить' : 'Создать'}
+              {editing ? t.settings.saveShort : t.common.create}
             </Button>
           </form>
         </DialogContent>

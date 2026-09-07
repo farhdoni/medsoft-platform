@@ -11,15 +11,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 const REPORT_TYPES = [
-  { value: 'finance', label: 'Финансовый отчёт' },
-  { value: 'users', label: 'Отчёт по пользователям' },
-  { value: 'doctors', label: 'Отчёт по врачам' },
-  { value: 'full', label: 'Полный отчёт' },
+  { value: 'finance', labelKey: 'reportFinance' },
+  { value: 'users', labelKey: 'reportUsers' },
+  { value: 'doctors', labelKey: 'reportDoctors' },
+  { value: 'full', labelKey: 'reportFull' },
 ];
 
 export default function ReportsPage() {
+  const { t } = useI18n();
   const [type, setType] = useState<'finance' | 'users' | 'doctors' | 'full'>('finance');
   const [format, setFormat] = useState<'xlsx' | 'pdf'>('xlsx');
   const [dateFrom, setDateFrom] = useState(() => {
@@ -51,8 +53,8 @@ export default function ReportsPage() {
       auto_report_enabled: String(autoEnabled),
       auto_report_email: autoEmail,
     }),
-    onSuccess: () => toast.success('Настройки авто-отчёта сохранены'),
-    onError: () => toast.error('Ошибка при сохранении'),
+    onSuccess: () => toast.success(t.misc.autoSaved),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   async function handleGenerate() {
@@ -67,7 +69,7 @@ export default function ReportsPage() {
       });
 
       if (!res.ok) {
-        toast.error('Ошибка при генерации отчёта');
+        toast.error(t.misc.reportFailed);
         return;
       }
 
@@ -80,14 +82,14 @@ export default function ReportsPage() {
         a.download = `${type}_report_${dateFrom}_${dateTo}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success('Отчёт скачан');
+        toast.success(t.misc.reportDownloaded);
       } else {
         // PDF/HTML — open in new tab to trigger print dialog
         window.open(url, '_blank');
-        toast.success('Отчёт открыт для печати');
+        toast.success(t.misc.reportPrint);
       }
     } catch {
-      toast.error('Ошибка при генерации отчёта');
+      toast.error(t.misc.reportFailed);
     } finally {
       setGenerating(false);
     }
@@ -96,8 +98,8 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold">Отчёты</h1>
-        <p className="text-sm text-muted-foreground mt-1">Генерация аналитических отчётов по платформе</p>
+        <h1 className="text-2xl font-bold">{t.misc.reportsTitle}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.misc.reportsSubtitle}</p>
       </div>
 
       {/* Generate form */}
@@ -105,29 +107,29 @@ export default function ReportsPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Сгенерировать отчёт
+            {t.misc.generateReport}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Тип отчёта</Label>
+              <Label>{t.misc.reportType}</Label>
               <Select value={type} onValueChange={v => setType(v as typeof type)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {REPORT_TYPES.map(r => (
-                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    <SelectItem key={r.value} value={r.value}>{t.misc[r.labelKey]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Формат</Label>
+              <Label>{t.misc.format}</Label>
               <Select value={format} onValueChange={v => setFormat(v as typeof format)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="xlsx">Excel/CSV</SelectItem>
-                  <SelectItem value="pdf">PDF (HTML для печати)</SelectItem>
+                  <SelectItem value="pdf">{t.misc.pdfLabel}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -135,18 +137,18 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>С даты</Label>
+              <Label>{t.finance.dateFrom}</Label>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>По дату</Label>
+              <Label>{t.finance.dateTo}</Label>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
           </div>
 
           <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground space-y-1">
-            <p><strong>Excel/CSV:</strong> скачивается файл, совместимый с Microsoft Excel</p>
-            <p><strong>PDF:</strong> открывается в новой вкладке, нажмите Ctrl+P для печати/сохранения</p>
+            <p><strong>Excel/CSV:</strong> {t.misc.excelHint}</p>
+            <p><strong>PDF:</strong> {t.misc.pdfHint}</p>
           </div>
 
           <Button
@@ -155,7 +157,7 @@ export default function ReportsPage() {
             className="w-full sm:w-auto"
           >
             <Download className="h-4 w-4 mr-2" />
-            {generating ? 'Генерирую...' : 'Скачать отчёт'}
+            {generating ? t.misc.generating : t.misc.downloadReport}
           </Button>
         </CardContent>
       </Card>
@@ -163,7 +165,7 @@ export default function ReportsPage() {
       {/* Auto-report settings */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Автоматические отчёты</CardTitle>
+          <CardTitle className="text-base">{t.misc.autoReports}</CardTitle>
           <Button
             size="sm"
             variant="outline"
@@ -171,20 +173,20 @@ export default function ReportsPage() {
             disabled={saveAutoMutation.isPending}
           >
             <Save className="h-4 w-4 mr-2" />
-            {saveAutoMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+            {saveAutoMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
             <Switch checked={autoEnabled} onCheckedChange={setAutoEnabled} />
             <div>
-              <Label>Автоматически отправлять отчёты</Label>
-              <p className="text-xs text-muted-foreground">Ежемесячный полный отчёт на указанный email</p>
+              <Label>{t.misc.autoSend}</Label>
+              <p className="text-xs text-muted-foreground">{t.misc.autoSendHint}</p>
             </div>
           </div>
           {autoEnabled && (
             <div className="space-y-1.5">
-              <Label>Email получателя</Label>
+              <Label>{t.misc.recipientEmail}</Label>
               <Input
                 type="email"
                 value={autoEmail}

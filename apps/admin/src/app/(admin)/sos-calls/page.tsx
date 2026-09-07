@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type SosCall = {
   id: string;
@@ -21,6 +22,7 @@ type SosCall = {
 };
 
 export default function SosCallsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
 
@@ -31,22 +33,22 @@ export default function SosCallsPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => api.patch(`/v1/sos-calls/${id}`, { status }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sos-calls'] }); toast.success('Статус обновлён'); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sos-calls'] }); toast.success(t.misc.statusUpdated); },
+    onError: () => toast.error(t.common.error),
   });
 
   const columns: ColumnDef<SosCall>[] = [
     {
-      accessorKey: 'status', header: 'Статус',
+      accessorKey: 'status', header: t.common.status,
       cell: ({ row }) => <Badge variant={row.original.status === 'resolved' ? 'success' : row.original.status === 'triggered' ? 'destructive' : 'warning'}>{row.original.status}</Badge>,
     },
-    { accessorKey: 'addressResolved', header: 'Адрес', cell: ({ row }) => row.original.addressResolved ?? `${row.original.locationLat}, ${row.original.locationLng}` },
-    { accessorKey: 'createdAt', header: 'Время', cell: ({ row }) => formatDate(row.original.createdAt) },
+    { accessorKey: 'addressResolved', header: t.misc.address, cell: ({ row }) => row.original.addressResolved ?? `${row.original.locationLat}, ${row.original.locationLng}` },
+    { accessorKey: 'createdAt', header: t.misc.time, cell: ({ row }) => formatDate(row.original.createdAt) },
     {
-      id: 'actions', header: 'Действия',
+      id: 'actions', header: t.aivita.actions,
       cell: ({ row }) => row.original.status === 'triggered' ? (
         <Button size="sm" onClick={() => updateMutation.mutate({ id: row.original.id, status: 'operator_assigned' })}>
-          Принять
+          {t.misc.accept}
         </Button>
       ) : null,
     },
@@ -55,8 +57,8 @@ export default function SosCallsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">SOS вызовы</h1>
-        <p className="text-muted-foreground">Экстренные вызовы пациентов</p>
+        <h1 className="text-2xl font-bold">{t.nav.sosCalls}</h1>
+        <p className="text-muted-foreground">{t.misc.sosSubtitle}</p>
       </div>
       <DataTable columns={columns} data={data?.data ?? []} total={data?.total ?? 0} page={page} pageSize={20} onPageChange={setPage} isLoading={isLoading} />
     </div>

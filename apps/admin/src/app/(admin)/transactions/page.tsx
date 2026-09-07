@@ -7,6 +7,7 @@ import { DataTable } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Transaction = {
   id: string;
@@ -19,6 +20,7 @@ type Transaction = {
 };
 
 export default function TransactionsPage() {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
@@ -27,18 +29,18 @@ export default function TransactionsPage() {
   });
 
   const columns: ColumnDef<Transaction>[] = [
-    { accessorKey: 'type', header: 'Тип', cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge> },
-    { accessorKey: 'status', header: 'Статус', cell: ({ row }) => <Badge variant={row.original.status === 'completed' ? 'success' : row.original.status === 'failed' ? 'destructive' : 'warning'}>{row.original.status}</Badge> },
-    { accessorKey: 'provider', header: 'Провайдер' },
-    { accessorKey: 'amountUzs', header: 'Сумма', cell: ({ row }) => <span className={row.original.direction === 'debit' ? 'text-red-500' : 'text-green-500'}>{row.original.direction === 'debit' ? '-' : '+'}{formatCurrency(row.original.amountUzs)}</span> },
-    { accessorKey: 'createdAt', header: 'Дата', cell: ({ row }) => formatDate(row.original.createdAt) },
+    { accessorKey: 'type', header: t.common.type, cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge> },
+    { accessorKey: 'status', header: t.common.status, cell: ({ row }) => <Badge variant={row.original.status === 'completed' ? 'success' : row.original.status === 'failed' ? 'destructive' : 'warning'}>{row.original.status}</Badge> },
+    { accessorKey: 'provider', header: t.common.provider },
+    { accessorKey: 'amountUzs', header: t.common.amount, cell: ({ row }) => <span className={row.original.direction === 'debit' ? 'text-red-500' : 'text-green-500'}>{row.original.direction === 'debit' ? '-' : '+'}{formatCurrency(row.original.amountUzs)}</span> },
+    { accessorKey: 'createdAt', header: t.common.date, cell: ({ row }) => formatDate(row.original.createdAt) },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Транзакции</h1>
-        <p className="text-muted-foreground">История финансовых операций</p>
+        <h1 className="text-2xl font-bold">{t.nav.transactions}</h1>
+        <p className="text-muted-foreground">{t.misc.txSubtitle}</p>
       </div>
       <DataTable columns={columns} data={data?.data ?? []} total={data?.total ?? 0} page={page} pageSize={20} onPageChange={setPage} isLoading={isLoading} />
     </div>

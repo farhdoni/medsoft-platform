@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ function StatCard({ label, icon: Icon, pct, detail }: {
 const ALLOWED_CONTAINERS = ['aivita', 'admin', 'api', 'postgres', 'redis', 'nginx', 'caddy'];
 
 export default function MonitoringPage() {
+  const { t } = useI18n();
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expandedContainer, setExpandedContainer] = useState<string | null>(null);
   const [selectedContainer, setSelectedContainer] = useState(ALLOWED_CONTAINERS[0]);
@@ -139,9 +141,9 @@ export default function MonitoringPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Server className="h-6 w-6" /> Мониторинг сервера
+            <Server className="h-6 w-6" /> {t.misc.monTitle}
           </h1>
-          <p className="text-sm text-muted-foreground">Обновлено: {updatedStr}</p>
+          <p className="text-sm text-muted-foreground">{t.misc.updatedAt} {updatedStr}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -150,7 +152,7 @@ export default function MonitoringPage() {
             className={autoRefresh ? 'text-green-600 border-green-200' : ''}
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-            {autoRefresh ? 'Auto-refresh вкл' : 'Auto-refresh выкл'}
+            {autoRefresh ? t.misc.autoRefreshOn : t.misc.autoRefreshOff}
           </Button>
         </div>
       </div>
@@ -161,7 +163,7 @@ export default function MonitoringPage() {
           label="CPU"
           icon={Cpu}
           pct={system?.cpu.usagePercent ?? 0}
-          detail={`${system?.cpu.usagePercent ?? 0}% использования`}
+          detail={`${system?.cpu.usagePercent ?? 0}${t.misc.cpuUsage}`}
         />
         <StatCard
           label="RAM"
@@ -172,7 +174,7 @@ export default function MonitoringPage() {
             : '—'}
         />
         <StatCard
-          label="Диск"
+          label={t.misc.disk}
           icon={HardDrive}
           pct={system?.disk.usagePercent ?? 0}
           detail={system
@@ -188,7 +190,7 @@ export default function MonitoringPage() {
             {healthData?.allHealthy
               ? <CheckCircle2 className="h-4 w-4 text-green-500" />
               : <XCircle className="h-4 w-4 text-red-500" />}
-            Доступность сервисов
+            {t.misc.servicesAvail}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -202,7 +204,7 @@ export default function MonitoringPage() {
                   <span className="font-medium">{ch.name}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {ch.statusCode ? `${ch.statusCode} · ` : ''}{ch.latencyMs}мс
+                  {ch.statusCode ? `${ch.statusCode} · ` : ''}{ch.latencyMs}{t.misc.msSuffix}
                 </span>
               </div>
             ))}
@@ -213,14 +215,14 @@ export default function MonitoringPage() {
       {/* Containers */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Контейнеры Docker</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{t.misc.dockerContainers}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b">
                 <tr>
-                  {['Имя', 'Статус', 'CPU%', 'RAM%', 'Образ'].map((h) => (
+                  {[t.misc.name, t.common.status, 'CPU%', 'RAM%', t.misc.colImage].map((h) => (
                     <th key={h} className="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs">{h}</th>
                   ))}
                 </tr>
@@ -228,7 +230,7 @@ export default function MonitoringPage() {
               <tbody>
                 {(containersData?.containers ?? []).length === 0 ? (
                   <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground text-sm">
-                    Docker не доступен или нет запущенных контейнеров
+                    {t.misc.dockerUnavailable}
                   </td></tr>
                 ) : (containersData?.containers ?? []).map((ct) => (
                   <>
@@ -265,11 +267,11 @@ export default function MonitoringPage() {
                           <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
                             <span className="text-muted-foreground">ID</span>
                             <span className="font-mono">{ct.id.slice(0, 12)}</span>
-                            <span className="text-muted-foreground">Статус</span>
+                            <span className="text-muted-foreground">{t.common.status}</span>
                             <span>{ct.status}</span>
-                            <span className="text-muted-foreground">Создан</span>
+                            <span className="text-muted-foreground">{t.misc.createdM}</span>
                             <span>{ct.createdAt}</span>
-                            {ct.ports && <><span className="text-muted-foreground">Порты</span><span className="font-mono">{ct.ports}</span></>}
+                            {ct.ports && <><span className="text-muted-foreground">{t.misc.ports}</span><span className="font-mono">{ct.ports}</span></>}
                           </div>
                         </td>
                       </tr>
@@ -286,7 +288,7 @@ export default function MonitoringPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Логи контейнеров</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.misc.containerLogs}</CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <Select value={selectedContainer} onValueChange={setSelectedContainer}>
                 <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -298,7 +300,7 @@ export default function MonitoringPage() {
                 <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {['50', '100', '500', '1000'].map((n) => (
-                    <SelectItem key={n} value={n}>{n} строк</SelectItem>
+                    <SelectItem key={n} value={n}>{n} {t.misc.linesSuffix}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -307,14 +309,14 @@ export default function MonitoringPage() {
                 onClick={() => { setFetchLogs(true); refetchLogs(); }}
                 disabled={logsFetching}
               >
-                {logsFetching ? 'Загрузка...' : 'Загрузить'}
+                {logsFetching ? t.common.loading : t.misc.load}
               </Button>
             </div>
           </div>
           {fetchLogs && logsData?.logs && (
             <div className="mt-2">
               <Input
-                placeholder="🔍 Фильтр строк..."
+                placeholder={t.misc.filterHint}
                 value={logSearch}
                 onChange={(e) => setLogSearch(e.target.value)}
                 className="h-7 text-xs"
@@ -325,13 +327,13 @@ export default function MonitoringPage() {
         <CardContent className="p-0">
           <div className="bg-zinc-950 rounded-b-lg max-h-[500px] overflow-y-auto font-mono text-xs p-4">
             {!fetchLogs ? (
-              <p className="text-zinc-500">Нажми «Загрузить» для просмотра логов</p>
+              <p className="text-zinc-500">{t.misc.pressLoad}</p>
             ) : logsFetching ? (
-              <p className="text-zinc-500 animate-pulse">Загрузка логов...</p>
+              <p className="text-zinc-500 animate-pulse">{t.misc.loadingLogs}</p>
             ) : logsData?.error ? (
               <p className="text-red-400">{logsData.error}</p>
             ) : filteredLogs().length === 0 ? (
-              <p className="text-zinc-500">Нет строк{logSearch ? ` по запросу «${logSearch}»` : ''}</p>
+              <p className="text-zinc-500">{t.misc.noLines}{logSearch ? ` ${t.misc.byQuery} «${logSearch}»` : ''}</p>
             ) : (
               filteredLogs().map((line, i) => (
                 <div key={i} className={logLineClass(line)}>{line || ' '}</div>

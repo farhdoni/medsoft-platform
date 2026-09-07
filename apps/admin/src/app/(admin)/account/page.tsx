@@ -180,21 +180,21 @@ export default function AccountPage() {
       setSetupError('');
       setSetupOpen(true);
     },
-    onError: (err: Error) => toast.error(err.message || 'Не удалось начать настройку 2FA'),
+    onError: (err: Error) => toast.error(err.message || t.misc.twofaStartFailed),
   });
 
   const setupConfirmMutation = useMutation({
     mutationFn: (token: string) => api.post('/v1/auth/2fa/confirm', { token }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['2fa-status'] });
-      toast.success('Двухфакторная аутентификация включена');
+      toast.success(t.misc.twofaEnabled);
       closeSetup();
     },
     onError: (err: Error) => {
       setSetupError(
         err.message?.includes('Invalid code')
-          ? 'Неверный код. Проверьте время на устройстве и попробуйте снова.'
-          : 'Не удалось подтвердить код'
+          ? t.misc.codeWrongTime
+          : t.misc.codeConfirmFail
       );
     },
   });
@@ -203,14 +203,14 @@ export default function AccountPage() {
     mutationFn: (token: string) => api.post('/v1/auth/2fa/disable', { token }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['2fa-status'] });
-      toast.success('Двухфакторная аутентификация отключена');
+      toast.success(t.misc.twofaDisabled);
       closeDisable();
     },
     onError: (err: Error) => {
       setDisableError(
         err.message?.includes('Invalid code')
-          ? 'Неверный код. Попробуйте снова.'
-          : 'Не удалось отключить 2FA'
+          ? t.misc.codeWrong
+          : t.misc.twofaDisableFail
       );
     },
   });
@@ -220,7 +220,7 @@ export default function AccountPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Максимальный размер файла — 2 МБ');
+      toast.error(t.misc.fileTooBig);
       return;
     }
     const reader = new FileReader();
@@ -274,7 +274,7 @@ export default function AccountPage() {
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       api.post('/v1/auth/change-password', data),
     onSuccess: () => {
-      toast.success('Пароль обновлён');
+      toast.success(t.misc.passwordUpdated);
       setCurrentPwd('');
       setNewPwd('');
       setConfirmPwd('');
@@ -306,9 +306,9 @@ export default function AccountPage() {
     mutationFn: (id: string) => api.delete(`/v1/account/sessions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['account-sessions'] });
-      toast.success('Сессия завершена');
+      toast.success(t.misc.sessionClosed);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   const displayAvatar = avatarPreview ?? avatarUrl ?? me?.avatarUrl;
@@ -357,7 +357,7 @@ export default function AccountPage() {
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">JPG, PNG, GIF · макс. 2 МБ</p>
+              <p className="text-xs text-muted-foreground">{t.misc.avatarHint}</p>
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </div>
@@ -479,7 +479,7 @@ export default function AccountPage() {
                   type={showPwd ? 'text' : 'password'}
                   value={newPwd}
                   onChange={(e) => setNewPwd(e.target.value)}
-                  placeholder="Минимум 6 символов"
+                  placeholder={t.misc.pwdMin6}
                 />
               </div>
               <div className="space-y-1.5">
@@ -541,7 +541,7 @@ export default function AccountPage() {
                   onClick={() => setupStartMutation.mutate()}
                   disabled={setupStartMutation.isPending}
                 >
-                  {setupStartMutation.isPending ? 'Загрузка...' : t.account.setup2fa}
+                  {setupStartMutation.isPending ? t.common.loading : t.account.setup2fa}
                 </Button>
               )}
           </div>
@@ -552,10 +552,9 @@ export default function AccountPage() {
       <Dialog open={setupOpen} onOpenChange={(open) => { if (!open) closeSetup(); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Настройка двухфакторной аутентификации</DialogTitle>
+            <DialogTitle>{t.misc.setup2faTitle}</DialogTitle>
             <DialogDescription>
-              Отсканируйте QR-код приложением-аутентификатором (Google Authenticator, Authy и т.п.)
-              или введите секрет вручную.
+              {t.misc.setup2faHint}
             </DialogDescription>
           </DialogHeader>
           {setupData && (
@@ -566,7 +565,7 @@ export default function AccountPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="setup2faSecret">Секрет (если QR не сканируется)</Label>
+                <Label htmlFor="setup2faSecret">{t.misc.secretLabel}</Label>
                 <Input
                   id="setup2faSecret"
                   readOnly
@@ -576,7 +575,7 @@ export default function AccountPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="setup2faCode">Код из приложения (6 цифр)</Label>
+                <Label htmlFor="setup2faCode">{t.misc.codeFromApp}</Label>
                 <Input
                   id="setup2faCode"
                   inputMode="numeric"
@@ -601,13 +600,13 @@ export default function AccountPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={closeSetup}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button
               onClick={() => setupConfirmMutation.mutate(setupCode)}
               disabled={setupConfirmMutation.isPending || setupCode.length !== 6}
             >
-              {setupConfirmMutation.isPending ? 'Проверяю...' : 'Подтвердить'}
+              {setupConfirmMutation.isPending ? t.misc.checking : t.misc.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -617,14 +616,14 @@ export default function AccountPage() {
       <Dialog open={disableOpen} onOpenChange={(open) => { if (!open) closeDisable(); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Отключить двухфакторную аутентификацию</DialogTitle>
+            <DialogTitle>{t.misc.disable2faTitle}</DialogTitle>
             <DialogDescription>
-              Введите текущий код из приложения-аутентификатора, чтобы подтвердить отключение.
+              {t.misc.disable2faHint}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="disable2faCode">Код из приложения (6 цифр)</Label>
+              <Label htmlFor="disable2faCode">{t.misc.codeFromApp}</Label>
               <Input
                 id="disable2faCode"
                 inputMode="numeric"
@@ -648,14 +647,14 @@ export default function AccountPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDisable}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button
               variant="destructive"
               onClick={() => disableMutation.mutate(disableCode)}
               disabled={disableMutation.isPending || disableCode.length !== 6}
             >
-              {disableMutation.isPending ? 'Отключаю...' : 'Отключить'}
+              {disableMutation.isPending ? t.misc.disabling : t.misc.disable}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -666,9 +665,9 @@ export default function AccountPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Laptop className="h-4 w-4" />
-            Активные сессии
+            {t.misc.activeSessions}
           </CardTitle>
-          <CardDescription>Устройства, с которых выполнен вход в аккаунт</CardDescription>
+          <CardDescription>{t.misc.sessionsHint}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {(sessions?.data ?? []).map((s) => (
@@ -677,10 +676,10 @@ export default function AccountPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm flex items-center gap-2">
                   {s.device}
-                  {s.isCurrent && <Badge variant="outline" className="text-xs">это устройство</Badge>}
+                  {s.isCurrent && <Badge variant="outline" className="text-xs">{t.misc.thisDevice}</Badge>}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {s.ip ?? '—'} · вход {formatDate(s.createdAt)}
+                  {s.ip ?? '—'} · {t.misc.loginAt} {formatDate(s.createdAt)}
                 </p>
               </div>
               {!s.isCurrent && (
@@ -691,13 +690,13 @@ export default function AccountPage() {
                   disabled={terminateSessionMutation.isPending}
                 >
                   <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                  Завершить
+                  {t.misc.terminate}
                 </Button>
               )}
             </div>
           ))}
           {sessions && sessions.data.length === 0 && (
-            <p className="text-sm text-muted-foreground">Активных сессий не найдено</p>
+            <p className="text-sm text-muted-foreground">{t.misc.noSessions}</p>
           )}
         </CardContent>
       </Card>

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Doctor = {
   id: string;
@@ -37,6 +38,7 @@ type DoctorForm = {
 const emptyForm: DoctorForm = { fullName: '', phone: '', email: '', specialization: '', licenseNumber: '' };
 
 export default function DoctorsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -51,20 +53,20 @@ export default function DoctorsPage() {
 
   const createMutation = useMutation({
     mutationFn: (body: DoctorForm) => api.post('/v1/doctors', body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Врач создан'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при создании'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success(t.misc.doctorCreated); setDialogOpen(false); },
+    onError: () => toast.error(t.misc.createFailed),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<DoctorForm> }) => api.patch(`/v1/doctors/${id}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Врач обновлён'); setDialogOpen(false); },
-    onError: () => toast.error('Ошибка при обновлении'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success(t.misc.doctorUpdated); setDialogOpen(false); },
+    onError: () => toast.error(t.misc.updateFailed),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/v1/doctors/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success('Удалено'); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['doctors'] }); toast.success(t.misc.deleted); },
+    onError: () => toast.error(t.common.error),
   });
 
   function openCreate() {
@@ -95,12 +97,12 @@ export default function DoctorsPage() {
   }
 
   const columns: ColumnDef<Doctor>[] = [
-    { accessorKey: 'fullName', header: 'ФИО' },
-    { accessorKey: 'specialization', header: 'Специализация' },
-    { accessorKey: 'phone', header: 'Телефон' },
-    { accessorKey: 'status', header: 'Статус', cell: ({ row }) => <Badge variant="outline">{row.original.status}</Badge> },
-    { accessorKey: 'ratingAvg', header: 'Рейтинг', cell: ({ row }) => row.original.ratingAvg ? `★ ${Number(row.original.ratingAvg).toFixed(1)}` : '—' },
-    { accessorKey: 'createdAt', header: 'Создан', cell: ({ row }) => formatDate(row.original.createdAt) },
+    { accessorKey: 'fullName', header: t.misc.fio },
+    { accessorKey: 'specialization', header: t.aivita.specialization },
+    { accessorKey: 'phone', header: t.users.phone },
+    { accessorKey: 'status', header: t.common.status, cell: ({ row }) => <Badge variant="outline">{row.original.status}</Badge> },
+    { accessorKey: 'ratingAvg', header: t.aivita.rating, cell: ({ row }) => row.original.ratingAvg ? `★ ${Number(row.original.ratingAvg).toFixed(1)}` : '—' },
+    { accessorKey: 'createdAt', header: t.misc.createdM, cell: ({ row }) => formatDate(row.original.createdAt) },
     {
       id: 'actions', header: '',
       cell: ({ row }) => (
@@ -109,7 +111,7 @@ export default function DoctorsPage() {
             <Pencil className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="ghost" className="text-destructive" onClick={() => {
-            if (confirm('Удалить врача?')) deleteMutation.mutate(row.original.id);
+            if (confirm(t.misc.deleteDoctorAsk)) deleteMutation.mutate(row.original.id);
           }}>
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -119,25 +121,25 @@ export default function DoctorsPage() {
   ];
 
   const fields: [string, keyof DoctorForm][] = [
-    ['ФИО', 'fullName'],
-    ['Телефон', 'phone'],
+    [t.misc.fio, 'fullName'],
+    [t.users.phone, 'phone'],
     ['Email', 'email'],
-    ['Специализация', 'specialization'],
-    ['Номер лицензии', 'licenseNumber'],
+    [t.aivita.specialization, 'specialization'],
+    [t.misc.licenseNumber, 'licenseNumber'],
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Врачи</h1>
-          <p className="text-muted-foreground">Управление врачами</p>
+          <h1 className="text-2xl font-bold">{t.nav.doctors}</h1>
+          <p className="text-muted-foreground">{t.misc.doctorsSubtitle}</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Добавить</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />{t.misc.add}</Button>
       </div>
 
       <Input
-        placeholder="Поиск..."
+        placeholder={t.misc.searchHint}
         value={search}
         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         className="max-w-sm"
@@ -156,7 +158,7 @@ export default function DoctorsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Редактировать врача' : 'Новый врач'}</DialogTitle>
+            <DialogTitle>{editing ? t.misc.editDoctor : t.misc.newDoctor}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
             {fields.map(([label, key]) => (
@@ -174,7 +176,7 @@ export default function DoctorsPage() {
               className="w-full"
               disabled={createMutation.isPending || updateMutation.isPending}
             >
-              {editing ? 'Сохранить' : 'Создать'}
+              {editing ? t.settings.saveShort : t.common.create}
             </Button>
           </form>
         </DialogContent>

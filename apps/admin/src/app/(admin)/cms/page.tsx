@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,21 +29,25 @@ type Locale = 'ru' | 'uz' | 'en';
 const LOCALE_LABELS: Record<Locale, string> = { ru: '🇷🇺 Русский', uz: '🇺🇿 Ўзбекча', en: '🇬🇧 English' };
 
 // Human-readable section names
-const SECTION_NAMES: Record<string, string> = {
-  nav: 'Навигация', hero: 'Hero (заголовок)', problem: 'Проблема',
-  features: 'Возможности', how: 'Как работает', personas: 'Для кого',
-  cta: 'CTA (призыв)', faq: 'FAQ', footer: 'Футер', comingSoon: 'Coming Soon',
+// Section names live in the dictionary; FAQ and Coming Soon are the same
+// word in all three languages and stay inline.
+const SECTION_KEYS: Record<string, string> = {
+  nav: 'secNav', hero: 'secHero', problem: 'secProblem',
+  features: 'secFeatures', how: 'secHow', personas: 'secPersonas',
+  cta: 'secCta', footer: 'secFooter',
 };
+const SECTION_PLAIN: Record<string, string> = { faq: 'FAQ', comingSoon: 'Coming Soon' };
 
 // ─── Field editor ─────────────────────────────────────────────────────────────
 
 function FieldEditor({ row, onSave }: { row: ContentRow; onSave: (id: string, value: string) => void }) {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(row.value);
   const isLong = row.value.length > 80 || row.value.includes('\n');
 
   function handleSave() {
-    if (draft.trim() === '') { toast.error('Поле не может быть пустым'); return; }
+    if (draft.trim() === '') { toast.error(t.misc.emptyField); return; }
     if (draft === row.value) { setEditing(false); return; }
     onSave(row.id, draft.trim());
     setEditing(false);
@@ -79,11 +84,11 @@ function FieldEditor({ row, onSave }: { row: ContentRow; onSave: (id: string, va
           )}
           <div className="flex gap-1">
             <Button size="sm" variant="default" className="h-6 px-2 text-xs" onClick={handleSave}>
-              <Save className="h-3 w-3 mr-1" />Сохранить
+              <Save className="h-3 w-3 mr-1" />{t.settings.saveShort}
             </Button>
             <Button size="sm" variant="ghost" className="h-6 px-2 text-xs"
               onClick={() => { setDraft(row.value); setEditing(false); }}>
-              Отмена
+              {t.common.cancel}
             </Button>
           </div>
         </div>
@@ -91,10 +96,10 @@ function FieldEditor({ row, onSave }: { row: ContentRow; onSave: (id: string, va
         <div
           className="flex-1 cursor-pointer rounded px-2 py-1 hover:bg-muted/50 transition-colors text-sm min-h-[28px]"
           onClick={() => { setDraft(row.value); setEditing(true); }}
-          title="Нажми для редактирования"
+          title={t.misc.clickToEdit}
         >
           <span className={row.value ? '' : 'text-muted-foreground italic'}>
-            {row.value || '(пусто)'}
+            {row.value || t.misc.emptyValue}
           </span>
         </div>
       )}
@@ -107,6 +112,7 @@ function FieldEditor({ row, onSave }: { row: ContentRow; onSave: (id: string, va
 function SectionAccordion({ section, rows, onSave }: {
   section: string; rows: ContentRow[]; onSave: (id: string, value: string) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(section === 'hero');
 
   return (
@@ -119,10 +125,10 @@ function SectionAccordion({ section, rows, onSave }: {
           <div className="flex items-center gap-2">
             {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             <CardTitle className="text-sm font-medium">
-              {SECTION_NAMES[section] ?? section}
+              {SECTION_KEYS[section] ? t.misc[SECTION_KEYS[section]] : SECTION_PLAIN[section] ?? section}
             </CardTitle>
           </div>
-          <Badge variant="secondary" className="text-[10px]">{rows.length} полей</Badge>
+          <Badge variant="secondary" className="text-[10px]">{rows.length} {t.misc.fieldsSuffix}</Badge>
         </div>
       </CardHeader>
       {open && (
@@ -141,6 +147,7 @@ function SectionAccordion({ section, rows, onSave }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CmsPage() {
+  const { t } = useI18n();
   const [locale, setLocale] = useState<Locale>('ru');
   const qc = useQueryClient();
 
@@ -154,17 +161,17 @@ export default function CmsPage() {
       api.patch(`/v1/aivita-admin/cms/content/${id}`, { value }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cms-content', locale] });
-      toast.success('Сохранено! Изменения появятся на сайте через 5 минут.', {
-        action: { label: 'Сбросить кеш', onClick: () => clearCache() },
+      toast.success(t.misc.cmsSaved, {
+        action: { label: t.misc.clearCache, onClick: () => clearCache() },
       });
     },
-    onError: () => toast.error('Ошибка при сохранении'),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   const cacheMutation = useMutation({
     mutationFn: () => api.post('/v1/aivita-admin/cms/cache-clear', { locale }),
-    onSuccess: () => toast.success(`Кеш сброшен для [${locale}] — изменения активны`),
-    onError: () => toast.error('Ошибка при сбросе кеша'),
+    onSuccess: () => toast.success(`${t.misc.cacheCleared} [${locale}] ${t.misc.cacheClearedTail}`),
+    onError: () => toast.error(t.misc.cacheFailed),
   });
 
   const clearCache = useCallback(() => cacheMutation.mutate(), [cacheMutation]);
@@ -192,19 +199,19 @@ export default function CmsPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Globe className="h-6 w-6" /> CMS — Лендинг aivita.uz
+            <Globe className="h-6 w-6" /> {t.misc.cmsTitle}
           </h1>
-          <p className="text-sm text-muted-foreground">Редактирование текстов лендинга. Клик по полю — редактировать.</p>
+          <p className="text-sm text-muted-foreground">{t.misc.cmsSubtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
             <a href="https://aivita.uz" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-1" /> Открыть сайт
+              <ExternalLink className="h-4 w-4 mr-1" /> {t.misc.openSite}
             </a>
           </Button>
           <Button variant="outline" size="sm" onClick={clearCache} disabled={cacheMutation.isPending}>
             <RefreshCw className={`h-4 w-4 mr-1 ${cacheMutation.isPending ? 'animate-spin' : ''}`} />
-            Сбросить кеш
+            {t.misc.clearCache}
           </Button>
         </div>
       </div>
@@ -225,7 +232,7 @@ export default function CmsPage() {
 
       {/* Info banner */}
       <div className="px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-sm">
-        💡 Изменения кешируются на 5 минут. После сохранения нажми <strong>«Сбросить кеш»</strong> для немедленного применения.
+        💡 {t.misc.cacheNote} <strong>«{t.misc.clearCache}»</strong> {t.misc.cacheNoteTail}
       </div>
 
       {/* Loading */}
@@ -239,8 +246,8 @@ export default function CmsPage() {
       {!isLoading && orderedSections.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            <p>Нет контента для языка <strong>{locale}</strong>.</p>
-            <p className="text-sm mt-2">Запусти seed-скрипт: <code className="text-xs bg-muted px-1 py-0.5 rounded">pnpm tsx scripts/seed-landing.ts</code></p>
+            <p>{t.misc.noContentFor} <strong>{locale}</strong>.</p>
+            <p className="text-sm mt-2">{t.misc.runSeed} <code className="text-xs bg-muted px-1 py-0.5 rounded">pnpm tsx scripts/seed-landing.ts</code></p>
           </CardContent>
         </Card>
       )}
