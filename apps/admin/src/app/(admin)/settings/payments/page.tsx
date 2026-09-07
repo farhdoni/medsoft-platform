@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type Settings = Record<string, string>;
 
@@ -36,6 +37,7 @@ function PasswordInput({ value, onChange, placeholder }: { value: string; onChan
 }
 
 export default function PaymentSettingsPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState<Settings>({});
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
   const toggle = (key: string) => setForm(f => ({ ...f, [key]: f[key] === 'true' ? 'false' : 'true' }));
@@ -48,8 +50,8 @@ export default function PaymentSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/settings/payments', form),
-    onSuccess: () => toast.success('Настройки платежей сохранены'),
-    onError: () => toast.error('Ошибка при сохранении'),
+    onSuccess: () => toast.success(t.settings.paymentsSaved),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   const s = (key: string, fallback = '') => form[key] ?? fallback;
@@ -59,12 +61,12 @@ export default function PaymentSettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Платёжные провайдеры</h2>
-          <p className="text-sm text-muted-foreground">Конфигурация платёжных шлюзов</p>
+          <h2 className="text-lg font-semibold">{t.settings.paymentsTitle}</h2>
+          <p className="text-sm text-muted-foreground">{t.settings.paymentsSubtitle}</p>
         </div>
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || isLoading}>
           <Save className="h-4 w-4 mr-2" />
-          {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+          {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
         </Button>
       </div>
 
@@ -139,16 +141,16 @@ export default function PaymentSettingsPage() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Тест-режим платежей</Label>
+              <Label className="text-sm font-medium">{t.settings.testModePayments}</Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Mock-платежи — реальные списания не производятся
+                {t.settings.testModeHint}
               </p>
             </div>
             <Switch checked={bool('payments_test_mode')} onCheckedChange={() => toggle('payments_test_mode')} />
           </div>
           {bool('payments_test_mode') && (
             <div className="mt-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 text-xs text-yellow-800 dark:text-yellow-200">
-              ⚠️ Тест-режим включён. Платежи не списываются с карт.
+              {t.settings.testModeOn}
             </div>
           )}
         </CardContent>

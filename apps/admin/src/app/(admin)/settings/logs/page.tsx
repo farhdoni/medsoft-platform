@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { formatDate } from '@/lib/utils';
 
 type LogEntry = {
@@ -25,6 +26,7 @@ const MODULE_LABELS: Record<string, string> = {
 };
 
 export default function SystemLogsPage() {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ level: '', module: '', dateFrom: '', dateTo: '' });
 
@@ -43,7 +45,7 @@ export default function SystemLogsPage() {
 
   const columns: ColumnDef<LogEntry>[] = [
     {
-      header: 'Уровень',
+      header: t.settings.level,
       cell: ({ row }) => (
         <Badge variant={LEVEL_VARIANTS[row.original.level] ?? 'secondary'}>
           {LEVEL_LABELS[row.original.level] ?? row.original.level}
@@ -51,7 +53,7 @@ export default function SystemLogsPage() {
       ),
     },
     {
-      header: 'Модуль',
+      header: t.settings.module,
       cell: ({ row }) => (
         <Badge variant="outline" className="font-mono text-xs">
           {MODULE_LABELS[row.original.module] ?? row.original.module}
@@ -59,7 +61,7 @@ export default function SystemLogsPage() {
       ),
     },
     {
-      header: 'Сообщение',
+      header: t.settings.message,
       cell: ({ row }) => (
         <div>
           <p className="text-sm">{row.original.message}</p>
@@ -72,7 +74,7 @@ export default function SystemLogsPage() {
       ),
     },
     {
-      header: 'Дата',
+      header: t.common.date,
       cell: ({ row }) => <span className="text-xs whitespace-nowrap">{formatDate(row.original.createdAt)}</span>,
     },
   ];
@@ -81,26 +83,26 @@ export default function SystemLogsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Системные логи</h2>
-          <p className="text-sm text-muted-foreground">Последние 100 записей · Обновляется каждые 30 сек</p>
+          <h2 className="text-lg font-semibold">{t.settings.logsTitle}</h2>
+          <p className="text-sm text-muted-foreground">{t.settings.logsHint}</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <Select value={filters.level || 'all'} onValueChange={v => setFilters(f => ({ ...f, level: v === 'all' ? '' : v }))}>
-          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Уровень" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder={t.settings.level} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
             <SelectItem value="info">Info</SelectItem>
             <SelectItem value="warning">Warning</SelectItem>
             <SelectItem value="error">Error</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filters.module || 'all'} onValueChange={v => setFilters(f => ({ ...f, module: v === 'all' ? '' : v }))}>
-          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Модуль" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder={t.settings.module} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
             <SelectItem value="api">API</SelectItem>
             <SelectItem value="auth">Auth</SelectItem>
             <SelectItem value="payment">Payment</SelectItem>
@@ -124,7 +126,7 @@ export default function SystemLogsPage() {
           size="sm" variant="outline" className="h-8 text-xs"
           onClick={() => { setFilters({ level: '', module: '', dateFrom: '', dateTo: '' }); setPage(1); }}
         >
-          Сбросить
+          {t.security.reset}
         </Button>
       </div>
 

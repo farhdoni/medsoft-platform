@@ -1,24 +1,28 @@
+'use client';
+
 import { CheckCircle2, Globe } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 const DOMAINS = [
-  { domain: 'aivita.uz', purpose: 'Лендинг', ssl: 'valid', ip: '188.166.120.0' },
-  { domain: 'app.aivita.uz', purpose: 'Приложение (PWA)', ssl: 'valid', ip: '188.166.120.0' },
-  { domain: 'api.aivita.uz', purpose: 'API сервер', ssl: 'valid', ip: '109.123.249.224' },
-  { domain: 'admin.aivita.uz', purpose: 'Панель администратора', ssl: 'valid', ip: '188.166.120.0' },
+  { domain: 'aivita.uz', purposeKey: 'domainLanding', ssl: 'valid', ip: '188.166.120.0' },
+  { domain: 'app.aivita.uz', purposeKey: 'domainApp', ssl: 'valid', ip: '188.166.120.0' },
+  { domain: 'api.aivita.uz', purposeKey: 'domainApi', ssl: 'valid', ip: '109.123.249.224' },
+  { domain: 'admin.aivita.uz', purposeKey: 'domainAdmin', ssl: 'valid', ip: '188.166.120.0' },
 ];
 
 export default function DomainsPage() {
+  const { t } = useI18n();
   return (
     <div className="space-y-4 max-w-2xl">
       <div>
-        <h2 className="text-lg font-semibold">Домены</h2>
-        <p className="text-sm text-muted-foreground">Информация о доменах платформы. Управляется через Coolify / DNS-провайдер.</p>
+        <h2 className="text-lg font-semibold">{t.settings.domainsTitle}</h2>
+        <p className="text-sm text-muted-foreground">{t.settings.domainsSubtitle}</p>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Globe className="h-4 w-4" />Зарегистрированные домены</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Globe className="h-4 w-4" />{t.settings.domainsRegistered}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-0 divide-y">
             {DOMAINS.map(d => (
@@ -28,10 +32,10 @@ export default function DomainsPage() {
                     <span className="font-mono font-medium text-sm">{d.domain}</span>
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{d.purpose} · IP: {d.ip}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t.settings[d.purposeKey]} · IP: {d.ip}</p>
                 </div>
                 <Badge variant={d.ssl === 'valid' ? 'success' : 'destructive'}>
-                  SSL {d.ssl === 'valid' ? 'Действителен' : 'Истёк'}
+                  SSL {d.ssl === 'valid' ? t.settings.certValid : t.settings.certExpired}
                 </Badge>
               </div>
             ))}
@@ -40,8 +44,8 @@ export default function DomainsPage() {
       </Card>
 
       <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
-        <p>Для изменения DNS-записей или SSL-сертификатов обратитесь к вашему DNS-провайдеру или Coolify-панели.</p>
-        <p className="mt-1">SSL-сертификаты обновляются автоматически через Let&apos;s Encrypt.</p>
+        <p>{t.settings.dnsNote}</p>
+        <p className="mt-1">{t.settings.sslNote}</p>
       </div>
     </div>
   );

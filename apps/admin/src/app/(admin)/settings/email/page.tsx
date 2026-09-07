@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type Settings = {
   email_provider: string; smtp_host: string; smtp_port: string;
@@ -18,13 +19,14 @@ type Settings = {
 };
 
 export default function EmailSettingsPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState<Settings>({
     email_provider: 'mock', smtp_host: '', smtp_port: '587',
     smtp_user: '', smtp_password: '', smtp_from: '', email_test_mode: 'true',
   });
   const [showPwd, setShowPwd] = useState(false);
   const [testTo, setTestTo] = useState('');
-  const [testSubject, setTestSubject] = useState('Тест Aivita Admin');
+  const [testSubject, setTestSubject] = useState(t.settings.testEmailSubject);
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings-email'],
@@ -36,49 +38,49 @@ export default function EmailSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/settings/email', form),
-    onSuccess: () => toast.success('Email настройки сохранены'),
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => toast.success(t.settings.emailSaved),
+    onError: () => toast.error(t.common.error),
   });
 
   const testMutation = useMutation({
-    mutationFn: () => api.post<{ ok: boolean; mode?: string; message?: string }>('/v1/admin/settings/email/test', { to: testTo, subject: testSubject, text: 'Тест email от Aivita Admin' }),
+    mutationFn: () => api.post<{ ok: boolean; mode?: string; message?: string }>('/v1/admin/settings/email/test', { to: testTo, subject: testSubject, text: t.settings.testEmailBody }),
     onSuccess: (res) => {
-      if (res.mode === 'test') toast.info(`Тест-режим: ${res.message}`);
-      else toast.success('Email отправлен');
+      if (res.mode === 'test') toast.info(`${t.settings.testMode}: ${res.message}`);
+      else toast.success(t.settings.emailSent);
     },
-    onError: () => toast.error('Ошибка отправки'),
+    onError: () => toast.error(t.settings.sendFailed),
   });
 
   return (
     <div className="space-y-6 max-w-xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Email настройки</h2>
-          <p className="text-sm text-muted-foreground">Конфигурация провайдера email-рассылок</p>
+          <h2 className="text-lg font-semibold">{t.settings.emailTitle}</h2>
+          <p className="text-sm text-muted-foreground">{t.settings.emailSubtitle}</p>
         </div>
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || isLoading}>
           <Save className="h-4 w-4 mr-2" />
-          {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+          {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
         </Button>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Провайдер</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.common.provider}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Email провайдер</Label>
+            <Label>{t.settings.emailProvider}</Label>
             <Select value={form.email_provider} onValueChange={v => set('email_provider', v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="mock">Mock (тест, не отправляет)</SelectItem>
+                <SelectItem value="mock">{t.settings.mockNotSending}</SelectItem>
                 <SelectItem value="smtp">SMTP</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center justify-between border-t pt-3">
             <div>
-              <Label className="text-sm font-medium">Тест-режим</Label>
-              <p className="text-xs text-muted-foreground">Письма не отправляются</p>
+              <Label className="text-sm font-medium">{t.settings.testMode}</Label>
+              <p className="text-xs text-muted-foreground">{t.settings.lettersNotSent}</p>
             </div>
             <Switch
               checked={form.email_test_mode !== 'false'}
@@ -90,25 +92,25 @@ export default function EmailSettingsPage() {
 
       {form.email_provider === 'smtp' && (
         <Card>
-          <CardHeader><CardTitle className="text-base">SMTP конфигурация</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t.settings.smtpConfig}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5 col-span-2">
-                <Label>SMTP хост</Label>
+                <Label>{t.settings.smtpHost}</Label>
                 <Input value={form.smtp_host} onChange={e => set('smtp_host', e.target.value)} placeholder="smtp.gmail.com" />
               </div>
               <div className="space-y-1.5">
-                <Label>Порт</Label>
+                <Label>{t.settings.port}</Label>
                 <Input type="number" value={form.smtp_port} onChange={e => set('smtp_port', e.target.value)} placeholder="587" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Пользователь</Label>
+                <Label>{t.common.user}</Label>
                 <Input value={form.smtp_user} onChange={e => set('smtp_user', e.target.value)} placeholder="user@gmail.com" />
               </div>
               <div className="space-y-1.5">
-                <Label>Пароль</Label>
+                <Label>{t.settings.password}</Label>
                 <div className="relative">
                   <Input
                     type={showPwd ? 'text' : 'password'}
@@ -123,7 +125,7 @@ export default function EmailSettingsPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>От кого (From)</Label>
+              <Label>{t.settings.fromAddress}</Label>
               <Input value={form.smtp_from} onChange={e => set('smtp_from', e.target.value)} placeholder="noreply@aivita.uz" />
             </div>
           </CardContent>
@@ -132,14 +134,14 @@ export default function EmailSettingsPage() {
 
       {/* Test email */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Тестовое письмо</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.settings.testEmail}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Получатель</Label>
+            <Label>{t.settings.recipient}</Label>
             <Input type="email" value={testTo} onChange={e => setTestTo(e.target.value)} placeholder="test@example.com" />
           </div>
           <div className="space-y-1.5">
-            <Label>Тема</Label>
+            <Label>{t.settings.subject}</Label>
             <Input value={testSubject} onChange={e => setTestSubject(e.target.value)} />
           </div>
           <Button
@@ -148,7 +150,7 @@ export default function EmailSettingsPage() {
             disabled={testMutation.isPending || !testTo.trim()}
           >
             <Send className="h-4 w-4 mr-2" />
-            {testMutation.isPending ? 'Отправляю...' : 'Отправить тест'}
+            {testMutation.isPending ? t.settings.sending : t.settings.sendTest}
           </Button>
         </CardContent>
       </Card>

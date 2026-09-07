@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DataTable } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { formatDate } from '@/lib/utils';
 
 type AiSettings = {
@@ -52,10 +53,6 @@ type LogRow = {
   createdAt: string;
 };
 
-const MODULE_LABELS: Record<string, string> = {
-  chat: 'Чат', checkup: 'Чекап', scribe: 'Скрайб',
-  symptom: 'Симптомы', report: 'Отчёт',
-};
 
 const DEFAULT_SETTINGS: AiSettings = {
   ai_provider: 'anthropic',
@@ -70,6 +67,11 @@ const DEFAULT_SETTINGS: AiSettings = {
 };
 
 export default function AiSettingsPage() {
+  const { t } = useI18n();
+  const MODULE_LABELS: Record<string, string> = {
+    chat: t.settings.aiModChat, checkup: t.settings.aiModCheckup, scribe: t.settings.aiModScribe,
+    symptom: t.settings.aiModSymptoms, report: t.settings.aiModReport,
+  };
   const [logsPage, setLogsPage] = useState(1);
   const [activePrompt, setActivePrompt] = useState<'chat' | 'checkup' | 'scribe'>('chat');
   const [form, setForm] = useState<AiSettings>(DEFAULT_SETTINGS);
@@ -101,9 +103,9 @@ export default function AiSettingsPage() {
     mutationFn: (settings: Record<string, string>) => api.put('/v1/admin/settings/ai', settings),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-ai-settings'] });
-      toast.success('Настройки сохранены');
+      toast.success(t.settings.saved);
     },
-    onError: () => toast.error('Ошибка при сохранении'),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   function handleSave() {
@@ -112,15 +114,15 @@ export default function AiSettingsPage() {
 
   const logColumns: ColumnDef<LogRow>[] = [
     {
-      header: 'Модуль',
+      header: t.settings.module,
       cell: ({ row }) => <Badge variant="secondary">{MODULE_LABELS[row.original.module] ?? row.original.module}</Badge>,
     },
     {
-      header: 'Модель',
+      header: t.settings.aiModel,
       cell: ({ row }) => <span className="text-xs font-mono">{row.original.model}</span>,
     },
     {
-      header: 'Токены (вх/вых)',
+      header: t.settings.aiTokens,
       cell: ({ row }) => (
         <span className="text-xs font-mono">
           {row.original.inputTokens} / {row.original.outputTokens}
@@ -128,17 +130,17 @@ export default function AiSettingsPage() {
       ),
     },
     {
-      header: 'Стоимость',
+      header: t.settings.aiCost,
       cell: ({ row }) => (
         <span className="text-xs font-mono">${Number(row.original.costUsd ?? 0).toFixed(6)}</span>
       ),
     },
     {
-      header: 'Время (ms)',
+      header: t.settings.aiTimeMs,
       cell: ({ row }) => <span className="text-xs">{row.original.responseTimeMs ?? '—'}</span>,
     },
     {
-      header: 'Дата',
+      header: t.common.date,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
     },
   ];
@@ -146,19 +148,19 @@ export default function AiSettingsPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold">AI Настройки</h1>
-        <p className="text-muted-foreground text-sm">Управление AI провайдером, промптами и лимитами</p>
+        <h1 className="text-2xl font-bold">{t.settings.aiTitle}</h1>
+        <p className="text-muted-foreground text-sm">{t.settings.aiSubtitle}</p>
       </div>
 
       {/* Usage summary */}
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {[
-            { label: 'Запросов (месяц)', value: String(summary.totals.requests) },
-            { label: 'Вх. токены', value: String(summary.totals.inputTokens.toLocaleString()) },
-            { label: 'Вых. токены', value: String(summary.totals.outputTokens.toLocaleString()) },
-            { label: 'Стоимость (USD)', value: `$${summary.totals.costUsd.toFixed(4)}` },
-            { label: 'Среднее время', value: `${summary.totals.avgResponseMs} ms` },
+            { label: t.settings.aiRequestsMonth, value: String(summary.totals.requests) },
+            { label: t.settings.aiTokensIn, value: String(summary.totals.inputTokens.toLocaleString()) },
+            { label: t.settings.aiTokensOut, value: String(summary.totals.outputTokens.toLocaleString()) },
+            { label: t.settings.aiCostUsd, value: `$${summary.totals.costUsd.toFixed(4)}` },
+            { label: t.settings.aiAvgTime, value: `${summary.totals.avgResponseMs} ms` },
           ].map(({ label, value }) => (
             <Card key={label}>
               <CardContent className="p-3">
@@ -174,22 +176,22 @@ export default function AiSettingsPage() {
         {/* Provider config */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Провайдер</CardTitle>
+            <CardTitle className="text-base">{t.common.provider}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-sm">Провайдер AI</Label>
+              <Label className="text-sm">{t.settings.aiProvider}</Label>
               <Select value={form.ai_provider} onValueChange={v => setForm(f => ({ ...f, ai_provider: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                  <SelectItem value="ollama">Ollama (локальный)</SelectItem>
+                  <SelectItem value="ollama">{t.settings.aiProviderOllama}</SelectItem>
                   <SelectItem value="hybrid">Hybrid</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Модель</Label>
+              <Label className="text-sm">{t.settings.aiModel}</Label>
               <Select value={form.ai_model} onValueChange={v => setForm(f => ({ ...f, ai_model: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -223,11 +225,11 @@ export default function AiSettingsPage() {
         {/* Limits */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Лимиты</CardTitle>
+            <CardTitle className="text-base">{t.settings.aiLimits}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-sm">Запросов / день (пользователь)</Label>
+              <Label className="text-sm">{t.settings.aiLimitDay}</Label>
               <Input
                 type="number"
                 value={form.ai_daily_limit_per_user}
@@ -236,7 +238,7 @@ export default function AiSettingsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Запросов / месяц (пользователь)</Label>
+              <Label className="text-sm">{t.settings.aiLimitMonth}</Label>
               <Input
                 type="number"
                 value={form.ai_monthly_limit_per_user}
@@ -248,7 +250,7 @@ export default function AiSettingsPage() {
             {/* Usage by module */}
             {summary?.byModule && summary.byModule.length > 0 && (
               <div className="pt-2 border-t space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">По модулям (месяц)</p>
+                <p className="text-xs font-medium text-muted-foreground">{t.settings.aiByModule}</p>
                 {summary.byModule.map(m => (
                   <div key={m.module} className="flex justify-between text-xs">
                     <span>{MODULE_LABELS[m.module] ?? m.module}</span>
@@ -264,7 +266,7 @@ export default function AiSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Системные промпты</CardTitle>
+              <CardTitle className="text-base">{t.settings.aiPrompts}</CardTitle>
               <div className="flex gap-1">
                 {(['chat', 'checkup', 'scribe'] as const).map(t => (
                   <button
@@ -282,7 +284,7 @@ export default function AiSettingsPage() {
             <Textarea
               className="text-xs font-mono resize-none"
               rows={12}
-              placeholder={`Системный промпт для ${activePrompt}...`}
+              placeholder={`${t.settings.aiPromptHint} ${activePrompt}...`}
               value={form[`ai_system_prompt_${activePrompt}` as keyof AiSettings]}
               onChange={e => setForm(f => ({ ...f, [`ai_system_prompt_${activePrompt}`]: e.target.value }))}
             />
@@ -294,7 +296,7 @@ export default function AiSettingsPage() {
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
           <Save className="h-4 w-4" />
-          {saveMutation.isPending ? 'Сохранение...' : 'Сохранить настройки'}
+          {saveMutation.isPending ? t.common.saving : t.settings.aiSaveSettings}
         </Button>
       </div>
 
@@ -302,7 +304,7 @@ export default function AiSettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Логи AI запросов</CardTitle>
+            <CardTitle className="text-base">{t.settings.aiLogs}</CardTitle>
             <Button
               size="sm" variant="ghost"
               onClick={() => qc.invalidateQueries({ queryKey: ['admin-ai-logs'] })}

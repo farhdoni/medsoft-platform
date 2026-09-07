@@ -10,14 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type Settings = { sms_provider: string; sms_eskiz_token: string; sms_test_mode: string };
 
 export default function SmsSettingsPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState<Settings>({ sms_provider: 'eskiz', sms_eskiz_token: '', sms_test_mode: 'false' });
   const [showToken, setShowToken] = useState(false);
   const [testPhone, setTestPhone] = useState('');
-  const [testText, setTestText] = useState('Тест от Aivita Admin');
+  const [testText, setTestText] = useState(t.settings.testSmsBody);
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings-sms'],
@@ -27,29 +29,29 @@ export default function SmsSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/settings/sms', form),
-    onSuccess: () => toast.success('SMS настройки сохранены'),
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => toast.success(t.settings.smsSaved),
+    onError: () => toast.error(t.common.error),
   });
 
   const testMutation = useMutation({
     mutationFn: () => api.post<{ ok: boolean; mode?: string; message?: string }>('/v1/admin/settings/sms/test', { phone: testPhone, text: testText }),
     onSuccess: (res) => {
-      if (res.mode === 'test') toast.info(`Тест-режим: ${res.message}`);
-      else toast.success('SMS отправлено');
+      if (res.mode === 'test') toast.info(`${t.settings.testMode}: ${res.message}`);
+      else toast.success(t.settings.smsSent);
     },
-    onError: () => toast.error('Ошибка отправки'),
+    onError: () => toast.error(t.settings.sendFailed),
   });
 
   return (
     <div className="space-y-6 max-w-xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">SMS настройки</h2>
-          <p className="text-sm text-muted-foreground">Конфигурация провайдера SMS-уведомлений</p>
+          <h2 className="text-lg font-semibold">{t.settings.smsTitle}</h2>
+          <p className="text-sm text-muted-foreground">{t.settings.smsSubtitle}</p>
         </div>
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || isLoading}>
           <Save className="h-4 w-4 mr-2" />
-          {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+          {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
         </Button>
       </div>
 
@@ -75,13 +77,13 @@ export default function SmsSettingsPage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Получите токен на <a href="https://notify.eskiz.uz" target="_blank" rel="noreferrer" className="underline">notify.eskiz.uz</a>
+              {t.settings.getTokenAt} <a href="https://notify.eskiz.uz" target="_blank" rel="noreferrer" className="underline">notify.eskiz.uz</a>
             </p>
           </div>
           <div className="flex items-center justify-between border-t pt-3">
             <div>
-              <Label className="text-sm font-medium">Тест-режим SMS</Label>
-              <p className="text-xs text-muted-foreground">Сообщения логируются, не отправляются</p>
+              <Label className="text-sm font-medium">{t.settings.testModeSms}</Label>
+              <p className="text-xs text-muted-foreground">{t.settings.smsLogged}</p>
             </div>
             <Switch
               checked={form.sms_test_mode === 'true'}
@@ -93,14 +95,14 @@ export default function SmsSettingsPage() {
 
       {/* Test SMS */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Тестовое SMS</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.settings.testSms}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Номер телефона</Label>
+            <Label>{t.settings.phoneNumber}</Label>
             <Input value={testPhone} onChange={e => setTestPhone(e.target.value)} placeholder="+998901234567" />
           </div>
           <div className="space-y-1.5">
-            <Label>Текст сообщения</Label>
+            <Label>{t.settings.messageText}</Label>
             <Input value={testText} onChange={e => setTestText(e.target.value)} maxLength={160} />
             <p className="text-xs text-muted-foreground text-right">{testText.length}/160</p>
           </div>
@@ -110,7 +112,7 @@ export default function SmsSettingsPage() {
             disabled={testMutation.isPending || !testPhone.trim()}
           >
             <Send className="h-4 w-4 mr-2" />
-            {testMutation.isPending ? 'Отправляю...' : 'Отправить тест'}
+            {testMutation.isPending ? t.settings.sending : t.settings.sendTest}
           </Button>
         </CardContent>
       </Card>

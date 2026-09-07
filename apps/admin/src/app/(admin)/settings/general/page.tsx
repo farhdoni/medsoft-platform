@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type Settings = {
   platform_name: string;
@@ -21,6 +22,7 @@ type Settings = {
 };
 
 export default function GeneralSettingsPage() {
+  const { t } = useI18n();
   const [form, setForm] = useState<Settings>({
     platform_name: 'Aivita',
     platform_logo_url: '',
@@ -41,8 +43,8 @@ export default function GeneralSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/settings/general', form),
-    onSuccess: () => toast.success('Настройки сохранены'),
-    onError: () => toast.error('Ошибка при сохранении'),
+    onSuccess: () => toast.success(t.settings.saved),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   const set = (key: keyof Settings, value: string) => setForm(f => ({ ...f, [key]: value }));
@@ -51,51 +53,51 @@ export default function GeneralSettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Общие настройки</h2>
-          <p className="text-sm text-muted-foreground">Основные параметры платформы Aivita</p>
+          <h2 className="text-lg font-semibold">{t.settings.generalTitle}</h2>
+          <p className="text-sm text-muted-foreground">{t.settings.generalSubtitle}</p>
         </div>
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || isLoading}>
           <Save className="h-4 w-4 mr-2" />
-          {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+          {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
         </Button>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Идентификация платформы</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.settings.identity}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Название платформы</Label>
+            <Label>{t.settings.platformName}</Label>
             <Input value={form.platform_name} onChange={e => set('platform_name', e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>URL логотипа</Label>
+            <Label>{t.settings.logoUrl}</Label>
             <Input value={form.platform_logo_url} onChange={e => set('platform_logo_url', e.target.value)} placeholder="https://..." />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Контактная информация поддержки</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.settings.supportContacts}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Email поддержки</Label>
+            <Label>{t.settings.supportEmail}</Label>
             <Input type="email" value={form.support_email} onChange={e => set('support_email', e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Телефон поддержки</Label>
+            <Label>{t.settings.supportPhone}</Label>
             <Input value={form.support_phone} onChange={e => set('support_phone', e.target.value)} placeholder="+998 ..." />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Режим работы</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.settings.workMode}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between py-2">
             <div>
-              <Label className="text-sm font-medium">Режим технических работ</Label>
+              <Label className="text-sm font-medium">{t.settings.maintenance}</Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                При включении app.aivita.uz показывает экран «Технические работы»
+                {t.settings.maintenanceHint}
               </p>
             </div>
             <Switch
@@ -105,14 +107,14 @@ export default function GeneralSettingsPage() {
           </div>
           {form.maintenance_mode === 'true' && (
             <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              ⚠️ Режим обслуживания включён — пользователи не могут войти в приложение
+              {t.settings.maintenanceOn}
             </div>
           )}
           <div className="flex items-center justify-between py-2 border-t">
             <div>
-              <Label className="text-sm font-medium">Регистрация открыта</Label>
+              <Label className="text-sm font-medium">{t.settings.signupOpen}</Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Разрешить новым пользователям регистрироваться
+                {t.settings.signupHint}
               </p>
             </div>
             <Switch

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,27 +67,29 @@ const defaultInviteForm = (): InviteForm => ({
   roleId: '',
 });
 
-const ROLE_LABELS: Record<string, string> = {
-  superadmin: 'Супер-админ',
-  admin: 'Администратор',
-  moderator: 'Модератор',
-  support: 'Поддержка',
-  marketing: 'Маркетинг',
-  finance: 'Финансы',
-  viewer: 'Наблюдатель',
-};
 
-function RoleBadge({ role }: { role: string }) {
+function RoleBadge({ role, labels }: { role: string; labels: Record<string, string> }) {
+  const text = labels[role] ?? role;
   if (role === 'superadmin') {
-    return <Badge variant="destructive">{ROLE_LABELS[role] ?? role}</Badge>;
+    return <Badge variant="destructive">{text}</Badge>;
   }
   if (role === 'admin') {
-    return <Badge variant="default">{ROLE_LABELS[role] ?? role}</Badge>;
+    return <Badge variant="default">{text}</Badge>;
   }
-  return <Badge variant="secondary">{ROLE_LABELS[role] ?? role}</Badge>;
+  return <Badge variant="secondary">{text}</Badge>;
 }
 
 export default function TeamPage() {
+  const { t } = useI18n();
+  const ROLE_LABELS: Record<string, string> = {
+    superadmin: t.settings.roleSuperadmin,
+    admin: t.settings.roleAdmin,
+    moderator: t.settings.roleModerator,
+    support: t.settings.roleSupport,
+    marketing: t.settings.roleMarketing,
+    finance: t.settings.roleFinance,
+    viewer: t.settings.roleViewer,
+  };
   const queryClient = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [form, setForm] = useState<InviteForm>(defaultInviteForm());
@@ -116,9 +119,9 @@ export default function TeamPage() {
       api.patch(`/v1/admin/users/team/${id}/role`, { roleId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-team'] });
-      toast.success('Роль обновлена');
+      toast.success(t.settings.roleUpdated);
     },
-    onError: (err: Error) => toast.error(err.message || 'Ошибка при смене роли'),
+    onError: (err: Error) => toast.error(err.message || t.settings.roleUpdateFail),
   });
 
   const toggleActiveMutation = useMutation({
@@ -126,9 +129,9 @@ export default function TeamPage() {
       api.patch(`/v1/admin/users/team/${id}/active`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-team'] });
-      toast.success('Статус обновлён');
+      toast.success(t.settings.statusUpdated);
     },
-    onError: (err: Error) => toast.error(err.message || 'Ошибка при обновлении статуса'),
+    onError: (err: Error) => toast.error(err.message || t.settings.statusUpdateFail),
   });
 
   const inviteMutation = useMutation({
@@ -140,11 +143,11 @@ export default function TeamPage() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-team'] });
-      toast.success('Администратор создан');
+      toast.success(t.settings.adminCreated);
       setInviteOpen(false);
       setForm(defaultInviteForm());
     },
-    onError: () => toast.error('Ошибка при создании администратора'),
+    onError: () => toast.error(t.settings.adminCreateFail),
   });
 
   const isFormValid = form.email && form.fullName && form.password && form.roleId;
@@ -154,36 +157,36 @@ export default function TeamPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Команда</h1>
-          <p className="text-sm text-muted-foreground mt-1">Администраторы системы</p>
+          <h1 className="text-2xl font-bold">{t.settings.teamTitle}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.settings.teamSubtitle}</p>
         </div>
         <Button onClick={() => { setForm(defaultInviteForm()); setInviteOpen(true); }}>
           <UserPlus className="h-4 w-4 mr-2" />
-          Пригласить администратора
+          {t.settings.inviteAdmin}
         </Button>
       </div>
 
       {/* Table */}
       {isLoading ? (
-        <div className="text-muted-foreground text-sm">Загрузка...</div>
+        <div className="text-muted-foreground text-sm">{t.common.loading}</div>
       ) : (
         <div className="rounded-lg border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 text-muted-foreground">
-                <th className="text-left px-4 py-3 font-medium">Имя</th>
+                <th className="text-left px-4 py-3 font-medium">{t.settings.fullName}</th>
                 <th className="text-left px-4 py-3 font-medium">Email</th>
-                <th className="text-left px-4 py-3 font-medium">Роль</th>
-                <th className="text-left px-4 py-3 font-medium">Статус</th>
-                <th className="text-left px-4 py-3 font-medium">Последний вход</th>
-                <th className="text-left px-4 py-3 font-medium">Дата создания</th>
+                <th className="text-left px-4 py-3 font-medium">{t.security.role}</th>
+                <th className="text-left px-4 py-3 font-medium">{t.common.status}</th>
+                <th className="text-left px-4 py-3 font-medium">{t.settings.lastLogin}</th>
+                <th className="text-left px-4 py-3 font-medium">{t.settings.createdAt}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {admins.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    Нет администраторов
+                    {t.settings.teamEmpty}
                   </td>
                 </tr>
               ) : (
@@ -193,12 +196,12 @@ export default function TeamPage() {
                     <tr key={admin.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">
                         {admin.fullName}
-                        {isSelf && <span className="text-muted-foreground font-normal"> (вы)</span>}
+                        {isSelf && <span className="text-muted-foreground font-normal"> {t.settings.you}</span>}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{admin.email}</td>
                       <td className="px-4 py-3">
                         {isSelf ? (
-                          admin.roleDisplayName ?? <RoleBadge role={admin.role} />
+                          admin.roleDisplayName ?? <RoleBadge role={admin.role} labels={ROLE_LABELS} />
                         ) : (
                           <Select
                             value={admin.roleId ? String(admin.roleId) : undefined}
@@ -207,8 +210,8 @@ export default function TeamPage() {
                             }
                           >
                             <SelectTrigger className="h-8 w-[190px] text-xs">
-                              <SelectValue placeholder="Роль не назначена">
-                                {admin.roleDisplayName ?? 'Роль не назначена'}
+                              <SelectValue placeholder={t.settings.noRole}>
+                                {admin.roleDisplayName ?? t.settings.noRole}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -224,9 +227,9 @@ export default function TeamPage() {
                       <td className="px-4 py-3">
                         {isSelf ? (
                           admin.isActive ? (
-                            <Badge variant="success">Активен</Badge>
+                            <Badge variant="success">{t.common.active}</Badge>
                           ) : (
-                            <Badge variant="secondary">Неактивен</Badge>
+                            <Badge variant="secondary">{t.settings.inactive}</Badge>
                           )
                         ) : (
                           <div className="flex items-center gap-2">
@@ -237,7 +240,7 @@ export default function TeamPage() {
                               }
                             />
                             <span className="text-xs text-muted-foreground">
-                              {admin.isActive ? 'Активен' : 'Неактивен'}
+                              {admin.isActive ? t.common.active : t.settings.inactive}
                             </span>
                           </div>
                         )}
@@ -261,8 +264,8 @@ export default function TeamPage() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Пригласить администратора</DialogTitle>
-            <DialogDescription>Создайте нового администратора системы.</DialogDescription>
+            <DialogTitle>{t.settings.inviteAdmin}</DialogTitle>
+            <DialogDescription>{t.settings.inviteHint}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -276,16 +279,16 @@ export default function TeamPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="invite-name">Полное имя</Label>
+              <Label htmlFor="invite-name">{t.settings.fullName}</Label>
               <Input
                 id="invite-name"
-                placeholder="Иван Иванов"
+                placeholder={t.settings.namePlaceholder}
                 value={form.fullName}
                 onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="invite-password">Пароль</Label>
+              <Label htmlFor="invite-password">{t.settings.password}</Label>
               <Input
                 id="invite-password"
                 type="password"
@@ -295,10 +298,10 @@ export default function TeamPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Роль</Label>
+              <Label>{t.security.role}</Label>
               <Select value={form.roleId} onValueChange={(val) => setForm((f) => ({ ...f, roleId: val }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите роль" />
+                  <SelectValue placeholder={t.settings.selectRole} />
                 </SelectTrigger>
                 <SelectContent>
                   {assignableRoles.map((role) => (
@@ -312,13 +315,13 @@ export default function TeamPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteOpen(false)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button
               onClick={() => inviteMutation.mutate(form)}
               disabled={inviteMutation.isPending || !isFormValid}
             >
-              {inviteMutation.isPending ? 'Создание...' : 'Пригласить'}
+              {inviteMutation.isPending ? t.settings.creating : t.settings.invite}
             </Button>
           </DialogFooter>
         </DialogContent>
