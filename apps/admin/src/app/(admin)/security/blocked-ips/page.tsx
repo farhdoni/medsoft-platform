@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type BlockedIp = {
   id: number; ip: string; reason: string | null;
@@ -22,6 +23,7 @@ type BlockedIp = {
 };
 
 export default function BlockedIpsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ ip: '', reason: '', expiresAt: '' });
@@ -41,43 +43,43 @@ export default function BlockedIpsPage() {
       qc.invalidateQueries({ queryKey: ['blocked-ips'] });
       setDialogOpen(false);
       setForm({ ip: '', reason: '', expiresAt: '' });
-      toast.success('IP заблокирован');
+      toast.success(t.security.ipBlocked);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/v1/admin/security/blocked-ips/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['blocked-ips'] });
-      toast.success('Блокировка снята');
+      toast.success(t.security.ipUnblocked);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   const columns: ColumnDef<BlockedIp>[] = [
     {
       accessorKey: 'ip',
-      header: 'IP-адрес',
+      header: t.security.ip,
       cell: ({ row }) => <span className="font-mono text-sm font-medium">{row.original.ip}</span>,
     },
     {
       accessorKey: 'reason',
-      header: 'Причина',
+      header: t.security.reason,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">{row.original.reason ?? '—'}</span>
       ),
     },
     {
-      header: 'Срок',
+      header: t.security.term,
       cell: ({ row }) => row.original.expiresAt ? (
-        <Badge variant="warning">до {formatDate(row.original.expiresAt)}</Badge>
+        <Badge variant="warning">{formatDate(row.original.expiresAt)}</Badge>
       ) : (
-        <Badge variant="destructive">Постоянно</Badge>
+        <Badge variant="destructive">{t.security.permanent}</Badge>
       ),
     },
     {
-      header: 'Дата блокировки',
+      header: t.security.blockedAt,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.blockedAt)}</span>,
     },
     {
@@ -90,7 +92,7 @@ export default function BlockedIpsPage() {
           disabled={deleteMutation.isPending}
         >
           <ShieldOff className="h-3 w-3 mr-1.5" />
-          Разблокировать
+          {t.security.unblock}
         </Button>
       ),
     },
@@ -101,7 +103,7 @@ export default function BlockedIpsPage() {
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Заблокировать IP
+          {t.security.blockIp}
         </Button>
       </div>
 
@@ -118,14 +120,14 @@ export default function BlockedIpsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Заблокировать IP</DialogTitle>
+            <DialogTitle>{t.security.blockIp}</DialogTitle>
             <DialogDescription>
-              IP-адрес будет заблокирован и не сможет авторизоваться в системе
+              {t.security.blockHint}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <Label>IP-адрес *</Label>
+              <Label>{t.security.ipRequired}</Label>
               <Input
                 className="font-mono"
                 value={form.ip}
@@ -134,15 +136,15 @@ export default function BlockedIpsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Причина</Label>
+              <Label>{t.security.reason}</Label>
               <Input
                 value={form.reason}
                 onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
-                placeholder="Подозрительная активность..."
+                placeholder={t.security.reasonHint}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Истекает (оставьте пустым для постоянной блокировки)</Label>
+              <Label>{t.security.expiresHint}</Label>
               <Input
                 type="datetime-local"
                 value={form.expiresAt}
@@ -151,14 +153,14 @@ export default function BlockedIpsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Отмена</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.common.cancel}</Button>
             <Button
               variant="destructive"
               onClick={() => addMutation.mutate()}
               disabled={addMutation.isPending || !form.ip.trim()}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              {addMutation.isPending ? 'Блокирую...' : 'Заблокировать'}
+              {addMutation.isPending ? t.security.blocking : t.security.block}
             </Button>
           </DialogFooter>
         </DialogContent>

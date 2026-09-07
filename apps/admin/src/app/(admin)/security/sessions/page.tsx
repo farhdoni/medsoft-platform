@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type TeamSession = {
   id: string;
@@ -21,6 +22,7 @@ type TeamSession = {
 };
 
 export default function TeamSessionsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -32,14 +34,14 @@ export default function TeamSessionsPage() {
     mutationFn: (id: string) => api.delete(`/v1/admin/security/sessions/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team-sessions'] });
-      toast.success('Сессия завершена');
+      toast.success(t.security.sessionClosed);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   const columns: ColumnDef<TeamSession>[] = [
     {
-      header: 'Администратор',
+      header: t.security.admin,
       cell: ({ row }) => (
         <div>
           <p className="text-sm font-medium">{row.original.fullName}</p>
@@ -49,21 +51,21 @@ export default function TeamSessionsPage() {
     },
     {
       accessorKey: 'role',
-      header: 'Роль',
+      header: t.security.role,
       cell: ({ row }) => <Badge variant="secondary">{row.original.role}</Badge>,
     },
     {
       accessorKey: 'device',
-      header: 'Устройство',
+      header: t.security.device,
       cell: ({ row }) => <span className="text-sm">{row.original.device}</span>,
     },
     {
       accessorKey: 'ip',
-      header: 'IP-адрес',
+      header: t.security.ip,
       cell: ({ row }) => <span className="font-mono text-sm">{row.original.ip ?? '—'}</span>,
     },
     {
-      header: 'Вход выполнен',
+      header: t.security.loggedInAt,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
     },
     {
@@ -76,7 +78,7 @@ export default function TeamSessionsPage() {
           disabled={terminateMutation.isPending}
         >
           <LogOut className="h-3 w-3 mr-1.5" />
-          Завершить
+          {t.security.terminate}
         </Button>
       ),
     },

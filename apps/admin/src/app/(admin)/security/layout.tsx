@@ -1,18 +1,23 @@
+'use client';
+
 import Link from 'next/link';
 import { Activity, Ban, Laptop } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
-const tabs = [
-  { href: '/security/auth-logs', label: 'Журнал входов', icon: Activity },
-  { href: '/security/blocked-ips', label: 'Блокировки IP', icon: Ban },
-  { href: '/security/sessions', label: 'Сессии команды', icon: Laptop },
+const TABS = [
+  { href: '/security/auth-logs', key: 'tabAuthLogs', icon: Activity },
+  { href: '/security/blocked-ips', key: 'tabBlockedIps', icon: Ban },
+  { href: '/security/sessions', key: 'tabSessions', icon: Laptop },
 ];
 
 export default function SecurityLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
+  const tabs = TABS.map((x) => ({ ...x, label: t.security[x.key] }));
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Безопасность</h1>
-        <p className="text-sm text-muted-foreground mt-1">Мониторинг входов, блокировка IP-адресов</p>
+        <h1 className="text-2xl font-bold">{t.security.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.security.subtitle}</p>
       </div>
       <div className="flex gap-1 border-b">
         {tabs.map(({ href, label, icon: Icon }) => (

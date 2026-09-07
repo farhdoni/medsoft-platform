@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type AuthLog = {
   id: number; userId: string | null; email: string | null;
@@ -18,6 +19,7 @@ type AuthLog = {
 };
 
 export default function AuthLogsPage() {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ status: '', email: '', ip: '', dateFrom: '', dateTo: '' });
 
@@ -36,10 +38,10 @@ export default function AuthLogsPage() {
 
   const columns: ColumnDef<AuthLog>[] = [
     {
-      header: 'Статус',
+      header: t.common.status,
       cell: ({ row }) => (
         <Badge variant={row.original.status === 'success' ? 'success' : 'destructive'}>
-          {row.original.status === 'success' ? 'Успех' : 'Ошибка'}
+          {row.original.status === 'success' ? t.security.success : t.common.error}
         </Badge>
       ),
     },
@@ -62,7 +64,7 @@ export default function AuthLogsPage() {
       ),
     },
     {
-      header: 'Дата',
+      header: t.common.date,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
     },
   ];
@@ -75,11 +77,11 @@ export default function AuthLogsPage() {
           value={filters.status || 'all'}
           onValueChange={v => setFilters(f => ({ ...f, status: v === 'all' ? '' : v }))}
         >
-          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Статус" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder={t.common.status} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="success">Успешные</SelectItem>
-            <SelectItem value="failed">Неудачные</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
+            <SelectItem value="success">{t.security.filterSuccess}</SelectItem>
+            <SelectItem value="failed">{t.security.filterFailed}</SelectItem>
           </SelectContent>
         </Select>
         <Input
@@ -92,7 +94,7 @@ export default function AuthLogsPage() {
           className="h-8 text-xs w-36 font-mono"
           value={filters.ip}
           onChange={e => { setFilters(f => ({ ...f, ip: e.target.value })); setPage(1); }}
-          placeholder="IP-адрес..."
+          placeholder={t.security.ipPlaceholder}
         />
         <Input
           type="date"
@@ -112,7 +114,7 @@ export default function AuthLogsPage() {
           className="h-8 text-xs"
           onClick={() => { setFilters({ status: '', email: '', ip: '', dateFrom: '', dateTo: '' }); setPage(1); }}
         >
-          Сбросить
+          {t.security.reset}
         </Button>
       </div>
 
