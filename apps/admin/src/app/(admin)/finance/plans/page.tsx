@@ -8,16 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Plan = {
   id: number; name: string; slug: string; price: number;
   period: string; targetRole: string; features: string[]; isActive: boolean;
 };
 
-const PERIOD_LABELS: Record<string, string> = { monthly: 'Месяц', annual: 'Год', one_time: 'Разовый' };
-const ROLE_LABELS: Record<string, string> = { patient: 'Пациент', doctor: 'Врач', clinic: 'Клиника', pharmacy: 'Аптека' };
 
 export default function PlansPage() {
+  const { t } = useI18n();
+  const PERIOD_LABELS: Record<string, string> = { monthly: t.common.month, annual: t.common.year, one_time: t.finance.oneTime };
+  const ROLE_LABELS: Record<string, string> = { patient: t.common.patient, doctor: t.common.doctor, clinic: t.common.clinic, pharmacy: t.common.pharmacy };
   const [editing, setEditing] = useState<{ id: number; price: string; name: string } | null>(null);
   const qc = useQueryClient();
 
@@ -47,7 +49,7 @@ export default function PlansPage() {
     plans: (data?.data ?? []).filter(p => p.targetRole === role),
   })).filter(g => g.plans.length > 0);
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Загрузка...</p>;
+  if (isLoading) return <p className="text-sm text-muted-foreground">{t.common.loading}</p>;
 
   return (
     <div className="space-y-6">
@@ -88,7 +90,7 @@ export default function PlansPage() {
                 </div>
 
                 <Badge variant={plan.isActive ? 'success' : 'secondary'} className="min-w-16 justify-center">
-                  {plan.isActive ? 'Активен' : 'Откл'}
+                  {plan.isActive ? t.common.active : t.common.off}
                 </Badge>
 
                 <div className="flex items-center gap-1">
@@ -117,7 +119,7 @@ export default function PlansPage() {
                         size="sm" variant="outline" className="h-7 text-xs"
                         onClick={() => toggle.mutate({ id: plan.id, isActive: !plan.isActive })}
                       >
-                        {plan.isActive ? 'Откл' : 'Вкл'}
+                        {plan.isActive ? t.common.off : t.common.on}
                       </Button>
                     </>
                   )}

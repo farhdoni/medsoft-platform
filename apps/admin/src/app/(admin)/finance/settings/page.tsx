@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type ProviderConfig = {
   id: string;
@@ -49,29 +50,20 @@ const PROVIDERS: ProviderConfig[] = [
 ];
 
 const COMMISSION_ROWS = [
-  { key: 'commission_booking',       label: 'Запись к врачу (офлайн)' },
-  { key: 'commission_online',        label: 'Онлайн-консультация' },
-  { key: 'commission_repeat',        label: 'Повторный визит' },
-  { key: 'commission_pharmacy',      label: 'Заказы аптеки' },
-  { key: 'commission_lab',           label: 'Лабораторные исследования' },
-  { key: 'commission_consultation',  label: 'Платная консультация в AV Chat' },
+  { key: 'commission_booking',      labelKey: 'cBooking' },
+  { key: 'commission_online',       labelKey: 'cOnline' },
+  { key: 'commission_repeat',       labelKey: 'cRepeat' },
+  { key: 'commission_pharmacy',     labelKey: 'cPharmacy' },
+  { key: 'commission_lab',          labelKey: 'cLab' },
+  { key: 'commission_consultation', labelKey: 'cConsultation' },
 ];
 
-const PAYOUT_DAY_OPTIONS = [
-  { value: 'monday',    label: 'Понедельник' },
-  { value: 'tuesday',   label: 'Вторник' },
-  { value: 'wednesday', label: 'Среда' },
-  { value: 'thursday',  label: 'Четверг' },
-  { value: 'friday',    label: 'Пятница' },
-];
+const PAYOUT_DAY_OPTIONS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
-const PHARMACY_PERIOD_OPTIONS = [
-  { value: 'weekly',    label: 'Еженедельно' },
-  { value: 'biweekly',  label: 'Раз в 2 недели' },
-  { value: 'monthly',   label: 'Ежемесячно' },
-];
+const PHARMACY_PERIOD_OPTIONS = ['weekly', 'biweekly', 'monthly'];
 
 export default function FinanceSettingsPage() {
+  const { t } = useI18n();
   const [envValues, setEnvValues] = useState<Record<string, string>>({});
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [platformCfg, setPlatformCfg] = useState<Record<string, string>>({});
@@ -81,7 +73,7 @@ export default function FinanceSettingsPage() {
   useEffect(() => {
     api.get<{ data: Record<string, string> }>('/v1/admin/settings/platform')
       .then(res => setPlatformCfg(res.data))
-      .catch(() => toast.error('Не удалось загрузить настройки'))
+      .catch(() => toast.error(t.finance.settingsLoadFail))
       .finally(() => setLoading(false));
   }, []);
 
@@ -93,16 +85,16 @@ export default function FinanceSettingsPage() {
     setSaving(true);
     try {
       await api.put('/v1/admin/settings/platform', platformCfg);
-      toast.success('Настройки сохранены');
+      toast.success(t.finance.settingsSaved);
     } catch {
-      toast.error('Ошибка при сохранении');
+      toast.error(t.finance.settingsSaveFail);
     } finally {
       setSaving(false);
     }
   }
 
   function handleSaveEnv() {
-    toast.success('Настройки провайдеров обновлены. Перезапустите API для применения.');
+    toast.success(t.finance.providersUpdated);
   }
 
   return (
@@ -113,24 +105,24 @@ export default function FinanceSettingsPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Percent className="h-4 w-4 text-muted-foreground" />
-            Комиссии платформы
+            {t.finance.commissions}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 font-medium text-muted-foreground">Тип операции</th>
-                  <th className="text-right py-2 font-medium text-muted-foreground w-28">Комиссия, %</th>
+                  <th className="text-left py-2 font-medium text-muted-foreground">{t.finance.operationType}</th>
+                  <th className="text-right py-2 font-medium text-muted-foreground w-28">{t.finance.commissionPercent}</th>
                 </tr>
               </thead>
               <tbody>
                 {COMMISSION_ROWS.map(row => (
                   <tr key={row.key} className="border-b last:border-0">
-                    <td className="py-2.5 text-sm">{row.label}</td>
+                    <td className="py-2.5 text-sm">{t.finance[row.labelKey]}</td>
                     <td className="py-2 pl-4">
                       <div className="flex items-center gap-1 justify-end">
                         <Input
@@ -157,7 +149,7 @@ export default function FinanceSettingsPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Wallet className="h-4 w-4 text-muted-foreground" />
-            Настройки выплат
+            {t.finance.payoutSettings}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -165,7 +157,7 @@ export default function FinanceSettingsPage() {
             <div>
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                День выплат врачам
+                {t.finance.payoutDay}
               </label>
               <select
                 value={platformCfg['payout_day'] ?? 'friday'}
@@ -173,12 +165,12 @@ export default function FinanceSettingsPage() {
                 className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {PAYOUT_DAY_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o} value={o}>{t.finance[o]}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Мин. сумма выплаты (сум)</label>
+              <label className="text-xs font-medium text-muted-foreground">{t.finance.payoutMin}</label>
               <Input
                 type="number"
                 min={0}
@@ -191,21 +183,21 @@ export default function FinanceSettingsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Период выплат аптекам</label>
+              <label className="text-xs font-medium text-muted-foreground">{t.finance.pharmacyPeriod}</label>
               <select
                 value={platformCfg['payout_pharmacy_period'] ?? 'monthly'}
                 onChange={e => setPlatform('payout_pharmacy_period', e.target.value)}
                 className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {PHARMACY_PERIOD_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o} value={o}>{t.finance[o]}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Mail className="h-3 w-3" />
-                Email уведомлений
+                {t.finance.notifEmail}
               </label>
               <Input
                 type="email"
@@ -221,16 +213,16 @@ export default function FinanceSettingsPage() {
 
       <Button onClick={handleSavePlatform} disabled={saving || loading} className="flex items-center gap-2">
         <Save className="h-4 w-4" />
-        {saving ? 'Сохранение...' : 'Сохранить все настройки'}
+        {saving ? t.common.saving : t.finance.saveAll}
       </Button>
 
       {/* ── Payment provider keys (env vars) ─────────────────────────── */}
       <div className="pt-4 border-t">
-        <p className="text-sm font-medium mb-1">Провайдеры оплаты</p>
+        <p className="text-sm font-medium mb-1">{t.finance.providers}</p>
         <p className="text-xs text-muted-foreground mb-4">
           Ключи провайдеров хранятся в переменных окружения сервера.
           Если ключи не заданы, система работает в{' '}
-          <Badge variant="warning">Mock-режиме</Badge> (платежи автоматически successful).
+          <Badge variant="warning">{t.finance.mockMode}</Badge> {t.finance.mockModeTail}
         </p>
 
         <div className="space-y-4">
@@ -276,7 +268,7 @@ export default function FinanceSettingsPage() {
 
         <Button variant="outline" onClick={handleSaveEnv} className="mt-4 flex items-center gap-2">
           <CreditCard className="h-4 w-4" />
-          Сохранить ключи провайдеров
+          {t.finance.saveProviderKeys}
         </Button>
       </div>
     </div>

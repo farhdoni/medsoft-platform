@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { api, downloadFile } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Row = {
   payment: {
@@ -29,17 +30,18 @@ type Row = {
 const STATUS_VARIANT: Record<string, 'success' | 'destructive' | 'warning' | 'secondary'> = {
   completed: 'success', failed: 'destructive', pending: 'warning', refunded: 'secondary', processing: 'warning',
 };
-const STATUS_LABELS: Record<string, string> = {
-  completed: 'Оплачено', failed: 'Ошибка', pending: 'Ожидает',
-  refunded: 'Возврат', processing: 'Обработка',
-};
 const PROVIDER_LABELS: Record<string, string> = { click: 'Click', payme: 'Payme', uzum: 'Uzum' };
-const TYPE_LABELS: Record<string, string> = {
-  subscription: 'Подписка', consultation: 'Консультация',
-  pharmacy_order: 'Аптека', booking: 'Запись',
-};
 
 export default function PaymentsPage() {
+  const { t } = useI18n();
+  const STATUS_LABELS: Record<string, string> = {
+    completed: t.finance.statusCompleted, failed: t.common.error, pending: t.common.pending,
+    refunded: t.finance.refund, processing: t.finance.statusProcessing,
+  };
+  const TYPE_LABELS: Record<string, string> = {
+    subscription: t.finance.payTypeSub, consultation: t.finance.payTypeConsult,
+    pharmacy_order: t.common.pharmacy, booking: t.finance.payTypeBooking,
+  };
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ status: '', provider: '', type: '', dateFrom: '', dateTo: '' });
   const [selectedPayment, setSelectedPayment] = useState<Row | null>(null);
@@ -69,9 +71,9 @@ export default function PaymentsPage() {
       setRefundDialogOpen(false);
       setSelectedPayment(null);
       setRefundReason('');
-      toast.success('Возврат выполнен');
+      toast.success(t.finance.refundDone);
     },
-    onError: () => toast.error('Ошибка при возврате'),
+    onError: () => toast.error(t.finance.refundFailed),
   });
 
   async function handleExport() {
@@ -88,7 +90,7 @@ export default function PaymentsPage() {
         `payments_${new Date().toISOString().slice(0, 10)}.csv`,
       );
     } catch {
-      toast.error('Ошибка при экспорте');
+      toast.error(t.common.exportFailed);
     } finally {
       setDownloading(false);
     }
@@ -103,7 +105,7 @@ export default function PaymentsPage() {
       ),
     },
     {
-      header: 'Пользователь',
+      header: t.common.user,
       cell: ({ row }) => (
         <div>
           <p className="text-sm font-medium">{row.original.userName ?? '—'}</p>
@@ -112,13 +114,13 @@ export default function PaymentsPage() {
       ),
     },
     {
-      header: 'Тип',
+      header: t.common.type,
       cell: ({ row }) => (
         <Badge variant="secondary">{TYPE_LABELS[row.original.payment.type] ?? row.original.payment.type}</Badge>
       ),
     },
     {
-      header: 'Статус',
+      header: t.common.status,
       cell: ({ row }) => (
         <Badge variant={STATUS_VARIANT[row.original.payment.status] ?? 'secondary'}>
           {STATUS_LABELS[row.original.payment.status] ?? row.original.payment.status}
@@ -126,19 +128,19 @@ export default function PaymentsPage() {
       ),
     },
     {
-      header: 'Провайдер',
+      header: t.common.provider,
       cell: ({ row }) => row.original.payment.provider
         ? PROVIDER_LABELS[row.original.payment.provider] ?? row.original.payment.provider
         : '—',
     },
     {
-      header: 'Сумма',
+      header: t.common.amount,
       cell: ({ row }) => (
         <span className="font-medium">{formatCurrency(row.original.payment.amount)}</span>
       ),
     },
     {
-      header: 'Дата',
+      header: t.common.date,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.payment.createdAt)}</span>,
     },
     {
@@ -154,7 +156,7 @@ export default function PaymentsPage() {
             setRefundDialogOpen(true);
           }}
         >
-          Возврат
+          {t.finance.refund}
         </Button>
       ) : null,
     },
@@ -165,25 +167,25 @@ export default function PaymentsPage() {
       {/* Filters + export */}
       <div className="flex flex-wrap gap-2 items-center">
         <Select value={filters.status || 'all'} onValueChange={v => setFilters(f => ({ ...f, status: v === 'all' ? '' : v }))}>
-          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Статус" /></SelectTrigger>
+          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder={t.common.status} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
+            <SelectItem value="all">{t.finance.allStatuses}</SelectItem>
             {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filters.provider || 'all'} onValueChange={v => setFilters(f => ({ ...f, provider: v === 'all' ? '' : v }))}>
-          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Провайдер" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder={t.common.provider} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
             <SelectItem value="click">Click</SelectItem>
             <SelectItem value="payme">Payme</SelectItem>
             <SelectItem value="uzum">Uzum</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filters.type || 'all'} onValueChange={v => setFilters(f => ({ ...f, type: v === 'all' ? '' : v }))}>
-          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Тип" /></SelectTrigger>
+          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder={t.common.type} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все типы</SelectItem>
+            <SelectItem value="all">{t.finance.allTypes}</SelectItem>
             {Object.entries(TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -192,14 +194,14 @@ export default function PaymentsPage() {
           className="h-8 text-xs w-36"
           value={filters.dateFrom}
           onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value }))}
-          placeholder="С даты"
+          placeholder={t.finance.dateFrom}
         />
         <Input
           type="date"
           className="h-8 text-xs w-36"
           value={filters.dateTo}
           onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))}
-          placeholder="По дату"
+          placeholder={t.finance.dateTo}
         />
         <Button
           size="sm"
@@ -209,7 +211,7 @@ export default function PaymentsPage() {
           disabled={downloading}
         >
           <Download className="h-3.5 w-3.5 mr-1.5" />
-          {downloading ? 'Экспорт...' : 'CSV'}
+          {downloading ? t.common.exporting : 'CSV'}
         </Button>
       </div>
 
@@ -227,23 +229,23 @@ export default function PaymentsPage() {
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Оформить возврат</DialogTitle>
+            <DialogTitle>{t.finance.refundIssue}</DialogTitle>
             <DialogDescription>
               Платёж #{selectedPayment?.payment.id} на сумму{' '}
               <strong>{formatCurrency(selectedPayment?.payment.amount ?? 0)}</strong>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <label className="text-sm font-medium">Причина возврата</label>
+            <label className="text-sm font-medium">{t.finance.refundReason}</label>
             <Input
               value={refundReason}
               onChange={e => setRefundReason(e.target.value)}
-              placeholder="Укажите причину..."
+              placeholder={t.finance.refundReasonHint}
               className="text-sm"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>Отмена</Button>
+            <Button variant="outline" onClick={() => setRefundDialogOpen(false)}>{t.common.cancel}</Button>
             <Button
               variant="destructive"
               disabled={refundMutation.isPending}
@@ -252,7 +254,7 @@ export default function PaymentsPage() {
                 reason: refundReason,
               })}
             >
-              {refundMutation.isPending ? 'Возвращаю...' : 'Подтвердить возврат'}
+              {refundMutation.isPending ? t.finance.refunding : t.finance.refundConfirm}
             </Button>
           </DialogFooter>
         </DialogContent>

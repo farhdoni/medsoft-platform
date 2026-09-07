@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, downloadFile } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Row = {
   payout: {
@@ -25,11 +26,12 @@ type Row = {
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'secondary'> = {
   completed: 'success', processing: 'warning', pending: 'secondary',
 };
-const STATUS_LABELS: Record<string, string> = {
-  completed: 'Выплачено', processing: 'В обработке', pending: 'Ожидает',
-};
 
 export default function DoctorPayoutsPage() {
+  const { t } = useI18n();
+  const STATUS_LABELS: Record<string, string> = {
+    completed: t.common.paid, processing: t.common.processing, pending: t.common.pending,
+  };
   const [page, setPage] = useState(1);
   const [generating, setGenerating] = useState(false);
   const [genPeriod, setGenPeriod] = useState('');
@@ -44,7 +46,7 @@ export default function DoctorPayoutsPage() {
         `doctor_payouts_${new Date().toISOString().slice(0, 10)}.csv`,
       );
     } catch {
-      toast.error('Ошибка при экспорте');
+      toast.error(t.common.exportFailed);
     } finally {
       setDownloading(false);
     }
@@ -69,33 +71,33 @@ export default function DoctorPayoutsPage() {
   }
 
   const columns: ColumnDef<Row>[] = [
-    { header: 'Врач', cell: ({ row }) => (
+    { header: t.common.doctor, cell: ({ row }) => (
       <div>
         <p className="text-sm font-medium">{row.original.doctorName ?? '—'}</p>
         <p className="text-xs text-muted-foreground">{row.original.doctorEmail ?? ''}</p>
       </div>
     )},
-    { header: 'Период', cell: ({ row }) => <span className="text-sm">{row.original.payout.period ?? '—'}</span> },
-    { header: 'Сумма', cell: ({ row }) => <span className="font-medium">{formatCurrency(String(row.original.payout.amount))}</span> },
-    { header: 'Карта', cell: ({ row }) => (
+    { header: t.common.period, cell: ({ row }) => <span className="text-sm">{row.original.payout.period ?? '—'}</span> },
+    { header: t.common.amount, cell: ({ row }) => <span className="font-medium">{formatCurrency(String(row.original.payout.amount))}</span> },
+    { header: t.finance.card, cell: ({ row }) => (
       <div>
         <p className="text-xs font-mono">{row.original.payout.cardNumber ?? '—'}</p>
         <p className="text-xs text-muted-foreground">{row.original.payout.bankName ?? ''}</p>
       </div>
     )},
-    { header: 'Статус', cell: ({ row }) => (
+    { header: t.common.status, cell: ({ row }) => (
       <Badge variant={STATUS_VARIANT[row.original.payout.status] ?? 'secondary'}>
         {STATUS_LABELS[row.original.payout.status] ?? row.original.payout.status}
       </Badge>
     )},
-    { header: 'Дата', cell: ({ row }) => <span className="text-xs">{formatDate(row.original.payout.createdAt)}</span> },
+    { header: t.common.date, cell: ({ row }) => <span className="text-xs">{formatDate(row.original.payout.createdAt)}</span> },
     { id: 'actions', header: '', cell: ({ row }) => row.original.payout.status === 'pending' ? (
       <Button
         size="sm" variant="outline" className="text-xs h-7"
         onClick={() => markPaid.mutate(row.original.payout.id)}
         disabled={markPaid.isPending}
       >
-        Отметить выплаченным
+        {t.finance.markPaid}
       </Button>
     ) : row.original.payout.paidAt ? (
       <span className="text-xs text-muted-foreground">{formatDate(row.original.payout.paidAt)}</span>
@@ -109,21 +111,21 @@ export default function DoctorPayoutsPage() {
         <Input
           value={genPeriod}
           onChange={e => setGenPeriod(e.target.value)}
-          placeholder="Период (напр. 2025-05)"
+          placeholder={t.finance.periodHintDoctor}
           className="max-w-48 h-8 text-sm"
         />
         <Button
           size="sm" onClick={handleGenerate}
           disabled={generating || !genPeriod}
         >
-          {generating ? 'Генерация...' : 'Сформировать ведомость'}
+          {generating ? t.finance.generating : t.finance.generateSheet}
         </Button>
         <Button
           size="sm" variant="outline" className="ml-auto"
           onClick={handleExport} disabled={downloading}
         >
           <Download className="h-3.5 w-3.5 mr-1.5" />
-          {downloading ? 'Экспорт...' : 'CSV'}
+          {downloading ? t.common.exporting : 'CSV'}
         </Button>
       </div>
 

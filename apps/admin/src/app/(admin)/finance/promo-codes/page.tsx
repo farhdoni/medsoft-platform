@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type PromoCode = {
   id: number; code: string; discountType: string; discountValue: number;
@@ -18,6 +19,7 @@ type PromoCode = {
 };
 
 export default function PromoCodesPage() {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     code: '', discountType: 'percent', discountValue: '', maxUses: '', validUntil: '', planSlugs: '',
@@ -53,24 +55,24 @@ export default function PromoCodesPage() {
   });
 
   const columns: ColumnDef<PromoCode>[] = [
-    { accessorKey: 'code', header: 'Код', cell: ({ row }) => <code className="text-sm font-bold">{row.original.code}</code> },
-    { header: 'Скидка', cell: ({ row }) => (
+    { accessorKey: 'code', header: t.finance.code, cell: ({ row }) => <code className="text-sm font-bold">{row.original.code}</code> },
+    { header: t.finance.discount, cell: ({ row }) => (
       <span className="font-medium">
-        {row.original.discountValue}{row.original.discountType === 'percent' ? '%' : ' сум'}
+        {row.original.discountValue}{row.original.discountType === 'percent' ? '%' : t.finance.sumSuffix}
       </span>
     )},
-    { header: 'Использований', cell: ({ row }) => (
+    { header: t.finance.uses, cell: ({ row }) => (
       <span className="text-sm">
         {row.original.usedCount}{row.original.maxUses ? ` / ${row.original.maxUses}` : ''}
       </span>
     )},
-    { header: 'Действует до', cell: ({ row }) => row.original.validUntil ? <span className="text-xs">{formatDate(row.original.validUntil)}</span> : <span className="text-xs text-muted-foreground">Бессрочно</span> },
-    { header: 'Тарифы', cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground">{row.original.planSlugs?.join(', ') || 'Все'}</span>
+    { header: t.finance.validUntil, cell: ({ row }) => row.original.validUntil ? <span className="text-xs">{formatDate(row.original.validUntil)}</span> : <span className="text-xs text-muted-foreground">{t.finance.unlimited}</span> },
+    { header: t.finance.tabPlans, cell: ({ row }) => (
+      <span className="text-xs text-muted-foreground">{row.original.planSlugs?.join(', ') || t.common.all}</span>
     )},
-    { header: 'Статус', cell: ({ row }) => (
+    { header: t.common.status, cell: ({ row }) => (
       <Badge variant={row.original.isActive ? 'success' : 'secondary'}>
-        {row.original.isActive ? 'Активен' : 'Отключён'}
+        {row.original.isActive ? t.common.active : t.finance.disabled}
       </Badge>
     )},
     { id: 'actions', header: '', cell: ({ row }) => (
@@ -78,7 +80,7 @@ export default function PromoCodesPage() {
         size="sm" variant="outline" className="text-xs h-7"
         onClick={() => toggle.mutate({ id: row.original.id, isActive: !row.original.isActive })}
       >
-        {row.original.isActive ? 'Отключить' : 'Включить'}
+        {row.original.isActive ? t.common.disable : t.common.enable}
       </Button>
     )},
   ];
@@ -87,32 +89,32 @@ export default function PromoCodesPage() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Отмена' : '+ Создать промокод'}
+          {showForm ? t.common.cancel : t.finance.createPromo}
         </Button>
       </div>
 
       {showForm && (
         <div className="p-4 rounded-xl border bg-card space-y-3">
-          <p className="text-sm font-semibold">Новый промокод</p>
+          <p className="text-sm font-semibold">{t.finance.newPromo}</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Input placeholder="Код (напр. SUMMER20)" value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} className="h-8 text-sm" />
+            <Input placeholder={t.finance.codeHint} value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} className="h-8 text-sm" />
             <Select value={form.discountType} onValueChange={v => setForm(f => ({ ...f, discountType: v }))}>
               <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="percent">Процент (%)</SelectItem>
-                <SelectItem value="fixed">Фиксированно (сум)</SelectItem>
+                <SelectItem value="percent">{t.finance.percent}</SelectItem>
+                <SelectItem value="fixed">{t.finance.fixedSum}</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="Значение скидки" value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))} className="h-8 text-sm" />
-            <Input placeholder="Макс. использований" value={form.maxUses} onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))} className="h-8 text-sm" />
+            <Input placeholder={t.finance.discountValue} value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))} className="h-8 text-sm" />
+            <Input placeholder={t.finance.maxUses} value={form.maxUses} onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))} className="h-8 text-sm" />
             <Input type="date" value={form.validUntil} onChange={e => setForm(f => ({ ...f, validUntil: e.target.value }))} className="h-8 text-sm" />
-            <Input placeholder="Тарифы (slug, slug)" value={form.planSlugs} onChange={e => setForm(f => ({ ...f, planSlugs: e.target.value }))} className="h-8 text-sm" />
+            <Input placeholder={t.finance.plansSlugHint} value={form.planSlugs} onChange={e => setForm(f => ({ ...f, planSlugs: e.target.value }))} className="h-8 text-sm" />
           </div>
           <Button
             size="sm" onClick={() => create.mutate()}
             disabled={create.isPending || !form.code || !form.discountValue}
           >
-            Создать
+            {t.common.create}
           </Button>
         </div>
       )}

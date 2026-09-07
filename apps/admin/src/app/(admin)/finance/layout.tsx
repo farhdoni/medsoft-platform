@@ -3,26 +3,29 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
-const tabs = [
-  { href: '/finance',               label: 'Дашборд' },
-  { href: '/finance/payments',      label: 'Платежи' },
-  { href: '/finance/subscriptions', label: 'Подписки' },
-  { href: '/finance/payouts/doctors',    label: 'Выплаты врачам' },
-  { href: '/finance/payouts/pharmacies', label: 'Выплаты аптекам' },
-  { href: '/finance/promo-codes',   label: 'Промокоды' },
-  { href: '/finance/plans',         label: 'Тарифы' },
-  { href: '/finance/settings',      label: 'Настройки' },
+const TABS = [
+  { href: '/finance',                     key: 'dashboard' },
+  { href: '/finance/payments',            key: 'tabPayments' },
+  { href: '/finance/subscriptions',       key: 'tabSubscriptions' },
+  { href: '/finance/payouts/doctors',     key: 'tabPayoutsDoctors' },
+  { href: '/finance/payouts/pharmacies',  key: 'tabPayoutsPharm' },
+  { href: '/finance/promo-codes',         key: 'tabPromoCodes' },
+  { href: '/finance/plans',               key: 'tabPlans' },
+  { href: '/finance/settings',            key: 'tabSettings' },
 ];
 
 export default function FinanceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
+  const tabs = TABS.map((x) => ({ href: x.href, label: x.key === 'dashboard' ? t.nav.dashboard : t.finance[x.key] }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Финансы</h1>
-        <p className="text-muted-foreground">Управление платежами, подписками и выплатами</p>
+        <h1 className="text-2xl font-bold">{t.finance.title}</h1>
+        <p className="text-muted-foreground">{t.finance.subtitle}</p>
       </div>
       <nav className="flex gap-1 flex-wrap border-b border-border">
         {tabs.map(t => {

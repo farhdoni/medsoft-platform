@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type OverviewData = {
   kpis: {
@@ -31,7 +32,7 @@ type OverviewData = {
 };
 
 const PIE_COLORS = ['#9c5e6c', '#00B4E6', '#33CCCC', '#7B2D8E'];
-const PROVIDER_LABELS: Record<string, string> = { click: 'Click', payme: 'Payme', uzum: 'Uzum', other: 'Другие' };
+
 
 const TYPE_COLORS: Record<string, string> = {
   subscription: '#9c5e6c',
@@ -39,12 +40,7 @@ const TYPE_COLORS: Record<string, string> = {
   pharmacy_order: '#33CCCC',
   booking: '#7B2D8E',
 };
-const TYPE_LABELS: Record<string, string> = {
-  subscription: 'Подписки',
-  consultation: 'Консультации',
-  pharmacy_order: 'Аптека',
-  booking: 'Записи',
-};
+
 
 function KpiCard({ title, value, sub, trend, icon: Icon, color }: {
   title: string; value: string; sub?: string;
@@ -76,12 +72,24 @@ function KpiCard({ title, value, sub, trend, icon: Icon, color }: {
   );
 }
 
-function monthLabel(m: string) {
-  const [y, mo] = m.split('-');
-  return new Date(parseInt(y), parseInt(mo) - 1, 1).toLocaleDateString('ru-RU', { month: 'short', year: '2-digit' });
+function makeMonthLabel(locale: string) {
+  return (m: string) => {
+    const [y, mo] = m.split('-');
+    return new Date(parseInt(y), parseInt(mo) - 1, 1)
+      .toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-GB', { month: 'short', year: '2-digit' });
+  };
 }
 
 export default function FinanceDashboard() {
+  const { t, locale } = useI18n();
+  const monthLabel = makeMonthLabel(locale);
+  const PROVIDER_LABELS: Record<string, string> = { click: 'Click', payme: 'Payme', uzum: 'Uzum', other: t.finance.others };
+  const TYPE_LABELS: Record<string, string> = {
+    subscription: t.finance.typeSubscription,
+    consultation: t.finance.typeConsultation,
+    pharmacy_order: t.common.pharmacy,
+    booking: t.finance.typeBooking,
+  };
   const { data, isLoading } = useQuery<OverviewData>({
     queryKey: ['finance-overview'],
     queryFn: () => api.get('/v1/admin/finance/overview'),
@@ -95,7 +103,7 @@ export default function FinanceDashboard() {
       {/* KPI cards 4-column */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
-          title="Выручка (месяц)"
+          title={t.finance.revenueMonth}
           value={isLoading ? '...' : formatCurrency(kpis?.revenueMonth ?? 0)}
           trend={kpis?.revenueGrowthPercent}
           icon={DollarSign}
@@ -104,21 +112,21 @@ export default function FinanceDashboard() {
         <KpiCard
           title="MRR"
           value={isLoading ? '...' : formatCurrency(kpis?.mrr ?? 0)}
-          sub="Активные подписки"
+          sub={t.finance.activeSubs}
           icon={TrendingUp}
           color="bg-[#00B4E6]"
         />
         <KpiCard
-          title="Средний чек"
+          title={t.finance.avgCheck}
           value={isLoading ? '...' : formatCurrency(kpis?.avgCheck ?? 0)}
-          sub="За текущий месяц"
+          sub={t.finance.currentMonth}
           icon={Users}
           color="bg-[#33CCCC]"
         />
         <KpiCard
           title="Churn rate"
           value={isLoading ? '...' : `${kpis?.churnRate ?? 0}%`}
-          sub="Отток подписчиков"
+          sub={t.finance.churnSub}
           icon={Percent}
           color="bg-[#7B2D8E]"
         />
@@ -127,7 +135,7 @@ export default function FinanceDashboard() {
       {/* 12-month line chart by source */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Выручка по источникам (12 мес)</CardTitle>
+          <CardTitle className="text-base">{t.finance.revenueBySource}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={260}>
@@ -164,7 +172,7 @@ export default function FinanceDashboard() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">По провайдерам (месяц)</CardTitle>
+            <CardTitle className="text-base">{t.finance.byProvider}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -193,7 +201,7 @@ export default function FinanceDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Источники выручки</CardTitle>
+            <CardTitle className="text-base">{t.finance.revenueSources}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 pt-2">
