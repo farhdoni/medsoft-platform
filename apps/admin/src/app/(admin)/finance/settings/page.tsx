@@ -220,8 +220,7 @@ export default function FinanceSettingsPage() {
       <div className="pt-4 border-t">
         <p className="text-sm font-medium mb-1">{t.finance.providers}</p>
         <p className="text-xs text-muted-foreground mb-4">
-          Ключи провайдеров хранятся в переменных окружения сервера.
-          Если ключи не заданы, система работает в{' '}
+          {t.finance.providerKeysHint}{' '}
           <Badge variant="warning">{t.finance.mockMode}</Badge> {t.finance.mockModeTail}
         </p>
 

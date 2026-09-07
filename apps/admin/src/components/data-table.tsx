@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface DataTableProps<T> {
   columns: ColumnDef<T>[];
@@ -21,6 +22,7 @@ interface DataTableProps<T> {
 }
 
 export function DataTable<T>({ columns, data, total, page, pageSize, onPageChange, isLoading, onRowClick }: DataTableProps<T>) {
+  const { t } = useI18n();
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
   const totalPages = Math.ceil(total / pageSize);
 
@@ -41,9 +43,9 @@ export function DataTable<T>({ columns, data, total, page, pageSize, onPageChang
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">Загрузка...</td></tr>
+              <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">{t.common.loading}</td></tr>
             ) : table.getRowModel().rows.length === 0 ? (
-              <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">Нет данных</td></tr>
+              <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">{t.common.noData}</td></tr>
             ) : table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
@@ -62,7 +64,7 @@ export function DataTable<T>({ columns, data, total, page, pageSize, onPageChang
       </div>
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>Всего: {total.toLocaleString()}</span>
+        <span>{t.common.total} {total.toLocaleString()}</span>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
             <ChevronLeft className="h-4 w-4" />

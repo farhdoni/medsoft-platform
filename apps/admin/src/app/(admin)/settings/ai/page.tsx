@@ -254,7 +254,7 @@ export default function AiSettingsPage() {
                 {summary.byModule.map(m => (
                   <div key={m.module} className="flex justify-between text-xs">
                     <span>{MODULE_LABELS[m.module] ?? m.module}</span>
-                    <span className="font-medium">{m.requests} запр.</span>
+                    <span className="font-medium">{m.requests} {t.settings.requestsShort}</span>
                   </div>
                 ))}
               </div>

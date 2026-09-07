@@ -33,12 +33,12 @@ type AdminMe = {
 // «Движок» проксирует наружу (публикация) — под marketing:manage.
 // Остальные — как было до Б2: видимы при любом из двух прав, само чтение/запись
 // разграничивает бэкенд (apps/api/src/routes/admin/marketing.ts).
-const MARKETING_TOOLS: { href: string; label: string; icon: React.ElementType; anyRight: string[] }[] = [
-  { href: '/marketing/engine',     label: 'Движок',    icon: Zap,           anyRight: ['marketing:manage'] },
-  { href: '/marketing/email',      label: 'Рассылки',  icon: Mail,          anyRight: ['marketing:read', 'marketing:manage'] },
-  { href: '/marketing/push',       label: 'Push',      icon: MessageSquare, anyRight: ['marketing:read', 'marketing:manage'] },
-  { href: '/marketing/referrals',  label: 'Рефералы',  icon: Share2,        anyRight: ['marketing:read', 'marketing:manage'] },
-  { href: '/marketing/analytics',  label: 'Аналитика', icon: BarChart2,     anyRight: ['marketing:read', 'marketing:manage'] },
+const MARKETING_TOOLS: { href: string; label?: string; labelKey?: string; icon: React.ElementType; anyRight: string[] }[] = [
+  { href: '/marketing/engine',     labelKey: 'engine',         icon: Zap,           anyRight: ['marketing:manage'] },
+  { href: '/marketing/email',      labelKey: 'emailCampaigns', icon: Mail,          anyRight: ['marketing:read', 'marketing:manage'] },
+  { href: '/marketing/push',       label: 'Push',              icon: MessageSquare, anyRight: ['marketing:read', 'marketing:manage'] },
+  { href: '/marketing/referrals',  labelKey: 'referrals',      icon: Share2,        anyRight: ['marketing:read', 'marketing:manage'] },
+  { href: '/marketing/analytics',  labelKey: 'analytics',      icon: BarChart2,     anyRight: ['marketing:read', 'marketing:manage'] },
 ];
 
 // All nav items — section:'main' = top collapsible group
@@ -53,55 +53,55 @@ const baseNavItems = [
   { href: '/monitoring',           labelKey: 'monitoring',   icon: Server,          section: 'main' },
   { href: '/cms',                  labelKey: 'cms',          icon: Globe,           section: 'main' },
   // ── ПОЛЬЗОВАТЕЛИ ──
-  { href: '/users/patients',       label: 'Пациенты (Aivita)', icon: Users,         section: 'users' },
-  { href: '/users/doctors',        label: 'Врачи (Aivita)',    icon: Stethoscope,   section: 'users' },
+  { href: '/users/patients',       labelKey: 'aivitaPatients', icon: Users,         section: 'users' },
+  { href: '/users/doctors',        labelKey: 'aivitaDoctors',  icon: Stethoscope,   section: 'users' },
   // ── AIVITA ──
-  { href: '/aivita/doctors',       label: 'Врачи AIVITA',      icon: UserCheck,     section: 'aivita' },
-  { href: '/aivita/billing',       label: 'Биллинг',           icon: Wallet,        section: 'aivita' },
-  { href: '/aivita/home-settings', label: 'Главная страница',  icon: Settings2,     section: 'aivita' },
-  { href: '/aivita/notifications', label: 'Уведомления',       icon: Bell,          section: 'aivita' },
+  { href: '/aivita/doctors',       labelKey: 'doctorsAivita',  icon: UserCheck,     section: 'aivita' },
+  { href: '/aivita/billing',       labelKey: 'billing',        icon: Wallet,        section: 'aivita' },
+  { href: '/aivita/home-settings', labelKey: 'homePage',       icon: Settings2,     section: 'aivita' },
+  { href: '/aivita/notifications', labelKey: 'notifications',  icon: Bell,          section: 'aivita' },
   { href: '/aivita/support',       labelKey: 'support',        icon: HelpCircle,    section: 'aivita' },
   // ── ПАРТНЁРЫ ──
-  { href: '/partners/pharmacies',  label: 'Аптеки',            icon: Pill,          section: 'partners' },
-  { href: '/partners/labs',        label: 'Лаборатории',       icon: FlaskConical,  section: 'partners' },
-  { href: '/partners/clinics',     label: 'Клиники',           icon: Building2,     section: 'partners' },
+  { href: '/partners/pharmacies',  labelKey: 'pharmacies',     icon: Pill,          section: 'partners' },
+  { href: '/partners/labs',        labelKey: 'labs',           icon: FlaskConical,  section: 'partners' },
+  { href: '/partners/clinics',     labelKey: 'clinics',        icon: Building2,     section: 'partners' },
   // ── ФИНАНСЫ ──
   // Порядок и подписи повторяют вкладки в app/(admin)/finance/layout.tsx —
   // это один и тот же набор страниц, и расходиться им нельзя.
-  { href: '/finance',                    label: 'Дашборд',         icon: LayoutDashboard, section: 'finance' },
-  { href: '/finance/payments',           label: 'Платежи',         icon: CreditCard,      section: 'finance' },
-  { href: '/finance/subscriptions',      label: 'Подписки',        icon: Repeat,          section: 'finance' },
-  { href: '/finance/payouts/doctors',    label: 'Выплаты врачам',  icon: Stethoscope,     section: 'finance' },
-  { href: '/finance/payouts/pharmacies', label: 'Выплаты аптекам', icon: Pill,            section: 'finance' },
-  { href: '/finance/promo-codes',        label: 'Промокоды',       icon: Ticket,          section: 'finance' },
-  { href: '/finance/plans',              label: 'Тарифы',          icon: Layers,          section: 'finance' },
-  { href: '/finance/settings',           label: 'Настройки',       icon: Settings2,       section: 'finance' },
+  { href: '/finance',                    labelKey: 'dashboard',       icon: LayoutDashboard, section: 'finance' },
+  { href: '/finance/payments',           labelKey: 'payments',        icon: CreditCard,      section: 'finance' },
+  { href: '/finance/subscriptions',      labelKey: 'subscriptions',   icon: Repeat,          section: 'finance' },
+  { href: '/finance/payouts/doctors',    labelKey: 'payoutsDoctors',  icon: Stethoscope,     section: 'finance' },
+  { href: '/finance/payouts/pharmacies', labelKey: 'payoutsPharm',    icon: Pill,            section: 'finance' },
+  { href: '/finance/promo-codes',        labelKey: 'promoCodes',      icon: Ticket,          section: 'finance' },
+  { href: '/finance/plans',              labelKey: 'plans',           icon: Layers,          section: 'finance' },
+  { href: '/finance/settings',           labelKey: 'settings',        icon: Settings2,       section: 'finance' },
   // ── МАРКЕТИНГ ──
   // Один раздел — один префикс адресов (/marketing/*). Новый инструмент
   // добавляется одной строкой в MARKETING_TOOLS ниже, разметку трогать не надо.
   ...MARKETING_TOOLS.map((tool) => ({ ...tool, section: 'marketing' })),
   // ── КОНТЕНТ ──
-  { href: '/content/landing',      label: 'Лендинг',           icon: Globe,         section: 'content' },
-  { href: '/content/social',       label: 'Соцсети',           icon: Link2,         section: 'content' },
+  { href: '/content/landing',      labelKey: 'landing',        icon: Globe,         section: 'content' },
+  { href: '/content/social',       labelKey: 'social',         icon: Link2,         section: 'content' },
   { href: '/content/faq',          label: 'FAQ',               icon: HelpCircle,    section: 'content' },
-  { href: '/content/clinics',      label: 'Заявки клиник',     icon: Building2,     section: 'content' },
+  { href: '/content/clinics',      labelKey: 'clinicRequests', icon: Building2,     section: 'content' },
   // ── БЕЗОПАСНОСТЬ ──
-  { href: '/security/auth-logs',   label: 'Журнал входов',     icon: Activity,      section: 'security' },
-  { href: '/security/blocked-ips', label: 'Блокировки IP',     icon: Ban,           section: 'security' },
+  { href: '/security/auth-logs',   labelKey: 'authLogs',       icon: Activity,      section: 'security' },
+  { href: '/security/blocked-ips', labelKey: 'blockedIps',     icon: Ban,           section: 'security' },
   // ── ОТЧЁТЫ ──
-  { href: '/reports',              label: 'Отчёты',            icon: FileText,      section: 'reports' },
+  { href: '/reports',              labelKey: 'reports',        icon: FileText,      section: 'reports' },
   // ── СИСТЕМА ──
-  { href: '/settings/general',     label: 'Общие',             icon: Settings,      section: 'system' },
-  { href: '/settings/payments',    label: 'Платежи',           icon: CreditCard,    section: 'system' },
+  { href: '/settings/general',     labelKey: 'general',        icon: Settings,      section: 'system' },
+  { href: '/settings/payments',    labelKey: 'payments',       icon: CreditCard,    section: 'system' },
   { href: '/settings/sms',         label: 'SMS',               icon: MessageCircle, section: 'system' },
   { href: '/settings/email',       label: 'Email',             icon: AtSign,        section: 'system' },
-  { href: '/settings/domains',     label: 'Домены',            icon: Globe2,        section: 'system' },
-  { href: '/settings/backups',     label: 'Бэкапы',            icon: Database,      section: 'system' },
-  { href: '/settings/logs',        label: 'Логи',              icon: ScrollText,    section: 'system' },
+  { href: '/settings/domains',     labelKey: 'domains',        icon: Globe2,        section: 'system' },
+  { href: '/settings/backups',     labelKey: 'backups',        icon: Database,      section: 'system' },
+  { href: '/settings/logs',        labelKey: 'logs',           icon: ScrollText,    section: 'system' },
   // ── НАСТРОЙКИ ──
-  { href: '/settings/roles',       label: 'Роли',              icon: Shield,        section: 'settings' },
-  { href: '/settings/team',        label: 'Команда',           icon: UsersRound,    section: 'settings' },
-  { href: '/settings/ai',          label: 'AI настройки',      icon: BrainCircuit,  section: 'settings' },
+  { href: '/settings/roles',       labelKey: 'roles',          icon: Shield,        section: 'settings' },
+  { href: '/settings/team',        labelKey: 'team',           icon: UsersRound,    section: 'settings' },
+  { href: '/settings/ai',          labelKey: 'aiSettings',     icon: BrainCircuit,  section: 'settings' },
 ] as { href: string; label?: string; labelKey?: string; icon: React.ElementType; section: string; anyRight?: string[] }[];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';
@@ -170,7 +170,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
   });
 
   const sectionLabels: Record<string, string> = {
-    main:      'ОСНОВНОЕ',
+    main:      t.sections.main,
     aivita:    t.sections.aivita,
     users:     t.sections.users,
     partners:  t.sections.partners,
@@ -229,7 +229,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
         <span className="ml-2 text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">Admin</span>
         <button
           type="button"
-          aria-label="Закрыть меню"
+          aria-label={t.nav.closeMenu}
           onClick={onClose}
           className="ml-auto -mr-2 flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-white/5 hover:text-white lg:hidden"
         >

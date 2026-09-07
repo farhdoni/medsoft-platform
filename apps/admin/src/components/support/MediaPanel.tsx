@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Панель вставки: эмодзи, стикеры, GIF.
@@ -29,6 +30,7 @@ export function MediaPanel({
   onSticker: (url: string) => void;
   onGif: (url: string) => void;
 }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>('emoji');
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [gifs, setGifs] = useState<GifItem[]>([]);
@@ -84,8 +86,8 @@ export function MediaPanel({
       <div className="flex gap-1 border-b border-[#f0ede6] px-2.5 py-2">
         {(
           [
-            ['emoji', '😊 Эмодзи'],
-            ['stickers', 'Стикеры'],
+            ['emoji', t.support.tabEmoji],
+            ['stickers', t.support.tabStickers],
             ['gif', 'GIF'],
           ] as const
         ).map(([k, label]) => (
@@ -121,7 +123,7 @@ export function MediaPanel({
 
       {tab === 'stickers' && (
         <div className="grid grid-cols-4 gap-2 overflow-y-auto p-2.5">
-          {stickers.length === 0 && <p className="col-span-4 py-6 text-center text-xs text-[#9a96a8]">Стикеры не найдены.</p>}
+          {stickers.length === 0 && <p className="col-span-4 py-6 text-center text-xs text-[#9a96a8]">{t.support.noStickers}</p>}
           {stickers.map((s) => (
             <button
               key={s.url}
@@ -141,14 +143,14 @@ export function MediaPanel({
           <input
             value={gifQuery}
             onChange={(e) => setGifQuery(e.target.value)}
-            placeholder="Поиск GIF…"
-            aria-label="Поиск GIF"
+            placeholder={t.support.gifSearch}
+            aria-label={t.support.gifSearch}
             className="mx-2.5 mt-2 rounded-lg border border-[#e8e4dc] bg-[#faf9f5] px-2.5 py-1.5 text-xs outline-none"
           />
           {gifState === 'unconfigured' ? (
-            <p className="p-6 text-center text-xs text-[#9a96a8]">Ключ GIPHY не настроен — вкладка появится, когда его добавят.</p>
+            <p className="p-6 text-center text-xs text-[#9a96a8]">{t.support.gifNoKey}</p>
           ) : gifState === 'error' ? (
-            <p className="p-6 text-center text-xs text-[#9a96a8]">Провайдер GIF недоступен.</p>
+            <p className="p-6 text-center text-xs text-[#9a96a8]">{t.support.gifUnavailable}</p>
           ) : (
             <div className="grid grid-cols-3 gap-2 overflow-y-auto p-2.5">
               {gifs.map((g) => (

@@ -231,7 +231,7 @@ export default function PaymentsPage() {
           <DialogHeader>
             <DialogTitle>{t.finance.refundIssue}</DialogTitle>
             <DialogDescription>
-              Платёж #{selectedPayment?.payment.id} на сумму{' '}
+              {t.finance.paymentNo} #{selectedPayment?.payment.id} {t.finance.forAmount}{' '}
               <strong>{formatCurrency(selectedPayment?.payment.amount ?? 0)}</strong>
             </DialogDescription>
           </DialogHeader>

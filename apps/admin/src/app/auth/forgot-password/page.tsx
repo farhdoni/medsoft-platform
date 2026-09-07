@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ export default function ForgotPasswordPage() {
       await api.post('/v1/auth/forgot-password', { email });
       setSubmitted(true);
     } catch {
-      setError('Ошибка при запросе. Попробуйте позже.');
+      setError(t.auth.resetRequestFail);
     } finally {
       setLoading(false);
     }
@@ -39,9 +41,9 @@ export default function ForgotPasswordPage() {
               M
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">Сброс пароля</CardTitle>
+          <CardTitle className="text-2xl text-center">{t.auth.resetTitle}</CardTitle>
           <CardDescription className="text-center">
-            Введите email вашего аккаунта
+            {t.auth.resetDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,7 +71,7 @@ export default function ForgotPasswordPage() {
                 </div>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Отправляю...' : 'Получить ссылку'}
+                {loading ? t.auth.sendingLink : t.auth.getLink}
               </Button>
               <button
                 type="button"
@@ -77,13 +79,13 @@ export default function ForgotPasswordPage() {
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mx-auto transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Назад к входу
+                {t.auth.backToLogin}
               </button>
             </form>
           ) : (
             <div className="space-y-4 text-center">
               <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-                Если аккаунт с таким email существует, письмо со ссылкой для сброса отправлено.
+                {t.auth.resetSent}
               </div>
               <button
                 type="button"
@@ -91,7 +93,7 @@ export default function ForgotPasswordPage() {
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mx-auto transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Назад к входу
+                {t.auth.backToLogin}
               </button>
             </div>
           )}

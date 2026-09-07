@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 export default function ResetPasswordPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('token') ?? '';
@@ -29,11 +31,11 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError('');
     if (password.length < 6) {
-      setError('Пароль должен быть не менее 6 символов');
+      setError(t.errors.pwdTooShort);
       return;
     }
     if (password !== confirm) {
-      setError('Пароли не совпадают');
+      setError(t.errors.pwdMismatch);
       return;
     }
     setLoading(true);
@@ -41,7 +43,7 @@ export default function ResetPasswordPage() {
       await api.post('/v1/auth/reset-password-token', { token, newPassword: password });
       setDone(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ссылка недействительна или истекла');
+      setError(err instanceof Error ? err.message : t.auth.linkInvalid);
     } finally {
       setLoading(false);
     }
@@ -56,9 +58,9 @@ export default function ResetPasswordPage() {
               M
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">Новый пароль</CardTitle>
+          <CardTitle className="text-2xl text-center">{t.auth.newPwdTitle}</CardTitle>
           <CardDescription className="text-center">
-            Придумайте новый пароль для вашего аккаунта
+            {t.auth.newPwdDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -68,16 +70,16 @@ export default function ResetPasswordPage() {
                 <ShieldCheck className="h-12 w-12 text-green-500" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Пароль успешно изменён! Теперь вы можете войти с новым паролем.
+                {t.auth.pwdChanged}
               </p>
               <Button className="w-full" onClick={() => router.push('/auth/login')}>
-                Войти
+                {t.auth.signIn}
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Новый пароль</Label>
+                <Label htmlFor="password">{t.auth.newPwdTitle}</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -87,7 +89,7 @@ export default function ResetPasswordPage() {
                     required
                     autoFocus
                     className="pr-10"
-                    placeholder="Минимум 6 символов"
+                    placeholder={t.auth.minChars}
                   />
                   <button
                     type="button"
@@ -100,14 +102,14 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirm">Повторите пароль</Label>
+                <Label htmlFor="confirm">{t.auth.repeatPwd}</Label>
                 <Input
                   id="confirm"
                   type={showPass ? 'text' : 'password'}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required
-                  placeholder="Повторите пароль"
+                  placeholder={t.auth.repeatPwd}
                 />
               </div>
               {error && (
@@ -116,7 +118,7 @@ export default function ResetPasswordPage() {
                 </div>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Сохраняю...' : 'Сохранить пароль'}
+                {loading ? t.settings.savingShort : t.auth.savePwd}
               </Button>
             </form>
           )}

@@ -2,6 +2,7 @@
 
 import { useRef, type KeyboardEvent, type RefObject } from 'react';
 import { Paperclip, Smile, Mic, Send, Square } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Композер оператора.
@@ -54,6 +55,7 @@ export function SupportComposer({
   onTemplate: (body: string) => void;
   inputRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
+  const { t: tr } = useI18n();
   const localRef = useRef<HTMLTextAreaElement>(null);
   const ref = inputRef ?? localRef;
   const isNote = mode === 'note';
@@ -78,7 +80,7 @@ export function SupportComposer({
               : 'border-[#e8e4dc] bg-[#faf9f5] text-[#6a6580]'
           }`}
         >
-          Ответ пациенту
+          {tr.support.replyToPatient}
         </button>
         <button
           type="button"
@@ -89,7 +91,7 @@ export function SupportComposer({
               : 'border-[#e8e4dc] bg-[#faf9f5] text-[#6a6580]'
           }`}
         >
-          🗒 Внутренняя заметка
+          {tr.support.internalNoteTab}
         </button>
       </div>
 
@@ -114,10 +116,10 @@ export function SupportComposer({
           <span className="font-mono text-sm font-bold text-[#9c5e6c]" data-testid="rec-timer">
             {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
           </span>
-          <span className="flex-1 text-[11px] text-[#9a96a8]">Идёт запись…</span>
+          <span className="flex-1 text-[11px] text-[#9a96a8]">{tr.support.recordingNow}</span>
           <button
             type="button"
-            aria-label="Отменить запись"
+            aria-label={tr.support.cancelRecording}
             onClick={onCancelRecording}
             className="grid h-10 w-10 flex-none place-items-center rounded-full bg-[#faf9f7] active:opacity-70"
           >
@@ -125,7 +127,7 @@ export function SupportComposer({
           </button>
           <button
             type="button"
-            aria-label="Отправить голосовое"
+            aria-label={tr.support.sendVoice}
             onClick={onMic}
             className="grid h-10 w-10 flex-none place-items-center rounded-full text-white transition active:scale-95"
             style={{ background: 'linear-gradient(135deg,#cc8a96,#9c5e6c)' }}
@@ -142,7 +144,7 @@ export function SupportComposer({
         >
           <button
             type="button"
-            aria-label="Прикрепить файл"
+            aria-label={tr.support.attachFile}
             onClick={onAttach}
             className="grid h-9 w-9 flex-none place-items-center rounded-full opacity-75 hover:bg-[#9c5e6c]/10 hover:opacity-100"
           >
@@ -156,14 +158,14 @@ export function SupportComposer({
             onKeyDown={onKeyDown}
             rows={1}
             disabled={disabled}
-            aria-label={isNote ? 'Текст внутренней заметки' : 'Текст ответа пациенту'}
-            placeholder={isNote ? 'Заметка — пациент её не увидит…' : 'Сообщение… (Enter — отправить)'}
+            aria-label={isNote ? tr.support.noteAria : tr.support.replyAria}
+            placeholder={isNote ? tr.support.notePlaceholder : tr.support.replyPlaceholder}
             className="max-h-28 flex-1 resize-none bg-transparent px-1.5 py-2 text-sm text-[#2a2540] outline-none placeholder:text-[#9a96a8]"
           />
 
           <button
             type="button"
-            aria-label="Эмодзи, стикеры и GIF"
+            aria-label={tr.support.mediaAria}
             aria-pressed={mediaOpen}
             onClick={onMedia}
             className={`grid h-9 w-9 flex-none place-items-center rounded-full hover:bg-[#9c5e6c]/10 ${
@@ -175,7 +177,7 @@ export function SupportComposer({
 
           <button
             type="button"
-            aria-label="Записать голосовое"
+            aria-label={tr.support.recordVoice}
             onClick={onMic}
             className="grid h-9 w-9 flex-none place-items-center rounded-full opacity-75 hover:bg-[#9c5e6c]/10 hover:opacity-100"
           >
@@ -184,7 +186,7 @@ export function SupportComposer({
 
           <button
             type="button"
-            aria-label="Отправить"
+            aria-label={tr.support.sendAria}
             onClick={onSend}
             disabled={!value.trim() || disabled}
             className="grid h-10 w-10 flex-none place-items-center rounded-full text-white transition active:scale-95 disabled:opacity-40"
