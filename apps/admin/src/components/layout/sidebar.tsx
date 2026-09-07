@@ -8,7 +8,7 @@ import {
   Server, Globe, UserCheck, Wallet, Settings2, Bell, UsersRound, BrainCircuit,
   Mail, MessageSquare, Share2, BarChart2, HelpCircle, Link2, Activity, Ban, FileText,
   Pill, FlaskConical, MessageCircle, AtSign, Globe2, Database, ScrollText, Settings,
-  ChevronDown, User, X, Repeat, Ticket, Layers,
+  ChevronDown, User, X, Repeat, Ticket, Layers, Zap,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useQuery } from '@tanstack/react-query';
@@ -25,7 +25,21 @@ type AdminMe = {
   role: string;
   isActive: boolean;
   avatarUrl?: string | null;
+  rights?: string[];
 };
+
+// Раздел «Маркетинг»: один префикс адресов (/marketing/*) на все инструменты,
+// старые и будущие. Добавить новый инструмент = одна строка здесь.
+// «Движок» проксирует наружу (публикация) — под marketing:manage.
+// Остальные — как было до Б2: видимы при любом из двух прав, само чтение/запись
+// разграничивает бэкенд (apps/api/src/routes/admin/marketing.ts).
+const MARKETING_TOOLS: { href: string; label: string; icon: React.ElementType; anyRight: string[] }[] = [
+  { href: '/marketing/engine',     label: 'Движок',    icon: Zap,           anyRight: ['marketing:manage'] },
+  { href: '/marketing/email',      label: 'Рассылки',  icon: Mail,          anyRight: ['marketing:read', 'marketing:manage'] },
+  { href: '/marketing/push',       label: 'Push',      icon: MessageSquare, anyRight: ['marketing:read', 'marketing:manage'] },
+  { href: '/marketing/referrals',  label: 'Рефералы',  icon: Share2,        anyRight: ['marketing:read', 'marketing:manage'] },
+  { href: '/marketing/analytics',  label: 'Аналитика', icon: BarChart2,     anyRight: ['marketing:read', 'marketing:manage'] },
+];
 
 // All nav items — section:'main' = top collapsible group
 const baseNavItems = [
@@ -63,10 +77,9 @@ const baseNavItems = [
   { href: '/finance/plans',              label: 'Тарифы',          icon: Layers,          section: 'finance' },
   { href: '/finance/settings',           label: 'Настройки',       icon: Settings2,       section: 'finance' },
   // ── МАРКЕТИНГ ──
-  { href: '/marketing/email',      label: 'Email рассылки',    icon: Mail,          section: 'marketing' },
-  { href: '/marketing/push',       label: 'Push уведомления',  icon: MessageSquare, section: 'marketing' },
-  { href: '/marketing/referrals',  label: 'Реферальная',       icon: Share2,        section: 'marketing' },
-  { href: '/marketing/analytics',  label: 'Аналитика',         icon: BarChart2,     section: 'marketing' },
+  // Один раздел — один префикс адресов (/marketing/*). Новый инструмент
+  // добавляется одной строкой в MARKETING_TOOLS ниже, разметку трогать не надо.
+  ...MARKETING_TOOLS.map((tool) => ({ ...tool, section: 'marketing' })),
   // ── КОНТЕНТ ──
   { href: '/content/landing',      label: 'Лендинг',           icon: Globe,         section: 'content' },
   { href: '/content/social',       label: 'Соцсети',           icon: Link2,         section: 'content' },
@@ -89,7 +102,7 @@ const baseNavItems = [
   { href: '/settings/roles',       label: 'Роли',              icon: Shield,        section: 'settings' },
   { href: '/settings/team',        label: 'Команда',           icon: UsersRound,    section: 'settings' },
   { href: '/settings/ai',          label: 'AI настройки',      icon: BrainCircuit,  section: 'settings' },
-] as { href: string; label?: string; labelKey?: string; icon: React.ElementType; section: string }[];
+] as { href: string; label?: string; labelKey?: string; icon: React.ElementType; section: string; anyRight?: string[] }[];
 
 const STORAGE_KEY = 'admin-sidebar-collapsed';
 
@@ -170,9 +183,15 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
     settings:  t.sections.settings,
   };
 
-  // Add /admins for superadmin
+  // Filter base items by permission and add /admins for superadmin
+  const hasItemAccess = (item: { anyRight?: string[] }) => {
+    if (!item.anyRight || item.anyRight.length === 0) return true;
+    if (me?.role === 'superadmin') return true;
+    return item.anyRight.some((right) => me?.rights?.includes(right));
+  };
+
   const navItems = [
-    ...baseNavItems,
+    ...baseNavItems.filter(hasItemAccess),
     ...(me?.role === 'superadmin'
       ? [{ href: '/admins', labelKey: 'admins', icon: Shield, section: 'main' }]
       : []),

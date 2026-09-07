@@ -10,6 +10,7 @@ import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import { signAccessToken, signRefreshToken, verifyToken } from '../lib/jwt.js';
 import { requireAuth } from '../middleware/auth.js';
+import { getEffectiveRights } from '../lib/rbac.js';
 import { rateLimit } from '../middleware/rate-limit.js';
 import { redis } from '../lib/redis.js';
 import { env } from '../env.js';
@@ -290,7 +291,11 @@ auth.get('/me', requireAuth, async (c) => {
     },
   });
   if (!admin) return c.json({ error: 'Not found' }, 404);
-  return c.json(admin);
+  const rights = await getEffectiveRights(admin.id, admin.role);
+  return c.json({
+    ...admin,
+    rights: Array.from(rights),
+  });
 });
 
 // POST /v1/auth/change-password

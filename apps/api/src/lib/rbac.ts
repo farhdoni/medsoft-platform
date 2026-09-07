@@ -75,7 +75,7 @@ export const ROLE_RIGHTS: Record<RoleSlug, Permission[]> = {
 
   director: [
     'main:read', 'users:read', 'partners:read', 'partners:manage',
-    'aivita:doctors_read', 'aivita:billing_read', 'marketing:read',
+    'aivita:doctors_read', 'aivita:billing_read', 'marketing:read', 'marketing:manage',
     'finance:prices_manage', 'security:read', 'reports:generate',
     'finance:read', 'finance:settings_read', 'finance:settings_manage',
     'notifications:read', 'dashboard:read',

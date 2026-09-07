@@ -4,6 +4,14 @@ const PUBLIC_PATHS = ['/auth/login'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
+
+  // Исключение для публичных медиафайлов маркетингового движка:
+  // /marketing/engine/public-media/* доступен без сессии роботам соцсетей (Meta facebookexternalhit),
+  // но строго только для методов GET и HEAD.
+  if (pathname.startsWith('/marketing/engine/public-media/') && (method === 'GET' || method === 'HEAD')) {
+    return NextResponse.next();
+  }
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
