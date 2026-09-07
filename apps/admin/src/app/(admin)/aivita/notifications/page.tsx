@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,13 +36,14 @@ function relTime(iso: string) {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-const AUDIENCE_LABELS: Record<string, string> = {
-  all: 'Все пользователи',
-  patients: 'Только пациенты',
-  doctors: 'Только врачи',
+const AUDIENCE_KEYS: Record<string, string> = {
+  all: 'audienceAll',
+  patients: 'audiencePatients',
+  doctors: 'audienceDoctors',
 };
 
 export default function AdminNotificationsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
 
   const [audience, setAudience] = useState<'all' | 'patients' | 'doctors'>('all');
@@ -65,13 +67,13 @@ export default function AdminNotificationsPage() {
         ...(link ? { link } : {}),
       }),
     onSuccess: (res) => {
-      alert(`Отправлено: ${res.data.sent} пользователям`);
+      alert(`${t.aivita.sentTo} ${res.data.sent} ${t.aivita.sentSuffix}`);
       setTitle('');
       setBody('');
       setLink('');
       qc.invalidateQueries({ queryKey: ['admin-broadcasts'] });
     },
-    onError: () => alert('Ошибка при отправке'),
+    onError: () => alert(t.aivita.sendFailed),
   });
 
   function handleSubmit(e: React.FormEvent) {
@@ -83,23 +85,23 @@ export default function AdminNotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Уведомления</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t.aivita.notifTitle}</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Массовые уведомления для пользователей платформы AIVITA
+          {t.aivita.notifSubtitle}
         </p>
       </div>
 
       {/* ── Broadcast form ─────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>Новое уведомление</CardTitle>
-          <CardDescription>Будет отправлено выбранной аудитории в раздел «Уведомления»</CardDescription>
+          <CardTitle>{t.aivita.notifNew}</CardTitle>
+          <CardDescription>{t.aivita.notifNewHint}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Аудитория</Label>
+                <Label>{t.aivita.audience}</Label>
                 <Select
                   value={audience}
                   onValueChange={(v) => setAudience(v as typeof audience)}
@@ -108,17 +110,17 @@ export default function AdminNotificationsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Все пользователи</SelectItem>
-                    <SelectItem value="patients">Только пациенты</SelectItem>
-                    <SelectItem value="doctors">Только врачи</SelectItem>
+                    <SelectItem value="all">{t.aivita.audienceAll}</SelectItem>
+                    <SelectItem value="patients">{t.aivita.audiencePatients}</SelectItem>
+                    <SelectItem value="doctors">{t.aivita.audienceDoctors}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-1.5">
-                <Label>Ссылка (необязательно)</Label>
+                <Label>{t.aivita.linkOptional}</Label>
                 <Input
-                  placeholder="/pricing или /ai-checkup"
+                  placeholder={t.aivita.linkHint}
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
                 />
@@ -126,9 +128,9 @@ export default function AdminNotificationsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Заголовок</Label>
+              <Label>{t.aivita.notifHeading}</Label>
               <Input
-                placeholder="Важное обновление платформы"
+                placeholder={t.aivita.notifHeadingHint}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
@@ -137,10 +139,10 @@ export default function AdminNotificationsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Текст уведомления</Label>
+              <Label>{t.aivita.notifText}</Label>
               <textarea
                 className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Мы добавили новые функции..."
+                placeholder={t.aivita.notifTextHint}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 required
@@ -152,7 +154,7 @@ export default function AdminNotificationsPage() {
                 type="submit"
                 disabled={send.isPending || !title.trim() || !body.trim()}
               >
-                {send.isPending ? 'Отправка...' : `📢 Отправить — ${AUDIENCE_LABELS[audience]}`}
+                {send.isPending ? t.aivita.sending : `${t.aivita.sendTo} ${t.aivita[AUDIENCE_KEYS[audience]]}`}
               </Button>
             </div>
           </form>
@@ -162,13 +164,13 @@ export default function AdminNotificationsPage() {
       {/* ── Broadcast history ──────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle>История рассылок</CardTitle>
+          <CardTitle>{t.aivita.history}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
           ) : broadcasts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Рассылок ещё не было</p>
+            <p className="text-sm text-muted-foreground">{t.aivita.historyEmpty}</p>
           ) : (
             <div className="divide-y">
               {broadcasts.map((b, i) => (
@@ -181,7 +183,7 @@ export default function AdminNotificationsPage() {
                     )}
                   </div>
                   <div className="text-right flex-shrink-0 space-y-1">
-                    <Badge variant="secondary">{b.reach} получателей</Badge>
+                    <Badge variant="secondary">{b.reach} {t.aivita.recipients}</Badge>
                     <p className="text-[11px] text-muted-foreground">{relTime(b.createdAt)}</p>
                   </div>
                 </div>

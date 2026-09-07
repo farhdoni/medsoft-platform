@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Plan = {
   id: number;
@@ -66,6 +67,7 @@ const SUB_STATUS_COLORS: Record<string, 'default' | 'success' | 'warning' | 'des
 };
 
 export default function BillingPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [subPage, setSubPage] = useState(1);
   const [subStatus, setSubStatus] = useState('');
@@ -92,14 +94,14 @@ export default function BillingPage() {
 
   const createPlanMutation = useMutation({
     mutationFn: (body: object) => api.post('/v1/aivita-admin/billing/plans', body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['billing-plans'] }); toast.success('Тариф создан'); setPlanDialog(false); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['billing-plans'] }); toast.success(t.aivita.planCreated); setPlanDialog(false); },
+    onError: () => toast.error(t.common.error),
   });
 
   const updatePlanMutation = useMutation({
     mutationFn: ({ id, body }: { id: number; body: object }) => api.patch(`/v1/aivita-admin/billing/plans/${id}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['billing-plans'] }); toast.success('Тариф обновлён'); setPlanDialog(false); },
-    onError: () => toast.error('Ошибка'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['billing-plans'] }); toast.success(t.aivita.planUpdated); setPlanDialog(false); },
+    onError: () => toast.error(t.common.error),
   });
 
   function openCreate() {
@@ -136,7 +138,7 @@ export default function BillingPage() {
 
   const subColumns: ColumnDef<Subscription>[] = [
     {
-      header: 'Пользователь',
+      header: t.common.user,
       cell: ({ row }) => (
         <div>
           <p className="text-sm font-medium">{row.original.userName}</p>
@@ -145,25 +147,25 @@ export default function BillingPage() {
       ),
     },
     {
-      header: 'Тариф',
+      header: t.finance.plan,
       cell: ({ row }) => (
         <div>
           <p className="text-sm font-medium">{row.original.planName}</p>
-          <p className="text-xs text-muted-foreground">{formatCurrency(row.original.planPrice)}/мес</p>
+          <p className="text-xs text-muted-foreground">{formatCurrency(row.original.planPrice)}{t.aivita.perMonth}</p>
         </div>
       ),
     },
     {
-      accessorKey: 'status', header: 'Статус',
+      accessorKey: 'status', header: t.common.status,
       cell: ({ row }) => <Badge variant={SUB_STATUS_COLORS[row.original.status] ?? 'outline'}>{row.original.status}</Badge>,
     },
-    { accessorKey: 'startedAt', header: 'Начало', cell: ({ row }) => formatDate(row.original.startedAt) },
-    { accessorKey: 'expiresAt', header: 'Истекает', cell: ({ row }) => formatDate(row.original.expiresAt) },
+    { accessorKey: 'startedAt', header: t.aivita.subStart, cell: ({ row }) => formatDate(row.original.startedAt) },
+    { accessorKey: 'expiresAt', header: t.aivita.subExpires, cell: ({ row }) => formatDate(row.original.expiresAt) },
     {
-      header: 'Авто-продление',
+      header: t.aivita.autoRenew,
       cell: ({ row }) => (
         <Badge variant={row.original.autoRenew ? 'success' : 'secondary'}>
-          {row.original.autoRenew ? 'Да' : 'Нет'}
+          {row.original.autoRenew ? t.aivita.yes : t.aivita.no}
         </Badge>
       ),
     },
@@ -172,15 +174,15 @@ export default function BillingPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Биллинг</h1>
-        <p className="text-muted-foreground">Тарифы, подписки и выручка</p>
+        <h1 className="text-2xl font-bold">{t.aivita.billingTitle}</h1>
+        <p className="text-muted-foreground">{t.aivita.billingSubtitle}</p>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Выручка за месяц</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t.aivita.revenueMonth}</CardTitle>
             <DollarSign className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
@@ -189,7 +191,7 @@ export default function BillingPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Всего выручки</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t.aivita.revenueTotal}</CardTitle>
             <CreditCard className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -198,7 +200,7 @@ export default function BillingPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Активных подписок</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">{t.aivita.activeSubs}</CardTitle>
             <Users className="h-4 w-4 text-violet-500" />
           </CardHeader>
           <CardContent>
@@ -210,8 +212,8 @@ export default function BillingPage() {
       {/* Plans */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Тарифные планы</h2>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Новый тариф</Button>
+          <h2 className="text-lg font-semibold">{t.aivita.plans}</h2>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />{t.aivita.newPlan}</Button>
         </div>
         {plansLoading ? (
           <div className="h-24 rounded-lg bg-muted animate-pulse" />
@@ -227,7 +229,7 @@ export default function BillingPage() {
                     </div>
                     <div className="flex gap-1">
                       <Badge variant={plan.isActive ? 'success' : 'secondary'} className="text-xs">
-                        {plan.isActive ? 'Активен' : 'Неактивен'}
+                        {plan.isActive ? t.common.active : t.aivita.inactive}
                       </Badge>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(plan)}>
                         <Pencil className="h-3 w-3" />
@@ -257,15 +259,15 @@ export default function BillingPage() {
       {/* Subscriptions */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Подписки пользователей</h2>
+          <h2 className="text-lg font-semibold">{t.aivita.userSubs}</h2>
           <Select value={subStatus || 'all'} onValueChange={v => { setSubStatus(v === 'all' ? '' : v); setSubPage(1); }}>
-            <SelectTrigger className="w-36"><SelectValue placeholder="Все статусы" /></SelectTrigger>
+            <SelectTrigger className="w-36"><SelectValue placeholder={t.finance.allStatuses} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Все</SelectItem>
-              <SelectItem value="active">Активные</SelectItem>
-              <SelectItem value="expired">Истекшие</SelectItem>
-              <SelectItem value="cancelled">Отменённые</SelectItem>
-              <SelectItem value="past_due">Просроченные</SelectItem>
+              <SelectItem value="all">{t.common.all}</SelectItem>
+              <SelectItem value="active">{t.finance.filterActive}</SelectItem>
+              <SelectItem value="expired">{t.aivita.filterExpired}</SelectItem>
+              <SelectItem value="cancelled">{t.finance.filterCancelled}</SelectItem>
+              <SelectItem value="past_due">{t.aivita.filterPastDue}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -285,13 +287,13 @@ export default function BillingPage() {
       <Dialog open={planDialog} onOpenChange={setPlanDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingPlan ? 'Редактировать тариф' : 'Новый тарифный план'}</DialogTitle>
+            <DialogTitle>{editingPlan ? t.aivita.editPlan : t.aivita.newPlanFull}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {[
-              { label: 'Название', key: 'name' as const, placeholder: 'Базовый / Про / Премиум' },
+              { label: t.aivita.planName, key: 'name' as const, placeholder: t.aivita.planNameHint },
               { label: 'Slug', key: 'slug' as const, placeholder: 'basic / pro / premium' },
-              { label: 'Цена (сум)', key: 'price' as const, placeholder: '49900', type: 'number' },
+              { label: t.aivita.planPrice, key: 'price' as const, placeholder: '49900', type: 'number' },
             ].map(({ label, key, placeholder, type }) => (
               <div key={key} className="space-y-1.5">
                 <Label>{label}</Label>
@@ -306,37 +308,37 @@ export default function BillingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Период</Label>
+                <Label>{t.aivita.planPeriod}</Label>
                 <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">Ежемесячно</SelectItem>
-                    <SelectItem value="annual">Ежегодно</SelectItem>
-                    <SelectItem value="one_time">Разово</SelectItem>
+                    <SelectItem value="monthly">{t.aivita.periodMonthly}</SelectItem>
+                    <SelectItem value="annual">{t.aivita.periodAnnual}</SelectItem>
+                    <SelectItem value="one_time">{t.aivita.periodOneTime}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Для кого</Label>
+                <Label>{t.aivita.planFor}</Label>
                 <Select value={form.targetRole} onValueChange={v => setForm(f => ({ ...f, targetRole: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="patient">Пациент</SelectItem>
-                    <SelectItem value="doctor">Врач</SelectItem>
-                    <SelectItem value="clinic">Клиника</SelectItem>
-                    <SelectItem value="pharmacy">Аптека</SelectItem>
+                    <SelectItem value="patient">{t.common.patient}</SelectItem>
+                    <SelectItem value="doctor">{t.common.doctor}</SelectItem>
+                    <SelectItem value="clinic">{t.common.clinic}</SelectItem>
+                    <SelectItem value="pharmacy">{t.common.pharmacy}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Возможности (каждая с новой строки)</Label>
+              <Label>{t.aivita.planFeatures}</Label>
               <textarea
                 className="w-full h-24 text-sm border rounded-md px-3 py-2 bg-background resize-none outline-none focus:ring-2 focus:ring-ring"
                 value={form.features}
                 onChange={e => setForm(f => ({ ...f, features: e.target.value }))}
-                placeholder={'Неограниченные консультации\nAI-ассистент\nПриоритетная поддержка'}
+                placeholder={t.aivita.planFeaturesHint}
               />
             </div>
 
@@ -345,7 +347,7 @@ export default function BillingPage() {
               onClick={handleSave}
               disabled={!form.name || !form.slug || !form.price || createPlanMutation.isPending || updatePlanMutation.isPending}
             >
-              {editingPlan ? 'Сохранить изменения' : 'Создать тариф'}
+              {editingPlan ? t.aivita.saveChanges : t.aivita.createPlan}
             </Button>
           </div>
         </DialogContent>

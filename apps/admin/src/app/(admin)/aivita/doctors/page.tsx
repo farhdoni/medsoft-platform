@@ -18,6 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import Link from 'next/link';
 
 type AivitaDoctor = {
@@ -54,16 +55,39 @@ type CreatedDoctor = {
   specialization: string | null;
 };
 
-const SPECIALIZATIONS = [
-  'Терапевт', 'Педиатр', 'Кардиолог', 'Невролог', 'Хирург',
-  'Гинеколог', 'Уролог', 'Офтальмолог', 'Оториноларинголог (ЛОР)',
-  'Стоматолог', 'Дерматолог', 'Эндокринолог', 'Онколог',
-  'Ортопед-травматолог', 'Гастроэнтеролог', 'Психиатр',
-  'Пульмонолог', 'Нефролог', 'Аллерголог', 'Ревматолог',
-  'Инфекционист', 'Анестезиолог', 'Радиолог', 'Другое',
+// `value` stays the Russian string: it is what gets written to
+// doctorProfiles.specialization, and every existing row already holds it.
+// Only the visible label follows the interface language — translating the
+// value would split one specialty into three spellings.
+const SPECIALIZATIONS: Array<{ value: string; key: string }> = [
+  { value: 'Терапевт', key: 'therapist' },
+  { value: 'Педиатр', key: 'pediatrician' },
+  { value: 'Кардиолог', key: 'cardiologist' },
+  { value: 'Невролог', key: 'neurologist' },
+  { value: 'Хирург', key: 'surgeon' },
+  { value: 'Гинеколог', key: 'gynecologist' },
+  { value: 'Уролог', key: 'urologist' },
+  { value: 'Офтальмолог', key: 'ophthalmologist' },
+  { value: 'Оториноларинголог (ЛОР)', key: 'ent' },
+  { value: 'Стоматолог', key: 'dentist' },
+  { value: 'Дерматолог', key: 'dermatologist' },
+  { value: 'Эндокринолог', key: 'endocrinologist' },
+  { value: 'Онколог', key: 'oncologist' },
+  { value: 'Ортопед-травматолог', key: 'orthopedist' },
+  { value: 'Гастроэнтеролог', key: 'gastro' },
+  { value: 'Психиатр', key: 'psychiatrist' },
+  { value: 'Пульмонолог', key: 'pulmonologist' },
+  { value: 'Нефролог', key: 'nephrologist' },
+  { value: 'Аллерголог', key: 'allergist' },
+  { value: 'Ревматолог', key: 'rheumatologist' },
+  { value: 'Инфекционист', key: 'infectious' },
+  { value: 'Анестезиолог', key: 'anesthesiologist' },
+  { value: 'Радиолог', key: 'radiologist' },
+  { value: 'Другое', key: 'other' },
 ];
 
 export default function AivitaDoctorsPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -89,11 +113,11 @@ export default function AivitaDoctorsPage() {
       api.patch(`/v1/aivita-admin/aivita-doctors/${userId}/verify`, { action, reason }),
     onSuccess: (_, { action }) => {
       qc.invalidateQueries({ queryKey: ['aivita-doctors'] });
-      toast.success(action === 'approve' ? '✅ Врач верифицирован' : '❌ Врач отклонён');
+      toast.success(action === 'approve' ? t.aivita.doctorVerified : t.aivita.doctorRejected);
       setRejectDialog(null);
       setRejectReason('');
     },
-    onError: () => toast.error('Ошибка верификации'),
+    onError: () => toast.error(t.aivita.verifyFailed),
   });
 
   const catalogMutation = useMutation({
@@ -101,9 +125,9 @@ export default function AivitaDoctorsPage() {
       api.patch(`/v1/aivita-admin/aivita-doctors/${userId}/catalog`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['aivita-doctors'] });
-      toast.success('Обновлено');
+      toast.success(t.aivita.updated);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   const createDoctorMutation = useMutation({
@@ -113,12 +137,12 @@ export default function AivitaDoctorsPage() {
       qc.invalidateQueries({ queryKey: ['aivita-doctors'] });
       setCreatedDoctor(res.data);
       setCreateForm({ name: '', email: '', phone: '', specialization: '' });
-      toast.success('✅ Врач создан');
+      toast.success(t.aivita.doctorCreated);
     },
     onError: (err: unknown) => {
       const msg = (err as { message?: string })?.message ?? '';
-      if (msg.includes('email_taken')) toast.error('Email уже занят');
-      else toast.error('Ошибка создания врача');
+      if (msg.includes('email_taken')) toast.error(t.aivita.emailTaken);
+      else toast.error(t.aivita.createFailed);
     },
   });
 
@@ -144,7 +168,7 @@ export default function AivitaDoctorsPage() {
   const columns: ColumnDef<AivitaDoctor>[] = [
     {
       accessorKey: 'name',
-      header: 'Врач',
+      header: t.common.doctor,
       cell: ({ row }) => (
         <div>
           <p className="font-medium text-sm">{row.original.name}</p>
@@ -154,7 +178,7 @@ export default function AivitaDoctorsPage() {
     },
     {
       accessorKey: 'specialization',
-      header: 'Специализация',
+      header: t.aivita.specialization,
       cell: ({ row }) => (
         <div>
           <p className="text-sm">{row.original.specialization ?? '—'}</p>
@@ -164,7 +188,7 @@ export default function AivitaDoctorsPage() {
     },
     {
       accessorKey: 'verificationStatus',
-      header: 'Верификация',
+      header: t.aivita.verification,
       cell: ({ row }) => (
         <div className="space-y-1">
           <Badge variant={VERIFY_STATUS_COLORS[row.original.verificationStatus] ?? 'outline'}>
@@ -172,14 +196,14 @@ export default function AivitaDoctorsPage() {
           </Badge>
           <div className="flex gap-1">
             <Badge variant="outline" className="text-[10px]">
-              Диплом: {row.original.diplomaVerified}
+              {t.aivita.diplomaLabel}: {row.original.diplomaVerified}
             </Badge>
           </div>
         </div>
       ),
     },
     {
-      header: 'Каталог',
+      header: t.aivita.catalog,
       cell: ({ row }) => (
         <div className="flex flex-col gap-1">
           <button
@@ -189,7 +213,7 @@ export default function AivitaDoctorsPage() {
             {row.original.showInCatalog
               ? <ToggleRight className="h-4 w-4 text-green-500" />
               : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
-            {row.original.showInCatalog ? 'Виден' : 'Скрыт'}
+            {row.original.showInCatalog ? t.aivita.visible : t.aivita.hidden}
           </button>
           <button
             onClick={() => catalogMutation.mutate({ userId: row.original.userId, isActive: !row.original.isActive })}
@@ -198,41 +222,41 @@ export default function AivitaDoctorsPage() {
             {row.original.isActive
               ? <ToggleRight className="h-4 w-4 text-blue-500" />
               : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
-            {row.original.isActive ? 'Активен' : 'Деактивирован'}
+            {row.original.isActive ? t.common.active : t.aivita.deactivated}
           </button>
         </div>
       ),
     },
     {
       accessorKey: 'rating',
-      header: 'Рейтинг',
+      header: t.aivita.rating,
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.rating > 0 ? `★ ${row.original.rating.toFixed(1)}` : '—'}</p>
-          <p className="text-xs text-muted-foreground">{row.original.totalConsultations} конс.</p>
+          <p className="text-xs text-muted-foreground">{row.original.totalConsultations} {t.aivita.consultShort}</p>
         </div>
       ),
     },
-    { accessorKey: 'createdAt', header: 'Регистрация', cell: ({ row }) => formatDate(row.original.createdAt) },
+    { accessorKey: 'createdAt', header: t.aivita.registration, cell: ({ row }) => formatDate(row.original.createdAt) },
     {
       id: 'actions',
-      header: 'Действия',
+      header: t.aivita.actions,
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <Link href={`/aivita/doctors/${row.original.userId}`}>
-            <Button size="icon" variant="ghost" title="Просмотреть профиль">
+            <Button size="icon" variant="ghost" title={t.aivita.viewProfile}>
               <Eye className="h-4 w-4" />
             </Button>
           </Link>
           {row.original.verificationStatus !== 'verified' && (
-            <Button size="icon" variant="ghost" title="Верифицировать"
+            <Button size="icon" variant="ghost" title={t.aivita.verifyAction}
               className="text-green-600 hover:text-green-700"
               onClick={() => verifyMutation.mutate({ userId: row.original.userId, action: 'approve' })}>
               <CheckCircle className="h-4 w-4" />
             </Button>
           )}
           {row.original.verificationStatus !== 'rejected' && (
-            <Button size="icon" variant="ghost" title="Отклонить"
+            <Button size="icon" variant="ghost" title={t.aivita.rejectAction}
               className="text-destructive hover:text-destructive"
               onClick={() => { setRejectDialog({ userId: row.original.userId, name: row.original.name }); setRejectReason(''); }}>
               <XCircle className="h-4 w-4" />
@@ -247,12 +271,12 @@ export default function AivitaDoctorsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Врачи AIVITA</h1>
-          <p className="text-muted-foreground">Верификация документов и управление каталогом</p>
+          <h1 className="text-2xl font-bold">{t.aivita.docsTitle}</h1>
+          <p className="text-muted-foreground">{t.aivita.docsSubtitle}</p>
         </div>
         <Button onClick={() => { setCreateOpen(true); setCreatedDoctor(null); }} className="shrink-0">
           <UserPlus className="h-4 w-4 mr-2" />
-          Добавить врача
+          {t.aivita.addDoctor}
         </Button>
       </div>
 
@@ -262,21 +286,21 @@ export default function AivitaDoctorsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9 w-64"
-            placeholder="Поиск по имени..."
+            placeholder={t.aivita.searchByName}
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
         <Select value={statusFilter || 'all'} onValueChange={v => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="Статус верификации" />
+            <SelectValue placeholder={t.aivita.verifyStatus} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            <SelectItem value="not_verified">Не верифицирован</SelectItem>
-            <SelectItem value="pending">На рассмотрении</SelectItem>
-            <SelectItem value="verified">Верифицирован</SelectItem>
-            <SelectItem value="rejected">Отклонён</SelectItem>
+            <SelectItem value="all">{t.aivita.allStatuses}</SelectItem>
+            <SelectItem value="not_verified">{t.aivita.notVerified}</SelectItem>
+            <SelectItem value="pending">{t.aivita.underReview}</SelectItem>
+            <SelectItem value="verified">{t.aivita.verifiedLabel}</SelectItem>
+            <SelectItem value="rejected">{t.aivita.rejectedLabel}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -295,15 +319,15 @@ export default function AivitaDoctorsPage() {
       <Dialog open={!!rejectDialog} onOpenChange={open => { if (!open) setRejectDialog(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Отклонить верификацию — {rejectDialog?.name}</DialogTitle>
+            <DialogTitle>{t.aivita.rejectTitle} {rejectDialog?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Причина отклонения *</Label>
+              <Label>{t.aivita.rejectReasonReq}</Label>
               <Input
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
-                placeholder="Укажите причину..."
+                placeholder={t.aivita.rejectReasonHint}
               />
             </div>
             <Button
@@ -315,7 +339,7 @@ export default function AivitaDoctorsPage() {
                   verifyMutation.mutate({ userId: rejectDialog.userId, action: 'reject', reason: rejectReason });
               }}
             >
-              Отклонить
+              {t.aivita.rejectAction}
             </Button>
           </div>
         </DialogContent>
@@ -325,9 +349,9 @@ export default function AivitaDoctorsPage() {
       <Dialog open={createOpen} onOpenChange={open => { if (!open) { setCreateOpen(false); setCreatedDoctor(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Добавить врача</DialogTitle>
+            <DialogTitle>{t.aivita.addDoctor}</DialogTitle>
             <DialogDescription>
-              Создать аккаунт врача. Пароль будет сгенерирован автоматически.
+              {t.aivita.createHint}
             </DialogDescription>
           </DialogHeader>
 
@@ -335,17 +359,17 @@ export default function AivitaDoctorsPage() {
             /* Success state */
             <div className="space-y-4">
               <div className="rounded-lg bg-green-50 border border-green-200 p-4 space-y-2">
-                <p className="text-sm font-semibold text-green-700">✅ Врач успешно создан</p>
+                <p className="text-sm font-semibold text-green-700">{t.aivita.doctorCreatedOk}</p>
                 <div className="text-sm space-y-1">
-                  <p><span className="text-muted-foreground">Имя:</span> {createdDoctor.name}</p>
+                  <p><span className="text-muted-foreground">{t.aivita.nameLabel}</span> {createdDoctor.name}</p>
                   <p><span className="text-muted-foreground">Email:</span> {createdDoctor.email}</p>
                   {createdDoctor.specialization && (
-                    <p><span className="text-muted-foreground">Специализация:</span> {createdDoctor.specialization}</p>
+                    <p><span className="text-muted-foreground">{t.aivita.specLabel}</span> {createdDoctor.specialization}</p>
                   )}
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-sm">Сгенерированный пароль</Label>
+                <Label className="text-sm">{t.aivita.generatedPassword}</Label>
                 <div className="flex gap-2">
                   <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono">
                     {createdDoctor.password}
@@ -355,26 +379,26 @@ export default function AivitaDoctorsPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Сохраните пароль — он будет показан только один раз.
+                  {t.aivita.passwordOnce}
                 </p>
               </div>
               <Button
                 className="w-full"
                 onClick={() => { setCreateOpen(false); setCreatedDoctor(null); }}
               >
-                Закрыть
+                {t.users.close}
               </Button>
             </div>
           ) : (
             /* Form state */
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="create-name">ФИО *</Label>
+                <Label htmlFor="create-name">{t.aivita.fullNameReq}</Label>
                 <Input
                   id="create-name"
                   value={createForm.name}
                   onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Иванов Иван Иванович"
+                  placeholder={t.aivita.fullNameHint}
                   required
                 />
               </div>
@@ -390,7 +414,7 @@ export default function AivitaDoctorsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-phone">Телефон</Label>
+                <Label htmlFor="create-phone">{t.users.phone}</Label>
                 <Input
                   id="create-phone"
                   type="tel"
@@ -400,32 +424,32 @@ export default function AivitaDoctorsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-spec">Специализация</Label>
+                <Label htmlFor="create-spec">{t.aivita.specialization}</Label>
                 <select
                   id="create-spec"
                   value={createForm.specialization}
                   onChange={e => setCreateForm(f => ({ ...f, specialization: e.target.value }))}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="">Выберите специализацию</option>
-                  {SPECIALIZATIONS.map(s => (
-                    <option key={s} value={s}>{s}</option>
+                  <option value="">{t.aivita.chooseSpec}</option>
+                  {SPECIALIZATIONS.map(sp => (
+                    <option key={sp.value} value={sp.value}>{t.spec[sp.key]}</option>
                   ))}
                 </select>
               </div>
               <p className="text-xs text-muted-foreground">
-                Пароль будет сгенерирован автоматически. Email считается подтверждённым.
+                {t.aivita.createNote}
               </p>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setCreateOpen(false)}>
-                  Отмена
+                  {t.common.cancel}
                 </Button>
                 <Button
                   type="submit"
                   className="flex-1"
                   disabled={!createForm.name.trim() || !createForm.email.trim() || createDoctorMutation.isPending}
                 >
-                  {createDoctorMutation.isPending ? 'Создаём...' : 'Создать'}
+                  {createDoctorMutation.isPending ? t.aivita.creating : t.common.create}
                 </Button>
               </div>
             </form>
