@@ -98,6 +98,19 @@ function render403Html(): string {
 </html>`;
 }
 
+// Относительный Location, не new URL('/auth/login', req.url): за nginx (прод) этот Route
+// Handler видит req.url через собственный адрес контейнера (например
+// https://<container-id>:3000/...), а не публичный домен — nginx пробрасывает Host корректно,
+// но Next.js в Node.js-рантайме его не использует при сборке req.url. middleware.ts этой
+// проблемы не имеет (Edge-рантайм строит редирект иначе) — относительный Location у него уже
+// работает, здесь тот же приём.
+function redirectToLogin(from: string): Response {
+  return new Response(null, {
+    status: 307,
+    headers: { Location: `/auth/login?from=${encodeURIComponent(from)}` },
+  });
+}
+
 async function handleProxy(req: NextRequest) {
   const url = req.nextUrl;
   const pathname = url.pathname; // e.g. /marketing/engine or /marketing/engine/campaigns or /marketing/engine/public-media/...
@@ -161,16 +174,12 @@ async function handleProxy(req: NextRequest) {
   const isHtmlRequest = req.headers.get('accept')?.includes('text/html');
 
   if (!token) {
-    const loginUrl = new URL('/auth/login', req.url);
-    loginUrl.searchParams.set('from', pathname + search);
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(pathname + search);
   }
 
   const operator = await getOperator(token);
   if (!operator || operator.isActive === false) {
-    const loginUrl = new URL('/auth/login', req.url);
-    loginUrl.searchParams.set('from', pathname + search);
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(pathname + search);
   }
 
   // Движок публикует наружу — это управление, не чтение. Единственное право
