@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type ClinicRequest = {
   id: number;
@@ -23,12 +24,12 @@ type ClinicRequest = {
   createdAt: string;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  new: 'Новая',
-  contacted: 'Связались',
-  demo: 'Демо',
-  converted: 'Клиент',
-  rejected: 'Отклонено',
+const STATUS_KEYS: Record<string, string> = {
+  new: 'stNew',
+  contacted: 'stContacted',
+  demo: 'stDemo',
+  converted: 'stConverted',
+  rejected: 'stRejected',
 };
 
 const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'success' | 'warning' | 'destructive'> = {
@@ -41,8 +42,7 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'success' | 'war
 
 const ALL_STATUSES = ['new', 'contacted', 'demo', 'converted', 'rejected'] as const;
 
-function exportCsv(rows: ClinicRequest[]) {
-  const header = 'ID,Клиника,Контакт,Телефон,Email,Врачей,Статус,Дата';
+function exportCsv(rows: ClinicRequest[], header: string) {
   const lines = rows.map(r =>
     [r.id, `"${r.clinicName}"`, `"${r.contactName}"`, r.phone, r.email ?? '', r.doctorsCount, r.status, r.createdAt].join(','),
   );
@@ -56,6 +56,7 @@ function exportCsv(rows: ClinicRequest[]) {
 }
 
 export default function ClinicRequestsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
 
@@ -70,9 +71,9 @@ export default function ClinicRequestsPage() {
       api.put(`/v1/admin/content/clinic-requests/${id}`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clinic-requests'] });
-      toast.success('Статус обновлён');
+      toast.success(t.content.statusUpdated);
     },
-    onError: () => toast.error('Не удалось обновить статус'),
+    onError: () => toast.error(t.content.statusFailed),
   });
 
   const rows = data?.data ?? [];
@@ -81,17 +82,17 @@ export default function ClinicRequestsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Заявки клиник</h1>
-          <p className="text-muted-foreground text-sm">Заявки на демо MedSoft с сайта aivita.uz/clinics.html</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t.content.requestsTitle}</h1>
+          <p className="text-muted-foreground text-sm">{t.content.requestsSubtitle}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => rows.length && exportCsv(rows)}>
+          <Button variant="outline" size="sm" onClick={() => rows.length && exportCsv(rows, t.content.csvHeader)}>
             <Download className="h-4 w-4 mr-2" />
-            Экспорт CSV
+            {t.content.exportCsv}
           </Button>
           <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['clinic-requests'] })}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Обновить
+            {t.content.refresh}
           </Button>
         </div>
       </div>
@@ -103,7 +104,7 @@ export default function ClinicRequestsPage() {
           size="sm"
           onClick={() => setStatusFilter('')}
         >
-          Все ({rows.length})
+          {t.common.all} ({rows.length})
         </Button>
         {ALL_STATUSES.map((s) => {
           const cnt = (data?.data ?? []).filter(r => r.status === s).length;
@@ -114,7 +115,7 @@ export default function ClinicRequestsPage() {
               size="sm"
               onClick={() => setStatusFilter(s)}
             >
-              {STATUS_LABELS[s]} ({cnt})
+              {t.content[STATUS_KEYS[s]]} ({cnt})
             </Button>
           );
         })}
@@ -124,11 +125,11 @@ export default function ClinicRequestsPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Загружаем заявки...</div>
+            <div className="p-8 text-center text-muted-foreground">{t.content.loadingRequests}</div>
           ) : rows.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Building2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>Заявок пока нет</p>
+              <p>{t.content.noRequests}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -136,12 +137,12 @@ export default function ClinicRequestsPage() {
                 <thead>
                   <tr className="border-b bg-muted/40">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Клиника</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Контакт</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Врачей</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Дата</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Статус</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Действие</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.content.colClinic}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.content.colContact}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.content.colDoctors}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.content.colDate}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.common.status}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.content.colAction}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,7 +187,7 @@ export default function ClinicRequestsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={STATUS_VARIANTS[row.status] ?? 'secondary'}>
-                          {STATUS_LABELS[row.status] ?? row.status}
+                          {STATUS_KEYS[row.status] ? t.content[STATUS_KEYS[row.status]] : row.status}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
@@ -197,7 +198,7 @@ export default function ClinicRequestsPage() {
                           disabled={updateMutation.isPending}
                         >
                           {ALL_STATUSES.map((s) => (
-                            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                            <option key={s} value={s}>{t.content[STATUS_KEYS[s]]}</option>
                           ))}
                         </select>
                       </td>

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 const SOCIAL_FIELDS = [
   { key: 'social_telegram', label: 'Telegram', placeholder: 'https://t.me/aivita_uz' },
@@ -19,6 +20,7 @@ const SOCIAL_FIELDS = [
 ];
 
 export default function SocialLinksPage() {
+  const { t } = useI18n();
   const [links, setLinks] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
@@ -32,27 +34,27 @@ export default function SocialLinksPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/content/social', links),
-    onSuccess: () => toast.success('Социальные ссылки сохранены'),
-    onError: () => toast.error('Ошибка при сохранении'),
+    onSuccess: () => toast.success(t.content.socialSaved),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   return (
     <div className="max-w-xl">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Ссылки на социальные сети</CardTitle>
+          <CardTitle className="text-base">{t.content.socialTitle}</CardTitle>
           <Button
             size="sm"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || isLoading}
           >
             <Save className="h-4 w-4 mr-2" />
-            {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+            {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
           ) : (
             SOCIAL_FIELDS.map(f => (
               <div key={f.key} className="space-y-1.5">

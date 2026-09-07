@@ -1,18 +1,24 @@
+'use client';
+
 import Link from 'next/link';
 import { Globe, Link2, HelpCircle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
-const tabs = [
-  { href: '/content/landing', label: 'Лендинг', icon: Globe },
-  { href: '/content/social', label: 'Соцсети', icon: Link2 },
-  { href: '/content/faq', label: 'FAQ', icon: HelpCircle },
+const TABS = [
+  { href: '/content/landing', key: 'tabLanding', icon: Globe },
+  { href: '/content/social', key: 'tabSocial', icon: Link2 },
+  { href: '/content/faq', key: null, label: 'FAQ', icon: HelpCircle },
 ];
 
 export default function ContentLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
+  const tabs = TABS.map(x => ({ href: x.href, label: x.key ? t.content[x.key] : x.label, icon: x.icon }));
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Контент</h1>
-        <p className="text-sm text-muted-foreground mt-1">Управление текстами, ссылками и FAQ сайта</p>
+        <h1 className="text-2xl font-bold">{t.content.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.content.subtitle}</p>
       </div>
       <div className="flex gap-1 border-b">
         {tabs.map(({ href, label, icon: Icon }) => (

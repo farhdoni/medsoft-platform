@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type FaqItem = {
   id: number; question: string; answer: string;
@@ -23,6 +24,7 @@ type FaqItem = {
 };
 
 export default function FaqPage() {
+  const { t } = useI18n();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FaqItem | null>(null);
@@ -40,18 +42,18 @@ export default function FaqPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-faq'] });
       setDialogOpen(false);
-      toast.success(editing ? 'FAQ обновлён' : 'FAQ добавлен');
+      toast.success(editing ? t.content.faqUpdated : t.content.faqAdded);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/v1/admin/content/faq/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-faq'] });
-      toast.success('FAQ удалён');
+      toast.success(t.content.faqDeleted);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(t.common.error),
   });
 
   function openCreate() {
@@ -74,26 +76,26 @@ export default function FaqPage() {
     },
     {
       accessorKey: 'question',
-      header: 'Вопрос',
+      header: t.content.question,
       cell: ({ row }) => <span className="text-sm font-medium">{row.original.question}</span>,
     },
     {
       accessorKey: 'answer',
-      header: 'Ответ',
+      header: t.content.answer,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">{row.original.answer}</span>
       ),
     },
     {
       accessorKey: 'category',
-      header: 'Категория',
+      header: t.content.category,
       cell: ({ row }) => <Badge variant="secondary">{row.original.category}</Badge>,
     },
     {
-      header: 'Активен',
+      header: t.content.colActive,
       cell: ({ row }) => (
         <Badge variant={row.original.isActive ? 'success' : 'secondary'}>
-          {row.original.isActive ? 'Да' : 'Нет'}
+          {row.original.isActive ? t.content.yes : t.content.no}
         </Badge>
       ),
     },
@@ -121,7 +123,7 @@ export default function FaqPage() {
       <div className="flex justify-end">
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-2" />
-          Добавить FAQ
+          {t.content.addFaq}
         </Button>
       </div>
 
@@ -138,30 +140,30 @@ export default function FaqPage() {
       <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Редактировать FAQ' : 'Добавить FAQ'}</DialogTitle>
-            <DialogDescription>Вопрос и ответ, который увидят пользователи</DialogDescription>
+            <DialogTitle>{editing ? t.content.editFaq : t.content.addFaq}</DialogTitle>
+            <DialogDescription>{t.content.faqHint}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <Label>Вопрос</Label>
+              <Label>{t.content.question}</Label>
               <Input
                 value={form.question}
                 onChange={e => setForm(f => ({ ...f, question: e.target.value }))}
-                placeholder="Как работает..."
+                placeholder={t.content.questionHint}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Ответ</Label>
+              <Label>{t.content.answer}</Label>
               <Textarea
                 value={form.answer}
                 onChange={e => setForm(f => ({ ...f, answer: e.target.value }))}
                 className="min-h-[100px]"
-                placeholder="Подробный ответ..."
+                placeholder={t.content.answerHint}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Категория</Label>
+                <Label>{t.content.category}</Label>
                 <Input
                   value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
@@ -169,7 +171,7 @@ export default function FaqPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Порядок сортировки</Label>
+                <Label>{t.content.sortOrder}</Label>
                 <Input
                   type="number"
                   value={form.sortOrder}
@@ -182,16 +184,16 @@ export default function FaqPage() {
                 checked={form.isActive}
                 onCheckedChange={v => setForm(f => ({ ...f, isActive: v }))}
               />
-              <Label>Активен (отображается на сайте)</Label>
+              <Label>{t.content.isActive}</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Отмена</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.common.cancel}</Button>
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || !form.question.trim() || !form.answer.trim()}
             >
-              {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+              {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -10,18 +10,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 const LANDING_FIELDS = [
-  { key: 'landing_hero_title', label: 'Заголовок Hero', multiline: false },
-  { key: 'landing_hero_subtitle', label: 'Подзаголовок Hero', multiline: true },
-  { key: 'landing_cta_text', label: 'Текст CTA кнопки', multiline: false },
-  { key: 'landing_features', label: 'Возможности (JSON)', multiline: true },
-  { key: 'landing_ai_block', label: 'AI блок (JSON)', multiline: true },
-  { key: 'landing_specialists_block', label: 'Специалисты блок (JSON)', multiline: true },
-  { key: 'landing_doctors_block', label: 'Врачи блок (JSON)', multiline: true },
+  { key: 'landing_hero_title', labelKey: 'heroTitle', multiline: false },
+  { key: 'landing_hero_subtitle', labelKey: 'heroSubtitle', multiline: true },
+  { key: 'landing_cta_text', labelKey: 'ctaText', multiline: false },
+  { key: 'landing_features', labelKey: 'features', multiline: true },
+  { key: 'landing_ai_block', labelKey: 'aiBlock', multiline: true },
+  { key: 'landing_specialists_block', labelKey: 'specialistsBlock', multiline: true },
+  { key: 'landing_doctors_block', labelKey: 'doctorsBlock', multiline: true },
 ];
 
 export default function LandingContentPage() {
+  const { t } = useI18n();
   const [fields, setFields] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
@@ -35,8 +37,8 @@ export default function LandingContentPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.put('/v1/admin/content/landing', fields),
-    onSuccess: () => toast.success('Контент лендинга сохранён'),
-    onError: () => toast.error('Ошибка при сохранении'),
+    onSuccess: () => toast.success(t.content.landingSaved),
+    onError: () => toast.error(t.settings.saveFailed),
   });
 
   function handleChange(key: string, value: string) {
@@ -47,23 +49,23 @@ export default function LandingContentPage() {
     <div className="space-y-6 max-w-3xl">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Тексты лендинга aivita.uz</CardTitle>
+          <CardTitle className="text-base">{t.content.landingTitle}</CardTitle>
           <Button
             size="sm"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || isLoading}
           >
             <Save className="h-4 w-4 mr-2" />
-            {saveMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+            {saveMutation.isPending ? t.settings.savingShort : t.settings.saveShort}
           </Button>
         </CardHeader>
         <CardContent className="space-y-5">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{t.common.loading}</p>
           ) : (
             LANDING_FIELDS.map(f => (
               <div key={f.key} className="space-y-1.5">
-                <Label>{f.label}</Label>
+                <Label>{t.content[f.labelKey]}</Label>
                 <p className="text-xs text-muted-foreground font-mono">{f.key}</p>
                 {f.multiline ? (
                   <Textarea
