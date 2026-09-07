@@ -133,7 +133,7 @@ export default function LoginPage() {
       </aside>
 
       {/* ── Form ── */}
-      <main className="flex items-center justify-center px-6 py-10 lg:px-8">
+      <main className="relative flex items-center justify-center px-6 pb-16 pt-10 lg:px-8">
         <div className="w-full max-w-[372px]">
           <div className="mb-7 text-center">
             <h2 className="text-[22px] font-bold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -245,11 +245,11 @@ export default function LoginPage() {
             <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />
             <span>{t.auth.trust}</span>
           </div>
-
-          <p className="mt-10 text-xs text-muted-foreground">
-            © AIVITA, {new Date().getFullYear()} · {t.auth.foot}
-          </p>
         </div>
+
+        <p className="absolute inset-x-0 bottom-5 text-center text-xs text-muted-foreground">
+          © AIVITA, {new Date().getFullYear()} · {t.auth.foot}
+        </p>
       </main>
     </div>
   );
