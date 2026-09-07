@@ -1,19 +1,25 @@
+'use client';
+
 import Link from 'next/link';
 import { Mail, MessageSquare, Share2, BarChart2 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
-const tabs = [
-  { href: '/marketing/email', label: 'Email рассылки', icon: Mail },
-  { href: '/marketing/push', label: 'Push уведомления', icon: MessageSquare },
-  { href: '/marketing/referrals', label: 'Реферальная', icon: Share2 },
-  { href: '/marketing/analytics', label: 'Аналитика', icon: BarChart2 },
+const TABS = [
+  { href: '/marketing/email', key: 'tabEmail', icon: Mail },
+  { href: '/marketing/push', key: 'tabPush', icon: MessageSquare },
+  { href: '/marketing/referrals', key: 'tabReferrals', icon: Share2 },
+  { href: '/marketing/analytics', key: 'tabAnalytics', icon: BarChart2 },
 ];
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
+  const tabs = TABS.map(x => ({ href: x.href, label: t.marketing[x.key], icon: x.icon }));
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Маркетинг</h1>
-        <p className="text-sm text-muted-foreground mt-1">Рассылки, push-уведомления, реферальная программа</p>
+        <h1 className="text-2xl font-bold">{t.marketing.title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.marketing.subtitle}</p>
       </div>
       <div className="flex gap-1 border-b">
         {tabs.map(({ href, label, icon: Icon }) => (

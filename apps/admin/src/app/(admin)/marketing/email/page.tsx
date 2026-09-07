@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Campaign = {
   id: number; subject: string; audience: string;
@@ -27,17 +28,18 @@ type Campaign = {
 };
 type Template = { id: number; name: string; subject: string; body: string; createdAt: string };
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Черновик', sent: 'Отправлено', scheduled: 'Запланировано',
+const STATUS_KEYS: Record<string, string> = {
+  draft: 'stDraft', sent: 'stSent', scheduled: 'stScheduled',
 };
 const STATUS_VARIANTS: Record<string, 'secondary' | 'success' | 'warning'> = {
   draft: 'secondary', sent: 'success', scheduled: 'warning',
 };
-const AUDIENCE_LABELS: Record<string, string> = {
-  all: 'Все', free: 'Бесплатные', paid: 'Платные', doctors: 'Врачи',
+const AUDIENCE_KEYS: Record<string, string> = {
+  all: 'audShortAll', free: 'audShortFree', paid: 'audShortPaid', doctors: 'audShortDoctors',
 };
 
 export default function EmailCampaignsPage() {
+  const { t: tr } = useI18n();
   const qc = useQueryClient();
 
   // Compose form state
@@ -67,9 +69,9 @@ export default function EmailCampaignsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['email-campaigns'] });
       setSubject(''); setBody(''); setAudience('all');
-      toast.success('Рассылка запущена');
+      toast.success(tr.marketing.campaignStarted);
     },
-    onError: () => toast.error('Ошибка при отправке'),
+    onError: () => toast.error(tr.marketing.sendFailed),
   });
 
   const saveTplMutation = useMutation({
@@ -80,18 +82,18 @@ export default function EmailCampaignsPage() {
       qc.invalidateQueries({ queryKey: ['email-templates'] });
       setTemplateDialog(false);
       resetTpl();
-      toast.success(editTpl ? 'Шаблон обновлён' : 'Шаблон создан');
+      toast.success(editTpl ? tr.marketing.tplUpdated : tr.marketing.tplSaved);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(tr.common.error),
   });
 
   const deleteTplMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/v1/admin/marketing/email/templates/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['email-templates'] });
-      toast.success('Шаблон удалён');
+      toast.success(tr.marketing.tplDeleted);
     },
-    onError: () => toast.error('Ошибка'),
+    onError: () => toast.error(tr.common.error),
   });
 
   function resetTpl() {
@@ -105,30 +107,36 @@ export default function EmailCampaignsPage() {
 
   function applyTemplate(t: Template) {
     setSubject(t.subject); setBody(t.body);
-    toast.info(`Применён шаблон: ${t.name}`);
+    toast.info(`${tr.marketing.tplApplied} ${t.name}`);
   }
 
   const campaignColumns: ColumnDef<Campaign>[] = [
     { accessorKey: 'id', header: 'ID', cell: ({ row }) => <span className="text-xs text-muted-foreground">#{row.original.id}</span> },
-    { accessorKey: 'subject', header: 'Тема', cell: ({ row }) => <span className="text-sm font-medium">{row.original.subject}</span> },
+    { accessorKey: 'subject', header: tr.marketing.colSubject, cell: ({ row }) => <span className="text-sm font-medium">{row.original.subject}</span> },
     {
-      header: 'Аудитория',
-      cell: ({ row }) => <Badge variant="secondary">{AUDIENCE_LABELS[row.original.audience] ?? row.original.audience}</Badge>,
+      header: tr.marketing.audience,
+      cell: ({ row }) => {
+        const key = AUDIENCE_KEYS[row.original.audience];
+        return <Badge variant="secondary">{key ? tr.marketing[key] : row.original.audience}</Badge>;
+      },
     },
     {
-      header: 'Статус',
-      cell: ({ row }) => (
-        <Badge variant={STATUS_VARIANTS[row.original.status] ?? 'secondary'}>
-          {STATUS_LABELS[row.original.status] ?? row.original.status}
-        </Badge>
-      ),
+      header: tr.common.status,
+      cell: ({ row }) => {
+        const key = STATUS_KEYS[row.original.status];
+        return (
+          <Badge variant={STATUS_VARIANTS[row.original.status] ?? 'secondary'}>
+            {key ? tr.marketing[key] : row.original.status}
+          </Badge>
+        );
+      },
     },
     {
-      header: 'Получателей',
+      header: tr.marketing.colRecipients,
       cell: ({ row }) => row.original.recipientCount.toLocaleString('ru-RU'),
     },
     {
-      header: 'Открытий',
+      header: tr.marketing.colOpens,
       cell: ({ row }) => {
         const rate = row.original.recipientCount > 0
           ? Math.round(row.original.openCount / row.original.recipientCount * 100)
@@ -137,7 +145,7 @@ export default function EmailCampaignsPage() {
       },
     },
     {
-      header: 'Отправлено',
+      header: tr.marketing.colSent,
       cell: ({ row }) => row.original.sentAt ? <span className="text-xs">{formatDate(row.original.sentAt)}</span> : '—',
     },
   ];
@@ -146,9 +154,9 @@ export default function EmailCampaignsPage() {
     <div className="space-y-6">
       <Tabs defaultValue="compose">
         <TabsList>
-          <TabsTrigger value="compose">Составить</TabsTrigger>
-          <TabsTrigger value="history">История</TabsTrigger>
-          <TabsTrigger value="templates">Шаблоны</TabsTrigger>
+          <TabsTrigger value="compose">{tr.marketing.tabCompose}</TabsTrigger>
+          <TabsTrigger value="history">{tr.marketing.tabHistory}</TabsTrigger>
+          <TabsTrigger value="templates">{tr.marketing.tabTemplates}</TabsTrigger>
         </TabsList>
 
         {/* ── Compose ── */}
@@ -156,33 +164,33 @@ export default function EmailCampaignsPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">Новая рассылка</CardTitle>
+                <CardTitle className="text-base">{tr.marketing.newCampaign}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label>Аудитория</Label>
+                    <Label>{tr.marketing.audience}</Label>
                     <Select value={audience} onValueChange={setAudience}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Все пользователи</SelectItem>
-                        <SelectItem value="free">Бесплатный план</SelectItem>
-                        <SelectItem value="paid">Платные подписчики</SelectItem>
-                        <SelectItem value="doctors">Врачи</SelectItem>
+                        <SelectItem value="all">{tr.marketing.audAll}</SelectItem>
+                        <SelectItem value="free">{tr.marketing.audFree}</SelectItem>
+                        <SelectItem value="paid">{tr.marketing.audPaid}</SelectItem>
+                        <SelectItem value="doctors">{tr.marketing.audDoctors}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Тема письма</Label>
-                    <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Тема..." />
+                    <Label>{tr.marketing.subject}</Label>
+                    <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder={tr.marketing.subjectHint} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Текст письма (HTML)</Label>
+                  <Label>{tr.marketing.bodyHtml}</Label>
                   <Textarea
                     value={body}
                     onChange={e => setBody(e.target.value)}
-                    placeholder="<p>Здравствуйте...</p>"
+                    placeholder={tr.marketing.bodyHint}
                     className="font-mono text-sm min-h-[200px]"
                   />
                 </div>
@@ -191,7 +199,7 @@ export default function EmailCampaignsPage() {
                   disabled={sendMutation.isPending || !subject.trim() || !body.trim()}
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  {sendMutation.isPending ? 'Отправка...' : 'Отправить рассылку'}
+                  {sendMutation.isPending ? tr.marketing.sending : tr.marketing.sendCampaign}
                 </Button>
               </CardContent>
             </Card>
@@ -199,11 +207,11 @@ export default function EmailCampaignsPage() {
             {/* Templates quick apply */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Шаблоны</CardTitle>
+                <CardTitle className="text-base">{tr.marketing.templates}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {(templatesData?.data ?? []).length === 0 && (
-                  <p className="text-sm text-muted-foreground">Шаблоны не созданы</p>
+                  <p className="text-sm text-muted-foreground">{tr.marketing.noTemplates}</p>
                 )}
                 {(templatesData?.data ?? []).map(t => (
                   <button
@@ -238,7 +246,7 @@ export default function EmailCampaignsPage() {
           <div className="flex justify-end">
             <Button size="sm" onClick={() => { resetTpl(); setTemplateDialog(true); }}>
               <Plus className="h-4 w-4 mr-2" />
-              Новый шаблон
+              {tr.marketing.newTemplate}
             </Button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -266,7 +274,7 @@ export default function EmailCampaignsPage() {
               </Card>
             ))}
             {(templatesData?.data ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground col-span-3">Шаблоны не найдены</p>
+              <p className="text-sm text-muted-foreground col-span-3">{tr.marketing.templatesNotFound}</p>
             )}
           </div>
         </TabsContent>
@@ -276,20 +284,20 @@ export default function EmailCampaignsPage() {
       <Dialog open={templateDialog} onOpenChange={v => { setTemplateDialog(v); if (!v) resetTpl(); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editTpl ? 'Редактировать шаблон' : 'Новый шаблон'}</DialogTitle>
-            <DialogDescription>Сохраните HTML-шаблон для быстрого повторного использования</DialogDescription>
+            <DialogTitle>{editTpl ? tr.marketing.editTemplate : tr.marketing.newTemplate}</DialogTitle>
+            <DialogDescription>{tr.marketing.templateHint}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <Label>Название шаблона</Label>
-              <Input value={tplName} onChange={e => setTplName(e.target.value)} placeholder="Например: Приветствие" />
+              <Label>{tr.marketing.templateName}</Label>
+              <Input value={tplName} onChange={e => setTplName(e.target.value)} placeholder={tr.marketing.templateNameHint} />
             </div>
             <div className="space-y-1.5">
-              <Label>Тема письма</Label>
-              <Input value={tplSubject} onChange={e => setTplSubject(e.target.value)} placeholder="Тема..." />
+              <Label>{tr.marketing.subject}</Label>
+              <Input value={tplSubject} onChange={e => setTplSubject(e.target.value)} placeholder={tr.marketing.subjectHint} />
             </div>
             <div className="space-y-1.5">
-              <Label>Тело письма (HTML)</Label>
+              <Label>{tr.marketing.templateBody}</Label>
               <Textarea
                 value={tplBody}
                 onChange={e => setTplBody(e.target.value)}
@@ -299,12 +307,12 @@ export default function EmailCampaignsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setTemplateDialog(false); resetTpl(); }}>Отмена</Button>
+            <Button variant="outline" onClick={() => { setTemplateDialog(false); resetTpl(); }}>{tr.common.cancel}</Button>
             <Button
               onClick={() => saveTplMutation.mutate()}
               disabled={saveTplMutation.isPending || !tplName.trim()}
             >
-              {saveTplMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+              {saveTplMutation.isPending ? tr.settings.savingShort : tr.settings.saveShort}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -6,22 +6,24 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type AnalyticsData = {
   funnel: Array<{ stage: string; count: number; rate: number }>;
   retention: { day1: number; day7: number; day30: number };
 };
 
-const FUNNEL_LABELS: Record<string, string> = {
-  installed: 'Установили',
-  registered: 'Зарегистрировались',
-  health_profile: 'Заполнили профиль',
-  paid: 'Оформили подписку',
+const FUNNEL_KEYS: Record<string, string> = {
+  installed: 'fInstalled',
+  registered: 'fRegistered',
+  health_profile: 'fProfile',
+  paid: 'fPaid',
 };
 
 const FUNNEL_COLORS = ['#9c5e6c', '#00B4E6', '#33CCCC', '#7B2D8E'];
 
 export default function AnalyticsPage() {
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({
     queryKey: ['marketing-analytics'],
     queryFn: () => api.get<AnalyticsData>('/v1/admin/marketing/analytics'),
@@ -30,7 +32,7 @@ export default function AnalyticsPage() {
 
   const funnelData = (data?.funnel ?? []).map(f => ({
     ...f,
-    label: FUNNEL_LABELS[f.stage] ?? f.stage,
+    label: FUNNEL_KEYS[f.stage] ? t.marketing[FUNNEL_KEYS[f.stage]] : f.stage,
   }));
 
   return (
@@ -38,11 +40,11 @@ export default function AnalyticsPage() {
       {/* Funnel */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Воронка конверсии</CardTitle>
+          <CardTitle className="text-base">{t.marketing.funnel}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">Загрузка...</div>
+            <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">{t.common.loading}</div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 80, left: 120, bottom: 5 }}>
@@ -52,7 +54,7 @@ export default function AnalyticsPage() {
                 <Tooltip
                   formatter={(v: number, _name, props) => [
                     `${v.toLocaleString('ru-RU')} (${props.payload.rate}%)`,
-                    'Пользователей',
+                    t.marketing.usersLabel,
                   ]}
                 />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
@@ -69,7 +71,7 @@ export default function AnalyticsPage() {
       {/* Retention */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Удержание пользователей (Retention)</CardTitle>
+          <CardTitle className="text-base">{t.marketing.retention}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
@@ -93,7 +95,7 @@ export default function AnalyticsPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-4">
-            Процент пользователей, вернувшихся через 1, 7 и 30 дней после регистрации
+            {t.marketing.retentionHint}
           </p>
         </CardContent>
       </Card>

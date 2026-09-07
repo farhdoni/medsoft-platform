@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 type ReferralData = {
   total: number;
@@ -38,6 +39,7 @@ function KpiCard({ icon: Icon, title, value, color }: {
 }
 
 export default function ReferralsPage() {
+  const { t } = useI18n();
   const { data, isLoading } = useQuery({
     queryKey: ['marketing-referrals'],
     queryFn: () => api.get<ReferralData>('/v1/admin/marketing/referrals'),
@@ -48,17 +50,17 @@ export default function ReferralsPage() {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard icon={Share2} title="Всего рефералов" value={isLoading ? '...' : data?.total ?? 0} color="bg-[#9c5e6c]" />
-        <KpiCard icon={CheckCircle} title="Завершено" value={isLoading ? '...' : data?.completed ?? 0} color="bg-[#00B4E6]" />
-        <KpiCard icon={DollarSign} title="Вознаграждений" value={isLoading ? '...' : data?.rewarded ?? 0} color="bg-[#33CCCC]" />
-        <KpiCard icon={TrendingUp} title="Конверсия" value={isLoading ? '...' : `${data?.conversionRate ?? 0}%`} color="bg-[#7B2D8E]" />
+        <KpiCard icon={Share2} title={t.marketing.totalRef} value={isLoading ? '...' : data?.total ?? 0} color="bg-[#9c5e6c]" />
+        <KpiCard icon={CheckCircle} title={t.marketing.completed} value={isLoading ? '...' : data?.completed ?? 0} color="bg-[#00B4E6]" />
+        <KpiCard icon={DollarSign} title={t.marketing.rewarded} value={isLoading ? '...' : data?.rewarded ?? 0} color="bg-[#33CCCC]" />
+        <KpiCard icon={TrendingUp} title={t.marketing.conversion} value={isLoading ? '...' : `${data?.conversionRate ?? 0}%`} color="bg-[#7B2D8E]" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Daily chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Рефералы за 30 дней</CardTitle>
+            <CardTitle className="text-base">{t.marketing.ref30}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
@@ -76,7 +78,7 @@ export default function ReferralsPage() {
                 <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                 <Tooltip
                   labelFormatter={d => new Date(d).toLocaleDateString('ru-RU')}
-                  formatter={(v: number) => [v, 'Рефералов']}
+                  formatter={(v: number) => [v, t.marketing.refsLabel]}
                 />
                 <Line type="monotone" dataKey="count" stroke="#9c5e6c" strokeWidth={2} dot={false} />
               </LineChart>
@@ -89,20 +91,20 @@ export default function ReferralsPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Топ рефереров
+              {t.marketing.topReferrers}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {(data?.topReferrers ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground">Нет данных</p>
+                <p className="text-sm text-muted-foreground">{t.marketing.noData}</p>
               )}
               {(data?.topReferrers ?? []).map((r, i) => (
                 <div key={r.userId} className="flex items-center justify-between py-1.5 border-b last:border-0">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-muted-foreground w-5 text-right">{i + 1}</span>
                     <div>
-                      <p className="text-sm font-medium">{r.name ?? 'Без имени'}</p>
+                      <p className="text-sm font-medium">{r.name ?? t.marketing.noName}</p>
                       <p className="text-xs text-muted-foreground">{r.email ?? r.userId.slice(0, 8) + '...'}</p>
                     </div>
                   </div>
