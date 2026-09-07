@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type Message = {
   id: string;
@@ -31,6 +32,7 @@ type ChatResponse = { data: Session[] };
 
 export default function PatientChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data, isLoading } = useQuery<ChatResponse>({
@@ -63,11 +65,11 @@ export default function PatientChatPage({ params }: { params: Promise<{ id: stri
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-violet-500" />
-            История AI-чата
+            {t.patients.chatTitle}
           </h1>
           {!isLoading && (
             <p className="text-sm text-muted-foreground">
-              {sessions.length} сессий · {totalMessages} сообщений
+              {sessions.length} {t.patients.sessions} · {totalMessages} {t.patients.messages}
             </p>
           )}
         </div>
@@ -76,7 +78,7 @@ export default function PatientChatPage({ params }: { params: Promise<{ id: stri
       {/* Privacy notice */}
       <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm">
         <Shield className="h-4 w-4 shrink-0" />
-        <span>Конфиденциально — просмотр в служебных целях. Действие записывается в журнал аудита.</span>
+        <span>{t.patients.privacyNote}</span>
       </div>
 
       {/* Loading */}
@@ -92,7 +94,7 @@ export default function PatientChatPage({ params }: { params: Promise<{ id: stri
       {!isLoading && sessions.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            Нет истории переписки
+            {t.patients.noHistory}
           </CardContent>
         </Card>
       )}
@@ -113,11 +115,11 @@ export default function PatientChatPage({ params }: { params: Promise<{ id: stri
                     ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                     : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                   <CardTitle className="text-sm font-medium truncate">
-                    {session.title ?? 'Без названия'}
+                    {session.title ?? t.patients.untitled}
                   </CardTitle>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
-                  <Badge variant="secondary">{session.messages.length} сообщ.</Badge>
+                  <Badge variant="secondary">{session.messages.length} {t.patients.msgShort}</Badge>
                   <span>{formatDate(session.updatedAt)}</span>
                 </div>
               </div>
@@ -128,7 +130,7 @@ export default function PatientChatPage({ params }: { params: Promise<{ id: stri
               <CardContent className="pt-0 px-4 pb-4 space-y-3 max-h-[600px] overflow-y-auto">
                 <div className="border-t pt-3 space-y-3">
                   {session.messages.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Нет сообщений</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">{t.patients.noMessages}</p>
                   ) : session.messages.map((msg) => (
                     <div
                       key={msg.id}
@@ -143,7 +145,7 @@ export default function PatientChatPage({ params }: { params: Promise<{ id: stri
                       >
                         <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                         <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
-                          {msg.role === 'user' ? 'Пользователь' : 'AI'} · {formatDate(msg.createdAt)}
+                          {msg.role === 'user' ? t.common.user : 'AI'} · {formatDate(msg.createdAt)}
                         </p>
                       </div>
                     </div>

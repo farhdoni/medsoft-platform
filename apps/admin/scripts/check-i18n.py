@@ -42,6 +42,19 @@ for loc in ('ru', 'en', 'uz'):
 
 problems = []
 
+# ── the Translations type must list every section ─────────────────────────
+# A section added to the three locale objects but not to the type is invisible
+# to this script and only shows up as a wall of TS2339 errors.
+tm = re.search(r'export type Translations = \{\n(.*?)\n\};', src, re.S)
+if not tm:
+    problems.append('export type Translations not found')
+else:
+    declared = set(re.findall(r'^  (\w+):', tm.group(1), re.M))
+    for section in sorted(set(locales['ru']) - declared):
+        problems.append('section "%s" is missing from the Translations type' % section)
+    for section in sorted(declared - set(locales['ru'])):
+        problems.append('Translations declares "%s" but no locale defines it' % section)
+
 # ── every ru key should exist in en and uz ────────────────────────────────
 for section, keys in locales['ru'].items():
     for other in ('en', 'uz'):

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type AivitaUser = {
   id: string;
@@ -45,6 +46,7 @@ function useDebounce(value: string, ms: number) {
 }
 
 export default function AivitaPatientsPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [page, setPage]             = useState(1);
   const [search, setSearch]         = useState('');
@@ -74,7 +76,7 @@ export default function AivitaPatientsPage() {
   function exportCsv() {
     const users = data?.data ?? [];
     if (!users.length) return;
-    const headers = ['ID', 'Имя', 'Никнейм', 'Email', 'Health Score', 'Регистрация', 'Последний вход'];
+    const headers = ['ID', t.patients.name, t.patients.nickname, 'Email', 'Health Score', t.patients.registration, t.patients.lastLogin];
     const rows = users.map((u) => [
       u.id, u.name ?? '', u.nickname ?? '', u.email ?? '',
       u.healthScore ?? '',
@@ -90,7 +92,7 @@ export default function AivitaPatientsPage() {
   const columns: ColumnDef<AivitaUser>[] = [
     {
       accessorKey: 'name',
-      header: 'Имя',
+      header: t.patients.name,
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.name ?? row.original.nickname ?? '—'}</p>
@@ -107,7 +109,7 @@ export default function AivitaPatientsPage() {
         <div>
           <p className="text-sm">{row.original.email ?? '—'}</p>
           {!row.original.emailVerified && row.original.email && (
-            <Badge variant="warning" className="text-[10px] mt-0.5">не подтверждён</Badge>
+            <Badge variant="warning" className="text-[10px] mt-0.5">{t.patients.notVerified}</Badge>
           )}
         </div>
       ),
@@ -119,32 +121,32 @@ export default function AivitaPatientsPage() {
     },
     {
       accessorKey: 'onboardingCompleted',
-      header: 'Онбординг',
+      header: t.patients.onboarding,
       cell: ({ row }) => row.original.onboardingCompleted
         ? <Badge variant="success">✓</Badge>
         : <Badge variant="secondary">—</Badge>,
     },
     {
       accessorKey: 'provider',
-      header: 'Вход через',
+      header: t.patients.provider,
       cell: ({ row }) => <span className="text-xs capitalize text-muted-foreground">{row.original.provider}</span>,
     },
     {
       accessorKey: 'lastLoginAt',
-      header: 'Последний вход',
+      header: t.patients.lastLogin,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.lastLoginAt)}</span>,
     },
     {
       accessorKey: 'createdAt',
-      header: 'Зарегистрирован',
+      header: t.patients.registered,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
     },
     {
       id: 'status',
-      header: 'Статус',
+      header: t.common.status,
       cell: ({ row }) => row.original.deletedAt
-        ? <Badge variant="destructive">Удалён</Badge>
-        : <Badge variant="success">Активен</Badge>,
+        ? <Badge variant="destructive">{t.patients.deleted}</Badge>
+        : <Badge variant="success">{t.common.active}</Badge>,
     },
   ];
 
@@ -153,12 +155,12 @@ export default function AivitaPatientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Пациенты aivita.uz</h1>
-          <p className="text-muted-foreground">Пользователи приложения</p>
+          <h1 className="text-2xl font-bold">{t.patients.title}</h1>
+          <p className="text-muted-foreground">{t.patients.subtitle}</p>
         </div>
         <Button variant="outline" onClick={exportCsv} disabled={!data?.data?.length}>
           <Download className="h-4 w-4 mr-2" />
-          Экспорт CSV
+          {t.patients.exportCsv}
         </Button>
       </div>
 
@@ -167,7 +169,7 @@ export default function AivitaPatientsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Поиск по имени, email, никнейму..."
+            placeholder={t.patients.searchHint}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 w-72"
@@ -177,41 +179,41 @@ export default function AivitaPatientsPage() {
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="active">Активные (7д)</SelectItem>
-            <SelectItem value="inactive">Неактивные</SelectItem>
-            <SelectItem value="deleted">Удалённые</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
+            <SelectItem value="active">{t.patients.fActive7}</SelectItem>
+            <SelectItem value="inactive">{t.patients.fInactive}</SelectItem>
+            <SelectItem value="deleted">{t.patients.fDeleted}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={dateRange} onValueChange={setDateRange}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Всё время</SelectItem>
-            <SelectItem value="today">Сегодня</SelectItem>
-            <SelectItem value="week">За неделю</SelectItem>
-            <SelectItem value="month">За месяц</SelectItem>
+            <SelectItem value="all">{t.patients.dAll}</SelectItem>
+            <SelectItem value="today">{t.patients.dToday}</SelectItem>
+            <SelectItem value="week">{t.patients.dWeek}</SelectItem>
+            <SelectItem value="month">{t.patients.dMonth}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={scoreRange} onValueChange={setScoreRange}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все Score</SelectItem>
-            <SelectItem value="high">Высокий (&gt;75)</SelectItem>
-            <SelectItem value="mid">Средний (50-75)</SelectItem>
-            <SelectItem value="low">Низкий (&lt;50)</SelectItem>
+            <SelectItem value="all">{t.patients.sAll}</SelectItem>
+            <SelectItem value="high">{t.patients.sHigh}</SelectItem>
+            <SelectItem value="mid">{t.patients.sMid}</SelectItem>
+            <SelectItem value="low">{t.patients.sLow}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={`${sort}:${order}`} onValueChange={(v) => { const [s, o] = v.split(':'); setSort(s); setOrder(o); }}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="created_at:desc">Регистрация ↓</SelectItem>
-            <SelectItem value="created_at:asc">Регистрация ↑</SelectItem>
-            <SelectItem value="last_login_at:desc">Последний вход ↓</SelectItem>
-            <SelectItem value="name:asc">Имя А-Я</SelectItem>
-            <SelectItem value="name:desc">Имя Я-А</SelectItem>
+            <SelectItem value="created_at:desc">{t.patients.sortRegDesc}</SelectItem>
+            <SelectItem value="created_at:asc">{t.patients.sortRegAsc}</SelectItem>
+            <SelectItem value="last_login_at:desc">{t.patients.sortLoginDesc}</SelectItem>
+            <SelectItem value="name:asc">{t.patients.sortNameAsc}</SelectItem>
+            <SelectItem value="name:desc">{t.patients.sortNameDesc}</SelectItem>
           </SelectContent>
         </Select>
       </div>
