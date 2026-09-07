@@ -9,6 +9,13 @@ export const maxDuration = 600;
 const MARKETING_ENGINE_URL = (process.env.MARKETING_ENGINE_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
 const API_BASE = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/v1\/?$/, '');
 
+// Тот же потолок, что и в nginx (client_max_body_size) и в php-ini/uploads.ini движка —
+// не технический лимит самого движка (у него 1024M), а измеренный безопасный потолок
+// буферизации тела запроса целиком в памяти этого хендлера (req.arrayBuffer(), см. ниже):
+// на проде 50/100/200 МБ дали пик памяти контейнера админки 223/371/668 МиБ (линейно,
+// ~2.8× от размера файла) — 300M оставляет большой запас от доступной памяти хоста.
+const MAX_BUFFERED_BODY_BYTES = 300 * 1024 * 1024;
+
 async function getOperator(token: string) {
   try {
     const res = await fetch(`${API_BASE}/v1/auth/me`, {
@@ -235,9 +242,26 @@ async function handleProxy(req: NextRequest) {
   // (проверено отдельным Node-скриптом и прямым curl к движку в обход этого хендлера),
   // но fetch() здесь резолвится с пустым телом ответа вместо JSON с карточкой материала.
   // Буферизация обходит эту потоковую особенность ценой памяти на время запроса —
-  // приемлемо для единичных загрузок медиафайлов админ-панели.
+  // приемлемо для единичных загрузок медиафайлов админ-панели, но только до
+  // MAX_BUFFERED_BODY_BYTES (см. константу выше) — выше не идём даже если nginx
+  // почему-то пропустил (client_max_body_size там тот же потолок, это подстраховка
+  // на случай рассинхронизации конфигов, а не единственная линия обороны).
   if (method !== 'GET' && method !== 'HEAD') {
+    const declaredLength = Number(req.headers.get('content-length') || 0);
+    if (declaredLength > MAX_BUFFERED_BODY_BYTES) {
+      return NextResponse.json(
+        { status: 'error', message: `Файл больше ${MAX_BUFFERED_BODY_BYTES / (1024 * 1024)} МБ — сожмите или укоротите его.` },
+        { status: 413 },
+      );
+    }
+
     const bodyBytes = await req.arrayBuffer();
+    if (bodyBytes.byteLength > MAX_BUFFERED_BODY_BYTES) {
+      return NextResponse.json(
+        { status: 'error', message: `Файл больше ${MAX_BUFFERED_BODY_BYTES / (1024 * 1024)} МБ — сожмите или укоротите его.` },
+        { status: 413 },
+      );
+    }
     if (bodyBytes.byteLength > 0) {
       fetchOptions.body = bodyBytes;
     }

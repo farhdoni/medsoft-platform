@@ -30,7 +30,7 @@ describe('marketing/engine proxy — request body forwarding', () => {
     const bodySize = 2 * 1024 * 1024; // 2 МБ — размер не важен для этой проверки, важна структура
     const bodyBytes = new Uint8Array(bodySize).fill(7);
 
-    let capturedEngineInit: RequestInit | undefined;
+    let capturedEngineInit: (RequestInit & { duplex?: string }) | undefined;
 
     global.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
@@ -80,6 +80,52 @@ describe('marketing/engine proxy — request body forwarding', () => {
           ? forwardedBody.byteLength
           : -1;
     expect(forwardedByteLength).toBe(bodySize);
+  });
+
+  it('rejects a declared Content-Length over the 300MB buffering ceiling without calling the engine', async () => {
+    // Owner decision 2026-09-07 after measuring admin-container memory at 50/100/200MB
+    // (peaks 223/371/668 MiB, linear ~2.8x) — cap buffering at 300MB, matching nginx's
+    // client_max_body_size and the engine's php-ini/uploads.ini. Checked via the
+    // Content-Length header first so an oversized upload is rejected immediately,
+    // without spending time/memory reading the body — same as the client-side check
+    // in media-library.js, just the server-side backstop.
+    let engineWasCalled = false;
+
+    global.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/v1/auth/me')) {
+        return new Response(
+          JSON.stringify({ id: 'op1', role: 'marketer', rights: ['marketing:manage'], isActive: true, fullName: 'Тест Оператор' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes('/marketing/engine/api/media/upload')) {
+        engineWasCalled = true;
+        return new Response(JSON.stringify({ status: 'success', data: { id: 'med_test' } }), { status: 200 });
+      }
+      throw new Error('Unexpected fetch URL in test: ' + url);
+    }) as unknown as typeof fetch;
+
+    const { POST } = await import('./route');
+
+    const req = new NextRequest('http://localhost/marketing/engine/api/media/upload', {
+      method: 'POST',
+      headers: {
+        cookie: 'access_token=test-token',
+        'content-type': 'multipart/form-data; boundary=x',
+        // Declared size only — the actual body here is tiny, this test targets the
+        // fast header-based rejection, not the (separately-covered) real-byte-count path.
+        'content-length': String(301 * 1024 * 1024),
+      },
+      body: new Uint8Array(10),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(413);
+    const body = await res.json();
+    expect(body.status).toBe('error');
+    expect(body.message).toContain('300');
+    expect(engineWasCalled).toBe(false);
   });
 
   it('sends no body for GET requests', async () => {
