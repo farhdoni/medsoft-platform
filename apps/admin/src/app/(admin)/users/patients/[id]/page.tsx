@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type UserDetail = {
   id: string;
@@ -56,6 +57,7 @@ function getInitials(name: string | null): string {
 }
 
 export default function PatientDetailPage() {
+  const { t } = useI18n();
   const params = useParams();
   const id = (params?.id ?? '') as string;
   const router = useRouter();
@@ -76,9 +78,9 @@ export default function PatientDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
       qc.invalidateQueries({ queryKey: ['admin-users-patients'] });
-      toast.success('Тариф обновлён');
+      toast.success(t.users.planUpdated);
     },
-    onError: () => toast.error('Ошибка при обновлении тарифа'),
+    onError: () => toast.error(t.users.planFailed),
   });
 
   const blockMutation = useMutation({
@@ -86,9 +88,9 @@ export default function PatientDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
       qc.invalidateQueries({ queryKey: ['admin-users-patients'] });
-      toast.success('Пользователь заблокирован');
+      toast.success(t.users.userBlocked);
     },
-    onError: () => toast.error('Ошибка при блокировке'),
+    onError: () => toast.error(t.users.blockFailed),
   });
 
   const unblockMutation = useMutation({
@@ -96,9 +98,9 @@ export default function PatientDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
       qc.invalidateQueries({ queryKey: ['admin-users-patients'] });
-      toast.success('Пользователь разблокирован');
+      toast.success(t.users.userUnblocked);
     },
-    onError: () => toast.error('Ошибка при разблокировке'),
+    onError: () => toast.error(t.users.unblockFailed),
   });
 
   const resetPasswordMutation = useMutation({
@@ -107,16 +109,16 @@ export default function PatientDetailPage() {
       setNewPassword(res.newPassword);
       setPasswordDialogOpen(true);
     },
-    onError: () => toast.error('Ошибка при сбросе пароля'),
+    onError: () => toast.error(t.users.resetFailed),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/v1/admin/users/${id}`),
     onSuccess: () => {
-      toast.success('Аккаунт удалён');
+      toast.success(t.users.accountDeleted);
       router.push('/users/patients');
     },
-    onError: () => toast.error('Ошибка при удалении'),
+    onError: () => toast.error(t.users.deleteFailed),
   });
 
   if (isLoading) {
@@ -132,12 +134,12 @@ export default function PatientDetailPage() {
   }
 
   if (!data) {
-    return <p className="text-muted-foreground">Пользователь не найден</p>;
+    return <p className="text-muted-foreground">{t.users.notFound}</p>;
   }
 
   const { user } = data;
   const blocked = isBlocked(user.lockedUntil);
-  const displayName = user.name ?? user.email ?? 'Без имени';
+  const displayName = user.name ?? user.email ?? t.users.noName;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -146,7 +148,7 @@ export default function PatientDetailPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <span className="text-muted-foreground text-sm">Назад</span>
+        <span className="text-muted-foreground text-sm">{t.users.back}</span>
       </div>
 
       {/* 2-column layout */}
@@ -155,7 +157,7 @@ export default function PatientDetailPage() {
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Профиль пользователя</CardTitle>
+              <CardTitle>{t.users.profilePatient}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Avatar + name row */}
@@ -169,8 +171,8 @@ export default function PatientDetailPage() {
                     <Badge variant="outline" className="capitalize">{user.role}</Badge>
                     <PlanBadge plan={user.plan} />
                     {blocked
-                      ? <Badge variant="destructive">Заблокирован</Badge>
-                      : <Badge variant="success">Активен</Badge>}
+                      ? <Badge variant="destructive">{t.users.blocked}</Badge>
+                      : <Badge variant="success">{t.common.active}</Badge>}
                   </div>
                 </div>
               </div>
@@ -183,7 +185,7 @@ export default function PatientDetailPage() {
                     <span>{user.email ?? '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Телефон</span>
+                    <span className="text-muted-foreground">{t.users.phone}</span>
                     <span>{user.phone ?? '—'}</span>
                   </div>
                   <div className="flex justify-between">
@@ -193,22 +195,22 @@ export default function PatientDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Зарегистрирован</span>
+                    <span className="text-muted-foreground">{t.users.registered}</span>
                     <span className="text-xs">{formatDate(user.createdAt)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Последний вход</span>
+                    <span className="text-muted-foreground">{t.users.lastLogin}</span>
                     <span className="text-xs">{formatDate(user.lastLoginAt)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Онбординг</span>
+                    <span className="text-muted-foreground">{t.users.onboarding}</span>
                     {user.onboardingCompleted
-                      ? <Badge variant="success" className="text-[10px]">✓ пройден</Badge>
-                      : <Badge variant="secondary" className="text-[10px]">не пройден</Badge>}
+                      ? <Badge variant="success" className="text-[10px]">{t.users.onboardingDone}</Badge>
+                      : <Badge variant="secondary" className="text-[10px]">{t.users.onboardingNot}</Badge>}
                   </div>
                   {user.referralCode && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Реферальный код</span>
+                      <span className="text-muted-foreground">{t.users.referralCode}</span>
                       <span className="font-mono text-xs">{user.referralCode}</span>
                     </div>
                   )}
@@ -222,12 +224,12 @@ export default function PatientDetailPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Действия</CardTitle>
+              <CardTitle>{t.users.actions}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               {/* Change tier */}
               <div className="space-y-2">
-                <p className="text-sm font-medium">Изменить тариф</p>
+                <p className="text-sm font-medium">{t.users.changePlan}</p>
                 <Select
                   value={selectedPlan || user.plan}
                   onValueChange={setSelectedPlan}
@@ -254,13 +256,13 @@ export default function PatientDetailPage() {
                     }
                   }}
                 >
-                  {updatePlanMutation.isPending ? 'Сохраняю...' : 'Сохранить тариф'}
+                  {updatePlanMutation.isPending ? t.settings.savingShort : t.users.savePlan}
                 </Button>
               </div>
 
               {/* Block / Unblock */}
               <div className="space-y-2 pt-3 border-t">
-                <p className="text-sm font-medium">Статус аккаунта</p>
+                <p className="text-sm font-medium">{t.users.accountStatus}</p>
                 {blocked ? (
                   <Button
                     variant="outline"
@@ -270,7 +272,7 @@ export default function PatientDetailPage() {
                     onClick={() => unblockMutation.mutate()}
                   >
                     <ShieldCheck className="h-4 w-4 mr-2" />
-                    {unblockMutation.isPending ? 'Разблокирую...' : 'Разблокировать'}
+                    {unblockMutation.isPending ? t.users.unblocking : t.users.unblock}
                   </Button>
                 ) : (
                   <Button
@@ -281,7 +283,7 @@ export default function PatientDetailPage() {
                     onClick={() => blockMutation.mutate()}
                   >
                     <ShieldOff className="h-4 w-4 mr-2" />
-                    {blockMutation.isPending ? 'Блокирую...' : 'Заблокировать'}
+                    {blockMutation.isPending ? t.users.blocking : t.users.block}
                   </Button>
                 )}
               </div>
@@ -296,7 +298,7 @@ export default function PatientDetailPage() {
                   onClick={() => resetPasswordMutation.mutate()}
                 >
                   <KeyRound className="h-4 w-4 mr-2" />
-                  {resetPasswordMutation.isPending ? 'Сбрасываю...' : 'Сбросить пароль'}
+                  {resetPasswordMutation.isPending ? t.users.resetting : t.users.resetPassword}
                 </Button>
               </div>
 
@@ -309,7 +311,7 @@ export default function PatientDetailPage() {
                   onClick={() => setDeleteDialogOpen(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Удалить аккаунт
+                  {t.users.deleteAccount}
                 </Button>
               </div>
             </CardContent>
@@ -321,16 +323,16 @@ export default function PatientDetailPage() {
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Пароль сброшен</DialogTitle>
+            <DialogTitle>{t.users.passwordReset}</DialogTitle>
             <DialogDescription>
-              Сохраните новый пароль — он больше не будет показан.
+              {t.users.passwordOnce}
             </DialogDescription>
           </DialogHeader>
           <div className="my-2 p-3 bg-muted rounded-md font-mono text-center text-lg tracking-widest select-all">
             {newPassword}
           </div>
           <DialogFooter>
-            <Button onClick={() => setPasswordDialogOpen(false)}>Закрыть</Button>
+            <Button onClick={() => setPasswordDialogOpen(false)}>{t.users.close}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -339,21 +341,21 @@ export default function PatientDetailPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Удалить аккаунт?</DialogTitle>
+            <DialogTitle>{t.users.deleteAsk}</DialogTitle>
             <DialogDescription>
-              Вы уверены? Это действие нельзя отменить. Аккаунт пользователя <strong>{displayName}</strong> будет удалён безвозвратно.
+              {t.users.deleteWarnUser} <strong>{displayName}</strong> {t.users.deleteWarnTail}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate()}
             >
-              {deleteMutation.isPending ? 'Удаляю...' : 'Да, удалить'}
+              {deleteMutation.isPending ? t.users.deleting : t.users.confirmDelete}
             </Button>
           </DialogFooter>
         </DialogContent>

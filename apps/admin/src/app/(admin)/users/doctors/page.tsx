@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 type User = {
   id: string;
@@ -46,14 +47,15 @@ function PlanBadge({ plan }: { plan: string }) {
   return <Badge variant="secondary">free</Badge>;
 }
 
-function StatusBadge({ lockedUntil }: { lockedUntil: string | null }) {
+function StatusBadge({ lockedUntil, blockedText, activeText }: { lockedUntil: string | null; blockedText: string; activeText: string }) {
   if (isBlocked(lockedUntil)) {
-    return <Badge variant="destructive">Заблокирован</Badge>;
+    return <Badge variant="destructive">{blockedText}</Badge>;
   }
-  return <Badge variant="success">Активен</Badge>;
+  return <Badge variant="success">{activeText}</Badge>;
 }
 
 export default function DoctorsListPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -93,7 +95,7 @@ export default function DoctorsListPage() {
     },
     {
       id: 'nameEmail',
-      header: 'Имя / Email',
+      header: t.users.nameEmail,
       cell: ({ row }) => (
         <div>
           <p className="font-medium">{row.original.name ?? '—'}</p>
@@ -103,23 +105,23 @@ export default function DoctorsListPage() {
     },
     {
       id: 'plan',
-      header: 'Тариф',
+      header: t.users.plan,
       cell: ({ row }) => <PlanBadge plan={row.original.plan} />,
     },
     {
       accessorKey: 'createdAt',
-      header: 'Дата регистрации',
+      header: t.users.registeredAt,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.createdAt)}</span>,
     },
     {
       accessorKey: 'lastLoginAt',
-      header: 'Последний вход',
+      header: t.users.lastLogin,
       cell: ({ row }) => <span className="text-xs">{formatDate(row.original.lastLoginAt)}</span>,
     },
     {
       id: 'status',
-      header: 'Статус',
-      cell: ({ row }) => <StatusBadge lockedUntil={row.original.lockedUntil} />,
+      header: t.common.status,
+      cell: ({ row }) => <StatusBadge lockedUntil={row.original.lockedUntil} blockedText={t.users.blocked} activeText={t.common.active} />,
     },
   ];
 
@@ -127,8 +129,8 @@ export default function DoctorsListPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Врачи</h1>
-        <p className="text-muted-foreground">Управление врачами платформы</p>
+        <h1 className="text-2xl font-bold">{t.nav.doctors}</h1>
+        <p className="text-muted-foreground">{t.users.doctorsSubtitle}</p>
       </div>
 
       {/* Filters */}
@@ -136,7 +138,7 @@ export default function DoctorsListPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Поиск по имени, email..."
+            placeholder={t.users.searchDoctors}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 w-64"
@@ -148,11 +150,11 @@ export default function DoctorsListPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="verified">Верифицированы</SelectItem>
-            <SelectItem value="pending">На проверке</SelectItem>
-            <SelectItem value="not_verified">Не верифицированы</SelectItem>
-            <SelectItem value="rejected">Отклонены</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
+            <SelectItem value="verified">{t.users.filterVerified}</SelectItem>
+            <SelectItem value="pending">{t.users.filterPending}</SelectItem>
+            <SelectItem value="not_verified">{t.users.filterUnverified}</SelectItem>
+            <SelectItem value="rejected">{t.users.filterRejected}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -161,7 +163,7 @@ export default function DoctorsListPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все тарифы</SelectItem>
+            <SelectItem value="all">{t.users.allPlans}</SelectItem>
             <SelectItem value="free">free</SelectItem>
             <SelectItem value="plus">plus</SelectItem>
             <SelectItem value="pro">pro</SelectItem>
@@ -173,9 +175,9 @@ export default function DoctorsListPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="active">Активные</SelectItem>
-            <SelectItem value="blocked">Заблокированные</SelectItem>
+            <SelectItem value="all">{t.common.all}</SelectItem>
+            <SelectItem value="active">{t.users.filterActive}</SelectItem>
+            <SelectItem value="blocked">{t.users.filterBlocked}</SelectItem>
           </SelectContent>
         </Select>
       </div>

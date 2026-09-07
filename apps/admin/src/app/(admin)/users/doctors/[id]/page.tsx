@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useI18n, formatYears, type Locale } from '@/lib/i18n';
 
 type UserDetail = {
   id: string;
@@ -60,16 +61,16 @@ function PlanBadge({ plan }: { plan: string }) {
   return <Badge variant="secondary">free</Badge>;
 }
 
-function VerificationBadge({ status }: { status: string }) {
+function VerificationBadge({ status, labels }: { status: string; labels: Record<string, string> }) {
   switch (status) {
     case 'verified':
-      return <Badge variant="success">Верифицирован</Badge>;
+      return <Badge variant="success">{labels.verified}</Badge>;
     case 'pending':
-      return <Badge variant="warning">На проверке</Badge>;
+      return <Badge variant="warning">{labels.pending}</Badge>;
     case 'rejected':
-      return <Badge variant="destructive">Отклонён</Badge>;
+      return <Badge variant="destructive">{labels.rejected}</Badge>;
     default:
-      return <Badge variant="secondary">Не верифицирован</Badge>;
+      return <Badge variant="secondary">{labels.notVerified}</Badge>;
   }
 }
 
@@ -83,17 +84,24 @@ function getInitials(name: string | null): string {
     .slice(0, 2);
 }
 
-function calcExperienceYears(experienceStartDate: string | null): string {
+function calcExperienceYears(experienceStartDate: string | null, locale: Locale): string {
   if (!experienceStartDate) return '—';
   const start = new Date(experienceStartDate);
   const now = new Date();
   const years = now.getFullYear() - start.getFullYear();
   const months = now.getMonth() - start.getMonth();
   const total = months < 0 ? years - 1 : years;
-  return `${total} ${total === 1 ? 'год' : total >= 2 && total <= 4 ? 'года' : 'лет'}`;
+  return formatYears(total, locale);
 }
 
 export default function DoctorDetailPage() {
+  const { t, locale } = useI18n();
+  const verLabels = {
+    verified: t.users.verified,
+    pending: t.users.filterPending,
+    rejected: t.users.rejected,
+    notVerified: t.users.notVerified,
+  };
   const params = useParams();
   const id = (params?.id ?? '') as string;
   const router = useRouter();
@@ -116,9 +124,9 @@ export default function DoctorDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
       qc.invalidateQueries({ queryKey: ['admin-users-doctors'] });
-      toast.success('Тариф обновлён');
+      toast.success(t.users.planUpdated);
     },
-    onError: () => toast.error('Ошибка при обновлении тарифа'),
+    onError: () => toast.error(t.users.planFailed),
   });
 
   const blockMutation = useMutation({
@@ -126,9 +134,9 @@ export default function DoctorDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
       qc.invalidateQueries({ queryKey: ['admin-users-doctors'] });
-      toast.success('Пользователь заблокирован');
+      toast.success(t.users.userBlocked);
     },
-    onError: () => toast.error('Ошибка при блокировке'),
+    onError: () => toast.error(t.users.blockFailed),
   });
 
   const unblockMutation = useMutation({
@@ -136,9 +144,9 @@ export default function DoctorDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
       qc.invalidateQueries({ queryKey: ['admin-users-doctors'] });
-      toast.success('Пользователь разблокирован');
+      toast.success(t.users.userUnblocked);
     },
-    onError: () => toast.error('Ошибка при разблокировке'),
+    onError: () => toast.error(t.users.unblockFailed),
   });
 
   const resetPasswordMutation = useMutation({
@@ -147,16 +155,16 @@ export default function DoctorDetailPage() {
       setNewPassword(res.newPassword);
       setPasswordDialogOpen(true);
     },
-    onError: () => toast.error('Ошибка при сбросе пароля'),
+    onError: () => toast.error(t.users.resetFailed),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/v1/admin/users/${id}`),
     onSuccess: () => {
-      toast.success('Аккаунт удалён');
+      toast.success(t.users.accountDeleted);
       router.push('/users/doctors');
     },
-    onError: () => toast.error('Ошибка при удалении'),
+    onError: () => toast.error(t.users.deleteFailed),
   });
 
   const approveMutation = useMutation({
@@ -164,9 +172,9 @@ export default function DoctorDetailPage() {
       api.put(`/v1/admin/users/doctors/${doctorProfileId}/verify`, { action: 'approve' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
-      toast.success('Врач верифицирован');
+      toast.success(t.users.doctorVerified);
     },
-    onError: () => toast.error('Ошибка при верификации'),
+    onError: () => toast.error(t.users.verifyFailed),
   });
 
   const rejectMutation = useMutation({
@@ -174,11 +182,11 @@ export default function DoctorDetailPage() {
       api.put(`/v1/admin/users/doctors/${doctorProfileId}/verify`, { action: 'reject', reason }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
-      toast.success('Врач отклонён');
+      toast.success(t.users.doctorRejected);
       setRejectDialogOpen(false);
       setRejectReason('');
     },
-    onError: () => toast.error('Ошибка при отклонении'),
+    onError: () => toast.error(t.users.rejectFailed),
   });
 
   const toggleCatalogMutation = useMutation({
@@ -186,9 +194,9 @@ export default function DoctorDetailPage() {
       api.put(`/v1/admin/users/${id}`, { showInCatalog }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user', id] });
-      toast.success('Видимость в каталоге обновлена');
+      toast.success(t.users.catalogUpdated);
     },
-    onError: () => toast.error('Ошибка при обновлении'),
+    onError: () => toast.error(t.users.updateFailed),
   });
 
   if (isLoading) {
@@ -211,12 +219,12 @@ export default function DoctorDetailPage() {
   }
 
   if (!data) {
-    return <p className="text-muted-foreground">Пользователь не найден</p>;
+    return <p className="text-muted-foreground">{t.users.notFound}</p>;
   }
 
   const { user, doctorProfile } = data;
   const blocked = isBlocked(user.lockedUntil);
-  const displayName = user.name ?? user.email ?? 'Без имени';
+  const displayName = user.name ?? user.email ?? t.users.noName;
   const verStatus = doctorProfile?.verificationStatus ?? 'not_verified';
   const canVerify = verStatus === 'pending' || verStatus === 'not_verified' || verStatus === 'rejected';
 
@@ -227,7 +235,7 @@ export default function DoctorDetailPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/users/doctors')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <span className="text-muted-foreground text-sm">Врачи</span>
+        <span className="text-muted-foreground text-sm">{t.nav.doctors}</span>
       </div>
 
       {/* 2-column layout */}
@@ -237,7 +245,7 @@ export default function DoctorDetailPage() {
           {/* Basic profile */}
           <Card>
             <CardHeader>
-              <CardTitle>Профиль врача</CardTitle>
+              <CardTitle>{t.users.profileDoctor}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
@@ -247,12 +255,12 @@ export default function DoctorDetailPage() {
                 <div>
                   <h2 className="text-xl font-semibold">{displayName}</h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <Badge variant="outline">врач</Badge>
+                    <Badge variant="outline">{t.users.doctorWord}</Badge>
                     <PlanBadge plan={user.plan} />
                     {blocked
-                      ? <Badge variant="destructive">Заблокирован</Badge>
-                      : <Badge variant="success">Активен</Badge>}
-                    {doctorProfile && <VerificationBadge status={verStatus} />}
+                      ? <Badge variant="destructive">{t.users.blocked}</Badge>
+                      : <Badge variant="success">{t.common.active}</Badge>}
+                    {doctorProfile && <VerificationBadge status={verStatus} labels={verLabels} />}
                   </div>
                 </div>
               </div>
@@ -264,7 +272,7 @@ export default function DoctorDetailPage() {
                     <span>{user.email ?? '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Телефон</span>
+                    <span className="text-muted-foreground">{t.users.phone}</span>
                     <span>{user.phone ?? '—'}</span>
                   </div>
                   <div className="flex justify-between">
@@ -274,11 +282,11 @@ export default function DoctorDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Зарегистрирован</span>
+                    <span className="text-muted-foreground">{t.users.registered}</span>
                     <span className="text-xs">{formatDate(user.createdAt)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Последний вход</span>
+                    <span className="text-muted-foreground">{t.users.lastLogin}</span>
                     <span className="text-xs">{formatDate(user.lastLoginAt)}</span>
                   </div>
                 </div>
@@ -290,24 +298,24 @@ export default function DoctorDetailPage() {
           {doctorProfile && (
             <Card>
               <CardHeader>
-                <CardTitle>Профессиональная информация</CardTitle>
+                <CardTitle>{t.users.professionalInfo}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex justify-between col-span-2 sm:col-span-1">
-                    <span className="text-muted-foreground">Специализация</span>
+                    <span className="text-muted-foreground">{t.users.specialization}</span>
                     <span>{doctorProfile.specialization ?? '—'}</span>
                   </div>
                   <div className="flex justify-between col-span-2 sm:col-span-1">
-                    <span className="text-muted-foreground">Опыт</span>
-                    <span>{calcExperienceYears(doctorProfile.experienceStartDate)}</span>
+                    <span className="text-muted-foreground">{t.users.experience}</span>
+                    <span>{calcExperienceYears(doctorProfile.experienceStartDate, locale)}</span>
                   </div>
                   <div className="flex justify-between col-span-2 sm:col-span-1">
-                    <span className="text-muted-foreground">Консультаций</span>
+                    <span className="text-muted-foreground">{t.users.consultations}</span>
                     <span>{doctorProfile.totalPatients}</span>
                   </div>
                   <div className="flex justify-between col-span-2 sm:col-span-1">
-                    <span className="text-muted-foreground">Рейтинг</span>
+                    <span className="text-muted-foreground">{t.users.rating}</span>
                     <span className="flex items-center gap-1">
                       <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
                       {doctorProfile.rating ? doctorProfile.rating.toFixed(1) : '—'}
@@ -315,14 +323,14 @@ export default function DoctorDetailPage() {
                   </div>
                   {doctorProfile.diplomaUniversity && (
                     <div className="flex justify-between col-span-2">
-                      <span className="text-muted-foreground">Университет</span>
+                      <span className="text-muted-foreground">{t.users.university}</span>
                       <span className="text-right max-w-[60%]">{doctorProfile.diplomaUniversity}</span>
                     </div>
                   )}
                 </div>
                 {doctorProfile.bio && (
                   <div className="pt-2 border-t">
-                    <p className="text-muted-foreground mb-1">Биография</p>
+                    <p className="text-muted-foreground mb-1">{t.users.bio}</p>
                     <p className="text-sm line-clamp-3">{doctorProfile.bio}</p>
                   </div>
                 )}
@@ -334,17 +342,17 @@ export default function DoctorDetailPage() {
           {doctorProfile && (
             <Card>
               <CardHeader>
-                <CardTitle>Диплом</CardTitle>
+                <CardTitle>{t.users.diploma}</CardTitle>
               </CardHeader>
               <CardContent>
                 {doctorProfile.diplomaScanUrl ? (
                   <img
                     src={doctorProfile.diplomaScanUrl}
-                    alt="Диплом"
+                    alt={t.users.diploma}
                     className="max-h-80 object-contain rounded border w-full"
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground">Диплом не загружен</p>
+                  <p className="text-sm text-muted-foreground">{t.users.noDiploma}</p>
                 )}
               </CardContent>
             </Card>
@@ -354,15 +362,15 @@ export default function DoctorDetailPage() {
           {doctorProfile && (
             <Card>
               <CardHeader>
-                <CardTitle>Статус верификации</CardTitle>
+                <CardTitle>{t.users.verificationStatus}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <VerificationBadge status={verStatus} />
+                  <VerificationBadge status={verStatus} labels={verLabels} />
                 </div>
                 {verStatus === 'rejected' && doctorProfile.rejectionReason && (
                   <div className="mt-2 p-3 bg-destructive/10 rounded-md text-sm text-destructive">
-                    <p className="font-medium mb-1">Причина отклонения:</p>
+                    <p className="font-medium mb-1">{t.users.rejectReason}</p>
                     <p>{doctorProfile.rejectionReason}</p>
                   </div>
                 )}
@@ -377,13 +385,13 @@ export default function DoctorDetailPage() {
           {doctorProfile && (
             <Card>
               <CardHeader>
-                <CardTitle>Верификация</CardTitle>
+                <CardTitle>{t.users.verification}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {verStatus === 'verified' ? (
                   <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
                     <ShieldCheck className="h-4 w-4" />
-                    Верифицирован
+                    {t.users.verified}
                   </div>
                 ) : (
                   <>
@@ -394,13 +402,13 @@ export default function DoctorDetailPage() {
                           className="w-full bg-green-600 hover:bg-green-700 text-white"
                           disabled={approveMutation.isPending}
                           onClick={() => {
-                            if (confirm('Одобрить верификацию врача?')) {
+                            if (confirm(t.users.approveAsk)) {
                               approveMutation.mutate(doctorProfile.id);
                             }
                           }}
                         >
                           <ShieldCheck className="h-4 w-4 mr-2" />
-                          {approveMutation.isPending ? 'Одобряю...' : 'Одобрить'}
+                          {approveMutation.isPending ? t.users.approving : t.users.approve}
                         </Button>
                         <Button
                           size="sm"
@@ -409,7 +417,7 @@ export default function DoctorDetailPage() {
                           onClick={() => setRejectDialogOpen(true)}
                         >
                           <ShieldOff className="h-4 w-4 mr-2" />
-                          Отклонить
+                          {t.users.reject}
                         </Button>
                       </>
                     )}
@@ -422,12 +430,12 @@ export default function DoctorDetailPage() {
           {/* Other actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Действия</CardTitle>
+              <CardTitle>{t.users.actions}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               {/* Change tier */}
               <div className="space-y-2">
-                <p className="text-sm font-medium">Изменить тариф</p>
+                <p className="text-sm font-medium">{t.users.changePlan}</p>
                 <Select
                   value={selectedPlan || user.plan}
                   onValueChange={setSelectedPlan}
@@ -454,7 +462,7 @@ export default function DoctorDetailPage() {
                     }
                   }}
                 >
-                  {updatePlanMutation.isPending ? 'Сохраняю...' : 'Сохранить тариф'}
+                  {updatePlanMutation.isPending ? t.settings.savingShort : t.users.savePlan}
                 </Button>
               </div>
 
@@ -473,12 +481,12 @@ export default function DoctorDetailPage() {
                     {doctorProfile.showInCatalog ?? true ? (
                       <>
                         <EyeOff className="h-4 w-4 mr-2" />
-                        Скрыть из каталога
+                        {t.users.hideFromCatalog}
                       </>
                     ) : (
                       <>
                         <Eye className="h-4 w-4 mr-2" />
-                        Показать в каталоге
+                        {t.users.showInCatalog}
                       </>
                     )}
                   </Button>
@@ -487,7 +495,7 @@ export default function DoctorDetailPage() {
 
               {/* Block / Unblock */}
               <div className="pt-3 border-t space-y-2">
-                <p className="text-sm font-medium">Статус аккаунта</p>
+                <p className="text-sm font-medium">{t.users.accountStatus}</p>
                 {blocked ? (
                   <Button
                     variant="outline"
@@ -497,7 +505,7 @@ export default function DoctorDetailPage() {
                     onClick={() => unblockMutation.mutate()}
                   >
                     <ShieldCheck className="h-4 w-4 mr-2" />
-                    {unblockMutation.isPending ? 'Разблокирую...' : 'Разблокировать'}
+                    {unblockMutation.isPending ? t.users.unblocking : t.users.unblock}
                   </Button>
                 ) : (
                   <Button
@@ -508,7 +516,7 @@ export default function DoctorDetailPage() {
                     onClick={() => blockMutation.mutate()}
                   >
                     <ShieldOff className="h-4 w-4 mr-2" />
-                    {blockMutation.isPending ? 'Блокирую...' : 'Заблокировать'}
+                    {blockMutation.isPending ? t.users.blocking : t.users.block}
                   </Button>
                 )}
               </div>
@@ -523,7 +531,7 @@ export default function DoctorDetailPage() {
                   onClick={() => resetPasswordMutation.mutate()}
                 >
                   <KeyRound className="h-4 w-4 mr-2" />
-                  {resetPasswordMutation.isPending ? 'Сбрасываю...' : 'Сбросить пароль'}
+                  {resetPasswordMutation.isPending ? t.users.resetting : t.users.resetPassword}
                 </Button>
               </div>
 
@@ -536,7 +544,7 @@ export default function DoctorDetailPage() {
                   onClick={() => setDeleteDialogOpen(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Удалить аккаунт
+                  {t.users.deleteAccount}
                 </Button>
               </div>
             </CardContent>
@@ -548,21 +556,21 @@ export default function DoctorDetailPage() {
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Отклонить верификацию</DialogTitle>
+            <DialogTitle>{t.users.rejectVerification}</DialogTitle>
             <DialogDescription>
-              Укажите причину отклонения. Она будет отображена врачу.
+              {t.users.rejectHint}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Input
-              placeholder="Причина отклонения..."
+              placeholder={t.users.rejectReasonHint}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setRejectDialogOpen(false); setRejectReason(''); }}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button
               variant="destructive"
@@ -573,7 +581,7 @@ export default function DoctorDetailPage() {
                 }
               }}
             >
-              {rejectMutation.isPending ? 'Отклоняю...' : 'Отклонить'}
+              {rejectMutation.isPending ? t.users.rejecting : t.users.reject}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -583,16 +591,16 @@ export default function DoctorDetailPage() {
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Пароль сброшен</DialogTitle>
+            <DialogTitle>{t.users.passwordReset}</DialogTitle>
             <DialogDescription>
-              Сохраните новый пароль — он больше не будет показан.
+              {t.users.passwordOnce}
             </DialogDescription>
           </DialogHeader>
           <div className="my-2 p-3 bg-muted rounded-md font-mono text-center text-lg tracking-widest select-all">
             {newPassword}
           </div>
           <DialogFooter>
-            <Button onClick={() => setPasswordDialogOpen(false)}>Закрыть</Button>
+            <Button onClick={() => setPasswordDialogOpen(false)}>{t.users.close}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -601,21 +609,21 @@ export default function DoctorDetailPage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Удалить аккаунт?</DialogTitle>
+            <DialogTitle>{t.users.deleteAsk}</DialogTitle>
             <DialogDescription>
-              Вы уверены? Это действие нельзя отменить. Аккаунт врача <strong>{displayName}</strong> будет удалён безвозвратно.
+              {t.users.deleteWarnDoctor} <strong>{displayName}</strong> {t.users.deleteWarnTail}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Отмена
+              {t.common.cancel}
             </Button>
             <Button
               variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate()}
             >
-              {deleteMutation.isPending ? 'Удаляю...' : 'Да, удалить'}
+              {deleteMutation.isPending ? t.users.deleting : t.users.confirmDelete}
             </Button>
           </DialogFooter>
         </DialogContent>
