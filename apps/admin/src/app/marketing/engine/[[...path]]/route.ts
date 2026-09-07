@@ -223,15 +223,24 @@ async function handleProxy(req: NextRequest) {
     if (val) fwdHeaders[h] = val;
   }
 
-  const fetchOptions: RequestInit & { duplex?: string } = {
+  const fetchOptions: RequestInit = {
     method,
     headers: fwdHeaders,
     cache: 'no-store',
   };
 
+  // Буферизуем тело запроса вместо потоковой передачи (req.body + duplex:'half'):
+  // для входящих multipart-загрузок больше ~25-30 МБ такое потоковое проксирование
+  // молча обрывается — апстрим (движок) получает и обрабатывает файл корректно
+  // (проверено отдельным Node-скриптом и прямым curl к движку в обход этого хендлера),
+  // но fetch() здесь резолвится с пустым телом ответа вместо JSON с карточкой материала.
+  // Буферизация обходит эту потоковую особенность ценой памяти на время запроса —
+  // приемлемо для единичных загрузок медиафайлов админ-панели.
   if (method !== 'GET' && method !== 'HEAD') {
-    fetchOptions.body = req.body;
-    fetchOptions.duplex = 'half';
+    const bodyBytes = await req.arrayBuffer();
+    if (bodyBytes.byteLength > 0) {
+      fetchOptions.body = bodyBytes;
+    }
   }
 
   try {
