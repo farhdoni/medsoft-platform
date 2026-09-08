@@ -1068,6 +1068,26 @@ export const symptomReports = pgTable(
   })
 );
 
+// ─── Health search queries (anonymous, for /reports — never analytics) ────────
+//
+// One row per distinct NORMALIZED query, no user_id/patient_id — a frequency
+// count, not a search history. See migration 0052 for the full rationale.
+
+export const healthSearchQueries = pgTable(
+  'health_search_queries',
+  {
+    id:               uuid('id').primaryKey().defaultRandom(),
+    queryNormalized:  text('query_normalized').notNull(),
+    count:            integer('count').notNull().default(1),
+    lastSearchedAt:   timestamp('last_searched_at').defaultNow().notNull(),
+    createdAt:        timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    queryUnique:      unique('health_search_queries_query_unique').on(table.queryNormalized),
+    countIdx:         index('health_search_queries_count_idx').on(table.count),
+  })
+);
+
 // ─── Outbreak snapshots (aggregated cache) ─────────────────────────────────────
 
 export const outbreakSnapshots = pgTable(

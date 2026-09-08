@@ -5,6 +5,7 @@ import type { WebViewNavigation } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { WEB_URL } from '../constants/config';
+import { trackAuthSuccess } from '../services/analytics';
 import type { Screen } from '../../App';
 
 const AUTH_PATHS = ['/home', '/profile', '/checkup', '/chats', '/doctors', '/ai-checkup'];
@@ -21,6 +22,7 @@ export function LoginScreen({ onNavigate }: Props) {
 
       if (isAuthPage && !isSignPage) {
         await SecureStore.setItemAsync('auth_token', 'web_session');
+        trackAuthSuccess('mobile_login');
         onNavigate('main');
       }
     },

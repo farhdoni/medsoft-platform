@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Sparkles, Star, ChevronRight, Tag, Loader2, Crown, Users, Shield, Zap } from 'lucide-react';
+import { trackPlanUpgradeView } from '@/lib/analytics/metrika';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,11 @@ export function PricingClient({ showSuccess }: { showSuccess: boolean }) {
       }).catch(() => {});
     }
   }, [showSuccess]);
+
+  useEffect(() => {
+    trackPlanUpgradeView();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     async function load() {

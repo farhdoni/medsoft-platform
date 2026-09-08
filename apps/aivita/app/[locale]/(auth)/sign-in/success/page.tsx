@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { OrbBackground } from '@/components/shared/orb-background';
+import { TrackAuthSuccess } from '@/components/analytics/TrackAuthSuccess';
 
 export default function SignInSuccessPage() {
   return (
     <div className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
+      <TrackAuthSuccess method="sign_up" />
       <OrbBackground />
       <div className="relative z-10 w-full max-w-sm text-center">
         {/* Check circle */}

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { FileText, Download, Save } from 'lucide-react';
+import { FileText, Download, Save, BarChart3, Search, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
+import { formatDate } from '@/lib/utils';
+
+type MetrikaSummary =
+  | { configured: false }
+  | { configured: true; visits: number; users: number; pageviews: number; periodDays: number };
+
+type HealthSearchSummary = {
+  uniqueQueries: number;
+  totalSearches: number;
+  top: Array<{ query: string; count: number; lastSearchedAt: string }>;
+};
 
 const REPORT_TYPES = [
   { value: 'finance', labelKey: 'reportFinance' },
@@ -39,6 +51,16 @@ export default function ReportsPage() {
   const { data: autoData } = useQuery({
     queryKey: ['auto-report-settings'],
     queryFn: () => api.get<{ settings: Record<string, string> }>('/v1/admin/reports/auto-report'),
+  });
+
+  const { data: metrikaData, isLoading: metrikaLoading } = useQuery({
+    queryKey: ['metrika-summary'],
+    queryFn: () => api.get<{ data: MetrikaSummary }>('/v1/aivita-admin/analytics/metrika-summary'),
+  });
+
+  const { data: healthSearchData, isLoading: healthSearchLoading } = useQuery({
+    queryKey: ['health-search-summary'],
+    queryFn: () => api.get<{ data: HealthSearchSummary }>('/v1/aivita-admin/analytics/health-search-summary'),
   });
 
   useEffect(() => {
@@ -100,6 +122,107 @@ export default function ReportsPage() {
       <div>
         <h1 className="text-2xl font-bold">{t.misc.reportsTitle}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t.misc.reportsSubtitle}</p>
+      </div>
+
+      {/* Analytics */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <BarChart3 className="h-4 w-4" />
+          {t.misc.analyticsTitle}
+        </h2>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">{t.misc.metrikaCard}</CardTitle>
+            {!metrikaLoading && (
+              metrikaData?.data.configured ? (
+                <Badge variant="success" className="gap-1"><CheckCircle2 className="h-3 w-3" />{t.misc.metrikaConnected}</Badge>
+              ) : (
+                <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />{t.misc.metrikaNotConnected}</Badge>
+              )
+            )}
+          </CardHeader>
+          <CardContent>
+            {metrikaLoading ? (
+              <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+            ) : metrikaData?.data.configured ? (
+              <div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t.misc.metrikaVisits}</p>
+                    <p className="text-xl font-bold mt-1">{metrikaData.data.visits.toLocaleString('ru-RU')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t.misc.metrikaUsers}</p>
+                    <p className="text-xl font-bold mt-1">{metrikaData.data.users.toLocaleString('ru-RU')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t.misc.metrikaPageviews}</p>
+                    <p className="text-xl font-bold mt-1">{metrikaData.data.pageviews.toLocaleString('ru-RU')}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">{t.misc.metrikaPeriod}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t.misc.metrikaNotConnectedHint}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              {t.misc.healthSearchCard}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {healthSearchLoading ? (
+              <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t.misc.healthSearchUnique}</p>
+                    <p className="text-xl font-bold mt-1">{(healthSearchData?.data.uniqueQueries ?? 0).toLocaleString('ru-RU')}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t.misc.healthSearchTotal}</p>
+                    <p className="text-xl font-bold mt-1">{(healthSearchData?.data.totalSearches ?? 0).toLocaleString('ru-RU')}</p>
+                  </div>
+                </div>
+
+                {!healthSearchData?.data.top.length ? (
+                  <p className="text-sm text-muted-foreground">{t.misc.healthSearchEmpty}</p>
+                ) : (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">{t.misc.healthSearchTable}</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-2 py-1.5 text-left font-medium text-muted-foreground">{t.misc.colQuery}</th>
+                            <th className="px-2 py-1.5 text-right font-medium text-muted-foreground">{t.misc.colCount}</th>
+                            <th className="px-2 py-1.5 text-right font-medium text-muted-foreground">{t.misc.colLastSearched}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {healthSearchData.data.top.map((row) => (
+                            <tr key={row.query} className="border-b last:border-0">
+                              <td className="px-2 py-1.5">{row.query}</td>
+                              <td className="px-2 py-1.5 text-right font-medium">{row.count}</td>
+                              <td className="px-2 py-1.5 text-right text-muted-foreground">{formatDate(row.lastSearchedAt)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Generate form */}

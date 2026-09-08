@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { trackFeatureUsed } from '@/lib/analytics/metrika';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const C = {
@@ -167,7 +168,10 @@ export function SymptomCheckerClient() {
       const json = await res.json() as { data?: StepData; error?: string };
       if (json.data) {
         setStepData(json.data);
-        if (json.data.isLast && json.data.results) setPhase('results');
+        if (json.data.isLast && json.data.results) {
+          setPhase('results');
+          trackFeatureUsed('symptom_checker_completed'); // structural only — no symptom/result content
+        }
       } else setError(json.error ?? 'Ошибка');
     } catch { setError('Ошибка сети'); }
     finally { setLoading(false); }

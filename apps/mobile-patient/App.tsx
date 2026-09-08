@@ -8,6 +8,7 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { MainScreen } from './src/screens/MainScreen';
 import { BiometricLockScreen } from './src/screens/BiometricLockScreen';
+import { initAnalytics, trackScreenView } from './src/services/analytics';
 
 SplashScreenExpo.preventAutoHideAsync();
 
@@ -16,6 +17,18 @@ export type Screen = 'splash' | 'onboarding' | 'login' | 'biometric' | 'main';
 export default function App() {
   const [screen, setScreen] = useState<Screen>('splash');
   const [deepLinkUrl, setDeepLinkUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  // Structural only: which of the 5 native screens is showing. The WebView's
+  // own routes (home, medications, messenger…) are Yandex Metrika's job on
+  // the web side (apps/aivita/lib/analytics/metrika.ts) — this only sees
+  // the native wrapper around it.
+  useEffect(() => {
+    trackScreenView(screen);
+  }, [screen]);
 
   useEffect(() => {
     const sub = Linking.addEventListener('url', ({ url }) => {
