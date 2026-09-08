@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { API_URL } from '../constants/config';
-import { getSessionToken } from './auth';
+import { getSessionToken, refreshSessionToken } from './auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -227,6 +227,51 @@ function alreadyHandled(key: string): boolean {
   return false;
 }
 
+type TakeOutcome = 'synced' | 'failed' | 'auth-failed';
+
+/**
+ * POST /medications/:id/take with one authentication retry.
+ *
+ * Prod runs SESSIONS_V2=true, which gives aivita_api a 1-hour lifetime
+ * (apps/aivita/lib/auth/session.ts). A medication reminder fires on a fixed
+ * daily schedule and can land long after that hour — getSessionToken() then
+ * returns null, or the API 401s the stale cookie outright. Either way, try
+ * refreshSessionToken() once (mints a fresh access token off the 7-day
+ * refresh cookie — see auth.ts) and retry exactly once. 'auth-failed' means
+ * the refresh token itself is gone too (expired past 7 days, or never
+ * issued), so there is genuinely no way to authenticate from the background.
+ */
+async function takeMedicationWithRetry(scheduleId: string, time: string | null): Promise<TakeOutcome> {
+  const postTake = async (token: string): Promise<number | null> => {
+    try {
+      const r = await fetch(`${API_URL}/v1/aivita/medications/${scheduleId}/take`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Aivita-Session': token },
+        body: JSON.stringify({ time }),
+      });
+      return r.status;
+    } catch {
+      return null; // network error, not an auth problem
+    }
+  };
+
+  let token = await getSessionToken().catch(() => null);
+  if (!token) {
+    token = await refreshSessionToken();
+    if (!token) return 'auth-failed';
+  }
+
+  let status = await postTake(token);
+  if (status === 401) {
+    const refreshed = await refreshSessionToken();
+    if (!refreshed) return 'auth-failed';
+    status = await postTake(refreshed);
+    if (status === 401) return 'auth-failed';
+  }
+
+  return status !== null && status >= 200 && status < 300 ? 'synced' : 'failed';
+}
+
 /**
  * Handle a medication action tap (take / snooze). Runs headless — does NOT depend
  * on a live WebView: the dose is marked on the server with the WebView session
@@ -274,22 +319,36 @@ async function handleMedicationResponse(
     // Auth from background = WebView session cookie via X-Aivita-Session (same path
     // as the Health Connect batch). The API does NOT read Authorization: Bearer,
     // so the old `Bearer web_session` always 401'd and the dose was never marked.
-    const token = await getSessionToken().catch(() => null);
-    let synced = false;
-    if (token) {
-      synced = await fetch(`${API_URL}/v1/aivita/medications/${scheduleId}/take`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aivita-Session': token },
-        body: JSON.stringify({ time: time ?? null }),
-      }).then((r) => r.ok).catch(() => false);
+    const outcome = await takeMedicationWithRetry(scheduleId, time ?? null);
+
+    if (outcome === 'auth-failed') {
+      // Both the 1-hour access token AND the 7-day refresh token are gone —
+      // there is no way to authenticate from the background. Do NOT dismiss
+      // the reminder silently: leave it up (its buttons stay tappable, so
+      // tapping again after reopening the app and picking up a fresh session
+      // works — alreadyHandled()'s de-dupe window is only 30s) and also
+      // surface a plain-language notification, since some Android builds are
+      // unreliable about how long a delivered notification's action row
+      // stays interactive (see the MIUI notes elsewhere in this file's history).
+      void sendDiagLog('take-auth-failed', { scheduleId });
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '⚠️ Не удалось отметить приём',
+          body: 'Откройте приложение, чтобы отметить приём лекарства.',
+          data: { type: 'medication-sync-failed', scheduleId },
+        },
+        trigger: null,
+      }).catch(() => {});
+      return;
     }
-    // Dismiss the delivered reminder regardless of sync outcome.
+
+    // Dismiss the delivered reminder — it either synced, or failed for a
+    // reason other than authentication (network hiccup, server error), which
+    // stays best-effort exactly as before: the web marks it on next open.
     await Notifications.dismissNotificationAsync(notifId).catch(() => {});
-    // Best-effort: refresh adherence in the cabinet if the WebView is mounted.
-    // If the server sync failed (no session), the web marks it on next open.
     webViewInject(
       `window.dispatchEvent(new CustomEvent('aivita-med-action',` +
-      `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)},synced:${synced}}}));true;`
+      `{detail:{action:'take',scheduleId:${JSON.stringify(scheduleId)},synced:${outcome === 'synced'}}}));true;`
     );
   }
 }
