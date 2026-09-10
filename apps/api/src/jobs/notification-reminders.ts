@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { db } from '@medsoft/db';
-import { subscriptions, medicationSchedule, notificationSettings } from '@medsoft/db';
-import { eq, and, lt, gte, lte, isNull, sql } from 'drizzle-orm';
+import { subscriptions } from '@medsoft/db';
+import { eq, and, gte, lte } from 'drizzle-orm';
 import { createNotification } from '../lib/notification-service.js';
 import { logger } from '../lib/logger.js';
 
@@ -38,63 +38,18 @@ async function checkSubscriptionExpiring() {
   }
 }
 
-// ─── Medication reminders (every hour, checks current UTC+5 hour) ─────────────
-
-async function checkMedicationReminders() {
-  logger.info('[Cron] Checking medication reminders…');
-  try {
-    const now = new Date();
-    // Tashkent is UTC+5
-    const tzOffsetMs = 5 * 60 * 60 * 1000;
-    const localHour = Math.floor(((now.getTime() + tzOffsetMs) % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-    const localMin  = Math.floor(((now.getTime() + tzOffsetMs) % (60 * 60 * 1000)) / 60000);
-
-    const padded = `${String(localHour).padStart(2, '0')}:${String(localMin).padStart(2, '0')}`;
-
-    const schedules = await db
-      .select({
-        userId: medicationSchedule.userId,
-        title:  medicationSchedule.title,
-        times:  medicationSchedule.times,
-      })
-      .from(medicationSchedule)
-      .where(and(
-        eq(medicationSchedule.isActive, true),
-        eq(medicationSchedule.reminderEnabled, true),
-        isNull(medicationSchedule.endDate),
-      ));
-
-    let sent = 0;
-    for (const { userId, title, times } of schedules) {
-      const matchingTime = times.find((t) => {
-        const [h, m] = t.split(':').map(Number);
-        return h === localHour && Math.abs(m - localMin) <= 2;
-      });
-      if (!matchingTime) continue;
-
-      await createNotification(
-        userId,
-        'medication_reminder',
-        'Время принять лекарство',
-        `Не забудьте принять: ${title}`,
-        { link: '/medications' }
-      );
-      sent++;
-    }
-    logger.info({ sent }, '[Cron] Medication reminders sent.');
-  } catch (err) {
-    logger.error({ err }, '[Cron] checkMedicationReminders failed');
-  }
-}
+// Медикаментозные напоминания (было: раз в час, in-app уведомление, без
+// повторов/missed, только для schedule.endDate IS NULL) — убраны отсюда.
+// Единственный источник правды теперь jobs/medication-reminders.ts
+// (startMedicationReminders), который шлёт и push, и это же in-app
+// уведомление на первую попытку — один приём лекарства больше не триггерит
+// два независимых механизма.
 
 // ─── Start all notification crons ─────────────────────────────────────────────
 
 export function startNotificationReminders() {
   // Daily at 08:00 UTC
   cron.schedule('0 8 * * *', checkSubscriptionExpiring);
-
-  // Every hour at :00
-  cron.schedule('0 * * * *', checkMedicationReminders);
 
   logger.info('[Cron] Notification reminder jobs started.');
 }
