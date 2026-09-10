@@ -72,9 +72,21 @@ export async function getRefreshToken(): Promise<string | null> {
  * own documented mechanism for reading cookies off the last response) is used
  * instead of trying to parse `res.headers.get('set-cookie')` by hand, which
  * cannot reliably separate three same-named Set-Cookie headers into one string.
+ *
+ * `explicitRefreshToken` lets the biometric-login flow restore a session from
+ * the copy saved in SecureStore (see LoginScreen.tsx) without depending on the
+ * WebView's cookie jar still holding aivita_refresh — the jar is the normal
+ * source (via getRefreshToken()) but isn't guaranteed to survive indefinitely,
+ * while SecureStore is the durable copy biometric unlock is built around.
+ *
+ * The API route ROTATES the refresh token on every successful call (verified
+ * live: reusing a spent one 401s) — SecureStore's copy is refreshed here too,
+ * on every success, not just written once at login. Skipping this would make
+ * biometric login work exactly once: the second attempt would replay a
+ * refresh token the server already invalidated.
  */
-export async function refreshSessionToken(): Promise<string | null> {
-  const refreshToken = await getRefreshToken().catch(() => null);
+export async function refreshSessionToken(explicitRefreshToken?: string): Promise<string | null> {
+  const refreshToken = explicitRefreshToken ?? await getRefreshToken().catch(() => null);
   if (!refreshToken) return null; // the refresh token itself is gone — nothing to try
 
   try {
@@ -89,14 +101,23 @@ export async function refreshSessionToken(): Promise<string | null> {
 
   try {
     const fromResponse = await CookieManager.getFromResponse(WEB_URL);
+    if (fromResponse.aivita_refresh?.value) {
+      await SecureStore.setItemAsync(TOKEN_KEY, fromResponse.aivita_refresh.value).catch(() => {});
+    }
     if (fromResponse.aivita_api?.value) return fromResponse.aivita_api.value;
   } catch {
     // fall through to a plain re-read below
   }
 
   // Belt and suspenders: on builds where Set-Cookie DOES get applied to the
-  // jar automatically, a plain re-read also picks up the fresh token.
-  return getSessionToken().catch(() => null);
+  // jar automatically, a plain re-read also picks up the fresh access token
+  // (and, via getRefreshToken(), the rotated refresh token for SecureStore).
+  const [access, rotatedRefresh] = await Promise.all([
+    getSessionToken().catch(() => null),
+    getRefreshToken().catch(() => null),
+  ]);
+  if (rotatedRefresh) await SecureStore.setItemAsync(TOKEN_KEY, rotatedRefresh).catch(() => {});
+  return access;
 }
 
 export async function saveAuthToken(token: string): Promise<void> {
