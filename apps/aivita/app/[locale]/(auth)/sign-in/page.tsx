@@ -3,10 +3,25 @@
 import { useActionState, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Fingerprint } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { OrbBackground } from '@/components/shared/orb-background';
 import { loginAction } from './actions';
+
+// ─── Native bridge (mobile app WebView shell only — no-op in a plain browser) ──
+// Same postMessage/CustomEvent pattern already used by SettingsInteractive.tsx
+// for the biometric-lock toggle: a synchronous window.ReactNativeWebView check
+// plus a global the native side injects, backed by an event for updates that
+// resolve after this page has already mounted.
+
+type RNWebView = { postMessage: (s: string) => void };
+function getRNWebView(): RNWebView | undefined {
+  return typeof window !== 'undefined'
+    ? (window as unknown as { ReactNativeWebView?: RNWebView }).ReactNativeWebView
+    : undefined;
+}
+
+type BiometricLoginResult = { success: boolean; reason?: string };
 
 // ─── Translations ─────────────────────────────────────────────────────────────
 
@@ -32,6 +47,10 @@ const T = {
     account_locked: 'Аккаунт временно заблокирован. Попробуй через 15 минут.',
     network: 'Ошибка сети. Проверь соединение.',
     unknown: 'Произошла ошибка.',
+    quickLogin: 'Войти по отпечатку',
+    bioAuthenticating: 'Проверяем...',
+    bioFailed: 'Не распознано. Попробуйте ещё раз или войдите паролем.',
+    bioSessionExpired: 'Нужно снова войти паролем.',
   },
   uz: {
     heading: 'Xush',
@@ -54,6 +73,10 @@ const T = {
     account_locked: "Hisob vaqtincha bloklangan. 15 daqiqadan keyin urinib ko'ring.",
     network: "Tarmoq xatosi. Ulanishni tekshiring.",
     unknown: 'Xato yuz berdi.',
+    quickLogin: "Barmoq izi orqali kirish",
+    bioAuthenticating: 'Tekshirilmoqda...',
+    bioFailed: "Aniqlanmadi. Qayta urinib ko'ring yoki parol bilan kiring.",
+    bioSessionExpired: "Parol bilan qayta kirish kerak.",
   },
   en: {
     heading: 'Welcome',
@@ -76,6 +99,10 @@ const T = {
     account_locked: 'Account temporarily locked. Try again in 15 minutes.',
     network: 'Network error. Check your connection.',
     unknown: 'An error occurred.',
+    quickLogin: 'Sign in with fingerprint',
+    bioAuthenticating: 'Checking...',
+    bioFailed: 'Not recognized. Try again or sign in with your password.',
+    bioSessionExpired: 'Please sign in with your password again.',
   },
 } as const;
 
@@ -137,6 +164,45 @@ export default function SignInPage() {
     }
   }, [state.redirectTo]);
 
+  // ── Biometric login bridge (native app shell only) ──────────────────────────
+  // On success the native side unmounts this WebView entirely (it switches to
+  // the main screen), so there is no "success" case to handle here — only
+  // "available at all" and "this attempt failed, let the user try again".
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioPending, setBioPending] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!getRNWebView()) return; // plain browser — no icon, nothing to wire up
+    const w = window as unknown as { __AIVITA_BIOMETRIC_LOGIN_AVAILABLE__?: boolean };
+    setBioAvailable(w.__AIVITA_BIOMETRIC_LOGIN_AVAILABLE__ ?? false);
+
+    function onAvailable(e: Event) {
+      setBioAvailable((e as CustomEvent<{ available: boolean }>).detail.available);
+    }
+    function onResult(e: Event) {
+      const detail = (e as CustomEvent<BiometricLoginResult>).detail;
+      setBioPending(false);
+      if (detail.success) return; // native is already navigating away
+      setBioError(detail.reason === 'session_expired' ? t.bioSessionExpired : t.bioFailed);
+    }
+    window.addEventListener('aivita-biometric-login-available', onAvailable);
+    window.addEventListener('aivita-biometric-login-result', onResult);
+    return () => {
+      window.removeEventListener('aivita-biometric-login-available', onAvailable);
+      window.removeEventListener('aivita-biometric-login-result', onResult);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function requestBiometricLogin() {
+    const rnwv = getRNWebView();
+    if (!rnwv || bioPending) return;
+    setBioError(null);
+    setBioPending(true);
+    rnwv.postMessage(JSON.stringify({ type: 'biometric-login-request' }));
+  }
+
   return (
     <div className="relative min-h-screen flex items-center justify-center px-6 py-12 overflow-hidden">
       <OrbBackground />
@@ -195,8 +261,23 @@ export default function SignInPage() {
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
-                className="w-full h-12 px-4 pr-11 rounded-2xl border border-[rgba(120,160,200,0.2)] bg-white/80 text-navy text-sm outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all"
+                className={`w-full h-12 px-4 ${bioAvailable ? 'pr-20' : 'pr-11'} rounded-2xl border border-[rgba(120,160,200,0.2)] bg-white/80 text-navy text-sm outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all`}
               />
+              {bioAvailable && (
+                <button
+                  type="button"
+                  onClick={requestBiometricLogin}
+                  disabled={bioPending}
+                  title={t.quickLogin}
+                  className="absolute right-10 top-1/2 -translate-y-1/2 text-pink-500 hover:text-pink-600 transition-colors disabled:opacity-50"
+                >
+                  {bioPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Fingerprint className="w-4 h-4" />
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
@@ -205,6 +286,9 @@ export default function SignInPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {bioError && (
+              <p className="text-xs text-red-500 pl-1 pt-0.5">{bioError}</p>
+            )}
             <div className="text-right">
               <Link href={`/${locale}/forgot-password`} className="text-xs text-pink-500 hover:underline">
                 {t.forgotPassword}
@@ -221,6 +305,22 @@ export default function SignInPage() {
             {pending ? t.submitting : t.submit}
           </button>
         </form>
+
+        {bioAvailable && (
+          <button
+            type="button"
+            onClick={requestBiometricLogin}
+            disabled={bioPending}
+            className="w-full flex items-center justify-center gap-2 h-14 mb-4 bg-white/75 backdrop-blur-xl border border-[rgba(120,160,200,0.2)] text-navy font-semibold rounded-2xl shadow-medium hover:-translate-y-0.5 transition-all text-sm disabled:opacity-60 disabled:translate-y-0"
+          >
+            {bioPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Fingerprint className="w-4 h-4 text-pink-500" />
+            )}
+            {bioPending ? t.bioAuthenticating : t.quickLogin}
+          </button>
+        )}
 
         <p className="text-center text-sm text-[rgb(var(--text-secondary))] mb-2">
           {t.noAccount}{' '}
