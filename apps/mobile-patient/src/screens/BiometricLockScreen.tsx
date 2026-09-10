@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useBiometric } from '../hooks/useBiometric';
+import { getAuthToken, refreshSessionToken } from '../services/auth';
 import type { Screen } from '../../App';
 
 const MAX_ATTEMPTS = 3;
@@ -20,6 +21,12 @@ export function BiometricLockScreen({ onNavigate }: Props) {
     const result = await authenticate();
 
     if (result === 'ok') {
+      // Cold-start unlock after the app was closed for a while is exactly when
+      // the 1h access token has expired — mint a fresh one from the 7-day
+      // refresh token before loading MainScreen's WebView, otherwise it lands
+      // on /sign-in instead of /home despite the fingerprint having succeeded.
+      const storedToken = await getAuthToken();
+      if (storedToken) await refreshSessionToken(storedToken).catch(() => null);
       onNavigate('main');
       return;
     }
