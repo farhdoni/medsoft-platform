@@ -96,11 +96,14 @@ export const medicationLog = pgTable(
 );
 
 // ─── 3. medication_reminder_log ────────────────────────────────────────────────
-// Персистентный дедуп пушей-напоминаний (миграция 0023).
-// Слот = (scheduleId, fireDate, time); строка вставляется ДО отправки пуша
-// (insert-then-send): уникальный констрейнт даёт at-most-once между тиками
-// cron, рестартами процесса и репликами. fireDate — календарная дата слота
-// в таймзоне ПОЛЬЗОВАТЕЛЯ; time — "HH:mm" из medication_schedule.times.
+// Персистентный дедуп + счётчик повторов пушей-напоминаний (миграции 0023, 0053).
+// Слот = (scheduleId, fireDate, time); строка вставляется ДО отправки первого
+// пуша (insert-then-send): уникальный констрейнт даёт at-most-once между
+// тиками cron, рестартами процесса и репликами. fireDate — календарная дата
+// слота в таймзоне ПОЛЬЗОВАТЕЛЯ; time — "HH:mm" из medication_schedule.times.
+// attempt — сколько раз уже напомнили по этому слоту (1 = первое напоминание,
+// 2 = повтор +15мин, 3 = повтор +30мин, после чего доза помечается 'missed').
+// Персистентная замена in-memory Map — переживает рестарт API.
 
 export const medicationReminderLog = pgTable(
   'medication_reminder_log',
@@ -109,6 +112,7 @@ export const medicationReminderLog = pgTable(
     scheduleId: uuid('schedule_id').notNull().references(() => medicationSchedule.id, { onDelete: 'cascade' }),
     fireDate: date('fire_date').notNull(),
     time: varchar('time', { length: 5 }).notNull(),
+    attempt: integer('attempt').notNull().default(1),
     sentAt: timestamp('sent_at').notNull().defaultNow(),
   },
   (table) => ({
