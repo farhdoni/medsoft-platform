@@ -14,7 +14,7 @@ import {
   consultationInvoices,
   doctorProfiles,
 } from '@medsoft/db';
-import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import {
   sendPushNotification,
@@ -312,11 +312,16 @@ aivitaMessagingRouter.get('/conversations', async (c) => {
       pinnedAt: conversationParticipants.pinnedAt,
       mutedUntil: conversationParticipants.mutedUntil,
       archivedAt: conversationParticipants.archivedAt,
+      clearedAt: conversationParticipants.clearedAt,
     })
     .from(conversationParticipants)
     .where(eq(conversationParticipants.userId, me));
 
-  const visible = myRows.filter((r) => (wantArchived ? r.archivedAt !== null : r.archivedAt === null));
+  // clearedAt выбывает из ОБОИХ списков, а не только из основного: удалённый
+  // чат не должен всплыть в архиве, даже если до удаления он был заархивирован.
+  const visible = myRows.filter((r) =>
+    r.clearedAt === null && (wantArchived ? r.archivedAt !== null : r.archivedAt === null)
+  );
   if (visible.length === 0) return c.json({ data: [] });
 
   const convIds = visible.map((r) => r.convId);
@@ -466,6 +471,82 @@ aivitaMessagingRouter.put('/conversations/:id/prefs', zValidator('json', convPre
   });
 });
 
+// ─── DELETE /conversations/:id ────────────────────────────────────────────────
+// Удаление чата в двух режимах. Строка conversations НЕ удаляется ни в одном
+// из них и никогда: на неё каскадом (ON DELETE CASCADE) висят
+// support_tickets.conversation_id и consultation_invoices.conversation_id —
+// физическое удаление диалога снесло бы тикет поддержки вместе с перепиской
+// и счета за консультации. Поэтому удаление живёт на participant-рядах.
+//
+//   alsoForOther: false — cleared_at только на моём ряду. Собеседник ничего
+//     не замечает, его копия цела: сообщения не тронуты.
+//   alsoForOther: true  — cleared_at на ОБОИХ рядах + soft-delete всех
+//     сообщений диалога. Пропадает у обоих; уже удалённые сообщения не
+//     переписываются, чтобы не сдвигать их исходное время удаления.
+
+const convDeleteSchema = z.object({
+  alsoForOther: z.boolean().optional().default(false),
+});
+
+aivitaMessagingRouter.delete('/conversations/:id', zValidator('json', convDeleteSchema), async (c) => {
+  const me = c.get('aivitaUserId');
+  const convId = c.req.param('id');
+  const { alsoForOther } = c.req.valid('json');
+
+  // Только участник диалога. Тот же ответ, что у prefs — не раскрываем,
+  // существует ли такой диалог вообще.
+  const myRow = await participantOf(convId, me);
+  if (!myRow) return c.json({ error: 'Forbidden' }, 403);
+
+  const now = new Date();
+
+  if (!alsoForOther) {
+    // Идемпотентно: повторный вызов просто сдвинет отсечку на текущий момент,
+    // что для «стереть у себя» и есть ожидаемое поведение.
+    await db.update(conversationParticipants)
+      .set({ clearedAt: now })
+      .where(and(
+        eq(conversationParticipants.conversationId, convId),
+        eq(conversationParticipants.userId, me),
+      ));
+    return c.json({ data: { conversationId: convId, cleared: true, alsoForOther: false } });
+  }
+
+  // Служебный диалог нельзя стереть у поддержки: на той стороне не собеседник,
+  // а тикет с историей обращения, и оператор должен его видеть. «Удалить у
+  // себя» и архив для поддержки при этом разрешены — ограничение узкое.
+  const others = await db
+    .select({ userId: conversationParticipants.userId, nickname: aivitaUsers.nickname })
+    .from(conversationParticipants)
+    .innerJoin(aivitaUsers, eq(aivitaUsers.id, conversationParticipants.userId))
+    .where(and(
+      eq(conversationParticipants.conversationId, convId),
+      ne(conversationParticipants.userId, me),
+    ));
+
+  if (others.some((o) => isSupportNickname(o.nickname))) {
+    return c.json(
+      { error: 'Диалог с поддержкой нельзя удалить у собеседника — можно удалить только у себя' },
+      403,
+    );
+  }
+
+  // Оба ряда сразу, без перечисления userId: участники этого диалога — это и
+  // есть обе стороны, и промахнуться мимо чужого ряда здесь невозможно.
+  await db.update(conversationParticipants)
+    .set({ clearedAt: now })
+    .where(eq(conversationParticipants.conversationId, convId));
+
+  await db.update(messages)
+    .set({ deletedAt: now })
+    .where(and(
+      eq(messages.conversationId, convId),
+      isNull(messages.deletedAt),
+    ));
+
+  return c.json({ data: { conversationId: convId, cleared: true, alsoForOther: true } });
+});
+
 // ─── GET /conversations/:id/messages ──────────────────────────────────────────
 // History with ?limit&offset, plus ?after=ISO to poll only what is new — the
 // pagination contract the old conversations.ts route exposed, kept so the
@@ -481,13 +562,23 @@ aivitaMessagingRouter.get('/conversations/:id/messages', async (c) => {
   const offset = parseInt(c.req.query('offset') ?? '0');
   const after = c.req.query('after');
 
-  if (!(await participantOf(convId, me))) return c.json({ error: 'Forbidden' }, 403);
+  const myRow = await participantOf(convId, me);
+  if (!myRow) return c.json({ error: 'Forbidden' }, 403);
 
   // Deleted messages are still selected here — they render as a tombstone.
   // The conversation list and the unread count still skip them.
-  const where = after
+  //
+  // clearedAt — личная отсечка истории: после «удалить у меня» лента отдаёт
+  // только то, что пришло ПОЗЖЕ удаления. Именно это делает очистку правдой
+  // внутри диалога, а не только в списке; у собеседника его копия цела,
+  // потому что отсечка лежит на моём participant-ряду, а не на сообщениях.
+  const sinceCleared = myRow.clearedAt
+    ? gt(messages.createdAt, myRow.clearedAt)
+    : undefined;
+  const base = after
     ? and(eq(messages.conversationId, convId), gt(messages.createdAt, new Date(after)))
     : eq(messages.conversationId, convId);
+  const where = sinceCleared ? and(base, sinceCleared) : base;
 
   const rows = await db
     .select()
@@ -694,6 +785,26 @@ export async function deliverMessage(
   await db.update(conversations)
     .set({ lastMessageAt: new Date() })
     .where(eq(conversations.id, convId));
+
+  // Новое сообщение возвращает диалог в список всем, кто его у себя удалял:
+  // и отправителю (написал в чат, который сам же стёр), и получателям.
+  // Снимаем clearedAt сразу у всех рядов этого диалога — идемпотентно, у кого
+  // он и так NULL, ничего не меняется.
+  //
+  // Отсечка истории при этом уже сыграла: сообщения старше снятого clearedAt
+  // из ленты не вернутся, потому что запрос ленты сравнивает с clearedAt на
+  // момент чтения, а новое сообщение заведомо новее. После «удалить у обоих»
+  // диалог поэтому возвращается пустым, с одним новым сообщением.
+  //
+  // Сознательное отличие от архива: archivedAt здесь НЕ трогаем — архив это
+  // полка, и новое сообщение не должно её опрокидывать (см. комментарий у
+  // GET /conversations).
+  await db.update(conversationParticipants)
+    .set({ clearedAt: null })
+    .where(and(
+      eq(conversationParticipants.conversationId, convId),
+      isNotNull(conversationParticipants.clearedAt),
+    ));
 
   // Push the other side. Never let a push failure fail the send — the message
   // is already committed, and delivery is a separate concern from storage.
