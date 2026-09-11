@@ -27,10 +27,16 @@ async function handler(
   const isMultipart = contentType.includes('multipart/form-data');
 
   // For multipart, pass FormData directly (don't set Content-Type — browser sets boundary)
-  // For other non-GET methods, pass text body
+  // For other non-GET methods, pass text body.
+  //
+  // DELETE is included here, not excluded: a body on DELETE is valid HTTP and
+  // AV Chat's DELETE /messaging/conversations/:id relies on one ({alsoForOther}).
+  // Excluding DELETE used to silently drop it — every DELETE call in the repo
+  // happened to be bodyless before that endpoint existed, so nothing surfaced
+  // the bug until now. GET/HEAD stay excluded: those genuinely never carry one.
   let fetchBody: FormData | string | undefined;
   const fetchHeaders: Record<string, string> = { ...authHeaders };
-  if (method !== 'GET' && method !== 'DELETE' && method !== 'HEAD') {
+  if (method !== 'GET' && method !== 'HEAD') {
     if (isMultipart) {
       fetchBody = await req.formData();
       // Remove Content-Type so fetch can set it with the correct boundary
