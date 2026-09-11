@@ -488,10 +488,14 @@ function DeleteConversationDialog({
         style={{ border: '1px solid #e8e4dc' }}
       >
         <p id="del-conv-title" className="text-base font-semibold text-app-t1">Удалить диалог?</p>
-        <p className="text-xs text-app-t2 mt-1.5">
+        {/* Имя вынесено отдельной строкой, а не подставлено в «переписка с …»:
+            в творительном падеже оно склоняется («со Службой поддержки»), и
+            подстановка именительного даёт «с Служба поддержки». */}
+        <p className="text-xs text-app-t1 mt-1.5 font-medium">{who}</p>
+        <p className="text-xs text-app-t2 mt-0.5">
           {alsoForOther
-            ? `Переписка с ${who} исчезнет и у вас, и у собеседника. Это необратимо.`
-            : `Переписка с ${who} исчезнет только у вас. У собеседника она останется.`}
+            ? 'Переписка исчезнет и у вас, и у собеседника. Это необратимо.'
+            : 'Переписка исчезнет только у вас. У собеседника она останется.'}
         </p>
 
         {!isSupport && (
@@ -747,7 +751,10 @@ function ConversationRow({
         onPointerLeave={clearPress}
         onPointerCancel={clearPress}
         onContextMenu={(e) => { e.preventDefault(); onMenu(); }}
-        className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left active:opacity-80 transition-opacity"
+        // pr-11 — колонка под «⋯». Кнопка лежит абсолютом поверх карточки,
+        // и без этого отступа три точки печатаются прямо на времени и на
+        // бейдже непрочитанного: видна оставалась одна средняя.
+        className="w-full bg-white rounded-2xl p-3 pr-11 flex items-center gap-3 text-left active:opacity-80 transition-opacity"
         style={{ border: '1px solid #e8e4dc', touchAction: 'pan-y' }}
       >
         <Avatar user={conv.participant} size={48} />
