@@ -73,6 +73,17 @@ export const conversationParticipants = pgTable(
     pinnedAt: timestamp('pinned_at', { withTimezone: true, precision: 3 }),
     mutedUntil: timestamp('muted_until', { withTimezone: true, precision: 3 }),
     archivedAt: timestamp('archived_at', { withTimezone: true, precision: 3 }),
+    // Удаление чата (migration 0056). Одна колонка на оба сценария:
+    // «удалить у меня» ставит её на мой ряд, «удалить у обоих» — на оба,
+    // плюс soft-delete самих сообщений. Различие между сценариями живёт в
+    // messages.deletedAt; дублировать его отдельным флагом здесь значило бы
+    // завести второй источник правды об одном и том же.
+    //
+    // Работает как ЛИЧНАЯ отсечка истории, а не просто «скрыть из списка»:
+    // лента отдаёт участнику только сообщения новее его clearedAt. В отличие
+    // от archivedAt снимается сама при новом сообщении — архив это полка, а
+    // очистка не должна прятать новую переписку.
+    clearedAt: timestamp('cleared_at', { withTimezone: true, precision: 3 }),
     joinedAt: timestamp('joined_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
   (table) => ({
@@ -82,6 +93,7 @@ export const conversationParticipants = pgTable(
     ),
     convIdx: index('conv_participants_conv_idx').on(table.conversationId),
     userIdx: index('conv_participants_user_idx').on(table.userId),
+    userClearedIdx: index('conv_participants_user_cleared_idx').on(table.userId, table.clearedAt),
   })
 );
 
