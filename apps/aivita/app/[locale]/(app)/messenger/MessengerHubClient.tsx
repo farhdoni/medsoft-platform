@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/messenger/Avatar';
 import { displayName, formatListTime, previewOf } from '@/components/messenger/format';
 import type { ApiEnvelope, MessengerConversation, MessengerUser } from '@/components/messenger/types';
-import { SUPPORT_NICKNAME } from '@/components/messenger/types';
+import { SUPPORT_NICKNAME, isSupportUser } from '@/components/messenger/types';
 
 const PROXY = '/api/proxy';
 const POLL_MS = 5_000;
@@ -29,6 +29,8 @@ export function MessengerHubClient({ locale }: { locale: string }) {
   const [archivedConvs, setArchivedConvs] = useState<MessengerConversation[]>([]);
   const [showArchive, setShowArchive] = useState(false);
   const [rowMenu, setRowMenu] = useState<string | null>(null);
+  /** Диалог, для которого открыт подтверждающий модал удаления. */
+  const [deleteTarget, setDeleteTarget] = useState<MessengerConversation | null>(null);
 
   // Own @username for the header pill.
   useEffect(() => {
@@ -97,6 +99,44 @@ export function MessengerHubClient({ locale }: { locale: string }) {
       setConvs(beforeMain);
       setArchivedConvs(beforeArch);
       setNotice('Не удалось изменить настройки диалога');
+    }
+  }
+
+  /**
+   * Удаление диалога: у себя или у обоих. Оптимистично убираем из ОБОИХ
+   * списков (диалог мог лежать в архиве) и возвращаем назад при ошибке — той
+   * же механикой, что уже работает для prefs.
+   */
+  async function deleteConversation(convId: string, alsoForOther: boolean) {
+    setRowMenu(null);
+    setDeleteTarget(null);
+    const beforeMain = convs;
+    const beforeArch = archivedConvs;
+
+    setConvs(convs.filter((c) => c.id !== convId));
+    setArchivedConvs(archivedConvs.filter((c) => c.id !== convId));
+
+    try {
+      const res = await fetch(`${PROXY}/messaging/conversations/${convId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alsoForOther }),
+      });
+      if (!res.ok) {
+        // 403 на «у обоих» для поддержки — единственный ожидаемый отказ,
+        // поэтому показываем текст сервера, а не общую формулировку.
+        const json = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(json?.error || 'delete failed');
+      }
+      loadConversations();
+    } catch (err) {
+      setConvs(beforeMain);
+      setArchivedConvs(beforeArch);
+      setNotice(
+        err instanceof Error && err.message !== 'delete failed'
+          ? err.message
+          : 'Не удалось удалить диалог',
+      );
     }
   }
 
@@ -390,6 +430,7 @@ export function MessengerHubClient({ locale }: { locale: string }) {
                 onMenu={() => setRowMenu(rowMenu === conv.id ? null : conv.id)}
                 onCloseMenu={() => setRowMenu(null)}
                 onPref={(patch) => setConvPref(conv.id, patch)}
+                onDelete={() => { setRowMenu(null); setDeleteTarget(conv); }}
               />
             ))}
           </div>
@@ -402,7 +443,94 @@ export function MessengerHubClient({ locale }: { locale: string }) {
           </span>
         </div>
       )}
+
+      {deleteTarget && (
+        <DeleteConversationDialog
+          conv={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={(alsoForOther) => deleteConversation(deleteTarget.id, alsoForOther)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Подтверждение удаления. Галочка «также у собеседника» по умолчанию СНЯТА:
+ * необратимое действие для двоих не должно случаться по инерции.
+ *
+ * Для диалога с поддержкой галочки нет совсем — не задизейбленная, а
+ * отсутствующая: предлагать выбор, который сервер всё равно отклонит 403,
+ * значит врать интерфейсом. Сам запрет живёт на бэке, здесь только его
+ * отражение.
+ */
+function DeleteConversationDialog({
+  conv,
+  onCancel,
+  onConfirm,
+}: {
+  conv: MessengerConversation;
+  onCancel: () => void;
+  onConfirm: (alsoForOther: boolean) => void;
+}) {
+  const [alsoForOther, setAlsoForOther] = useState(false);
+  const isSupport = isSupportUser(conv.participant);
+  const who = displayName(conv.participant);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" style={{ background: 'rgba(42,37,64,.45)' }} onClick={onCancel} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="del-conv-title"
+        className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-50 w-[min(92vw,360px)] bg-white rounded-2xl p-5"
+        style={{ border: '1px solid #e8e4dc' }}
+      >
+        <p id="del-conv-title" className="text-base font-semibold text-app-t1">Удалить диалог?</p>
+        <p className="text-xs text-app-t2 mt-1.5">
+          {alsoForOther
+            ? `Переписка с ${who} исчезнет и у вас, и у собеседника. Это необратимо.`
+            : `Переписка с ${who} исчезнет только у вас. У собеседника она останется.`}
+        </p>
+
+        {!isSupport && (
+          <label className="flex items-start gap-2.5 mt-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={alsoForOther}
+              onChange={(e) => setAlsoForOther(e.target.checked)}
+              className="mt-0.5 w-4 h-4 flex-shrink-0"
+            />
+            <span className="text-xs text-app-t1">Удалить также у собеседника</span>
+          </label>
+        )}
+        {isSupport && (
+          <p className="text-[11px] text-app-t3 mt-4">
+            Диалог с поддержкой можно удалить только у себя — на той стороне обращение с историей.
+          </p>
+        )}
+
+        <div className="flex gap-2 mt-5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-app-t1 active:opacity-80"
+            style={{ border: '1px solid #e8e4dc' }}
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(alsoForOther)}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
+            style={{ background: '#c2415a' }}
+          >
+            Удалить
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -567,29 +695,59 @@ function ConversationRow({
   onMenu: () => void;
   onCloseMenu: () => void;
   onPref: (patch: { pinned?: boolean; muted?: boolean; archived?: boolean }) => void;
+  onDelete: () => void;
 }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msg = conv.lastMessage;
 
-  const startPress = () => {
+  // Свайп влево. Своя обработка на pointer-событиях, в стиле уже
+  // работающего long-press: библиотек свайпа в репозитории нет, а pointer
+  // events одинаково приходят и от пальца в WebView, и от мыши, поэтому один
+  // и тот же код покрывает оба случая.
+  const startX = useRef<number | null>(null);
+  const swiped = useRef(false);
+  const SWIPE_PX = 60;
+
+  const startPress = (e: React.PointerEvent) => {
     clearPress();
+    startX.current = e.clientX;
+    swiped.current = false;
     timer.current = setTimeout(onMenu, 450);
   };
-  const clearPress = () => {
+  const movePress = (e: React.PointerEvent) => {
+    if (startX.current === null) return;
+    const dx = e.clientX - startX.current;
+    // Любое заметное горизонтальное движение — это уже не удержание.
+    if (Math.abs(dx) > 8) clearTimer();
+    if (dx <= -SWIPE_PX && !swiped.current) {
+      swiped.current = true;
+      clearTimer();
+      onMenu();
+    }
+  };
+  const clearTimer = () => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+  };
+  const clearPress = () => {
+    clearTimer();
+    startX.current = null;
   };
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={onOpen}
+        // Свайп не должен заодно открывать диалог: гасим клик, который
+        // браузер шлёт следом за pointerup.
+        onClick={() => { if (swiped.current) { swiped.current = false; return; } onOpen(); }}
         onPointerDown={startPress}
+        onPointerMove={movePress}
         onPointerUp={clearPress}
         onPointerLeave={clearPress}
+        onPointerCancel={clearPress}
         onContextMenu={(e) => { e.preventDefault(); onMenu(); }}
         className="w-full bg-white rounded-2xl p-3 flex items-center gap-3 text-left active:opacity-80 transition-opacity"
-        style={{ border: '1px solid #e8e4dc' }}
+        style={{ border: '1px solid #e8e4dc', touchAction: 'pan-y' }}
       >
         <Avatar user={conv.participant} size={48} />
         <div className="min-w-0 flex-1">
@@ -636,6 +794,24 @@ function ConversationRow({
         </div>
       </button>
 
+      {/* Видимый триггер меню: long-press и right-click остаются, но их не
+          видно, а на карточке нужна явная точка входа. Лежит поверх карточки
+          абсолютом, чтобы не менять её внутреннюю раскладку. */}
+      <button
+        type="button"
+        aria-label="Действия с диалогом"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={(e) => { e.stopPropagation(); onMenu(); }}
+        className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:bg-[#f0eeea]"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.6" fill="#9a96a8" />
+          <circle cx="12" cy="12" r="1.6" fill="#9a96a8" />
+          <circle cx="12" cy="19" r="1.6" fill="#9a96a8" />
+        </svg>
+      </button>
+
       {menuOpen && (
         <>
           <div className="fixed inset-0 z-20" onClick={onCloseMenu} aria-hidden="true" />
@@ -657,6 +833,11 @@ function ConversationRow({
               className="w-full text-left px-4 py-3 text-sm text-app-t1 active:bg-[#faf9f7]"
               style={{ borderTop: '1px solid #f0eeea' }}>
               {conv.archived ? 'Из архива' : 'В архив'}
+            </button>
+            <button type="button" role="menuitem" onClick={onDelete}
+              className="w-full text-left px-4 py-3 text-sm active:bg-[#faf9f7]"
+              style={{ borderTop: '1px solid #f0eeea', color: '#c2415a' }}>
+              Удалить
             </button>
           </div>
         </>
