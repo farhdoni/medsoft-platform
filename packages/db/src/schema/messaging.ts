@@ -80,9 +80,10 @@ export const conversationParticipants = pgTable(
     // завести второй источник правды об одном и том же.
     //
     // Работает как ЛИЧНАЯ отсечка истории, а не просто «скрыть из списка»:
-    // лента отдаёт участнику только сообщения новее его clearedAt. В отличие
-    // от archivedAt снимается сама при новом сообщении — архив это полка, а
-    // очистка не должна прятать новую переписку.
+    // лента отдаёт участнику только сообщения новее его clearedAt. Она не
+    // снимается при новом сообщении — иначе вместе с диалогом вернулась бы и
+    // стёртая переписка; в список диалог возвращает сравнение отсечки с
+    // conversations.lastMessageAt.
     clearedAt: timestamp('cleared_at', { withTimezone: true, precision: 3 }),
     joinedAt: timestamp('joined_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
