@@ -688,6 +688,7 @@ function ConversationRow({
   onMenu,
   onCloseMenu,
   onPref,
+  onDelete,
 }: {
   conv: MessengerConversation;
   menuOpen: boolean;
