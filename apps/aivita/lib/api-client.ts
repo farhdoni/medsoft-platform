@@ -6,17 +6,38 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
+/**
+ * Thrown by apiRequest() only when called with { throwOnError: true } and
+ * the response status is not 2xx. Carries the HTTP status and parsed body
+ * (best-effort — null if the error response wasn't valid JSON) so callers
+ * can distinguish e.g. validation errors from server outages.
+ */
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+  constructor(status: number, body: unknown) {
+    super(`API request failed with status ${status}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
   sessionCookie?: string; // for server-side calls
+  // Opt-in only — default behavior (silently return { error } on failure,
+  // never throw) is unchanged for every existing caller. Pass true for new
+  // call sites that want to actually branch on success vs. failure.
+  throwOnError?: boolean;
 };
 
 export async function apiRequest<T = unknown>(
   path: string,
   opts: RequestOptions = {}
 ): Promise<{ data: T } | { error: string }> {
-  const { method = 'GET', body, sessionCookie } = opts;
+  const { method = 'GET', body, sessionCookie, throwOnError = false } = opts;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -37,9 +58,18 @@ export async function apiRequest<T = unknown>(
       next: { revalidate: 0 }, // no cache
     });
 
+    if (throwOnError && !res.ok) {
+      const errBody = await res.json().catch(() => null);
+      throw new ApiError(res.status, errBody);
+    }
+
     const json = await res.json();
     return json;
-  } catch {
+  } catch (err) {
+    // With throwOnError, propagate everything — the thrown ApiError above,
+    // a JSON-parse failure, or fetch() itself rejecting (offline/DNS/etc) —
+    // so the caller's own try/catch handles network and server errors alike.
+    if (throwOnError) throw err;
     return { error: 'Network error' };
   }
 }
@@ -57,7 +87,7 @@ export const api = {
     login: (data: { identifier: string; password: string }) =>
       apiRequest('/auth/login', { method: 'POST', body: data }),
     forgotPassword: (email: string) =>
-      apiRequest('/auth/forgot-password', { method: 'POST', body: { email } }),
+      apiRequest('/auth/forgot-password', { method: 'POST', body: { email }, throwOnError: true }),
     resetPassword: (data: { token: string; password: string }) =>
       apiRequest('/auth/reset-password', { method: 'POST', body: data }),
     completeOnboarding: (cookie: string) =>

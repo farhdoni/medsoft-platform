@@ -13,8 +13,10 @@ const T = {
     subtitle: 'Введи email и мы отправим ссылку для сброса',
     labelEmail: 'Email',
     submit: 'Отправить ссылку', submitting: 'Отправляем...',
-    sentTitle: 'Письмо отправлено!',
-    sentBody: (email: string) => `Если аккаунт с адресом ${email} существует, мы отправили ссылку для сброса пароля. Проверь папку «Спам».`,
+    sentTitle: 'Готово',
+    // Anti-enumeration: never confirm/deny whether the account exists.
+    sentBody: 'Если этот адрес зарегистрирован, мы отправили ссылку для сброса. Проверьте почту, включая папку «Спам».',
+    errorBody: 'Не удалось отправить запрос, попробуйте позже.',
     backToLogin: '← Вернуться ко входу',
   },
   uz: {
@@ -22,8 +24,9 @@ const T = {
     subtitle: "Email kiriting va biz tiklash havolasini yuboramiz",
     labelEmail: 'Email',
     submit: 'Havola yuborish', submitting: 'Yuborilmoqda...',
-    sentTitle: 'Xat yuborildi!',
-    sentBody: (email: string) => `Agar ${email} manzili bilan hisob mavjud bo'lsa, biz parolni tiklash havolasini yubordik. «Spam» papkasini tekshiring.`,
+    sentTitle: 'Tayyor',
+    sentBody: "Agar bu manzil ro'yxatdan o'tgan bo'lsa, biz tiklash havolasini yubordik. Pochtangizni, jumladan «Spam» papkasini tekshiring.",
+    errorBody: "So'rovni yuborib bo'lmadi, keyinroq urinib ko'ring.",
     backToLogin: '← Kirish sahifasiga qaytish',
   },
   en: {
@@ -31,8 +34,9 @@ const T = {
     subtitle: 'Enter your email and we\'ll send a reset link',
     labelEmail: 'Email',
     submit: 'Send reset link', submitting: 'Sending...',
-    sentTitle: 'Email sent!',
-    sentBody: (email: string) => `If an account with ${email} exists, we sent a password reset link. Check your spam folder.`,
+    sentTitle: 'Done',
+    sentBody: 'If this address is registered, we sent a password reset link. Check your inbox, including the Spam folder.',
+    errorBody: 'Could not send the request, please try again later.',
     backToLogin: '← Back to sign in',
   },
 } as const;
@@ -46,12 +50,20 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    try { await api.auth.forgotPassword(email); setSent(true); }
-    finally { setLoading(false); }
+    setError(false);
+    try {
+      await api.auth.forgotPassword(email);
+      setSent(true);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -75,13 +87,16 @@ export default function ForgotPasswordPage() {
           <div className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium text-center space-y-4">
             <div className="text-4xl">📩</div>
             <p className="font-semibold text-navy">{t.sentTitle}</p>
-            <p className="text-sm text-[rgb(var(--text-secondary))]">{t.sentBody(email)}</p>
+            <p className="text-sm text-[rgb(var(--text-secondary))]">{t.sentBody}</p>
             <Link href={`/${locale}/sign-in`} className="block text-sm text-pink-500 hover:underline">
               {t.backToLogin}
             </Link>
           </div>
         ) : (
           <>
+            {error && (
+              <p className="text-center text-sm text-red-500 mb-4">{t.errorBody}</p>
+            )}
             <form onSubmit={handleSubmit} className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium space-y-4 mb-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-[rgb(var(--text-secondary))] pl-1">{t.labelEmail}</label>
