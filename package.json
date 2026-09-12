@@ -23,9 +23,11 @@
       "@types/react-dom": "^19"
     },
     "onlyBuiltDependencies": [
+      "core-js",
       "es5-ext",
       "esbuild",
-      "sharp"
+      "sharp",
+      "unrs-resolver"
     ],
     "patchedDependencies": {
       "react-native-health-connect@3.5.3": "patches/react-native-health-connect@3.5.3.patch"
