@@ -8,3 +8,13 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
+
+# pnpm 11+ removed onlyBuiltDependencies in favor of allowBuilds (EAS's
+# Android build image ships pnpm 11, which otherwise hard-fails install
+# with ERR_PNPM_IGNORED_BUILDS since strictDepBuilds now defaults true).
+allowBuilds:
+  core-js: true
+  es5-ext: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
