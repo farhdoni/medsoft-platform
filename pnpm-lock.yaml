@@ -393,6 +393,9 @@ importers:
       '@appmetrica/react-native-analytics':
         specifier: ^3.4.0
         version: 3.6.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1)
+      '@babel/runtime':
+        specifier: ^7.25.0
+        version: 7.29.2
       '@react-native-async-storage/async-storage':
         specifier: 1.23.1
         version: 1.23.1(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))
