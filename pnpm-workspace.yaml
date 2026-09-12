@@ -2,6 +2,17 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# pnpm 11 only reads auth/registry settings from .npmrc; every other
+# setting (including node-linker and shamefully-hoist, previously set
+# in .npmrc) must live here now, camelCased, or it's silently ignored.
+# EAS's Android build image ships pnpm 11 (local dev here is still on
+# 10.x, which is why this only broke on EAS): without these, pnpm
+# falls back to its strict isolated node_modules layout, and several
+# transitive-only deps (@babel/runtime, expo-constants, expo-asset,
+# expo-modules-core) stop being resolvable from apps/mobile-patient.
+nodeLinker: hoisted
+shamefullyHoist: true
+
 onlyBuiltDependencies:
   - core-js
   - es5-ext
