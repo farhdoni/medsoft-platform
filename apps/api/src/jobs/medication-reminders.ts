@@ -208,7 +208,7 @@ async function sendReminder(
   if (attempt === 1) {
     try {
       await createNotification(med.userId, 'medication_reminder', title, body, {
-        link: '/ru/medications',
+        link: '/medications',
       });
     } catch (err) {
       logger.error({ err, scheduleId: med.id }, '[MedReminders] In-app notification failed');

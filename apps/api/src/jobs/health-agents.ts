@@ -55,7 +55,7 @@ async function insertAlert(
 
     // Also push in-app notification for warning/critical
     if (severity !== 'info') {
-      await createNotification(userId, 'action_required', title, description, { link: '/ru/health-agents' });
+      await createNotification(userId, 'action_required', title, description, { link: '/health-agents' });
     }
   } catch (err) {
     logger.warn({ err, userId }, '[HealthAgents] Failed to insert alert');
