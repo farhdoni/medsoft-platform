@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 
@@ -345,6 +346,7 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
 }) {
+  const router = useRouter();
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [infoPopup, setInfoPopup] = useState<ScheduleItem | null>(null);
   const [identifying, setIdentifying] = useState(false);
@@ -522,11 +524,14 @@ function TabMeds({ schedule, medications, stats, onTake, onSkip, onSetTab, local
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px' }}>
         <h1 style={{ fontSize: 18, fontWeight: 800, color: C.t1 }}>💊 Мои лекарства</h1>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="tt-btn" style={{
-            padding: '8px 12px', borderRadius: 12, border: `1px solid ${C.border}`,
-            background: C.card, display: 'flex', alignItems: 'center', gap: 4,
-            fontSize: 11, fontWeight: 600, cursor: 'pointer', color: C.t2, fontFamily: 'inherit',
-          }}>
+          <button
+            className="tt-btn"
+            onClick={() => router.push(`/${locale}/drug-checker?drugs=${medications.map(m => encodeURIComponent(m.title)).join(',')}`)}
+            style={{
+              padding: '8px 12px', borderRadius: 12, border: `1px solid ${C.border}`,
+              background: C.card, display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600, cursor: 'pointer', color: C.t2, fontFamily: 'inherit',
+            }}>
             <span>↔️</span> Совместимость
             <span className="tt">Проверить совместимость лекарств</span>
           </button>
