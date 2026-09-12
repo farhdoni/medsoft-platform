@@ -390,6 +390,9 @@ importers:
 
   apps/mobile-patient:
     dependencies:
+      '@appmetrica/react-native-analytics':
+        specifier: ^3.4.0
+        version: 3.6.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1)
       '@react-native-async-storage/async-storage':
         specifier: 1.23.1
         version: 1.23.1(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))
@@ -524,6 +527,12 @@ packages:
     peerDependenciesMeta:
       zod:
         optional: true
+
+  '@appmetrica/react-native-analytics@3.6.0':
+    resolution: {integrity: sha512-nbw1mTPq1ReGzWHAy8r2d5qjjujAkwe97wyftwFfYWmivqX/Sy8596xqyFVwqzont+yp9tbPDaR8Op/XUULhMw==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   '@babel/code-frame@7.10.4':
     resolution: {integrity: sha512-vG6SvB6oYEhvgisZNFRmRCUkLz11c7rp+tbNTynGqc6mS1d5ATd/sGyV6W0KZZnXRKMTzZDRgQT3Ou9jhpAfUg==}
@@ -8075,6 +8084,11 @@ snapshots:
       json-schema-to-ts: 3.1.1
     optionalDependencies:
       zod: 3.25.76
+
+  '@appmetrica/react-native-analytics@3.6.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-native: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.3(@babel/core@7.29.0))(@types/react@19.2.14)(react@18.3.1)
 
   '@babel/code-frame@7.10.4':
     dependencies:
