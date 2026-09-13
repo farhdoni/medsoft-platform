@@ -8,6 +8,8 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { MainScreen } from './src/screens/MainScreen';
 import { BiometricLockScreen } from './src/screens/BiometricLockScreen';
+import { UpdateBanner } from './src/components/UpdateBanner';
+import { useAppVersionCheck } from './src/hooks/useAppVersionCheck';
 import { initAnalytics, trackScreenView } from './src/services/analytics';
 
 SplashScreenExpo.preventAutoHideAsync();
@@ -17,6 +19,7 @@ export type Screen = 'splash' | 'onboarding' | 'login' | 'biometric' | 'main';
 export default function App() {
   const [screen, setScreen] = useState<Screen>('splash');
   const [deepLinkUrl, setDeepLinkUrl] = useState<string | null>(null);
+  const { updateInfo, visible: updateBannerVisible, dismiss: dismissUpdateBanner } = useAppVersionCheck();
 
   useEffect(() => {
     initAnalytics();
@@ -54,6 +57,9 @@ export default function App() {
       {screen === 'biometric' && <BiometricLockScreen onNavigate={setScreen} />}
       {screen === 'main' && (
         <MainScreen onNavigate={setScreen} initialDeepLink={deepLinkUrl} />
+      )}
+      {screen !== 'splash' && updateBannerVisible && updateInfo && (
+        <UpdateBanner info={updateInfo} onDismiss={dismissUpdateBanner} />
       )}
     </SafeAreaProvider>
   );

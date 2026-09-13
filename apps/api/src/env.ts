@@ -40,6 +40,16 @@ const envSchema = z.object({
   UZUM_API_URL: z.string().default('https://api.uzum.uz/payment'),
   // ─── Session security v2 ─────────────────────────────────────────────────────
   SESSIONS_V2: z.enum(['true', 'false']).default('false'),
+  // ─── App version check (GET /v1/app-version, soft update banner) ────────────
+  // Bump these on every mobile release so already-installed apps can offer the
+  // "update available" banner — no redeploy needed, just an env change + restart.
+  // versionCode must match android/app/build.gradle's versionCode of the build
+  // being announced. minVersionCode is a forced-update trigger for later: keep
+  // it at 0 while there's no blocking-update UI on the client (variant A).
+  APP_LATEST_VERSION_CODE: z.coerce.number().default(27),
+  APP_LATEST_VERSION_NAME: z.string().default('1.3.22'),
+  APP_MIN_VERSION_CODE: z.coerce.number().default(0),
+  APP_DOWNLOAD_URL: z.string().default('https://aivita.uz/get-app.html'),
 });
 
 function getRequired(parsed: z.infer<typeof envSchema>) {

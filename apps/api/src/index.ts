@@ -118,6 +118,7 @@ import { symptomCheckerRouter } from './routes/aivita/symptom-checker.js';
 import { mentalHealthRouter } from './routes/aivita/mental-health.js';
 import { remindersRouter } from './routes/aivita/reminders.js';
 import { aivitaDiagRouter } from './routes/aivita/diag.js';
+import { appVersionRouter } from './routes/app-version.js';
 import { ecosystemAppointmentsRouter } from './routes/ecosystem/appointments.js';
 import { ecosystemDischargeDocumentsRouter } from './routes/ecosystem/discharge-documents.js';
 
@@ -131,6 +132,8 @@ app.use('*', cors({
 app.use('*', honoLogger());
 
 app.get('/v1/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// Public, no auth — mobile clients poll this to offer a soft update banner.
+app.route('/v1/app-version', appVersionRouter);
 
 app.route('/v1/auth', auth);
 app.route('/v1/account', accountRouter);
