@@ -1,30 +1,31 @@
-import nodemailer from 'nodemailer';
 import { env } from '../env.js';
 import { logger } from './logger.js';
 
-let transporter: nodemailer.Transporter | null = null;
+const RESEND_API_URL = 'https://api.resend.com/emails';
+const FROM = 'AIVITA <noreply@aivita.uz>';
 
-function getTransporter(): nodemailer.Transporter {
-  if (transporter) return transporter;
-
-  if (!env.SMTP_USER || !env.SMTP_PASSWORD) {
-    throw new Error('SMTP_USER and SMTP_PASSWORD must be set when EMAIL_PROVIDER=smtp');
+async function sendViaResend(to: string, subject: string, html: string, text: string): Promise<string> {
+  if (!env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY must be set when EMAIL_PROVIDER=smtp');
   }
 
-  transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_SECURE === 'true',  // false = STARTTLS on port 587
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASSWORD,
+  const res = await fetch(RESEND_API_URL, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${env.RESEND_API_KEY}`,
     },
-    tls: {
-      rejectUnauthorized: true,
-    },
+    body: JSON.stringify({ from: FROM, to, subject, html, text }),
   });
 
-  return transporter;
+  if (!res.ok) {
+    const body = await res.text();
+    logger.error({ status: res.status, body }, 'Resend API вернул ошибку при отправке письма');
+    throw new Error(`Resend API error: ${res.status} ${body}`);
+  }
+
+  const data = (await res.json()) as { id: string };
+  return data.id;
 }
 
 export async function sendMagicLink(email: string, token: string) {
@@ -34,8 +35,6 @@ export async function sendMagicLink(email: string, token: string) {
     logger.info({ email, magicLinkUrl: url }, '[MOCK EMAIL] Magic link');
     return;
   }
-
-  const from = `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL ?? env.SMTP_USER}>`;
 
   const html = `
 <!DOCTYPE html>
@@ -61,15 +60,11 @@ export async function sendMagicLink(email: string, token: string) {
 </html>
 `;
 
-  const info = await getTransporter().sendMail({
-    from,
-    to: email,
-    subject: 'Ваша ссылка для входа в Aivita Admin',
-    html,
-    text: `Ссылка для входа: ${url}\n\nДействительна 15 минут.`,
-  });
+  const text = `Ссылка для входа: ${url}\n\nДействительна 15 минут. Если вы не запрашивали вход — проигнорируйте это письмо.`;
 
-  logger.info({ email, messageId: info.messageId }, 'Magic link email sent via SMTP');
+  const messageId = await sendViaResend(email, 'Ваша ссылка для входа в Aivita Admin', html, text);
+
+  logger.info({ email, messageId }, 'Magic link email sent via Resend');
 }
 
 export async function sendVerificationCode(email: string, code: string) {
@@ -78,7 +73,6 @@ export async function sendVerificationCode(email: string, code: string) {
     return;
   }
 
-  const from = `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL ?? env.SMTP_USER}>`;
   const html = `
 <!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
@@ -90,13 +84,11 @@ export async function sendVerificationCode(email: string, code: string) {
   <p style="color:#999;font-size:12px;">Aivita · aivita.uz</p>
 </body></html>`;
 
-  const info = await getTransporter().sendMail({
-    from, to: email,
-    subject: `${code} — код подтверждения Aivita`,
-    html,
-    text: `Твой код подтверждения Aivita: ${code}\n\nДействителен 15 минут.`,
-  });
-  logger.info({ email, messageId: info.messageId }, 'Verification code sent');
+  const text = `Ваш код: ${code}\n\nДействителен 15 минут. Если ты не регистрировался — проигнорируй это письмо.`;
+
+  const messageId = await sendViaResend(email, `${code} — код подтверждения Aivita`, html, text);
+
+  logger.info({ email, messageId }, 'Verification code sent via Resend');
 }
 
 export async function sendPasswordReset(
@@ -113,7 +105,6 @@ export async function sendPasswordReset(
     return;
   }
 
-  const from = `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL ?? env.SMTP_USER}>`;
   const html = `
 <!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
@@ -125,11 +116,9 @@ export async function sendPasswordReset(
   <p style="color:#999;font-size:12px;">Aivita · aivita.uz</p>
 </body></html>`;
 
-  const info = await getTransporter().sendMail({
-    from, to: email,
-    subject,
-    html,
-    text: `Ссылка для сброса пароля: ${url}\n\nДействительна ${expiryLabel}.`,
-  });
-  logger.info({ email, messageId: info.messageId }, 'Password reset email sent');
+  const text = `Ссылка для сброса пароля: ${url}\n\nДействительна ${expiryLabel}. Если ты не запрашивал сброс — проигнорируй это письмо.`;
+
+  const messageId = await sendViaResend(email, subject, html, text);
+
+  logger.info({ email, messageId }, 'Password reset email sent via Resend');
 }

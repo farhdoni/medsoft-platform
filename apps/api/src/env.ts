@@ -15,8 +15,10 @@ const envSchema = z.object({
   // Seed env vars — set once to bootstrap the first superadmin password
   SEED_SUPERADMIN_EMAIL: z.string().email().optional(),
   SEED_SUPERADMIN_PASSWORD: z.string().optional(),
-  // Email / SMTP (kept for future notifications, not used for auth)
+  // Email
   EMAIL_PROVIDER: z.enum(['mock', 'smtp']).default('mock'),
+  RESEND_API_KEY: z.string().optional(),
+  // deprecated, заменено Resend (см. RESEND_API_KEY) — оставлены на случай отката
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z.string().default('false'),
