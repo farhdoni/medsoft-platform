@@ -73,6 +73,7 @@ import { startBackupScheduler } from './jobs/backup-scheduler.js';
 import { clickRouter } from './routes/payments/click.js';
 import { paymeRouter } from './routes/payments/payme.js';
 import { uzumRouter } from './routes/payments/uzum.js';
+import { telegramWebhookRouter } from './routes/telegram/webhook.js';
 import { aivitaPaymentsRouter, aivitaPaymentMethodsRouter, aivitaPromoRouter } from './routes/aivita/payments.js';
 import { doctorEarningsRouter } from './routes/aivita/doctor/earnings.js';
 import { doctorDashboardStatsRouter } from './routes/aivita/doctor/dashboard-stats.js';
@@ -218,6 +219,8 @@ app.route('/v1/aivita/diag', aivitaDiagRouter);
 app.route('/v1/payments/click', clickRouter);
 app.route('/v1/payments/payme', paymeRouter);
 app.route('/v1/payments/uzum', uzumRouter);
+// Telegram bot webhook (@aivita_uz_bot) — public, gated on secret_token, see lib/telegram.ts
+app.route('/v1/telegram/webhook', telegramWebhookRouter);
 // Aivita payments & subscriptions
 app.route('/v1/aivita/payments', aivitaPaymentsRouter);
 app.route('/v1/aivita/payment-methods', aivitaPaymentMethodsRouter);

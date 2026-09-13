@@ -40,6 +40,14 @@ const envSchema = z.object({
   UZUM_MERCHANT_ID: z.string().optional(),
   UZUM_SECRET_KEY: z.string().optional(),
   UZUM_API_URL: z.string().default('https://api.uzum.uz/payment'),
+  // ─── Telegram bot (@aivita_uz_bot) ───────────────────────────────────────────
+  // TELEGRAM_BOT_TOKEN is still read raw via process.env in clinic-requests.ts
+  // (predates this schema) — listed here too so it shows up in one place with
+  // everything else, not because anything reads it off `env` yet.
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  // Verifies X-Telegram-Bot-Api-Secret-Token on POST /v1/telegram/webhook —
+  // see lib/telegram.ts. Missing value fails the webhook closed, on purpose.
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
   // ─── Session security v2 ─────────────────────────────────────────────────────
   SESSIONS_V2: z.enum(['true', 'false']).default('false'),
   // ─── App version check (GET /v1/app-version, soft update banner) ────────────
