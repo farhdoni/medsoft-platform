@@ -36,6 +36,10 @@ export async function sendTelegramMessage(chatId: string | number, text: string)
       logger.warn({ status: res.status }, '[telegram] sendMessage вернул ошибку');
       return false;
     }
+    // Was silent on success before — made the delivery channel invisible in
+    // logs (couldn't tell "went to Telegram" from "fell back to email"
+    // without inferring it from the ABSENCE of this very warning).
+    logger.info({ chatId }, '[telegram] sendMessage OK');
     return true;
   } catch (err) {
     logger.warn({ err }, '[telegram] sendMessage упал');
