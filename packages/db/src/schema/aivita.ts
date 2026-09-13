@@ -716,6 +716,27 @@ export const notificationSettings = pgTable(
   })
 );
 
+// ─── 14c. telegram_link_tokens ─────────────────────────────────────────────────
+// One-time tokens behind t.me/aivita_uz_bot?start=<token> — same shape as
+// aivitaPasswordResets (hash on disk, raw token only ever in the deep link).
+
+export const telegramLinkTokens = pgTable(
+  'telegram_link_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index('telegram_link_tokens_user_idx').on(table.userId),
+  })
+);
+
 // ─── 15. doctor_reports ────────────────────────────────────────────────────────
 
 export const doctorReports = pgTable(
@@ -765,6 +786,10 @@ export const aivitaPasswordResetsRelations = relations(aivitaPasswordResets, ({ 
   user: one(aivitaUsers, { fields: [aivitaPasswordResets.userId], references: [aivitaUsers.id] }),
 }));
 
+export const telegramLinkTokensRelations = relations(telegramLinkTokens, ({ one }) => ({
+  user: one(aivitaUsers, { fields: [telegramLinkTokens.userId], references: [aivitaUsers.id] }),
+}));
+
 export const aivitaUsersRelations = relations(aivitaUsers, ({ one, many }) => ({
   healthProfile: one(healthProfiles, {
     fields: [aivitaUsers.id],
@@ -790,6 +815,7 @@ export const aivitaUsersRelations = relations(aivitaUsers, ({ one, many }) => ({
   doctorReports: many(doctorReports),
   emailVerifications: many(aivitaEmailVerifications),
   passwordResets: many(aivitaPasswordResets),
+  telegramLinkTokens: many(telegramLinkTokens),
   userDevices: many(userDevices),
 }));
 
