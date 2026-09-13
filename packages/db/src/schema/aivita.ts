@@ -701,7 +701,7 @@ export const notificationSettings = pgTable(
 
     emailEnabled: boolean('email_enabled').default(true).notNull(),
     telegramEnabled: boolean('telegram_enabled').default(false).notNull(),
-    telegramChatId: text('telegram_chat_id'),
+    telegramChatId: text('telegram_chat_id').unique(),
 
     medicationReminders: boolean('medication_reminders').default(true).notNull(),
     appointmentReminders: boolean('appointment_reminders').default(true).notNull(),
