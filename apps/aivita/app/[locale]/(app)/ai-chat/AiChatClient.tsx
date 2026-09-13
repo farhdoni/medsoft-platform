@@ -3,7 +3,7 @@
 import {
   useState, useEffect, useRef, useCallback,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, X, Play, Pause, MoreHorizontal } from 'lucide-react';
 import { ChatComposer } from '@/components/messenger/ChatComposer';
 import { EmojiPanel } from '@/components/messenger/EmojiPanel';
@@ -250,6 +250,7 @@ function nativePostMessage(type: string, extra?: Record<string, unknown>) {
 
 export function AiChatClient({ locale }: { locale: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ── Messages ───────────────────────────────────────────────────────────────
   const [messages,  setMessages]  = useState<Message[]>([]);
@@ -300,6 +301,10 @@ export function AiChatClient({ locale }: { locale: string }) {
   // ── AI conversation history (sent to /api/ai/chat) ──────────────────────────
   const [apiHistory, setApiHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  // Question handed off from the dashboard hero card (?q=...) — sent once
+  // history has settled so it lands after, not under, any loaded messages.
+  const autoSentRef = useRef(false);
 
   // Load chat history from DB on mount
   useEffect(() => {
@@ -606,6 +611,20 @@ export function AiChatClient({ locale }: { locale: string }) {
       void tryParseDocument(file);
     }
   }, [text, attachments, apiHistory, locale]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-send a question handed off via ?q= (dashboard "Спросить" bar and quick
+  // topic chips). Waits for history to load first so the auto-sent turn lands
+  // after any restored messages instead of being wiped out by them, and the
+  // ref + URL cleanup below make sure it fires exactly once — a refresh or a
+  // back-navigation back to this route must not resend it.
+  useEffect(() => {
+    if (!historyLoaded || autoSentRef.current) return;
+    const q = searchParams?.get('q');
+    if (!q) return;
+    autoSentRef.current = true;
+    router.replace(`/${locale}/ai-chat`);
+    void sendMessage(q);
+  }, [historyLoaded, searchParams, sendMessage, router, locale]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
