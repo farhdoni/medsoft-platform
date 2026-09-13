@@ -18,6 +18,7 @@ import { randomInt, createHash, randomBytes } from 'crypto';
 import { SignJWT } from 'jose';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { sendVerificationCode, sendPasswordReset } from '../../lib/email.js';
+import { sendAuthMessage } from '../../lib/notify-code.js';
 import { safeTimezone, isValidTimezone, DEFAULT_TIMEZONE } from '../../lib/timezone.js';
 import { env } from '../../env.js';
 
@@ -175,7 +176,13 @@ aivitaAuthRouter.post(
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    await sendVerificationCode(user.email!, verificationCode);
+    // A just-created user has no notification_settings row yet, so this
+    // always resolves to email here — no special-casing needed.
+    await sendAuthMessage(
+      user.id,
+      `Ваш код подтверждения AIVITA: ${verificationCode}. Действителен 15 минут.`,
+      () => sendVerificationCode(user.email!, verificationCode),
+    );
 
     return c.json({ data: { userId: user.id, email: user.email } }, 201);
   }
@@ -273,7 +280,11 @@ aivitaAuthRouter.post(
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    await sendVerificationCode(user.email!, code);
+    await sendAuthMessage(
+      user.id,
+      `Ваш код подтверждения AIVITA: ${code}. Действителен 15 минут.`,
+      () => sendVerificationCode(user.email!, code),
+    );
 
     // In non-production: return the code directly so admins can verify test accounts
     const isDev = env.NODE_ENV !== 'production';
@@ -471,7 +482,14 @@ aivitaAuthRouter.post(
         expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       });
 
-      await sendPasswordReset(email, rawToken);
+      // Computed once so Telegram and email carry the exact same link —
+      // matches sendPasswordReset's own default when no opts.linkUrl is given.
+      const resetUrl = `${env.AIVITA_URL}/ru/reset-password?token=${rawToken}`;
+      await sendAuthMessage(
+        user.id,
+        `Сброс пароля AIVITA: ${resetUrl}\n\nСсылка действительна 1 час. Если вы не запрашивали сброс — проигнорируйте это сообщение.`,
+        () => sendPasswordReset(email, rawToken, { linkUrl: resetUrl }),
+      );
     }
 
     return c.json({ data: { sent: true } });
