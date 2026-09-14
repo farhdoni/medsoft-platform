@@ -18,4 +18,12 @@ COPY apps/api ./apps/api
 RUN pnpm install --no-frozen-lockfile --filter @medsoft/api...
 ENV NODE_ENV=production
 EXPOSE 3001
+
+# curl isn't in this image; wget (BusyBox) is. start-period=90s covers a cold
+# tsx/esbuild boot (~7s observed) plus a generous margin for a heavy pending
+# migration batch — /v1/health itself hits nothing but the event loop, so
+# 30s-interval polling costs nothing.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+  CMD wget --spider -q http://localhost:3001/v1/health || exit 1
+
 CMD ["/app/node_modules/.bin/tsx", "apps/api/src/index.ts"]
