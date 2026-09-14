@@ -216,6 +216,12 @@
       "promptNutrition": "Nutrition",
       "promptWorkouts": "Workouts"
     },
+    "telegramBanner": {
+      "title": "Connect Telegram",
+      "description": "Get login codes and reminders in Telegram — faster and more reliable than email",
+      "connectButton": "Connect",
+      "close": "Close"
+    },
     "metrics": {
       "sectionTitle": "Quick stats",
       "configure": "Configure",

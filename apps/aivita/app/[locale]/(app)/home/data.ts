@@ -113,6 +113,11 @@ interface ApiReport {
   createdAt: string;
 }
 
+interface ApiNotificationSettings {
+  telegramEnabled: boolean;
+  telegramChatId: string | null;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function numericVitalValue(v: ApiVital): number {
@@ -149,6 +154,7 @@ export async function loadHomeData(): Promise<{
   report: Report | null;
   vitalsLatest: Record<string, ApiVital | null>;
   doctors: DoctorPreview[];
+  telegramLinked: boolean;
 }> {
   // Fetch the user first: vitals queries need the user's timezone to bound
   // "today" by their local day (heart_rate is stored at its real timestamp, so a
@@ -176,6 +182,7 @@ export async function loadHomeData(): Promise<{
     apiReports,
     apiVitalsLatest,
     doctors,
+    apiNotificationSettings,
   ] = await Promise.all([
     authFetch<ApiHealthScore>('/v1/aivita/health-score'),
     authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=heart_rate&from=${todayLocal}`),
@@ -187,7 +194,16 @@ export async function loadHomeData(): Promise<{
     authFetch<ApiReport[]>('/v1/aivita/reports'),
     authFetch<Record<string, ApiVital | null>>('/v1/aivita/vitals/latest'),
     getFeaturedDoctors(),
+    authFetch<ApiNotificationSettings>('/v1/aivita/notifications/settings'),
   ]);
+
+  // Fail-safe: a fetch failure (authFetch returns null on network/HTTP error)
+  // must NOT read as "not linked" — that would flash the connect banner at
+  // already-linked users on a network hiccup. Only an explicit
+  // telegramEnabled: false counts as genuinely unlinked.
+  const telegramLinked = apiNotificationSettings
+    ? !!apiNotificationSettings.telegramEnabled
+    : true;
 
   // ─── User ──────────────────────────────────────────────────────────────────
   const displayName =
@@ -301,5 +317,5 @@ export async function loadHomeData(): Promise<{
 
   const vitalsLatest: Record<string, ApiVital | null> = apiVitalsLatest ?? {};
 
-  return { user, metrics, activity, report, vitalsLatest, doctors: doctors ?? [] };
+  return { user, metrics, activity, report, vitalsLatest, doctors: doctors ?? [], telegramLinked };
 }

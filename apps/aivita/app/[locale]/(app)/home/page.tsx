@@ -9,6 +9,7 @@ import { FloatingNav } from '@/components/cabinet/dashboard/FloatingNav';
 import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
 import { HomeDashboard } from './HomeDashboard';
+import { TelegramBanner } from './TelegramBanner';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [{ user, metrics, activity, report, vitalsLatest, doctors }, session] =
+  const [{ user, metrics, activity, report, vitalsLatest, doctors, telegramLinked }, session] =
     await Promise.all([loadHomeData(), getSession()]);
 
   const vitals = vitalsLatest as Record<string, { recordedAt: string; value: Record<string, unknown> } | null>;
@@ -29,6 +30,7 @@ export default async function HomePage({
         <TopBar avatarInitial={user.avatarInitial} session={session} locale={locale} role={session?.role === 'doctor' ? 'doctor' : 'patient'} />
         <WeatherCard />
         <HeroSection user={user} metrics={metrics} />
+        {!telegramLinked && <TelegramBanner locale={locale} />}
         <MetricsRow metrics={metrics} vitalsLatest={vitals} />
         <ActiveChatsWidget locale={locale} />
 

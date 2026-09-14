@@ -216,6 +216,12 @@
       "promptNutrition": "Ovqatlanish",
       "promptWorkouts": "Mashqlar"
     },
+    "telegramBanner": {
+      "title": "Telegram'ni ulang",
+      "description": "Kirish kodlari va eslatmalarni Telegram orqali oling — emaildan tezroq va ishonchliroq",
+      "connectButton": "Ulash",
+      "close": "Yopish"
+    },
     "metrics": {
       "sectionTitle": "Tezkor ko'rsatkichlar",
       "configure": "Sozlash",

@@ -216,6 +216,12 @@
       "promptNutrition": "Питание",
       "promptWorkouts": "Тренировки"
     },
+    "telegramBanner": {
+      "title": "Подключите Telegram",
+      "description": "Получайте коды входа и напоминания в Telegram — быстрее и надёжнее, чем на email",
+      "connectButton": "Подключить",
+      "close": "Закрыть"
+    },
     "metrics": {
       "sectionTitle": "Быстрые показатели",
       "configure": "Настроить",
