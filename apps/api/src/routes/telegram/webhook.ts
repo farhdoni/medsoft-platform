@@ -3,28 +3,21 @@ import { db, telegramLinkTokens, notificationSettings } from '@medsoft/db';
 import { and, eq, isNull, gt } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import { verifyTelegramWebhookSecret, sendTelegramMessage } from '../../lib/telegram.js';
+import { resolveBotLocale, BOT_MESSAGES } from '../../lib/telegram-i18n.js';
 import { logger } from '../../lib/logger.js';
 
 export const telegramWebhookRouter = new Hono();
 
-const MSG_GREETING =
-  'Привет! Это бот AIVITA. Чтобы привязать аккаунт, откройте приложение → Настройки → Привязать Telegram.';
-const MSG_INVALID_TOKEN =
-  'Ссылка устарела или недействительна. Сгенерируйте новую в приложении AIVITA → Настройки.';
-const MSG_ALREADY_LINKED_ELSEWHERE =
-  'Этот Telegram уже привязан к другому аккаунту AIVITA.';
-const MSG_LINK_FAILED =
-  'Не удалось привязать аккаунт — попробуйте ещё раз чуть позже.';
-const MSG_LINKED =
-  '✅ Telegram привязан к аккаунту AIVITA. Теперь коды и уведомления могут приходить сюда.';
-
 // "/start" or "/start <token>" — Telegram's deep-link payload
 // (t.me/<bot>?start=<token>) arrives as a space-separated second word.
-async function handleStart(chatId: number, text: string): Promise<void> {
+//
+// languageCode is from.language_code off the update — the Telegram client's
+// language, all we have until a link token resolves an account (see below).
+async function handleStart(chatId: number, text: string, languageCode: string | undefined): Promise<void> {
   const token = text.trim().split(/\s+/)[1];
 
   if (!token) {
-    await sendTelegramMessage(chatId, MSG_GREETING);
+    await sendTelegramMessage(chatId, BOT_MESSAGES.greeting[resolveBotLocale(languageCode)]);
     return;
   }
 
@@ -40,12 +33,18 @@ async function handleStart(chatId: number, text: string): Promise<void> {
       isNull(telegramLinkTokens.usedAt),
       gt(telegramLinkTokens.expiresAt, now),
     ),
+    // Pulled in the same query — every reply from here on knows the
+    // account, so its locale (an explicit in-app choice) can outrank the
+    // Telegram client language for the rest of this call.
+    with: { user: { columns: { locale: true } } },
   });
 
   if (!link) {
-    await sendTelegramMessage(chatId, MSG_INVALID_TOKEN);
+    await sendTelegramMessage(chatId, BOT_MESSAGES.invalidToken[resolveBotLocale(languageCode)]);
     return;
   }
+
+  const locale = resolveBotLocale(languageCode, link.user?.locale);
 
   // chat.id === from.id for a private bot chat (the only kind /start can
   // arrive from) — stored under chat_id since that's what sendMessage
@@ -71,11 +70,11 @@ async function handleStart(chatId: number, text: string): Promise<void> {
         { chatId: chatIdStr, userId: link.userId },
         '[telegram-webhook] chat_id already linked to a different account — refusing',
       );
-      await sendTelegramMessage(chatId, MSG_ALREADY_LINKED_ELSEWHERE);
+      await sendTelegramMessage(chatId, BOT_MESSAGES.alreadyLinkedElsewhere[locale]);
       return;
     }
     logger.error({ err, userId: link.userId }, '[telegram-webhook] failed to link telegram account');
-    await sendTelegramMessage(chatId, MSG_LINK_FAILED);
+    await sendTelegramMessage(chatId, BOT_MESSAGES.linkFailed[locale]);
     return;
   }
 
@@ -83,7 +82,7 @@ async function handleStart(chatId: number, text: string): Promise<void> {
     .set({ usedAt: now })
     .where(eq(telegramLinkTokens.id, link.id));
 
-  await sendTelegramMessage(chatId, MSG_LINKED);
+  await sendTelegramMessage(chatId, BOT_MESSAGES.linked[locale]);
 }
 
 // POST /v1/telegram/webhook — receives updates for @aivita_uz_bot.
@@ -134,7 +133,7 @@ telegramWebhookRouter.post('/', async (c) => {
   const chatId = update.message?.chat?.id;
   if (type === 'message' && typeof text === 'string' && text.startsWith('/start') && chatId != null) {
     try {
-      await handleStart(chatId, text);
+      await handleStart(chatId, text, from?.language_code);
     } catch (err) {
       // handleStart's own DB/Telegram calls already catch what they can;
       // this is the last-resort net so a bug there never turns into a

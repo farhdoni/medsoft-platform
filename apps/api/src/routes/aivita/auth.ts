@@ -19,6 +19,7 @@ import { SignJWT } from 'jose';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { sendVerificationCode, sendPasswordReset } from '../../lib/email.js';
 import { sendAuthMessage } from '../../lib/notify-code.js';
+import { resolveBotLocale, verificationCodeMessage, passwordResetMessage } from '../../lib/telegram-i18n.js';
 import { safeTimezone, isValidTimezone, DEFAULT_TIMEZONE } from '../../lib/timezone.js';
 import { env } from '../../env.js';
 
@@ -180,7 +181,7 @@ aivitaAuthRouter.post(
     // always resolves to email here — no special-casing needed.
     await sendAuthMessage(
       user.id,
-      `Ваш код подтверждения AIVITA: ${verificationCode}. Действителен 15 минут.`,
+      verificationCodeMessage(resolveBotLocale(undefined, user.locale), verificationCode),
       () => sendVerificationCode(user.email!, verificationCode),
     );
 
@@ -282,7 +283,7 @@ aivitaAuthRouter.post(
 
     await sendAuthMessage(
       user.id,
-      `Ваш код подтверждения AIVITA: ${code}. Действителен 15 минут.`,
+      verificationCodeMessage(resolveBotLocale(undefined, user.locale), code),
       () => sendVerificationCode(user.email!, code),
     );
 
@@ -484,10 +485,12 @@ aivitaAuthRouter.post(
 
       // Computed once so Telegram and email carry the exact same link —
       // matches sendPasswordReset's own default when no opts.linkUrl is given.
-      const resetUrl = `${env.AIVITA_URL}/ru/reset-password?token=${rawToken}`;
+      // Locale-prefixed to the account's own language, same as the message text below.
+      const locale = resolveBotLocale(undefined, user.locale);
+      const resetUrl = `${env.AIVITA_URL}/${locale}/reset-password?token=${rawToken}`;
       await sendAuthMessage(
         user.id,
-        `Сброс пароля AIVITA: ${resetUrl}\n\nСсылка действительна 1 час. Если вы не запрашивали сброс — проигнорируйте это сообщение.`,
+        passwordResetMessage(locale, resetUrl),
         () => sendPasswordReset(email, rawToken, { linkUrl: resetUrl }),
       );
     }
