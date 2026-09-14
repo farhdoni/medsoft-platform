@@ -46,6 +46,14 @@ function LanguageModal({ current, onClose }: { current: string; onClose: () => v
     onClose();
     router.push(newPath || `/${code}/settings`);
     router.refresh();
+    // Persist to the account too — otherwise Telegram/email (which pick
+    // language off aivita_users.locale, not this cookie) keep talking in
+    // whatever language was active at signup.
+    fetch('/api/proxy/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale: code }),
+    }).catch(() => {});
   }
 
   return (
