@@ -26,7 +26,6 @@
     "ioredis": "^5.4.1",
     "jose": "^5.9.3",
     "node-cron": "^4.2.1",
-    "nodemailer": "^6.9.15",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
     "postgres": "^3.4.4",
@@ -37,7 +36,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/nodemailer": "^6.4.17",
     "@types/web-push": "^3.6.4",
     "tsc-alias": "^1.8.10",
     "vitest": "^2.1.9"

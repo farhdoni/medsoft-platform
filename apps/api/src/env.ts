@@ -18,14 +18,6 @@ const envSchema = z.object({
   // Email
   EMAIL_PROVIDER: z.enum(['mock', 'smtp']).default('mock'),
   RESEND_API_KEY: z.string().optional(),
-  // deprecated, заменено Resend (см. RESEND_API_KEY) — оставлены на случай отката
-  SMTP_HOST: z.string().default('smtp.gmail.com'),
-  SMTP_PORT: z.coerce.number().default(587),
-  SMTP_SECURE: z.string().default('false'),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM_NAME: z.string().default('Aivita'),
-  SMTP_FROM_EMAIL: z.string().optional(),
   ADMIN_URL: z.string().default('http://localhost:3000'),
   CORS_ORIGINS: z.string().optional(),
   CORS_ORIGIN: z.string().optional(),
