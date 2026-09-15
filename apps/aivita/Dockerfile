@@ -5,13 +5,6 @@ FROM base AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=--max-old-space-size=4096
-# Coolify injects NODE_ENV=production as a build ARG/ENV — pnpm treats that
-# as an implicit --prod during install and silently skips devDependencies.
-# admin's Dockerfile already guards against this; aivita's build didn't hit
-# it directly (next.config has typescript.ignoreBuildErrors: true, so a
-# missing typescript package doesn't fail next build) but set it for parity
-# and to not depend on that config staying that way.
-ENV NODE_ENV=development
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY patches/ patches/
 COPY apps/aivita/package.json apps/aivita/
