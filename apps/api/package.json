@@ -16,10 +16,6 @@
     "@hono/zod-validator": "^0.2.2",
     "@medsoft/db": "workspace:*",
     "@medsoft/shared": "workspace:*",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^22.0.0",
-    "@types/node-cron": "^3.0.11",
-    "@types/speakeasy": "^2.0.10",
     "bcryptjs": "^2.4.3",
     "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.30.10",
@@ -31,14 +27,18 @@
     "pino-pretty": "^11.2.2",
     "postgres": "^3.4.4",
     "speakeasy": "^2.0.0",
-    "tsx": "^4.16.2",
-    "typescript": "^5.4.5",
     "web-push": "^3.6.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/speakeasy": "^2.0.10",
     "@types/web-push": "^3.6.4",
     "tsc-alias": "^1.8.10",
+    "tsx": "^4.16.2",
+    "typescript": "^5.4.5",
     "vitest": "^2.1.9"
   }
 }
