@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PAYMENT_PROVIDERS, TRANSACTION_STATUSES, TRANSACTION_TYPES } from '../constants';
+import { PAYMENT_PROVIDERS, TRANSACTION_STATUSES, TRANSACTION_TYPES } from '../constants.js';
 
 export const createTransactionSchema = z.object({
   patientId: z.string().uuid().optional(),

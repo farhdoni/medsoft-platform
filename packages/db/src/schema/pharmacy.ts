@@ -12,7 +12,7 @@ import {
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita';
+import { aivitaUsers } from './aivita.js';
 
 // ─── 1. pharmacies ─────────────────────────────────────────────────────────────
 
