@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, timestamp, decimal, boolean, integer, pgEnum } from 'drizzle-orm/pg-core';
-import { clinics } from './clinics';
+import { clinics } from './clinics.js';
 
 export const doctorStatusEnum = pgEnum('doctor_status', ['pending', 'active', 'suspended', 'offline']);
 

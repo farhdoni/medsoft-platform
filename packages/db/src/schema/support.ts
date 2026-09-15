@@ -8,9 +8,9 @@ import {
   varchar,
   index,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita';
-import { adminUsers } from './admins';
-import { conversations } from './messaging';
+import { aivitaUsers } from './aivita.js';
+import { adminUsers } from './admins.js';
+import { conversations } from './messaging.js';
 
 /**
  * Кабинет поддержки. Таблицы заводит миграция 0037, добивает 0040 — здесь

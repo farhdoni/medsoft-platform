@@ -11,8 +11,8 @@ import {
   index,
   unique,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita';
-import { aivitaPrescriptions } from './aivita-doctor';
+import { aivitaUsers } from './aivita.js';
+import { aivitaPrescriptions } from './aivita-doctor.js';
 
 // ─── 1. medication_schedule ────────────────────────────────────────────────────
 
