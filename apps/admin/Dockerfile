@@ -19,6 +19,14 @@ RUN pnpm install --no-frozen-lockfile --ignore-scripts
 # Overwrite stubs with full source for what we actually build
 COPY packages/shared ./packages/shared
 COPY apps/admin      ./apps/admin
+# packages/shared's package.json main/exports point at ./dist (built output,
+# gitignored) — never checked in, so a fresh clone has no dist until this
+# runs. Locally this went unnoticed because a previously-built dist/ was
+# still sitting on disk; a clean checkout (what Coolify always builds from)
+# has none. admin doesn't currently import @medsoft/shared directly (only
+# lists it in next.config transpilePackages) so this hasn't broken admin's
+# build yet, but build it anyway for consistency with the actual contract.
+RUN pnpm --filter @medsoft/shared build
 WORKDIR /app/apps/admin
 RUN pnpm build
 

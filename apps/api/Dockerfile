@@ -5,6 +5,16 @@ RUN npm install -g pnpm@9
 # ─── builder: full install (with devDeps) + compile db/shared/api to dist ──────
 FROM base AS builder
 WORKDIR /app
+# Coolify injects NODE_ENV=production as a build ARG/ENV on every stage (it's
+# the runtime env var, but Docker ARGs/ENVs from earlier in the file leak
+# forward). pnpm treats NODE_ENV=production as an implicit --prod during
+# install, silently skipping devDependencies — including typescript, which
+# the build step below needs. Force it back for this stage; the runner stage
+# below sets NODE_ENV=production again for the actual runtime. The old
+# single-stage Dockerfile had this same line for the same reason — lost when
+# this stage was split out, which is exactly what broke the first deploy
+# attempt (`tsc: not found`).
+ENV NODE_ENV=development
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
 COPY patches/ patches/
 COPY packages/shared ./packages/shared
