@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from '../constants.js';
+import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES } from '../constants';
 
 export const createAppointmentSchema = z.object({
   patientId: z.string().uuid(),

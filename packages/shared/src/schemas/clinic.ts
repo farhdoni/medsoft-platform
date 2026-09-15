@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CLINIC_STATUSES, CLINIC_TYPES } from '../constants.js';
+import { CLINIC_STATUSES, CLINIC_TYPES } from '../constants';
 
 const workingHoursSchema = z.record(
   z.string(),

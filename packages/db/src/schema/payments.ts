@@ -9,8 +9,8 @@ import {
   text,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita.js';
-import { messages, conversations } from './messaging.js';
+import { aivitaUsers } from './aivita';
+import { messages, conversations } from './messaging';
 
 // ─── 1. subscription_plans ─────────────────────────────────────────────────────
 

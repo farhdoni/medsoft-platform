@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ADMIN_ROLES } from '../constants.js';
+import { ADMIN_ROLES } from '../constants';
 
 export const createAdminSchema = z.object({
   email: z.string().email(),

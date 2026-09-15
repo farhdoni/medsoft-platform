@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BLOOD_GROUPS, GENDERS, LANGUAGES, PATIENT_STATUSES } from '../constants.js';
+import { BLOOD_GROUPS, GENDERS, LANGUAGES, PATIENT_STATUSES } from '../constants';
 
 export const createPatientSchema = z.object({
   phone: z.string().min(9).max(20),

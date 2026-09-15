@@ -7,8 +7,8 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { aivitaUsers } from './aivita.js';
-import { partnerClinics } from './partner-clinics.js';
+import { aivitaUsers } from './aivita';
+import { partnerClinics } from './partner-clinics';
 
 // ─── consents ───────────────────────────────────────────────────────────────
 //

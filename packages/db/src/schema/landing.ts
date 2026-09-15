@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, varchar, boolean, timestamp, unique, jsonb, serial } from 'drizzle-orm/pg-core';
-import { adminUsers } from './admins.js';
+import { adminUsers } from './admins';
 
 export const landingWaitlist = pgTable('landing_waitlist', {
   id: uuid('id').primaryKey().defaultRandom(),

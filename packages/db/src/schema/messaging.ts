@@ -10,8 +10,8 @@ import {
   type AnyPgColumn,
   doublePrecision,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita.js';
-import { adminUsers } from './admins.js';
+import { aivitaUsers } from './aivita';
+import { adminUsers } from './admins';
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, timestamp, decimal, integer, jsonb, pgEnum } from 'drizzle-orm/pg-core';
-import { patients } from './patients.js';
-import { adminUsers } from './admins.js';
+import { patients } from './patients';
+import { adminUsers } from './admins';
 
 export const sosStatusEnum = pgEnum('sos_status', ['triggered', 'operator_assigned', 'brigade_dispatched', 'in_progress', 'resolved', 'false_alarm', 'cancelled']);
 

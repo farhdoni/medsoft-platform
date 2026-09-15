@@ -6,9 +6,9 @@ import {
   jsonb,
   index,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita.js';
-import { partnerClinics } from './partner-clinics.js';
-import { consents } from './consents.js';
+import { aivitaUsers } from './aivita';
+import { partnerClinics } from './partner-clinics';
+import { consents } from './consents';
 
 // ─── exchange_audit ─────────────────────────────────────────────────────────
 //

@@ -1,9 +1,9 @@
 import { pgTable, uuid, text, timestamp, decimal, boolean, integer, pgEnum } from 'drizzle-orm/pg-core';
-import { patients } from './patients.js';
-import { doctors } from './doctors.js';
-import { clinics } from './clinics.js';
-import { transactions } from './transactions.js';
-import { aiLogs } from './ai-logs.js';
+import { patients } from './patients';
+import { doctors } from './doctors';
+import { clinics } from './clinics';
+import { transactions } from './transactions';
+import { aiLogs } from './ai-logs';
 
 export const appointmentTypeEnum = pgEnum('appointment_type', ['telemedicine_video', 'telemedicine_chat', 'offline_clinic', 'home_visit']);
 export const appointmentStatusEnum = pgEnum('appointment_status', ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled_by_patient', 'cancelled_by_doctor', 'no_show']);

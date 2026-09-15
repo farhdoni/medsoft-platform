@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, timestamp, decimal, pgEnum } from 'drizzle-orm/pg-core';
-import { patients } from './patients.js';
-import { clinics } from './clinics.js';
-import { adminUsers } from './admins.js';
+import { patients } from './patients';
+import { clinics } from './clinics';
+import { adminUsers } from './admins';
 
 export const transactionTypeEnum = pgEnum('transaction_type', ['deposit_topup', 'appointment_payment', 'refund', 'withdrawal', 'commission_to_clinic', 'bonus']);
 export const transactionStatusEnum = pgEnum('transaction_status', ['pending', 'completed', 'failed', 'refunded', 'cancelled']);

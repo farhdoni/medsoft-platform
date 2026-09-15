@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, timestamp, decimal, integer, pgEnum } from 'drizzle-orm/pg-core';
-import { patients } from './patients.js';
-import { doctors } from './doctors.js';
+import { patients } from './patients';
+import { doctors } from './doctors';
 
 export const aiIntentEnum = pgEnum('ai_intent', ['symptom_check', 'doctor_recommendation', 'medication_info', 'lifestyle_advice', 'other']);
 export const aiOutcomeEnum = pgEnum('ai_outcome', ['appointment_booked', 'self_care_advised', 'sos_triggered', 'no_action', 'abandoned']);
