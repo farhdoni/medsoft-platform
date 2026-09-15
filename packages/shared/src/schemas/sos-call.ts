@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SOS_STATUSES } from '../constants';
+import { SOS_STATUSES } from '../constants.js';
 
 export const sosCallFiltersSchema = z.object({
   status: z.enum(SOS_STATUSES).optional(),

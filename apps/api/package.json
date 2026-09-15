@@ -2,10 +2,11 @@
   "name": "@medsoft/api",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file .env src/index.ts",
-    "build": "echo 'No compile step — tsx runs TS directly'",
-    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

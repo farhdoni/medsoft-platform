@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DOCTOR_STATUSES, LANGUAGES } from '../constants';
+import { DOCTOR_STATUSES, LANGUAGES } from '../constants.js';
 
 export const createDoctorSchema = z.object({
   phone: z.string().min(9).max(20),

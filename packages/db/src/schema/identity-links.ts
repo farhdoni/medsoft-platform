@@ -6,8 +6,8 @@ import {
   index,
   unique,
 } from 'drizzle-orm/pg-core';
-import { aivitaUsers } from './aivita';
-import { partnerClinics } from './partner-clinics';
+import { aivitaUsers } from './aivita.js';
+import { partnerClinics } from './partner-clinics.js';
 
 // ─── identity_links ─────────────────────────────────────────────────────────
 //

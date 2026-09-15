@@ -1,5 +1,5 @@
-import { db } from './client';
-import { adminUsers, clinics, doctors, patients, appointments } from './schema/index';
+import { db } from './client.js';
+import { adminUsers, clinics, doctors, patients, appointments } from './schema/index.js';
 
 async function main() {
   console.log('Seeding database...');
