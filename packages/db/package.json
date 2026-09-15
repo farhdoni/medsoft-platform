@@ -2,20 +2,48 @@
   "name": "@medsoft/db",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts",
-    "./schema/partner-clinics": "./src/schema/partner-clinics.ts",
-    "./schema/identity-links": "./src/schema/identity-links.ts",
-    "./schema/ecosystem-appointments": "./src/schema/ecosystem-appointments.ts",
-    "./schema/consents": "./src/schema/consents.ts",
-    "./schema/discharge-documents": "./src/schema/discharge-documents.ts",
-    "./schema/exchange-audit": "./src/schema/exchange-audit.ts",
-    "./schema/aivita": "./src/schema/aivita.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "default": "./dist/schema/index.js"
+    },
+    "./schema/partner-clinics": {
+      "types": "./dist/schema/partner-clinics.d.ts",
+      "default": "./dist/schema/partner-clinics.js"
+    },
+    "./schema/identity-links": {
+      "types": "./dist/schema/identity-links.d.ts",
+      "default": "./dist/schema/identity-links.js"
+    },
+    "./schema/ecosystem-appointments": {
+      "types": "./dist/schema/ecosystem-appointments.d.ts",
+      "default": "./dist/schema/ecosystem-appointments.js"
+    },
+    "./schema/consents": {
+      "types": "./dist/schema/consents.d.ts",
+      "default": "./dist/schema/consents.js"
+    },
+    "./schema/discharge-documents": {
+      "types": "./dist/schema/discharge-documents.d.ts",
+      "default": "./dist/schema/discharge-documents.js"
+    },
+    "./schema/exchange-audit": {
+      "types": "./dist/schema/exchange-audit.d.ts",
+      "default": "./dist/schema/exchange-audit.js"
+    },
+    "./schema/aivita": {
+      "types": "./dist/schema/aivita.d.ts",
+      "default": "./dist/schema/aivita.js"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
