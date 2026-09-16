@@ -105,7 +105,7 @@ export default async function SettingsPage({
       title: t('sectionOther'),
       items: [
         { icon: HelpCircle, label: t('help'),  sub: t('helpSub'),   href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
-        { icon: Lock,       label: t('about'), sub: 'Aivita v1.3.0', href: '#', value: 'v1.3.0',     bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: t('about'), sub: 'Aivita v1.3.23', href: '#', value: 'v1.3.23',     bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
   ];
@@ -144,7 +144,7 @@ export default async function SettingsPage({
       title: t('sectionOther'),
       items: [
         { icon: HelpCircle, label: t('help'),  sub: t('helpSub'),    href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
-        { icon: Lock,       label: t('about'), sub: 'Aivita v1.3.0', href: '#', value: 'v1.3.0',      bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: t('about'), sub: 'Aivita v1.3.23', href: '#', value: 'v1.3.23',      bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
   ];
