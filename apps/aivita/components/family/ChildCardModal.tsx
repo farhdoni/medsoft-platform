@@ -8,7 +8,14 @@ const PROXY = '/api/proxy';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BLOOD_GROUPS = ['A(I)', 'B(II)', 'AB(III)', 'O(IV)', 'Не знаю'];
+// value = canonical storage format (bare letter, matches ChildCardClient's
+// formatBloodType parsing) — label shows the correct roman numeral (O=I,
+// A=II, B=III, AB=IV) as a picking aid only; never stored.
+const BLOOD_GROUPS = [
+  { value: 'A', label: 'A (II)' }, { value: 'B', label: 'B (III)' },
+  { value: 'AB', label: 'AB (IV)' }, { value: 'O', label: 'O (I)' },
+  { value: '', label: 'Не знаю' },
+];
 const RH_FACTORS   = ['+', '−', '?'];
 
 const CHILD_DISEASES = [
@@ -288,13 +295,13 @@ export function ChildCardModal({ open, onClose, onSaved }: Props) {
           <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Группа крови</p>
           <div className="flex flex-wrap gap-1">
             {BLOOD_GROUPS.map(bg => {
-              const sel = bloodGroup === bg;
+              const sel = bloodGroup === bg.value;
               return (
-                <button key={bg} onClick={() => setBloodGroup(sel ? '' : bg)}
+                <button key={bg.value} onClick={() => setBloodGroup(sel ? '' : bg.value)}
                   className="px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-all"
                   style={{ borderColor: sel ? '#6BA3D6' : '#e8e4dc', background: sel ? '#dbeeff' : '#fafafa', color: sel ? '#4a7fb5' : '#6a6580' }}
                 >
-                  {bg}
+                  {bg.label}
                 </button>
               );
             })}

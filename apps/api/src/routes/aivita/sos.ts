@@ -8,6 +8,7 @@ import {
   sosEvents,
 } from '@medsoft/db';
 import { eq, desc, and } from 'drizzle-orm';
+import { formatBloodType } from '@medsoft/shared';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const sosRouter = new Hono();
@@ -34,7 +35,7 @@ sosRouter.post('/trigger', async (c) => {
     .from(chronicConditions).where(eq(chronicConditions.userId, userId));
 
   const medicalData = {
-    blood_group: profile?.bloodType || 'не указано',
+    blood_group: formatBloodType(profile?.bloodType, undefined, 'не указано'),
     allergies: allergyRows.length ? allergyRows.map(a => a.allergen).join(', ') : 'нет',
     chronic_diseases: chronicRows.length ? chronicRows.map(r => r.name).join(', ') : 'нет',
   };

@@ -11,7 +11,16 @@ type StepData = Record<string, unknown>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BLOOD_TYPES = ['A(I)+', 'A(I)−', 'B(II)+', 'B(II)−', 'AB(III)+', 'AB(III)−', 'O(IV)+', 'O(IV)−', 'Не знаю'];
+// value = canonical storage format (letter + sign, matches ProfileClient's own
+// blood-type input) — label shows the correct roman numeral (O=I, A=II, B=III,
+// AB=IV) as a picking aid only; the numeral itself is never stored.
+const BLOOD_TYPES = [
+  { value: 'A+', label: 'A (II)+' }, { value: 'A-', label: 'A (II)−' },
+  { value: 'B+', label: 'B (III)+' }, { value: 'B-', label: 'B (III)−' },
+  { value: 'AB+', label: 'AB (IV)+' }, { value: 'AB-', label: 'AB (IV)−' },
+  { value: 'O+', label: 'O (I)+' }, { value: 'O-', label: 'O (I)−' },
+  { value: '', label: 'Не знаю' },
+];
 
 const CHILD_DISEASES = ['Ветрянка', 'Корь', 'Краснуха', 'Скарлатина', 'Паротит', 'Мононуклеоз', 'Коклюш'];
 
@@ -418,15 +427,15 @@ function Step2({ data, onChange, isMinor }: { data: StepData; onChange: (d: Step
         <div className="grid grid-cols-3 gap-2">
           {BLOOD_TYPES.map(bt => (
             <button
-              key={bt}
-              onClick={() => onChange({ ...data, bloodType: bt })}
+              key={bt.value}
+              onClick={() => onChange({ ...data, bloodType: bt.value })}
               className={`py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                data.bloodType === bt
+                data.bloodType === bt.value
                   ? 'border-pink-400 bg-pink-50 text-pink-700'
                   : 'border-[rgba(120,160,200,0.2)] bg-white/60 text-gray-600 hover:bg-white'
               }`}
             >
-              {bt}
+              {bt.label}
             </button>
           ))}
         </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronDown, ChevronUp, Edit2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatBloodType } from '@medsoft/shared';
 
 const PROXY = '/api/proxy';
 
@@ -228,7 +229,7 @@ export function ChildCardClient({ memberId, locale }: { memberId: string; locale
           {[
             { label: 'Рост',          value: card.heightCm ? `${card.heightCm} см`    : '—' },
             { label: 'Вес',           value: card.weightKg ? `${card.weightKg} кг`    : '—' },
-            { label: 'Группа крови',  value: [card.bloodGroup, card.rhFactor].filter(Boolean).join(' ') || '—' },
+            { label: 'Группа крови',  value: formatBloodType(card.bloodGroup, card.rhFactor) },
             { label: 'Возраст',       value: age !== null ? `${age} лет` : '—' },
           ].map(f => (
             <div key={f.label} className="rounded-xl p-3" style={{ background: '#f4f3ef' }}>

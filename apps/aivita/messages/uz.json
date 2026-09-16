@@ -259,6 +259,37 @@
           "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
           "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
         ]
+      },
+      "lifestyle": {
+        "smoking": {
+          "never": "Hech qachon", "quit": "Tashladim", "sometimes": "Ba'zan",
+          "regular": "Doimiy", "former": "Tashladim", "current": "Chekaman"
+        },
+        "alcohol": {
+          "never": "Hech qachon", "rarely": "Kamdan-kam", "moderate": "O'rtacha",
+          "regular": "Doimiy", "rare": "Kamdan-kam", "frequent": "Tez-tez"
+        },
+        "activity": {
+          "sedentary": "Kam harakat", "light": "Yengil faollik",
+          "moderate": "O'rtacha faollik", "active": "Yuqori faollik",
+          "never": "Harakat qilmayman", "rare": "Deyarli yo'q", "sometimes": "Ba'zan",
+          "often": "Tez-tez", "daily": "Har kuni"
+        },
+        "sleep": {
+          "<6": "6 soatdan kam", "<7": "7 soatdan kam", "6-7": "6–7 soat",
+          "7-8": "7–8 soat", "8-9": "8–9 soat", ">8": "8 soatdan ko'p", ">9": "9 soatdan ko'p"
+        },
+        "diet": {
+          "regular": "Oddiy", "vegetarian": "Vegetarian",
+          "vegan": "Vegan", "halal": "Halol"
+        },
+        "nutrition": {
+          "balanced": "Muvozanatli", "vegetarian": "Vegetarian",
+          "vegan": "Vegan", "fastfood": "Fastfud", "irregular": "Notekis"
+        },
+        "screenTime": {
+          "<2h": "2 soatgacha", "2-4h": "2–4 soat", ">4h": "4 soatdan ko'p"
+        }
       }
     },
     "settings": {

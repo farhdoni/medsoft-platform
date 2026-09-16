@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { HealthProfile, Allergy, ChronicCondition, HistoryEntry, Medication } from './types';
 import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 import { calcAge } from '@/lib/date-utils';
+import { formatBloodType } from '@medsoft/shared';
 
 const DOB_MIN_AGE = 12;
 const DOB_MAX_AGE = 90;
@@ -231,6 +232,7 @@ interface MetricCardProps {
   label: string;
   field: string;
   value: string | number | null;
+  displayValue?: string | null;
   unit?: string;
   bg: string;
   color: string;
@@ -240,7 +242,7 @@ interface MetricCardProps {
   readOnly?: boolean;
 }
 
-function MetricCard({ label, field, value, unit, bg, color, inputType = 'text', options, onSave, readOnly }: MetricCardProps) {
+function MetricCard({ label, field, value, displayValue, unit, bg, color, inputType = 'text', options, onSave, readOnly }: MetricCardProps) {
   const [editing, setEditing] = useState(false);
   const [val, setVal]         = useState(String(value ?? ''));
   const [saving, setSaving]   = useState(false);
@@ -255,7 +257,7 @@ function MetricCard({ label, field, value, unit, bg, color, inputType = 'text', 
     finally { setSaving(false); }
   }
 
-  const displayVal = value !== null && value !== undefined && String(value) !== '' ? String(value) : null;
+  const displayVal = displayValue ?? (value !== null && value !== undefined && String(value) !== '' ? String(value) : null);
 
   return (
     <div
@@ -695,7 +697,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
         <MetricCard label="Рост"  field="heightCm" value={profile?.heightCm ?? null} unit="см" bg='var(--accent-light)' color='var(--accent-dark)' inputType="number" onSave={saveField} />
         <MetricCard label="Вес"   field="weightKg" value={profile?.weightKg ?? null} unit="кг" bg="var(--accent-bg-light)" color="var(--accent-dark)" inputType="number" onSave={saveField} />
         <MetricCard label="ИМТ"   field="bmi"      value={bmi}                        bg="#d4e8d8" color="#548068" onSave={saveField} readOnly />
-        <MetricCard label="Кровь" field="bloodType" value={profile?.bloodType ?? null} bg="#d4dff0" color="#5e75a8" options={BLOOD_OPTS} onSave={saveField} />
+        <MetricCard label="Кровь" field="bloodType" value={profile?.bloodType ?? null} displayValue={profile?.bloodType ? formatBloodType(profile.bloodType) : undefined} bg="#d4dff0" color="#5e75a8" options={BLOOD_OPTS} onSave={saveField} />
       </section>
 
       {/* ── Profile chips ────────────────────────────────────────────────────── */}
@@ -703,7 +705,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
         <div className="flex flex-wrap gap-1.5 mb-4">
           {profile.gender   && <span className="bg-[color:var(--accent-bg-light)] text-[color:var(--accent-dark)] text-[11px] font-semibold px-2 py-0.5 rounded-full">{labelOf(GENDER_OPTS, profile.gender)}</span>}
           {profile.city     && <span className="bg-[#d4dff0] text-[#5e75a8] text-[11px] font-semibold px-2 py-0.5 rounded-full">📍 {profile.city}</span>}
-          {profile.bloodType && <span className="bg-[#f0d4dc] text-[#9c5e6c] text-[11px] font-semibold px-2 py-0.5 rounded-full">🩸 {profile.bloodType}</span>}
+          {profile.bloodType && <span className="bg-[#f0d4dc] text-[#9c5e6c] text-[11px] font-semibold px-2 py-0.5 rounded-full">🩸 {formatBloodType(profile.bloodType)}</span>}
         </div>
       )}
 

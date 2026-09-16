@@ -259,6 +259,37 @@
           "January", "February", "March", "April", "May", "June",
           "July", "August", "September", "October", "November", "December"
         ]
+      },
+      "lifestyle": {
+        "smoking": {
+          "never": "Never", "quit": "Quit", "sometimes": "Sometimes",
+          "regular": "Regularly", "former": "Quit", "current": "Smokes"
+        },
+        "alcohol": {
+          "never": "Never", "rarely": "Rarely", "moderate": "Moderately",
+          "regular": "Regularly", "rare": "Rarely", "frequent": "Often"
+        },
+        "activity": {
+          "sedentary": "Sedentary", "light": "Light activity",
+          "moderate": "Moderate activity", "active": "High activity",
+          "never": "Not active", "rare": "Rarely", "sometimes": "Sometimes",
+          "often": "Often", "daily": "Daily"
+        },
+        "sleep": {
+          "<6": "Less than 6 hours", "<7": "Less than 7 hours", "6-7": "6–7 hours",
+          "7-8": "7–8 hours", "8-9": "8–9 hours", ">8": "More than 8 hours", ">9": "More than 9 hours"
+        },
+        "diet": {
+          "regular": "Regular", "vegetarian": "Vegetarian",
+          "vegan": "Vegan", "halal": "Halal"
+        },
+        "nutrition": {
+          "balanced": "Balanced", "vegetarian": "Vegetarian",
+          "vegan": "Vegan", "fastfood": "Fast food", "irregular": "Irregular"
+        },
+        "screenTime": {
+          "<2h": "Up to 2 hours", "2-4h": "2–4 hours", ">4h": "More than 4 hours"
+        }
       }
     },
     "settings": {

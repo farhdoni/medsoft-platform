@@ -3,8 +3,10 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { MedicalCardData } from './page';
 import { compressImageFile } from '@/lib/image/compress';
+import { formatBloodType } from '@medsoft/shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,26 +84,16 @@ const GENDER_LABELS: Record<string, string> = {
   male: 'Мужской', female: 'Женский', other: 'Другой',
 };
 
-const BLOOD_TYPE_MAP: Record<string, string> = {
-  'A+': 'A (II) Rh+', 'A-': 'A (II) Rh−',
-  'B+': 'B (III) Rh+', 'B-': 'B (III) Rh−',
-  'AB+': 'AB (IV) Rh+', 'AB-': 'AB (IV) Rh−',
-  'O+': 'O (I) Rh+', 'O-': 'O (I) Rh−',
-};
+// Blood type/Rh formatting is unified via formatBloodType() (@medsoft/shared) —
+// see Part 1 of the blood-type unification: it re-derives the roman numeral
+// from the letter instead of trusting one already embedded in the raw value.
 
-const SMOKING_LABELS: Record<string, string> = {
-  none: 'Не курю', occasional: 'Иногда', regular: 'Регулярно', ex: 'Бросил(а)',
-};
-const ALCOHOL_LABELS: Record<string, string> = {
-  none: 'Не употребляю', occasional: 'Изредка', moderate: 'Умеренно', often: 'Часто',
-};
-const ACTIVITY_LABELS: Record<string, string> = {
-  sedentary: 'Малоактивный', light: 'Лёгкая активность',
-  moderate: 'Умеренная активность', active: 'Высокая активность',
-};
-const SLEEP_LABELS: Record<string, string> = {
-  '<6': 'Менее 6 часов', '6-7': '6–7 часов', '7-8': '7–8 часов', '8-9': '8–9 часов', '>9': 'Более 9 часов',
-};
+// Lifestyle option vocabularies are NOT unified across entry points (Profile
+// inline edit, the legacy onboarding wizard, the modern onboarding/lifestyle
+// step, and the teen onboarding step all write different value sets into the
+// same health_profiles columns) — these label dicts (app.common.lifestyle.*
+// in messages/*.json) cover the union of every value any entry point can
+// actually produce, so nothing here leaks as a raw code.
 
 // ─── QR Code (simple data URL via canvas) ────────────────────────────────────
 
@@ -461,6 +453,14 @@ function SuggestionsModal({
 
 export function MedicalCardClient({ data, locale }: { data: MedicalCardData | null; locale: string }) {
   const router = useRouter();
+  const tLifestyle = useTranslations('app.common.lifestyle');
+  const SMOKING_LABELS = tLifestyle.raw('smoking') as Record<string, string>;
+  const ALCOHOL_LABELS = tLifestyle.raw('alcohol') as Record<string, string>;
+  const ACTIVITY_LABELS = tLifestyle.raw('activity') as Record<string, string>;
+  const SLEEP_LABELS = tLifestyle.raw('sleep') as Record<string, string>;
+  const DIET_LABELS = tLifestyle.raw('diet') as Record<string, string>;
+  const NUTRITION_LABELS = tLifestyle.raw('nutrition') as Record<string, string>;
+  const SCREEN_TIME_LABELS = tLifestyle.raw('screenTime') as Record<string, string>;
 
   // Lab results state
   const [labResults, setLabResults] = React.useState<LabResult[]>([]);
@@ -621,7 +621,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           {body.bloodType && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>
               <span className="text-base">🩸</span>
-              <span className="text-[13px] font-bold text-white">{BLOOD_TYPE_MAP[body.bloodType] ?? body.bloodType}</span>
+              <span className="text-[13px] font-bold text-white">{formatBloodType(body.bloodType)}</span>
             </div>
           )}
           {card?.cardCode && (
@@ -690,10 +690,10 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
       </Section>
 
       {/* 2. Body metrics */}
-      <Section icon="📏" title="Физические параметры" badge={body.bloodType ?? undefined}>
+      <Section icon="📏" title="Физические параметры" badge={body.bloodType ? formatBloodType(body.bloodType) : undefined}>
         <Row label="Рост" value={body.height ? `${body.height} см` : '—'} />
         <Row label="Вес" value={body.weight ? `${body.weight} кг` : '—'} />
-        <Row label="Группа крови" value={body.bloodType ? (BLOOD_TYPE_MAP[body.bloodType] ?? body.bloodType) : '—'} />
+        <Row label="Группа крови" value={formatBloodType(body.bloodType)} />
         {bmi && <Row label="ИМТ" value={`${bmi} кг/м²`} />}
       </Section>
 
@@ -760,8 +760,8 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           <Row label="Алкоголь" value={lifestyle.alcohol ? (ALCOHOL_LABELS[lifestyle.alcohol] ?? lifestyle.alcohol) : '—'} />
           <Row label="Физическая активность" value={lifestyle.activity ? (ACTIVITY_LABELS[lifestyle.activity] ?? lifestyle.activity) : '—'} />
           <Row label="Сон" value={lifestyle.sleep ? (SLEEP_LABELS[lifestyle.sleep] ?? lifestyle.sleep) : '—'} />
-          {lifestyle.diet && <Row label="Диета" value={lifestyle.diet} />}
-          {lifestyle.nutrition && <Row label="Питание" value={lifestyle.nutrition} />}
+          {lifestyle.diet && <Row label="Диета" value={DIET_LABELS[lifestyle.diet] ?? lifestyle.diet} />}
+          {lifestyle.nutrition && <Row label="Питание" value={NUTRITION_LABELS[lifestyle.nutrition] ?? lifestyle.nutrition} />}
         </Section>
       )}
 
@@ -849,10 +849,9 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           )}
 
           <Section icon="🏃" title="Образ жизни (подросток)">
-            <Row label="Физическая активность" value={teen.screenTime ? (ACTIVITY_LABELS[teen.screenTime] ?? teen.screenTime) : '—'} />
             {lifestyle.activity && <Row label="Активность" value={ACTIVITY_LABELS[lifestyle.activity] ?? lifestyle.activity} />}
             {lifestyle.sleep && <Row label="Сон" value={SLEEP_LABELS[lifestyle.sleep] ?? lifestyle.sleep} />}
-            {teen.screenTime && <Row label="Экранное время" value={teen.screenTime} />}
+            {teen.screenTime && <Row label="Экранное время" value={SCREEN_TIME_LABELS[teen.screenTime] ?? teen.screenTime} />}
           </Section>
         </>
       )}

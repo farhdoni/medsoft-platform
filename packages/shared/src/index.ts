@@ -7,3 +7,4 @@ export * from './schemas/patient';
 export * from './schemas/sos-call';
 export * from './schemas/transaction';
 export * from './health/snapshot';
+export * from './health/blood-type';

@@ -1,3 +1,5 @@
+import { formatBloodType } from '@medsoft/shared';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
 interface CardData {
@@ -59,7 +61,7 @@ export default async function MedicalCardPage({
         <div className="p-6 space-y-0">
           <div className="flex items-center justify-between py-3 border-b border-[#e8e4dc]">
             <span className="text-sm text-[#6a6580]">🩸 Группа крови</span>
-            <span className="text-sm font-semibold text-[#2a2540]">{data.bloodGroup}</span>
+            <span className="text-sm font-semibold text-[#2a2540]">{formatBloodType(data.bloodGroup, undefined, 'не указано')}</span>
           </div>
           <div className="flex items-start justify-between py-3 border-b border-[#e8e4dc] gap-4">
             <span className="text-sm text-[#6a6580] shrink-0">⚠️ Аллергии</span>
