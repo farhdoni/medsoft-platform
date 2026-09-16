@@ -8,6 +8,7 @@ import {
   type CheckupSystem, type CheckupProblem, type CheckupPlanItem,
 } from '@medsoft/db';
 import { eq, desc, and, gte, isNull, count } from 'drizzle-orm';
+import { formatBloodType } from '@medsoft/shared';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { autoReport, inferDiseaseCategory } from './outbreak.js';
 
@@ -179,7 +180,7 @@ async function buildUserContext(userId: string): Promise<{ context: string; chro
     `Пол: ${profile?.gender ?? 'не указан'}`,
     `Рост: ${profile?.heightCm ?? 'не указан'} см`,
     `Вес: ${profile?.weightKg ?? 'не указан'} кг`,
-    `Группа крови: ${profile?.bloodType ?? 'не указана'}`,
+    `Группа крови: ${formatBloodType(profile?.bloodType, undefined, 'не указана')}`,
     `Курение: ${profile?.smokingStatus ?? 'не указано'}`,
     `Алкоголь: ${profile?.alcoholFrequency ?? 'не указано'}`,
     `Физнагрузка: ${profile?.exerciseFrequency ?? 'не указана'}`,

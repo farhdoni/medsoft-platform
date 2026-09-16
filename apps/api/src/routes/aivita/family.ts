@@ -347,7 +347,17 @@ aivitaFamilyRouter.post(
           gender: claim.memberGender ?? undefined,
           heightCm: claim.heightCm ?? undefined,
           weightKg: claim.weightKg ? String(claim.weightKg) : undefined,
-          bloodType: claim.bloodGroup ?? undefined,
+          // family_members stores group ('A'/'B'/'AB'/'O') and Rh ('+'/'−'/'?')
+          // as two separate columns; health_profiles.bloodType is one
+          // combined canonical value ('A+'). Only combine when both parts
+          // are actually usable — a bare group with no/unknown Rh isn't a
+          // valid bloodType, so leave the field untouched (undefined) rather
+          // than write a half-formed value, same as the other `?? undefined`
+          // fields here that skip the update when there's nothing to copy.
+          bloodType: claim.bloodGroup && claim.bloodGroup !== 'unknown'
+              && (claim.rhFactor === '+' || claim.rhFactor === '−')
+            ? `${claim.bloodGroup}${claim.rhFactor === '−' ? '-' : '+'}`
+            : undefined,
           childDiseases: (claim.childDiseases as string[] | null) ?? undefined,
           vaccinationHistory: ((claim.vaccinations as Array<{ name: string; status: string; date?: string }> | null)
             ?? []).map(v => ({ name: v.name, status: v.status as 'done' | 'not_done' | 'unknown' })),

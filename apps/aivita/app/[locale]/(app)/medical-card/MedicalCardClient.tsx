@@ -852,6 +852,11 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
             {lifestyle.activity && <Row label="Активность" value={ACTIVITY_LABELS[lifestyle.activity] ?? lifestyle.activity} />}
             {lifestyle.sleep && <Row label="Сон" value={SLEEP_LABELS[lifestyle.sleep] ?? lifestyle.sleep} />}
             {teen.screenTime && <Row label="Экранное время" value={SCREEN_TIME_LABELS[teen.screenTime] ?? teen.screenTime} />}
+            {/* lifestyle.nutrition is teen onboarding's own 'nutrition' step
+                answer (shares the column with the adult diet section below,
+                which is gated out for minors) — was only rendered in the
+                adult-only section, making it invisible to teens entirely. */}
+            {lifestyle.nutrition && <Row label="Питание" value={NUTRITION_LABELS[lifestyle.nutrition] ?? lifestyle.nutrition} />}
           </Section>
         </>
       )}
