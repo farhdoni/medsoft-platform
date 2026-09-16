@@ -3,10 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system';
 import * as SplashScreenExpo from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuthToken, isBiometricEnabled } from '../services/auth';
 import { getDeviceLanguage } from '../utils/locale';
+import { WEB_URL } from '../constants/config';
 import type { Screen } from '../../App';
 
 type Props = { onNavigate: (screen: Screen) => void };
@@ -35,7 +37,7 @@ const BRIDGE_SCRIPT = `
 
 export function SplashScreen({ onNavigate }: Props) {
   const webViewRef = useRef<WebView>(null);
-  const [htmlUri, setHtmlUri] = useState<string | null>(null);
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const navigatedRef = useRef(false);
   const decisionRef = useRef<Screen>('login');
   const finishedRef = useRef(false);
@@ -46,23 +48,28 @@ export function SplashScreen({ onNavigate }: Props) {
     onNavigate(screen);
   }
 
-  // Resolve the local HTML asset to a loadable URI, and only then hide the
-  // native (instant, static) splash — both share the same #0E1A2B background,
-  // so there's no flash either way, but this ordering avoids a blank frame.
+  // Resolve the local HTML asset and read it as a STRING (not a file:// uri
+  // — react-native-webview defaults allowFileAccess to false on Android, and
+  // even with that flipped on, a query string glued onto a file:// uri is a
+  // known source of failures). Loaded via source={{html, baseUrl}} below
+  // instead, which never touches the file:// scheme at all. Only then hide
+  // the native (instant, static) splash — both share the same #0E1A2B
+  // background, so there's no flash either way, but this ordering avoids a
+  // blank frame.
   useEffect(() => {
     let cancelled = false;
-    Asset.fromModule(require('../../assets/splash/aivita-splash.html'))
-      .downloadAsync()
-      .then((asset) => {
-        if (!cancelled) setHtmlUri(asset.localUri ?? asset.uri);
-      })
-      .catch(() => {
-        // Asset failed to resolve — the routing effect below still runs and
+    (async () => {
+      try {
+        const asset = await Asset.fromModule(require('../../assets/splash/aivita-splash.html')).downloadAsync();
+        const html = await FileSystem.readAsStringAsync(asset.localUri ?? asset.uri);
+        if (!cancelled) setHtmlContent(html);
+      } catch {
+        // Asset/file read failed — the routing effect below still runs and
         // still navigates via the fallback timer, just without the animation.
-      })
-      .finally(() => {
+      } finally {
         SplashScreenExpo.hideAsync();
-      });
+      }
+    })();
     return () => { cancelled = true; };
   }, []);
 
@@ -113,7 +120,7 @@ export function SplashScreen({ onNavigate }: Props) {
   // signal from the 3 fast SecureStore/AsyncStorage reads above (they resolve
   // in a few ms) — this reflects elapsed time, not a fabricated fraction.
   useEffect(() => {
-    if (!htmlUri) return;
+    if (!htmlContent) return;
     const startedAt = Date.now();
     const tick = setInterval(() => {
       if (finishedRef.current) { clearInterval(tick); return; }
@@ -123,7 +130,7 @@ export function SplashScreen({ onNavigate }: Props) {
       );
     }, 150);
     return () => clearInterval(tick);
-  }, [htmlUri]);
+  }, [htmlContent]);
 
   function handleMessage(event: WebViewMessageEvent) {
     if (event.nativeEvent.data === 'splash-done') {
@@ -131,20 +138,35 @@ export function SplashScreen({ onNavigate }: Props) {
     }
   }
 
-  if (!htmlUri) {
+  if (!htmlContent) {
     // Native expo-splash (#0E1A2B) is still showing behind this — same
     // background, so a blank view here doesn't flash.
     return <View style={styles.container} />;
   }
 
+  // The approved HTML reads all its config (lang, sound, demo, autostart)
+  // via `new URLSearchParams(location.search)` — it was designed for a plain
+  // `?query=string` URL, not this html-string load path. Rather than touch
+  // the approved file, this exploits Android's documented
+  // loadDataWithBaseURL behavior (what source={{html, baseUrl}} maps to,
+  // confirmed in RNCWebViewManagerImpl.kt): the page's `window.location`
+  // resolves to `baseUrl` verbatim, so a query string glued onto `baseUrl`
+  // becomes `location.search` inside the page exactly as if it had
+  // navigated there directly — the file's own `location.search` reads just
+  // work, zero changes to it. `WEB_URL` (the real app.aivita.uz origin,
+  // not a made-up one) also gives Web Audio a real https origin instead of
+  // file://'s opaque one.
+  const baseUrl = `${WEB_URL}/?lang=${getDeviceLanguage()}&sound=0&demo=0&autostart=1`;
+
   return (
     <View style={styles.container}>
       <WebView
         ref={webViewRef}
-        source={{ uri: `${htmlUri}?lang=${getDeviceLanguage()}&sound=0&demo=0&autostart=1` }}
+        source={{ html: htmlContent, baseUrl }}
         injectedJavaScript={BRIDGE_SCRIPT}
         onMessage={handleMessage}
         originWhitelist={['*']}
+        allowFileAccess
         style={styles.webview}
         scrollEnabled={false}
         bounces={false}
