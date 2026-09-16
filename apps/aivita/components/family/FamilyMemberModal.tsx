@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Search, X, UserCheck } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 
 const PROXY = '/api/proxy';
 
@@ -71,6 +72,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
   const [saving,    setSaving]    = useState(false);
   const [deleting,  setDeleting]  = useState(false);
   const [err,       setErr]       = useState('');
+  const [dobKey,    setDobKey]    = useState(0); // bumped on each open → remounts DateOfBirthPicker so it re-reads `birthDate`
 
   // Заполняем поля при открытии
   useEffect(() => {
@@ -82,6 +84,7 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
       setPhone(member?.phone ?? '');
       setNotes(member?.notes ?? '');
       setErr('');
+      setDobKey(k => k + 1);
       // Reset search
       setCardInput('');
       setSearchResult(null);
@@ -378,13 +381,14 @@ export function FamilyMemberModal({ open, onClose, member, onSaved }: Props) {
 
       {/* ── Дата рождения ────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Дата рождения (необязательно)</p>
-      <input
-        value={birthDate}
-        onChange={e => setBirthDate(e.target.value)}
-        type="date"
-        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-5 focus:border-[#9c5e6c] transition-colors"
-        style={{ color: '#2a2540', borderColor: '#e8e4dc' }}
-      />
+      <div className="mb-5">
+        <DateOfBirthPicker
+          key={dobKey}
+          value={birthDate || null}
+          onChange={v => setBirthDate(v ?? '')}
+          clearable
+        />
+      </div>
 
       {/* ── Пол ──────────────────────────────────────────────────────────── */}
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Пол</p>

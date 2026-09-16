@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
+import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -302,13 +303,9 @@ function Step1({ data, onChange }: { data: StepData; onChange: (d: StepData) => 
 
       <div>
         <label className="block text-xs font-semibold text-gray-500 mb-1">Дата рождения</label>
-        <input
-          type="date"
-          value={(data.dateOfBirth as string) ?? ''}
-          onChange={e => onChange({ ...data, dateOfBirth: e.target.value })}
-          max={new Date().toISOString().split('T')[0]}
-          className="w-full rounded-xl border border-[rgba(120,160,200,0.25)] px-3 py-2.5 text-sm outline-none focus:border-pink-300"
-          style={{ color: '#2a2540' }}
+        <DateOfBirthPicker
+          value={(data.dateOfBirth as string) ?? null}
+          onChange={v => onChange({ ...data, dateOfBirth: v ?? '' })}
         />
       </div>
 

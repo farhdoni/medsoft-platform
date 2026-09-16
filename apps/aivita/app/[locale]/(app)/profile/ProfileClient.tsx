@@ -4,6 +4,11 @@ import React, { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { HealthProfile, Allergy, ChronicCondition, HistoryEntry, Medication } from './types';
+import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
+import { calcAge } from '@/lib/date-utils';
+
+const DOB_MIN_AGE = 12;
+const DOB_MAX_AGE = 90;
 
 // All API calls go through Next.js proxy (/api/proxy/*) to avoid CORS issues
 const PROXY = '/api/proxy';
@@ -157,6 +162,64 @@ function InlineField({ label, field, value, displayValue, inputType = 'text', op
       <span className="text-[12px] flex-shrink-0" style={{ color: '#9a96a8' }}>{label}</span>
       <span className="text-[13px] font-semibold min-w-0 truncate text-right" style={{ color: shown ? '#2a2540' : 'var(--accent)' }}>
         {saving ? '…' : (shown || placeholder)}
+      </span>
+    </button>
+  );
+}
+
+// ─── DobRow — birth date uses the shared Day/Month/Year picker ───────────────
+
+function DobRow({ value, onSave }: { value?: string | null; onSave: (field: string, val: string) => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [err,     setErr]     = useState(false);
+  const [dobKey,  setDobKey]  = useState(0);
+
+  function startEdit() {
+    setDobKey(k => k + 1);
+    setEditing(true);
+    setErr(false);
+  }
+
+  async function handleChange(v: string | null) {
+    if (!v) return;
+    const age = calcAge(v);
+    if (age !== null && (age < DOB_MIN_AGE || age > DOB_MAX_AGE)) { setErr(true); return; }
+    setSaving(true);
+    setErr(false);
+    try {
+      await onSave('birthDate', v);
+      setEditing(false);
+    } catch {
+      setErr(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="py-2.5 border-b border-[#f0ede8] last:border-0">
+        <span className="text-[12px] block mb-1.5" style={{ color: '#9a96a8' }}>Дата рождения</span>
+        <DateOfBirthPicker key={dobKey} value={value} onChange={v => void handleChange(v)} size="sm" disabled={saving} />
+        {err && (
+          <p className="text-[11px] mt-1" style={{ color: '#e05a6a' }}>
+            Возраст должен быть от {DOB_MIN_AGE} до {DOB_MAX_AGE} лет
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={startEdit}
+      className="w-full flex items-center justify-between gap-2 py-2.5 border-b border-[#f0ede8] last:border-0 hover:bg-[#f9f8f5] rounded transition-colors text-left group"
+    >
+      <span className="text-[12px] flex-shrink-0" style={{ color: '#9a96a8' }}>Дата рождения</span>
+      <span className="text-[13px] font-semibold min-w-0 truncate text-right" style={{ color: value ? '#2a2540' : 'var(--accent)' }}>
+        {saving ? '…' : (value || '+ добавить')}
       </span>
     </button>
   );
@@ -448,7 +511,7 @@ function PassportSection({ profile, onSave }: {
       </button>
       {open && (
         <div className="px-3 pb-3 pt-2 border-t border-[#e8e4dc]">
-          <InlineField label="Дата рождения"  field="birthDate"         value={profile?.birthDate}         inputType="date"   onSave={onSave} />
+          <DobRow value={profile?.birthDate} onSave={onSave} />
           <InlineField label="Серия / Номер"  field="pinfl"             value={profile?.pinfl}                                onSave={onSave} />
           <InlineField label="Кем выдан"      field="passportIssuedBy"  value={profile?.passportIssuedBy}                    onSave={onSave} />
           <InlineField label="Дата выдачи"    field="passportIssuedDate" value={profile?.passportIssuedDate} inputType="date" onSave={onSave} />

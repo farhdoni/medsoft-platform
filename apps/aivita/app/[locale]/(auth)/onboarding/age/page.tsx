@@ -3,7 +3,9 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { saveAge } from './actions';
+import { saveBirthDate } from './actions';
+import { calcAge, getTodayDate } from '@/lib/date-utils';
+import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 
 const C = {
   bg: '#f4f3ef', card: '#ffffff', border: '#e8e4dc', accent: '#9c5e6c', soft: '#f3e7ea',
@@ -11,16 +13,21 @@ const C = {
 };
 const MIN_AGE = 12;
 const MAX_AGE = 90;
-const clamp = (n: number) => Math.max(MIN_AGE, Math.min(MAX_AGE, n));
 
 export default function OnboardingAgePage() {
   const t = useTranslations('app.onboarding');
   const locale = useLocale();
-  const [age, setAge] = useState(30);
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const age = birthDate ? calcAge(birthDate) : null;
+  const isFuture = birthDate ? birthDate > getTodayDate() : false;
+  const ageOutOfRange = age !== null && (age < MIN_AGE || age > MAX_AGE);
+  const canSubmit = !!birthDate && !isFuture && !ageOutOfRange && !pending;
+
   function submit() {
-    startTransition(() => { void saveAge(locale, age); });
+    if (!birthDate || !canSubmit) return;
+    startTransition(() => { void saveBirthDate(locale, birthDate); });
   }
 
   return (
@@ -42,26 +49,22 @@ export default function OnboardingAgePage() {
         </h1>
         <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.5, margin: '0 0 24px' }}>{t('age.sub')}</p>
 
-        {/* Stepper */}
+        {/* Day / Month / Year selects */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
           <div style={{ fontSize: 40 }}>🎂</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-            <button onClick={() => setAge((a) => clamp(a - 1))} aria-label="−"
-              style={{ width: 52, height: 52, borderRadius: 16, border: `1px solid ${C.border}`, background: C.card, fontSize: 26, color: C.text, cursor: 'pointer' }}>−</button>
-            <div style={{ minWidth: 96, textAlign: 'center' }}>
-              <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1 }}>{age}</div>
-              <div style={{ fontSize: 13, color: C.muted, fontWeight: 600, marginTop: 4 }}>{t('age.unit')}</div>
-            </div>
-            <button onClick={() => setAge((a) => clamp(a + 1))} aria-label="+"
-              style={{ width: 52, height: 52, borderRadius: 16, border: `1px solid ${C.border}`, background: C.card, fontSize: 26, color: C.text, cursor: 'pointer' }}>+</button>
+
+          <div style={{ width: '100%', maxWidth: 340 }}>
+            <DateOfBirthPicker value={birthDate} onChange={setBirthDate} size="lg" />
           </div>
-          <input type="range" min={MIN_AGE} max={MAX_AGE} value={age} onChange={(e) => setAge(clamp(Number(e.target.value)))}
-            style={{ width: '100%', maxWidth: 300, accentColor: C.accent }} aria-label={t('age.title')} />
+
+          {ageOutOfRange && (
+            <p style={{ fontSize: 12, color: '#c0435a', textAlign: 'center', margin: 0 }}>{t('age.rangeError')}</p>
+          )}
         </div>
 
         <div style={{ marginTop: 24 }}>
-          <button onClick={submit} disabled={pending}
-            style={{ width: '100%', height: 54, border: 'none', borderRadius: 16, background: C.accent, color: '#fff', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, cursor: pending ? 'default' : 'pointer', boxShadow: '0 10px 24px rgba(156,94,108,.32)', opacity: pending ? 0.7 : 1 }}>
+          <button onClick={submit} disabled={!canSubmit}
+            style={{ width: '100%', height: 54, border: 'none', borderRadius: 16, background: C.accent, color: '#fff', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, cursor: canSubmit ? 'pointer' : 'default', boxShadow: '0 10px 24px rgba(156,94,108,.32)', opacity: canSubmit ? 1 : 0.5 }}>
             {t('age.cont')}
           </button>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
+import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 
 const PROXY = '/api/proxy';
 
@@ -230,14 +231,9 @@ export function ChildCardModal({ open, onClose, onSaved }: Props) {
       />
 
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#9a96a8' }}>Дата рождения</p>
-      <input
-        type="date"
-        value={birthDate}
-        onChange={e => setBirthDate(e.target.value)}
-        max={new Date().toISOString().split('T')[0]}
-        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none mb-4 focus:border-[#6BA3D6] transition-colors"
-        style={{ borderColor: '#e8e4dc', color: '#2a2540' }}
-      />
+      <div className="mb-4">
+        <DateOfBirthPicker value={birthDate || null} onChange={v => setBirthDate(v ?? '')} />
+      </div>
 
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9a96a8' }}>Пол</p>
       <div className="flex gap-2 mb-5">

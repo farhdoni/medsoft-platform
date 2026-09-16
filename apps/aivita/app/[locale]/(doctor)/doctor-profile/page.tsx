@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import Modal from '@/components/ui/Modal';
+import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 
 interface DoctorProfile {
   id: string; userId: string;
@@ -589,7 +590,12 @@ export default function DoctorProfilePage() {
       >
         {editModal === 'personal' && (
           <>
-            <EditField label="Дата рождения" field="dateOfBirth" value={editData.dateOfBirth} onChange={setField} type="date" />
+            <div className="mb-3">
+              <label className="text-[10px] font-semibold text-[#9a96a8] uppercase tracking-wide">Дата рождения</label>
+              <div className="mt-1">
+                <DateOfBirthPicker value={editData.dateOfBirth ?? null} onChange={v => setField('dateOfBirth', v ?? '')} />
+              </div>
+            </div>
             <EditField label="Пол" field="gender" value={editData.gender} onChange={setField} options={['male', 'female']} />
             <EditField label="Серия паспорта" field="passportSeries" value={editData.passportSeries} onChange={setField} />
             <EditField label="Номер паспорта" field="passportNumber" value={editData.passportNumber} onChange={setField} />
