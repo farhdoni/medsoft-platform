@@ -3,12 +3,17 @@
 import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
+import { bloodGroupRoman } from '@medsoft/shared';
 
 const PROXY = '/api/proxy';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BLOOD_GROUPS = ['A(I)', 'B(II)', 'AB(III)', 'O(IV)', 'Не знаю'];
+// Bare ABO letters — canonical storage for family_members.bloodGroup, same
+// letters ProfileClient's blood-type input uses (with a sign). Roman
+// numerals (bloodGroupRoman) are display-only on the buttons below, never
+// stored. 'unknown' is a separate sentinel, not part of this list.
+const BLOOD_GROUPS = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS   = ['+', '−', '?'];
 
 const CHILD_DISEASES = [
@@ -294,10 +299,21 @@ export function ChildCardModal({ open, onClose, onSaved }: Props) {
                   className="px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-all"
                   style={{ borderColor: sel ? '#6BA3D6' : '#e8e4dc', background: sel ? '#dbeeff' : '#fafafa', color: sel ? '#4a7fb5' : '#6a6580' }}
                 >
-                  {bg}
+                  {bloodGroupRoman(bg)}
                 </button>
               );
             })}
+            <button
+              onClick={() => setBloodGroup(bloodGroup === 'unknown' ? '' : 'unknown')}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-all"
+              style={{
+                borderColor: bloodGroup === 'unknown' ? '#6BA3D6' : '#e8e4dc',
+                background: bloodGroup === 'unknown' ? '#dbeeff' : '#fafafa',
+                color: bloodGroup === 'unknown' ? '#4a7fb5' : '#6a6580',
+              }}
+            >
+              Не знаю
+            </button>
           </div>
         </div>
         <div>

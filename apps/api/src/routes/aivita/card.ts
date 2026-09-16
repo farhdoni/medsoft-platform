@@ -9,6 +9,7 @@ import {
   vitals,
 } from '@medsoft/db';
 import { eq, desc, and, sql } from 'drizzle-orm';
+import { formatBloodType } from '@medsoft/shared';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const cardRouter = new Hono();
@@ -160,7 +161,7 @@ cardRouter.get('/:code', async (c) => {
   return c.json({
     data: {
       name: user?.name || 'Неизвестно',
-      bloodGroup: profile?.bloodType || 'не указано',
+      bloodGroup: formatBloodType(profile?.bloodType) ?? 'не указано',
       allergies: allergyRows.length ? allergyRows.map(a => a.allergen).join(', ') : 'нет',
       chronicDiseases: chronicRows.length ? chronicRows.map(r => r.name).join(', ') : 'нет',
       currentMedications: 'см. у лечащего врача',

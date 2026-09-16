@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { Icon3D } from '@/components/cabinet/icons/Icon3D';
 import Modal from '@/components/ui/Modal';
+import { formatBloodType } from '@medsoft/shared';
 
 interface PatientData {
   user: { id: string; name: string; email: string; avatarUrl?: string };
@@ -192,7 +193,7 @@ export default function DoctorPatientPage() {
               {patient.profile?.city && <span className="text-xs text-[#9a96a8]">· {patient.profile.city}</span>}
               {patient.profile?.bloodType && (
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: '#ffe8e8', color: '#c0304a' }}>
-                  {patient.profile.bloodType}
+                  {formatBloodType(patient.profile.bloodType) ?? patient.profile.bloodType}
                 </span>
               )}
             </div>

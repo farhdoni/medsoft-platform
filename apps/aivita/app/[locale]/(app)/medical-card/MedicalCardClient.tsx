@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MedicalCardData } from './page';
 import { compressImageFile } from '@/lib/image/compress';
+import { formatBloodType } from '@medsoft/shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,25 +83,58 @@ const GENDER_LABELS: Record<string, string> = {
   male: 'Мужской', female: 'Женский', other: 'Другой',
 };
 
-const BLOOD_TYPE_MAP: Record<string, string> = {
-  'A+': 'A (II) Rh+', 'A-': 'A (II) Rh−',
-  'B+': 'B (III) Rh+', 'B-': 'B (III) Rh−',
-  'AB+': 'AB (IV) Rh+', 'AB-': 'AB (IV) Rh−',
-  'O+': 'O (I) Rh+', 'O-': 'O (I) Rh−',
-};
+// Blood type display goes through the shared formatBloodType (canonical
+// 'A+' storage -> '(II)Rh+' display) instead of a local map — see
+// packages/shared/src/health/blood-type.ts for the O=I/A=II/B=III/AB=IV
+// mapping this replaces.
 
+// Codes below must match what the input screens actually write — see
+// profile/ProfileClient.tsx's *_OPTS and onboarding/page.tsx's step
+// options. These dictionaries had drifted from both (wrong keys entirely,
+// e.g. 'ex'/'occasional' that no input ever produces), so unrecognized
+// values silently fell through to the raw code.
+// profile/ProfileClient's edit-page writes never/quit/sometimes/regular, but
+// the main sign-up onboarding flow (onboarding/page.tsx Step4Adult) writes
+// never/former/current into the same smokingStatus column — both sets need
+// to resolve here or fresh sign-ups show a raw code.
 const SMOKING_LABELS: Record<string, string> = {
-  none: 'Не курю', occasional: 'Иногда', regular: 'Регулярно', ex: 'Бросил(а)',
+  never: 'Не курю', quit: 'Бросил(а)', former: 'Бросил(а)', sometimes: 'Иногда',
+  regular: 'Регулярно', current: 'Курю',
 };
+// Same story for alcohol: ProfileClient writes never/rarely/moderate/regular,
+// onboarding Step4Adult writes never/rare/moderate/frequent.
 const ALCOHOL_LABELS: Record<string, string> = {
-  none: 'Не употребляю', occasional: 'Изредка', moderate: 'Умеренно', often: 'Часто',
+  never: 'Не употребляю', rarely: 'Редко', rare: 'Редко', moderate: 'Умеренно',
+  regular: 'Регулярно', frequent: 'Часто',
 };
+// exerciseFrequency (shown here as "activity") also has two writers: the
+// main flow's sedentary/light/moderate/active, and the separate legacy-but-
+// still-linked onboarding/lifestyle page's rare/sometimes/often/daily.
 const ACTIVITY_LABELS: Record<string, string> = {
   sedentary: 'Малоактивный', light: 'Лёгкая активность',
   moderate: 'Умеренная активность', active: 'Высокая активность',
+  rare: 'Малоактивный', sometimes: 'Иногда', often: 'Часто', daily: 'Каждый день',
 };
+// Adult onboarding uses <6/6-7/7-8/>8; teen onboarding uses <7/7-8/8-9/>9 —
+// both write into the same profile.sleepHoursPerNight, so both bucket sets
+// need to resolve here regardless of which flow the user went through.
 const SLEEP_LABELS: Record<string, string> = {
-  '<6': 'Менее 6 часов', '6-7': '6–7 часов', '7-8': '7–8 часов', '8-9': '8–9 часов', '>9': 'Более 9 часов',
+  '<6': 'Менее 6 часов', '<7': 'Менее 7 часов',
+  '6-7': '6–7 часов', '7-8': '7–8 часов', '8-9': '8–9 часов',
+  '>8': 'Более 8 часов', '>9': 'Более 9 часов',
+};
+const DIET_LABELS: Record<string, string> = {
+  regular: 'Обычное', vegetarian: 'Вегетарианское', vegan: 'Веганское', halal: 'Халяль',
+};
+// Teen onboarding writes balanced/fastfood/vegetarian/irregular; the separate
+// onboarding/lifestyle page writes balanced/vegetarian/vegan/fastfood into
+// the same nutritionType column — union of both, 'vegan' is the only addition.
+const NUTRITION_LABELS: Record<string, string> = {
+  balanced: 'Сбалансированное', fastfood: 'Фастфуд', vegetarian: 'Вегетарианское',
+  irregular: 'Нерегулярное', vegan: 'Веганское',
+};
+const SCREEN_TIME_LABELS: Record<string, string> = {
+  '<2h': 'До 2 часов', '2-4h': '2–4 часа', '>4h': 'Более 4 часов',
 };
 
 // ─── QR Code (simple data URL via canvas) ────────────────────────────────────
@@ -621,7 +655,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           {body.bloodType && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>
               <span className="text-base">🩸</span>
-              <span className="text-[13px] font-bold text-white">{BLOOD_TYPE_MAP[body.bloodType] ?? body.bloodType}</span>
+              <span className="text-[13px] font-bold text-white">{formatBloodType(body.bloodType) ?? body.bloodType}</span>
             </div>
           )}
           {card?.cardCode && (
@@ -693,7 +727,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
       <Section icon="📏" title="Физические параметры" badge={body.bloodType ?? undefined}>
         <Row label="Рост" value={body.height ? `${body.height} см` : '—'} />
         <Row label="Вес" value={body.weight ? `${body.weight} кг` : '—'} />
-        <Row label="Группа крови" value={body.bloodType ? (BLOOD_TYPE_MAP[body.bloodType] ?? body.bloodType) : '—'} />
+        <Row label="Группа крови" value={body.bloodType ? (formatBloodType(body.bloodType) ?? body.bloodType) : '—'} />
         {bmi && <Row label="ИМТ" value={`${bmi} кг/м²`} />}
       </Section>
 
@@ -760,8 +794,8 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           <Row label="Алкоголь" value={lifestyle.alcohol ? (ALCOHOL_LABELS[lifestyle.alcohol] ?? lifestyle.alcohol) : '—'} />
           <Row label="Физическая активность" value={lifestyle.activity ? (ACTIVITY_LABELS[lifestyle.activity] ?? lifestyle.activity) : '—'} />
           <Row label="Сон" value={lifestyle.sleep ? (SLEEP_LABELS[lifestyle.sleep] ?? lifestyle.sleep) : '—'} />
-          {lifestyle.diet && <Row label="Диета" value={lifestyle.diet} />}
-          {lifestyle.nutrition && <Row label="Питание" value={lifestyle.nutrition} />}
+          {lifestyle.diet && <Row label="Диета" value={DIET_LABELS[lifestyle.diet] ?? lifestyle.diet} />}
+          {lifestyle.nutrition && <Row label="Питание" value={NUTRITION_LABELS[lifestyle.nutrition] ?? lifestyle.nutrition} />}
         </Section>
       )}
 
@@ -849,10 +883,10 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           )}
 
           <Section icon="🏃" title="Образ жизни (подросток)">
-            <Row label="Физическая активность" value={teen.screenTime ? (ACTIVITY_LABELS[teen.screenTime] ?? teen.screenTime) : '—'} />
             {lifestyle.activity && <Row label="Активность" value={ACTIVITY_LABELS[lifestyle.activity] ?? lifestyle.activity} />}
             {lifestyle.sleep && <Row label="Сон" value={SLEEP_LABELS[lifestyle.sleep] ?? lifestyle.sleep} />}
-            {teen.screenTime && <Row label="Экранное время" value={teen.screenTime} />}
+            {lifestyle.nutrition && <Row label="Питание" value={NUTRITION_LABELS[lifestyle.nutrition] ?? lifestyle.nutrition} />}
+            {teen.screenTime && <Row label="Экранное время" value={SCREEN_TIME_LABELS[teen.screenTime] ?? teen.screenTime} />}
           </Section>
         </>
       )}

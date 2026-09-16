@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '@medsoft/db';
 import { chatSessions, chatMessages, healthScores, healthProfiles } from '@medsoft/db';
 import { eq, and, desc } from 'drizzle-orm';
+import { formatBloodType } from '@medsoft/shared';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 
 export const aivitaChatRouter = new Hono();
@@ -168,7 +169,7 @@ function buildHealthContext(
       const bmi = Math.round(weight / ((profile.heightCm / 100) ** 2));
       parts.push(`ИМТ: ${bmi}`);
     }
-    if (profile.bloodType) parts.push(`Группа крови: ${profile.bloodType}`);
+    if (profile.bloodType) parts.push(`Группа крови: ${formatBloodType(profile.bloodType) ?? profile.bloodType}`);
   }
 
   return parts.length ? `[Контекст пациента: ${parts.join('. ')}]\n\n` : '';

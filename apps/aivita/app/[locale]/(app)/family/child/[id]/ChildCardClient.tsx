@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronDown, ChevronUp, Edit2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatBloodType } from '@medsoft/shared';
 
 const PROXY = '/api/proxy';
 
@@ -35,6 +36,19 @@ interface ChildCard {
 
 function calcAge(dob: string): number {
   return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
+}
+
+// bloodGroup ('A'/'B'/'AB'/'O') and rhFactor ('+'/'−'/'?') are stored as two
+// separate columns (family_members), unlike health_profiles' single combined
+// field — combine them into the canonical 'A+' shape formatBloodType expects.
+// Falls back to a raw join for anything that doesn't cleanly combine
+// (legacy pre-fix values, '?' rh, missing group) rather than hiding it.
+function formatChildBloodType(bloodGroup: string | null, rhFactor: string | null): string {
+  if (bloodGroup && bloodGroup !== 'unknown' && (rhFactor === '+' || rhFactor === '−')) {
+    const formatted = formatBloodType(`${bloodGroup}${rhFactor}`);
+    if (formatted) return formatted;
+  }
+  return [bloodGroup, rhFactor].filter(Boolean).join(' ') || '—';
 }
 
 function formatDate(iso: string) {
@@ -228,7 +242,7 @@ export function ChildCardClient({ memberId, locale }: { memberId: string; locale
           {[
             { label: 'Рост',          value: card.heightCm ? `${card.heightCm} см`    : '—' },
             { label: 'Вес',           value: card.weightKg ? `${card.weightKg} кг`    : '—' },
-            { label: 'Группа крови',  value: [card.bloodGroup, card.rhFactor].filter(Boolean).join(' ') || '—' },
+            { label: 'Группа крови',  value: formatChildBloodType(card.bloodGroup, card.rhFactor) },
             { label: 'Возраст',       value: age !== null ? `${age} лет` : '—' },
           ].map(f => (
             <div key={f.label} className="rounded-xl p-3" style={{ background: '#f4f3ef' }}>

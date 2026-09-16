@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
+import { formatBloodType } from '@medsoft/shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,7 +12,10 @@ type StepData = Record<string, unknown>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BLOOD_TYPES = ['A(I)+', 'A(I)−', 'B(II)+', 'B(II)−', 'AB(III)+', 'AB(III)−', 'O(IV)+', 'O(IV)−', 'Не знаю'];
+// Canonical storage format — same as profile/ProfileClient's BLOOD_OPTS.
+// Roman numerals are display-only (formatBloodType), never stored, and the
+// mapping is the medically correct one: O=I, A=II, B=III, AB=IV.
+const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
 
 const CHILD_DISEASES = ['Ветрянка', 'Корь', 'Краснуха', 'Скарлатина', 'Паротит', 'Мононуклеоз', 'Коклюш'];
 
@@ -426,9 +430,19 @@ function Step2({ data, onChange, isMinor }: { data: StepData; onChange: (d: Step
                   : 'border-[rgba(120,160,200,0.2)] bg-white/60 text-gray-600 hover:bg-white'
               }`}
             >
-              {bt}
+              {formatBloodType(bt)}
             </button>
           ))}
+          <button
+            onClick={() => onChange({ ...data, bloodType: 'unknown' })}
+            className={`py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+              data.bloodType === 'unknown'
+                ? 'border-pink-400 bg-pink-50 text-pink-700'
+                : 'border-[rgba(120,160,200,0.2)] bg-white/60 text-gray-600 hover:bg-white'
+            }`}
+          >
+            Не знаю
+          </button>
         </div>
       </div>
 

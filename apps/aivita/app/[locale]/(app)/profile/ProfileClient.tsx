@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { HealthProfile, Allergy, ChronicCondition, HistoryEntry, Medication } from './types';
 import { DateOfBirthPicker } from '@/components/ui/DateOfBirthPicker';
 import { calcAge } from '@/lib/date-utils';
+import { formatBloodType } from '@medsoft/shared';
 
 const DOB_MIN_AGE = 12;
 const DOB_MAX_AGE = 90;
@@ -16,7 +17,7 @@ const PROXY = '/api/proxy';
 // ─── Select options ───────────────────────────────────────────────────────────
 
 const GENDER_OPTS   = [{ v: 'male', l: 'Мужской' }, { v: 'female', l: 'Женский' }];
-const BLOOD_OPTS    = ['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ v, l: v }));
+const BLOOD_OPTS    = ['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ v, l: formatBloodType(v) ?? v }));
 const SMOKING_OPTS  = [{ v: 'never', l: 'Никогда' }, { v: 'quit', l: 'Бросил(а)' }, { v: 'sometimes', l: 'Иногда' }, { v: 'regular', l: 'Регулярно' }];
 const ALCOHOL_OPTS  = [{ v: 'never', l: 'Никогда' }, { v: 'rarely', l: 'Редко' }, { v: 'moderate', l: 'Умеренно' }, { v: 'regular', l: 'Регулярно' }];
 const ACTIVITY_OPTS = [{ v: 'sedentary', l: 'Сидячий' }, { v: 'light', l: 'Лёгкая' }, { v: 'moderate', l: 'Умеренная' }, { v: 'active', l: 'Активный' }];
@@ -238,9 +239,12 @@ interface MetricCardProps {
   options?: { v: string; l: string }[];
   onSave: (field: string, val: string) => Promise<void>;
   readOnly?: boolean;
+  /** Transforms the stored value for the non-editing display only — the
+   * select (while editing) and onSave still use the raw stored value. */
+  formatDisplay?: (val: string) => string;
 }
 
-function MetricCard({ label, field, value, unit, bg, color, inputType = 'text', options, onSave, readOnly }: MetricCardProps) {
+function MetricCard({ label, field, value, unit, bg, color, inputType = 'text', options, onSave, readOnly, formatDisplay }: MetricCardProps) {
   const [editing, setEditing] = useState(false);
   const [val, setVal]         = useState(String(value ?? ''));
   const [saving, setSaving]   = useState(false);
@@ -255,7 +259,8 @@ function MetricCard({ label, field, value, unit, bg, color, inputType = 'text', 
     finally { setSaving(false); }
   }
 
-  const displayVal = value !== null && value !== undefined && String(value) !== '' ? String(value) : null;
+  const rawDisplayVal = value !== null && value !== undefined && String(value) !== '' ? String(value) : null;
+  const displayVal = rawDisplayVal && formatDisplay ? formatDisplay(rawDisplayVal) : rawDisplayVal;
 
   return (
     <div
@@ -695,7 +700,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
         <MetricCard label="Рост"  field="heightCm" value={profile?.heightCm ?? null} unit="см" bg='var(--accent-light)' color='var(--accent-dark)' inputType="number" onSave={saveField} />
         <MetricCard label="Вес"   field="weightKg" value={profile?.weightKg ?? null} unit="кг" bg="var(--accent-bg-light)" color="var(--accent-dark)" inputType="number" onSave={saveField} />
         <MetricCard label="ИМТ"   field="bmi"      value={bmi}                        bg="#d4e8d8" color="#548068" onSave={saveField} readOnly />
-        <MetricCard label="Кровь" field="bloodType" value={profile?.bloodType ?? null} bg="#d4dff0" color="#5e75a8" options={BLOOD_OPTS} onSave={saveField} />
+        <MetricCard label="Кровь" field="bloodType" value={profile?.bloodType ?? null} bg="#d4dff0" color="#5e75a8" options={BLOOD_OPTS} onSave={saveField} formatDisplay={v => formatBloodType(v) ?? v} />
       </section>
 
       {/* ── Profile chips ────────────────────────────────────────────────────── */}
@@ -703,7 +708,7 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
         <div className="flex flex-wrap gap-1.5 mb-4">
           {profile.gender   && <span className="bg-[color:var(--accent-bg-light)] text-[color:var(--accent-dark)] text-[11px] font-semibold px-2 py-0.5 rounded-full">{labelOf(GENDER_OPTS, profile.gender)}</span>}
           {profile.city     && <span className="bg-[#d4dff0] text-[#5e75a8] text-[11px] font-semibold px-2 py-0.5 rounded-full">📍 {profile.city}</span>}
-          {profile.bloodType && <span className="bg-[#f0d4dc] text-[#9c5e6c] text-[11px] font-semibold px-2 py-0.5 rounded-full">🩸 {profile.bloodType}</span>}
+          {profile.bloodType && <span className="bg-[#f0d4dc] text-[#9c5e6c] text-[11px] font-semibold px-2 py-0.5 rounded-full">🩸 {labelOf(BLOOD_OPTS, profile.bloodType)}</span>}
         </div>
       )}
 
