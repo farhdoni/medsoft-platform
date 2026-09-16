@@ -10,4 +10,11 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// .html isn't an asset extension by default, so require('./x.html') would
+// otherwise get parsed as JS source — needed for the local splash HTML
+// (assets/splash/aivita-splash.html), loaded via Asset.fromModule in
+// SplashScreen.tsx.
+config.resolver.assetExts = [...config.resolver.assetExts, 'html'];
+config.resolver.sourceExts = config.resolver.sourceExts.filter((ext) => ext !== 'html');
+
 module.exports = config;
