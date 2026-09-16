@@ -379,10 +379,18 @@
     "onboarding": {
       "age": {
         "eyebrow": "About you",
-        "title": "How old",
-        "titleEm": "are you?",
-        "sub": "Age is the basis for risk and personalized advice",
+        "title": "When were",
+        "titleEm": "you born?",
+        "sub": "This helps tailor advice to your age",
         "cont": "Continue",
+        "day": "Day",
+        "month": "Month",
+        "year": "Year",
+        "rangeError": "Age must be between 12 and 90",
+        "months": [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ],
         "opts": [
           {
             "label": "18–29",

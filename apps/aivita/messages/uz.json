@@ -379,10 +379,18 @@
     "onboarding": {
       "age": {
         "eyebrow": "Sen haqingda",
-        "title": "Yoshing",
-        "titleEm": "nechada?",
-        "sub": "Yosh — xavf va shaxsiy tavsiyalar uchun asos",
+        "title": "Qachon",
+        "titleEm": "tug'ilgansan?",
+        "sub": "Bu yoshga mos tavsiyalar tanlashga yordam beradi",
         "cont": "Davom etish",
+        "day": "Kun",
+        "month": "Oy",
+        "year": "Yil",
+        "rangeError": "Yosh 12 dan 90 gacha bo'lishi kerak",
+        "months": [
+          "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+          "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
+        ],
         "opts": [
           {
             "label": "18–29",

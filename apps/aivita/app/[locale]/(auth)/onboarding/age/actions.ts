@@ -5,11 +5,8 @@ import { redirect } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
-export async function saveAge(locale: string, age: number) {
+export async function saveBirthDate(locale: string, birthDate: string) {
   const apiToken = await getApiToken();
-  const year = new Date().getFullYear() - age;
-  // Store an approximate birth date; only the year matters for the age-based Score.
-  const birthDate = `${year}-01-01`;
 
   await fetch(`${API_BASE}/v1/aivita/health-profile`, {
     method: 'PUT',
