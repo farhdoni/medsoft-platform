@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
+import { AppState, StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,12 +39,16 @@ export function LoginScreen({ onNavigate }: Props) {
 
   // Whether the sign-in form should offer a biometric shortcut: hardware
   // present, enrolled, the user opted in before, and there's a saved session
-  // to actually restore. Re-checked on mount — this screen only remounts on
-  // logout/cold-start-without-a-valid-token, both of which are exactly when
-  // this needs to be re-evaluated.
+  // to actually restore. Re-checked on mount AND whenever the app returns to
+  // the foreground (AppState 'active') — App.tsx keeps its `screen` state in
+  // memory with no navigation library, so a plain background/foreground
+  // cycle does NOT remount this screen; without the AppState re-check the
+  // button stayed frozen at whatever it resolved to on the last actual
+  // mount, even after SecureStore's token/flag changed in the meantime.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    async function checkBioAvailable() {
       const [hardware, enrolled, enabled, token] = await Promise.all([
         LocalAuthentication.hasHardwareAsync(),
         LocalAuthentication.isEnrolledAsync(),
@@ -52,9 +56,17 @@ export function LoginScreen({ onNavigate }: Props) {
         getAuthToken(),
       ]);
       if (!cancelled) setBioAvailable(hardware && enrolled && enabled && !!token);
-    })();
+    }
+
+    checkBioAvailable();
+
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') checkBioAvailable();
+    });
+
     return () => {
       cancelled = true;
+      sub.remove();
     };
   }, []);
 
