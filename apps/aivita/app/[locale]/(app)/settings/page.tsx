@@ -66,7 +66,7 @@ export default async function SettingsPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const { notificationsOn, currentTimezone } = await loadSettingsData();
+  const { notificationsOn, currentTimezone, appVersion } = await loadSettingsData();
   const LOCALE_LABELS: Record<string, string> = { ru: 'Русский', uz: "O'zbek", en: 'English' };
   const localeLabel = LOCALE_LABELS[locale] ?? 'Русский';
   const session = await getSession();
@@ -105,7 +105,7 @@ export default async function SettingsPage({
       title: t('sectionOther'),
       items: [
         { icon: HelpCircle, label: t('help'),  sub: t('helpSub'),   href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
-        { icon: Lock,       label: t('about'), sub: 'Aivita v1.3.23', href: '#', value: 'v1.3.23',     bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: t('about'), sub: `Aivita v${appVersion}`, href: '#', value: `v${appVersion}`,     bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
   ];
@@ -144,7 +144,7 @@ export default async function SettingsPage({
       title: t('sectionOther'),
       items: [
         { icon: HelpCircle, label: t('help'),  sub: t('helpSub'),    href: 'https://t.me/aivita_uz', bg: '#f4f3ef', color: '#9a96a8' },
-        { icon: Lock,       label: t('about'), sub: 'Aivita v1.3.23', href: '#', value: 'v1.3.23',      bg: '#f4f3ef', color: '#9a96a8' },
+        { icon: Lock,       label: t('about'), sub: `Aivita v${appVersion}`, href: '#', value: `v${appVersion}`,      bg: '#f4f3ef', color: '#9a96a8' },
       ],
     },
   ];
