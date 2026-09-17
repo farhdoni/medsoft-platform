@@ -2,9 +2,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '@medsoft/db';
-import { aiChatMessages, aiChatArchives, platformSettings } from '@medsoft/db';
+import { aiChatMessages, aiChatArchives, platformSettings, aiUsageLogs } from '@medsoft/db';
 import { eq, desc, asc, and, gte, count } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { rateLimit } from '../../middleware/rate-limit.js';
+import { computeCostUsd } from '../../lib/ai-pricing.js';
+import { logger } from '../../lib/logger.js';
 
 export const aiChatRouter = new Hono();
 
@@ -37,6 +40,61 @@ aiChatRouter.get('/daily-usage', async (c) => {
 
   return c.json({ used, limit, allowed: used < limit });
 });
+
+// ─── POST /ai-chat/usage-log ──────────────────────────────────────────────────
+// Internal: apps/aivita has no direct DB access (patientContext.ts's own
+// docstring), so it forwards its own session cookie here the same way it
+// already does for buildPatientContext/checkDailyLimit — no separate
+// service secret, requireAivitaAuth above already scopes this to the
+// caller's own userId. Called fire-and-forget after the chat stream ends;
+// a failure here must never surface to the chat response, so every error
+// path below returns 200 with an error flag instead of a non-2xx status.
+
+const usageLogSchema = z.object({
+  model: z.string().min(1).max(50),
+  inputTokens: z.number().int().min(0),
+  outputTokens: z.number().int().min(0),
+  cacheCreationInputTokens: z.number().int().min(0).default(0),
+  cacheReadInputTokens: z.number().int().min(0).default(0),
+  responseTimeMs: z.number().int().min(0).optional(),
+});
+
+aiChatRouter.post(
+  '/usage-log',
+  rateLimit('ai-chat-usage-log', 60, 300),
+  zValidator('json', usageLogSchema),
+  async (c) => {
+    const userId = c.get('aivitaUserId');
+    const body = c.req.valid('json');
+
+    try {
+      const costUsd = computeCostUsd(
+        body.model,
+        body.inputTokens,
+        body.outputTokens,
+        body.cacheCreationInputTokens,
+        body.cacheReadInputTokens,
+      );
+
+      await db.insert(aiUsageLogs).values({
+        aivitaUserId: userId,
+        module: 'chat',
+        model: body.model,
+        inputTokens: body.inputTokens,
+        outputTokens: body.outputTokens,
+        cacheCreationInputTokens: body.cacheCreationInputTokens,
+        cacheReadInputTokens: body.cacheReadInputTokens,
+        costUsd: costUsd === null ? null : costUsd.toString(),
+        responseTimeMs: body.responseTimeMs,
+      });
+
+      return c.json({ data: { logged: true } });
+    } catch (err) {
+      logger.error({ err, userId }, '[ai-chat/usage-log] insert failed');
+      return c.json({ data: { logged: false } });
+    }
+  }
+);
 
 // ─── GET /ai-chat/history ─────────────────────────────────────────────────────
 

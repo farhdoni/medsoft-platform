@@ -7,6 +7,11 @@ export const maxDuration = 30;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 
+// Single source of truth for the chat model — used both in the actual
+// request and in the usage-log payload, so cost lookup (apps/api's
+// ai-pricing.ts) can never drift from what was actually called.
+const CHAT_MODEL = 'claude-sonnet-4-6';
+
 // ─── Drug interaction check ───────────────────────────────────────────────────
 
 const DRUG_INTERACTION_RE = /(?:совместимост|interaction|совмест|можно.{0,20}(?:пить|принима|вмест)|вмест.{0,20}(?:пить|принима)|compat|взаимодейств)/i;
@@ -197,6 +202,30 @@ async function checkDailyLimit(apiToken: string): Promise<boolean> {
   }
 }
 
+// ─── Usage logging ──────────────────────────────────────────────────────────
+// apps/aivita has no direct DB access (see patientContext.ts) — this posts
+// to apps/api's internal endpoint, forwarding the caller's own session
+// cookie exactly like buildPatientContext/checkDailyLimit already do. Runs
+// after the stream has already closed (see call site below), so it can
+// never add latency to the response; failures are caught and logged only.
+async function logChatUsage(stream: ReturnType<Anthropic['messages']['stream']>, apiToken: string, startedAt: number) {
+  const finalMsg = await stream.finalMessage();
+  const usage = finalMsg.usage;
+  await fetch(`${API_BASE}/v1/aivita/ai-chat/usage-log`, {
+    method: 'POST',
+    headers: { Cookie: `aivita_api=${apiToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
+      cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
+      responseTimeMs: Date.now() - startedAt,
+    }),
+    cache: 'no-store',
+  });
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 // ─── Vision helpers ───────────────────────────────────────────────────────────
@@ -277,13 +306,18 @@ export async function POST(req: Request) {
     checkDrugInteractions(lastUserMsg, apiToken),
   ]);
 
-  // Build system prompt with patient data — buildPatientContext always
-  // returns a non-empty string (a short "мало данных" note for a new/failed
-  // lookup instead of silence), so this is unconditional now.
-  let systemPrompt = SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru;
-  systemPrompt += `\n\nДанные пациента: ${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
+  // System prompt as two blocks: the static instructions (identical on
+  // every request, unchanged text) get an ephemeral cache breakpoint;
+  // per-request patient data + drug-interaction results are appended
+  // uncached right after, since they differ on every call and caching them
+  // would never hit. Static block is currently ~730-970 tokens by a rough
+  // char/4 estimate — right at the claude-sonnet-4-6 minimum of 1024, so it
+  // may or may not actually get cached; if it's under the minimum the API
+  // just skips caching for it (no error), which usage logging will show as
+  // cache_creation_input_tokens: 0 on the first call.
+  let contextBlock = `\n\nДанные пациента: ${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
   if (drugContext) {
-    systemPrompt += drugContext;
+    contextBlock += drugContext;
   }
 
   const client = new Anthropic({ apiKey: apiKey! });
@@ -291,13 +325,17 @@ export async function POST(req: Request) {
   // Build vision-aware messages (inject images into last user message if present)
   const visionMessages = buildVisionMessages(messages, images ?? []);
 
+  const chatStartedAt = Date.now();
   let stream;
   try {
     // Sonnet has far better Uzbek language support than Haiku and supports vision
     stream = await client.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: CHAT_MODEL,
       max_tokens: 1500,
-      system: systemPrompt,
+      system: [
+        { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: contextBlock },
+      ],
       messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
     });
   } catch (err) {
@@ -326,6 +364,13 @@ export async function POST(req: Request) {
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
+
+        // Fired after close(), not awaited — never delays the stream the
+        // user is reading. A logging failure is caught here and only
+        // logged, never surfaced as a chat error.
+        logChatUsage(stream, apiToken, chatStartedAt).catch((err) => {
+          console.error('[ai/chat] usage logging failed:', err);
+        });
       } catch (err) {
         controller.error(err);
       }
