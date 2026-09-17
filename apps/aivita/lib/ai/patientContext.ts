@@ -29,6 +29,25 @@ async function parseData(r: PromiseSettledResult<Response>): Promise<Json> {
   try { return (await r.value.json())?.data ?? null; } catch { return null; }
 }
 
+/**
+ * GET /vitals?type=... (list) returns {items, total, hasMore} — unlike
+ * every other endpoint buildPatientContext calls, which wrap their payload
+ * in {data: ...}. parseData's generic `.data` unwrap always returned null
+ * for this one call, silently disabling the weight-trend clause below for
+ * every user since Layer 0 shipped. Scoped to just this one call rather
+ * than changing parseData (or the route's own response shape, which
+ * VitalsClient.tsx's pagination likely depends on).
+ */
+export async function parseItems(r: PromiseSettledResult<Response>): Promise<unknown[] | null> {
+  if (r.status !== 'fulfilled' || !r.value.ok) return null;
+  try {
+    const json = await r.value.json();
+    return Array.isArray(json?.items) ? json.items : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface VitalValue {
   value?: number;
   unit?: string;
@@ -108,7 +127,7 @@ export async function buildPatientContext(sessionCookie: string): Promise<string
 
     const [profile, latest, allergies, chronic, meds, weightHistory] = await Promise.all([
       parseData(profileRes), parseData(latestRes), parseData(allergiesRes),
-      parseData(chronicRes), parseData(medsRes), parseData(weightRes),
+      parseData(chronicRes), parseData(medsRes), parseItems(weightRes),
     ]);
 
     const p = profile as { birthDate?: string; gender?: string; heightCm?: number; weightKg?: string | number;
