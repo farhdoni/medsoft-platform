@@ -40,6 +40,14 @@ const envSchema = z.object({
   // Verifies X-Telegram-Bot-Api-Secret-Token on POST /v1/telegram/webhook —
   // see lib/telegram.ts. Missing value fails the webhook closed, on purpose.
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+  // Verifies X-Internal-Service-Token on POST /v1/aivita/ai-chat/usage-log —
+  // see lib/internal-auth.ts. Same apps/aivita <-> apps/api pair as
+  // SESSION_SECRET, but a deliberately separate value: this one
+  // authenticates the aivita SERVICE itself (no end-user session involved),
+  // SESSION_SECRET authenticates a specific USER's session — different
+  // blast radius, so not reused. Missing value disables the endpoint (503)
+  // rather than failing the whole chat route.
+  INTERNAL_SERVICE_TOKEN: z.string().optional(),
   // ─── Session security v2 ─────────────────────────────────────────────────────
   SESSIONS_V2: z.enum(['true', 'false']).default('false'),
   // ─── App version check (GET /v1/app-version, soft update banner) ────────────

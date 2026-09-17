@@ -64,6 +64,7 @@ import { aivitaCheckupRouter } from './routes/aivita/checkup.js';
 import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
 import { healthSearchRouter } from './routes/aivita/health-search.js';
 import { aiChatRouter } from './routes/aivita/ai-chat.js';
+import { aiChatUsageLogRouter } from './routes/aivita/ai-chat-usage-log.js';
 import { uploadRouter, uploadsServeRouter } from './routes/aivita/upload.js';
 import { aivitaConsentsRouter } from './routes/aivita/consents.js';
 import { startPushReminders } from './jobs/push-reminders.js';
@@ -204,6 +205,9 @@ app.route('/v1/aivita/outbreak', outbreakRouter);
 app.route('/v1/aivita/symptoms', symptomsRouter);
 app.route('/v1/aivita/health-search', healthSearchRouter);
 app.route('/v1/aivita/ai-chat', aiChatRouter);
+// Separate router, same prefix — deliberately NOT part of aiChatRouter, see
+// ai-chat-usage-log.ts (no requireAivitaAuth, service-token-only).
+app.route('/v1/aivita/ai-chat', aiChatUsageLogRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
 app.route('/v1/aivita/consents', aivitaConsentsRouter);

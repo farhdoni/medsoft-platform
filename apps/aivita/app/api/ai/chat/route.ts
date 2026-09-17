@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { cookies } from 'next/headers';
 import { buildPatientContext } from '@/lib/ai/patientContext';
+import { getSession } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -203,18 +204,31 @@ async function checkDailyLimit(apiToken: string): Promise<boolean> {
 }
 
 // ─── Usage logging ──────────────────────────────────────────────────────────
-// apps/aivita has no direct DB access (see patientContext.ts) — this posts
-// to apps/api's internal endpoint, forwarding the caller's own session
-// cookie exactly like buildPatientContext/checkDailyLimit already do. Runs
-// after the stream has already closed (see call site below), so it can
-// never add latency to the response; failures are caught and logged only.
-async function logChatUsage(stream: ReturnType<Anthropic['messages']['stream']>, apiToken: string, startedAt: number) {
+// apps/aivita has no direct DB access (see patientContext.ts), so this posts
+// to apps/api's internal usage-log endpoint — but unlike
+// buildPatientContext/checkDailyLimit, it does NOT forward the end user's
+// own session cookie. That endpoint is called only by this service, after
+// the user's own response has already been sent, so it authenticates via
+// INTERNAL_SERVICE_TOKEN (a service secret, not a user session) and trusts
+// aivitaUserId exactly because apps/aivita — not the browser — resolved it
+// from its own verified aivita_session cookie first (see call site below).
+// Runs after the stream has already closed, so it never adds latency;
+// failures are caught and logged only.
+async function logChatUsage(
+  stream: ReturnType<Anthropic['messages']['stream']>,
+  aivitaUserId: string,
+  startedAt: number,
+) {
+  const serviceToken = process.env.INTERNAL_SERVICE_TOKEN;
+  if (!serviceToken) return; // not configured — logging is simply off, chat is unaffected
+
   const finalMsg = await stream.finalMessage();
   const usage = finalMsg.usage;
   await fetch(`${API_BASE}/v1/aivita/ai-chat/usage-log`, {
     method: 'POST',
-    headers: { Cookie: `aivita_api=${apiToken}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Internal-Service-Token': serviceToken },
     body: JSON.stringify({
+      aivitaUserId,
       model: CHAT_MODEL,
       inputTokens: usage.input_tokens,
       outputTokens: usage.output_tokens,
@@ -275,6 +289,10 @@ export async function POST(req: Request) {
   // Check real daily message limit from API
   const cookieStore = await cookies();
   const apiToken = cookieStore.get('aivita_api')?.value ?? '';
+  // Local-only (verifies aivita_session with the shared SESSION_SECRET, no
+  // network call) — used only to attribute usage-log rows, since that
+  // endpoint no longer accepts a forwarded user session (see logChatUsage).
+  const session = await getSession();
   const allowed = await checkDailyLimit(apiToken);
   if (!allowed) {
     return new Response(JSON.stringify({ error: 'plan_limit' }), {
@@ -367,10 +385,13 @@ export async function POST(req: Request) {
 
         // Fired after close(), not awaited — never delays the stream the
         // user is reading. A logging failure is caught here and only
-        // logged, never surfaced as a chat error.
-        logChatUsage(stream, apiToken, chatStartedAt).catch((err) => {
-          console.error('[ai/chat] usage logging failed:', err);
-        });
+        // logged, never surfaced as a chat error. No session -> nothing to
+        // attribute the row to, skip rather than send a bad payload.
+        if (session?.userId) {
+          logChatUsage(stream, session.userId, chatStartedAt).catch((err) => {
+            console.error('[ai/chat] usage logging failed:', err);
+          });
+        }
       } catch (err) {
         controller.error(err);
       }
