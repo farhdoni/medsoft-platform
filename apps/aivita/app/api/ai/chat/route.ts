@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { cookies } from 'next/headers';
 import { buildPatientContext } from '@/lib/ai/patientContext';
+import { needsPatientContext } from '@/lib/ai/context-trigger';
+import { getCachedPatientContext, setCachedPatientContext } from '@/lib/ai/patient-context-cache';
 import { getSession } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
@@ -290,8 +292,9 @@ export async function POST(req: Request) {
   const cookieStore = await cookies();
   const apiToken = cookieStore.get('aivita_api')?.value ?? '';
   // Local-only (verifies aivita_session with the shared SESSION_SECRET, no
-  // network call) — used only to attribute usage-log rows, since that
-  // endpoint no longer accepts a forwarded user session (see logChatUsage).
+  // network call) — dual purpose: the patient-context cache key below, and
+  // attributing usage-log rows, since that endpoint no longer accepts a
+  // forwarded user session (see logChatUsage).
   const session = await getSession();
   const allowed = await checkDailyLimit(apiToken);
   if (!allowed) {
@@ -319,10 +322,49 @@ export async function POST(req: Request) {
   // client-suppliable id anywhere in this call, so a request can never pull
   // another patient's data.
   const lastUserMsg = messages?.filter(m => m.role === 'user').at(-1)?.content ?? '';
-  const [patientContext, drugContext] = await Promise.all([
-    buildPatientContext(apiToken),
+
+  // Economy: buildPatientContext is 6 parallel HTTP calls — only worth it
+  // when the turn is actually about health (needsPatientContext), and even
+  // then a per-user 5-minute cache avoids repeating it on every message of
+  // the same conversation. See lib/ai/context-trigger.ts and
+  // lib/ai/patient-context-cache.ts for the two pieces.
+  const contextNeeded = needsPatientContext(lastUserMsg, messages.slice(0, -1));
+  const userId = session?.userId;
+
+  async function resolvePatientContext(): Promise<{ text: string | null; cacheHit: boolean }> {
+    if (!contextNeeded) return { text: null, cacheHit: false };
+
+    const cached = userId ? getCachedPatientContext(userId) : null;
+    if (cached !== null) return { text: cached, cacheHit: true };
+
+    try {
+      const text = await buildPatientContext(apiToken);
+      if (userId) setCachedPatientContext(userId, text);
+      return { text, cacheHit: false };
+    } catch (err) {
+      // buildPatientContext already has its own internal try/catch and
+      // never throws in practice — this is a second safety net in case
+      // something outside it does. Either way: chat continues without a
+      // summary for this turn, exactly like before this feature existed.
+      console.error('[ai/chat] buildPatientContext threw unexpectedly:', err);
+      return { text: null, cacheHit: false };
+    }
+  }
+
+  const [{ text: patientContext, cacheHit }, drugContext] = await Promise.all([
+    resolvePatientContext(),
     checkDrugInteractions(lastUserMsg, apiToken),
   ]);
+
+  // ai_usage_logs has no metadata/json column to log this into yet (see
+  // this task's own Stage-2 check) — server log only, no migration.
+  console.log('[ai/chat] context-decision', JSON.stringify({
+    userId: userId ?? null,
+    contextNeeded,
+    contextLoaded: patientContext !== null,
+    cacheHit,
+    contextChars: patientContext?.length ?? 0,
+  }));
 
   // System prompt as two blocks: the static instructions (identical on
   // every request, unchanged text) get an ephemeral cache breakpoint;
@@ -333,7 +375,14 @@ export async function POST(req: Request) {
   // may or may not actually get cached; if it's under the minimum the API
   // just skips caching for it (no error), which usage logging will show as
   // cache_creation_input_tokens: 0 on the first call.
-  let contextBlock = `\n\nДанные пациента: ${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
+  //
+  // patientContext is null when needsPatientContext() decided this turn
+  // doesn't need it (or the cache/fetch attempt failed) — the "Данные
+  // пациента" sentence is then omitted entirely rather than sent empty.
+  let contextBlock = '';
+  if (patientContext !== null) {
+    contextBlock = `\n\nДанные пациента: ${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
+  }
   if (drugContext) {
     contextBlock += drugContext;
   }
@@ -350,10 +399,17 @@ export async function POST(req: Request) {
     stream = await client.messages.stream({
       model: CHAT_MODEL,
       max_tokens: 1500,
-      system: [
-        { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: contextBlock },
-      ],
+      // contextBlock can be '' now (trigger said no context needed, no drug
+      // interaction match either) — omit the second block entirely rather
+      // than send an empty text block.
+      system: contextBlock
+        ? [
+            { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: contextBlock },
+          ]
+        : [
+            { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
+          ],
       messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
     });
   } catch (err) {
