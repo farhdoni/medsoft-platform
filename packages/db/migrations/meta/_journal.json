@@ -43,6 +43,13 @@
       "when": 1778300000000,
       "tag": "0005_medication_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789636379703,
+      "tag": "0059_survey_prompts",
+      "breakpoints": true
     }
   ]
 }

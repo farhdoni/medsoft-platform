@@ -222,6 +222,18 @@
       "connectButton": "Ulash",
       "close": "Yopish"
     },
+    "surveyBanner": {
+      "answerButton": "Javob berish",
+      "laterButton": "Keyinroq",
+      "saveButton": "Saqlash",
+      "noneButton": "Yo'q",
+      "thankYou": "Rahmat, saqlab qo'ydim!",
+      "listPlaceholder": "Masalan: penitsillin",
+      "listAddHint": "Qo'shish uchun Enter yoki vergul",
+      "numberPlaceholder": "Raqam kiriting",
+      "medsYes": "Qabul qilaman",
+      "medsNo": "Qabul qilmayman"
+    },
     "metrics": {
       "sectionTitle": "Tezkor ko'rsatkichlar",
       "configure": "Sozlash",

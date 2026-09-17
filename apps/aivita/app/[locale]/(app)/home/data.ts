@@ -118,6 +118,44 @@ interface ApiNotificationSettings {
   telegramChatId: string | null;
 }
 
+type LocalizedText = { ru: string; uz: string; en: string };
+
+export interface SurveyQuestion {
+  field: string;
+  type: 'enum' | 'number' | 'list' | 'blood_type' | 'medications_special';
+  question: LocalizedText;
+  why: LocalizedText;
+  options?: Array<{ value: string; label: LocalizedText }>;
+}
+
+// POST, unlike authFetch<T>() above (GET-only) — /survey/next logs a "shown"
+// event as a side effect of picking, so it can't be a GET. Same
+// cookie-forwarding/fail-open shape as authFetch: a fetch failure here must
+// not break the rest of the home page, it should just mean "no banner today".
+async function postSurveyNext(): Promise<SurveyQuestion | null> {
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('aivita_api');
+    if (!sessionCookie) return null;
+
+    const r = await fetch(`${API_BASE}/v1/aivita/survey/next`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: {
+        'content-type': 'application/json',
+        Cookie: `aivita_api=${sessionCookie.value}`,
+      },
+      body: JSON.stringify({ channel: 'banner' }),
+    });
+    if (!r.ok) return null;
+    const json = await r.json() as { data: SurveyQuestion | null };
+    return json.data;
+  } catch (e) {
+    console.warn('[home/data] survey/next failed:', e);
+    return null;
+  }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function numericVitalValue(v: ApiVital): number {
@@ -155,6 +193,7 @@ export async function loadHomeData(): Promise<{
   vitalsLatest: Record<string, ApiVital | null>;
   doctors: DoctorPreview[];
   telegramLinked: boolean;
+  surveyQuestion: SurveyQuestion | null;
 }> {
   // Fetch the user first: vitals queries need the user's timezone to bound
   // "today" by their local day (heart_rate is stored at its real timestamp, so a
@@ -183,6 +222,7 @@ export async function loadHomeData(): Promise<{
     apiVitalsLatest,
     doctors,
     apiNotificationSettings,
+    surveyQuestion,
   ] = await Promise.all([
     authFetch<ApiHealthScore>('/v1/aivita/health-score'),
     authFetch<ApiVital[]>(`/v1/aivita/health-score/vitals?type=heart_rate&from=${todayLocal}`),
@@ -195,6 +235,7 @@ export async function loadHomeData(): Promise<{
     authFetch<Record<string, ApiVital | null>>('/v1/aivita/vitals/latest'),
     getFeaturedDoctors(),
     authFetch<ApiNotificationSettings>('/v1/aivita/notifications/settings'),
+    postSurveyNext(),
   ]);
 
   // Fail-safe: a fetch failure (authFetch returns null on network/HTTP error)
@@ -317,5 +358,5 @@ export async function loadHomeData(): Promise<{
 
   const vitalsLatest: Record<string, ApiVital | null> = apiVitalsLatest ?? {};
 
-  return { user, metrics, activity, report, vitalsLatest, doctors: doctors ?? [], telegramLinked };
+  return { user, metrics, activity, report, vitalsLatest, doctors: doctors ?? [], telegramLinked, surveyQuestion };
 }

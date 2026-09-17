@@ -10,6 +10,7 @@ import { loadHomeData } from './data';
 import { getSession } from '@/lib/auth/session';
 import { HomeDashboard } from './HomeDashboard';
 import { TelegramBanner } from './TelegramBanner';
+import { SurveyBanner } from './SurveyBanner';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [{ user, metrics, activity, report, vitalsLatest, doctors, telegramLinked }, session] =
+  const [{ user, metrics, activity, report, vitalsLatest, doctors, telegramLinked, surveyQuestion }, session] =
     await Promise.all([loadHomeData(), getSession()]);
 
   const vitals = vitalsLatest as Record<string, { recordedAt: string; value: Record<string, unknown> } | null>;
@@ -31,6 +32,7 @@ export default async function HomePage({
         <WeatherCard />
         <HeroSection user={user} metrics={metrics} />
         {!telegramLinked && <TelegramBanner locale={locale} />}
+        {surveyQuestion && <SurveyBanner locale={locale} initialQuestion={surveyQuestion} />}
         <MetricsRow metrics={metrics} vitalsLatest={vitals} />
         <ActiveChatsWidget locale={locale} />
 

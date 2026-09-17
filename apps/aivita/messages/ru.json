@@ -222,6 +222,18 @@
       "connectButton": "Подключить",
       "close": "Закрыть"
     },
+    "surveyBanner": {
+      "answerButton": "Ответить",
+      "laterButton": "Позже",
+      "saveButton": "Сохранить",
+      "noneButton": "Нет",
+      "thankYou": "Спасибо, записал!",
+      "listPlaceholder": "Например: пенициллин",
+      "listAddHint": "Enter или запятая, чтобы добавить",
+      "numberPlaceholder": "Введите число",
+      "medsYes": "Принимаю",
+      "medsNo": "Не принимаю"
+    },
     "metrics": {
       "sectionTitle": "Быстрые показатели",
       "configure": "Настроить",

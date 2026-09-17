@@ -21,3 +21,4 @@ export * from './security.js';
 export * from './system.js';
 export * from './messaging.js';
 export * from './support.js';
+export * from './survey.js';

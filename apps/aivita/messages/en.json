@@ -222,6 +222,18 @@
       "connectButton": "Connect",
       "close": "Close"
     },
+    "surveyBanner": {
+      "answerButton": "Answer",
+      "laterButton": "Later",
+      "saveButton": "Save",
+      "noneButton": "None",
+      "thankYou": "Thanks, saved!",
+      "listPlaceholder": "E.g.: penicillin",
+      "listAddHint": "Press Enter or comma to add",
+      "numberPlaceholder": "Enter a number",
+      "medsYes": "I take medication",
+      "medsNo": "I don't"
+    },
     "metrics": {
       "sectionTitle": "Quick stats",
       "configure": "Configure",
