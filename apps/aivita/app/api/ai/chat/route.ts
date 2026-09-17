@@ -226,7 +226,7 @@ async function logChatUsage(
 
   const finalMsg = await stream.finalMessage();
   const usage = finalMsg.usage;
-  await fetch(`${API_BASE}/v1/aivita/ai-chat/usage-log`, {
+  await fetch(`${API_BASE}/v1/aivita/ai-chat-usage-log`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Internal-Service-Token': serviceToken },
     body: JSON.stringify({

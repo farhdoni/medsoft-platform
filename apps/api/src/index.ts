@@ -205,9 +205,9 @@ app.route('/v1/aivita/outbreak', outbreakRouter);
 app.route('/v1/aivita/symptoms', symptomsRouter);
 app.route('/v1/aivita/health-search', healthSearchRouter);
 app.route('/v1/aivita/ai-chat', aiChatRouter);
-// Separate router, same prefix — deliberately NOT part of aiChatRouter, see
-// ai-chat-usage-log.ts (no requireAivitaAuth, service-token-only).
-app.route('/v1/aivita/ai-chat', aiChatUsageLogRouter);
+// Distinct path, NOT nested under /v1/aivita/ai-chat — see
+// ai-chat-usage-log.ts for why sharing that prefix broke this endpoint.
+app.route('/v1/aivita/ai-chat-usage-log', aiChatUsageLogRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
 app.route('/v1/aivita/consents', aivitaConsentsRouter);

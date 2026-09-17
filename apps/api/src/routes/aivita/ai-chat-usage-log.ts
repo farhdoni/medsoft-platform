@@ -8,17 +8,27 @@ import { computeCostUsd } from '../../lib/ai-pricing.js';
 import { logger } from '../../lib/logger.js';
 import { env } from '../../env.js';
 
-// Deliberately its own router, NOT mounted alongside aiChatRouter (which
-// carries requireAivitaAuth on '*') — this endpoint is called by the aivita
-// SERVICE after a chat response has already gone out, not by an end user's
-// browser, so it must not accept (or need) a user session at all. Trust
-// comes entirely from X-Internal-Service-Token; aivitaUserId is whatever
-// apps/aivita already resolved from ITS OWN verified session before calling
-// here (see chat/route.ts's logChatUsage) — this endpoint has no way to
-// double-check that claim itself, which is why it must never be reachable
-// by anything that isn't the aivita service (mirrors how
-// verifyTelegramWebhookSecret in lib/telegram.ts gates a public webhook
-// with no other auth at all).
+// Deliberately mounted at its OWN path (/v1/aivita/ai-chat-usage-log, see
+// index.ts), NOT nested under /v1/aivita/ai-chat like aiChatRouter — a
+// shared-prefix mount was tried first and silently broke this endpoint:
+// Hono matches aiChatRouter's `use('*', requireAivitaAuth)` for ANY path
+// under that prefix regardless of which sub-router "owns" the exact route
+// (confirmed live — every request here came back 401 from requireAivitaAuth
+// itself, service token never even checked, since that middleware returns
+// a Response directly on a missing cookie and short-circuits before this
+// router's own handler runs). A distinct path sidesteps the collision
+// entirely instead of depending on registration order, which is a subtler
+// invariant to keep correct.
+//
+// This endpoint is called by the aivita SERVICE after a chat response has
+// already gone out, not by an end user's browser, so it must not accept
+// (or need) a user session at all. Trust comes entirely from
+// X-Internal-Service-Token; aivitaUserId is whatever apps/aivita already
+// resolved from ITS OWN verified session before calling here (see
+// chat/route.ts's logChatUsage) — this endpoint has no way to double-check
+// that claim itself, which is why it must never be reachable by anything
+// that isn't the aivita service (mirrors how verifyTelegramWebhookSecret in
+// lib/telegram.ts gates a public webhook with no other auth at all).
 export const aiChatUsageLogRouter = new Hono();
 
 const usageLogSchema = z.object({
@@ -32,7 +42,7 @@ const usageLogSchema = z.object({
 });
 
 aiChatUsageLogRouter.post(
-  '/usage-log',
+  '/',
   rateLimit('ai-chat-usage-log', 60, 300),
   async (c, next) => {
     const authResult = checkInternalServiceToken(c.req.header('X-Internal-Service-Token'), env.INTERNAL_SERVICE_TOKEN);
