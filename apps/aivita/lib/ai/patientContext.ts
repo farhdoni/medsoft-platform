@@ -29,6 +29,29 @@ async function parseData(r: PromiseSettledResult<Response>): Promise<Json> {
   try { return (await r.value.json())?.data ?? null; } catch { return null; }
 }
 
+export interface VitalValue {
+  value?: number;
+  unit?: string;
+  systolic?: number;
+  diastolic?: number;
+}
+
+/**
+ * Formats one /vitals/latest entry's row.value into a short clause
+ * ("78 уд/мин", "138/88"), or null when there's nothing to show. Exported
+ * for tests — this is exactly the piece that used to produce
+ * "[object Object]" (row.value is this nested object, not a bare number).
+ */
+export function formatVitalValue(type: string, value: VitalValue | null | undefined): string | null {
+  if (!value) return null;
+  if (type === 'blood_pressure') {
+    return value.systolic != null && value.diastolic != null
+      ? `${value.systolic}/${value.diastolic}`
+      : null;
+  }
+  return value.value != null ? `${value.value}${value.unit ? ` ${value.unit}` : ''}` : null;
+}
+
 const GENDER_RU: Record<string, string> = { male: 'Мужчина', female: 'Женщина' };
 
 // Same label sets as messages/ru.json's lifestyle.{smoking,alcohol,activity}
@@ -154,12 +177,15 @@ export async function buildPatientContext(sessionCookie: string): Promise<string
         temperature: 'температура', weight: 'вес',
       };
       const rows: string[] = [];
-      for (const [type, row] of Object.entries(latest as Record<string, { value?: number; unit?: string; systolic?: number; diastolic?: number }>)) {
+      // GET /vitals/latest returns the full vitals row per type — row.value
+      // is itself the jsonb object ({value, unit} or {systolic, diastolic}),
+      // NOT the number directly. MetricsRow.tsx and VitalsClient.tsx already
+      // read it this way; this file previously didn't, producing
+      // "Показатели: пульс [object Object]" in every real summary.
+      for (const [type, row] of Object.entries(latest as Record<string, { value?: VitalValue } | null>)) {
         const label = vitalLabels[type];
         if (!label) continue; // keep the compact summary to the "key" vitals the task asked for
-        const val = type === 'blood_pressure'
-          ? (row.systolic && row.diastolic ? `${row.systolic}/${row.diastolic}` : null)
-          : (row.value ? `${row.value}${row.unit ? ` ${row.unit}` : ''}` : null);
+        const val = formatVitalValue(type, row?.value);
         if (val) rows.push(`${label} ${val}`);
       }
       if (rows.length) facts.push(`Показатели: ${rows.join(', ')}`);
