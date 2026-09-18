@@ -1,9 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { cookies } from 'next/headers';
+import { randomUUID } from 'crypto';
 import { buildPatientContext } from '@/lib/ai/patientContext';
 import { needsPatientContext } from '@/lib/ai/context-trigger';
 import { getCachedPatientContext, setCachedPatientContext } from '@/lib/ai/patient-context-cache';
 import { getSession } from '@/lib/auth/session';
+import { createStreamWatchdog, type StreamOutcome } from '@/lib/ai/stream-watchdog';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -14,6 +16,20 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
 // request and in the usage-log payload, so cost lookup (apps/api's
 // ai-pricing.ts) can never drift from what was actually called.
 const CHAT_MODEL = 'claude-sonnet-4-6';
+
+// ─── Stream watchdog (Part C — 2026-09-18 incident: aivita hung 72 minutes,
+// 94% CPU, no error logged, last activity was a chat request) ────────────
+//
+// Two independent limits on the SAME AbortController:
+//  - OVERALL: hard cap on the whole request, start to finish.
+//  - STALL: re-armed on every chunk — catches a stream that starts fine
+//    (headers/first bytes arrive) and then goes silent mid-response,
+//    which a pure overall cap alone wouldn't catch any faster than 90s.
+// Values are conservative relative to normal response times seen in prod
+// (observed full-stream completion ~7-13s) — both should fire only on a
+// genuinely stuck request, not a merely slow one.
+const OVERALL_TIMEOUT_MS = 90_000;
+const STALL_TIMEOUT_MS = 30_000;
 
 // ─── Drug interaction check ───────────────────────────────────────────────────
 
@@ -393,27 +409,43 @@ export async function POST(req: Request) {
   const visionMessages = buildVisionMessages(messages, images ?? []);
 
   const chatStartedAt = Date.now();
+  const requestId = randomUUID();
+  console.log('[ai/chat] stream-start', JSON.stringify({ requestId, userId: userId ?? null }));
+
+  const watchdog = createStreamWatchdog({
+    overallTimeoutMs: OVERALL_TIMEOUT_MS,
+    stallTimeoutMs: STALL_TIMEOUT_MS,
+    linkedSignal: req.signal,
+  });
+
   let stream;
   try {
     // Sonnet has far better Uzbek language support than Haiku and supports vision
-    stream = await client.messages.stream({
-      model: CHAT_MODEL,
-      max_tokens: 1500,
-      // contextBlock can be '' now (trigger said no context needed, no drug
-      // interaction match either) — omit the second block entirely rather
-      // than send an empty text block.
-      system: contextBlock
-        ? [
-            { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: contextBlock },
-          ]
-        : [
-            { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
-          ],
-      messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
-    });
+    stream = await client.messages.stream(
+      {
+        model: CHAT_MODEL,
+        max_tokens: 1500,
+        // contextBlock can be '' now (trigger said no context needed, no drug
+        // interaction match either) — omit the second block entirely rather
+        // than send an empty text block.
+        system: contextBlock
+          ? [
+              { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: contextBlock },
+            ]
+          : [
+              { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
+            ],
+        messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
+      },
+      // Covers the SDK's underlying fetch AND the body read that follows —
+      // aborting this signal later (overall/stall timeout) ends an
+      // in-progress chunk read too, not just a not-yet-started request.
+      { signal: watchdog.signal },
+    );
   } catch (err) {
-    console.error('[ai/chat] Anthropic SDK threw:', err);
+    watchdog.clear();
+    console.error('[ai/chat] Anthropic SDK threw:', JSON.stringify({ requestId }), err);
     const lastMsg = messages?.[messages.length - 1]?.content ?? '';
     const mockFn = MOCK[lang] ?? MOCK.ru;
     return new Response(
@@ -422,11 +454,21 @@ export async function POST(req: Request) {
     );
   }
 
+  watchdog.armStallTimer();
+
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     async start(controller) {
+      // One terminal log line either way (success or failure) — same
+      // message name, requestId ties it back to the matching stream-start
+      // line above, `outcome` is the only thing that differs. A request
+      // that starts but never reaches this finally at all (the watchdog
+      // itself somehow failing to fire) is exactly the "visible as
+      // hanging" case: its stream-start log has no matching stream-end.
+      let outcome: StreamOutcome = 'ok';
       try {
         for await (const chunk of stream) {
+          watchdog.armStallTimer();
           if (
             chunk.type === 'content_block_delta' &&
             chunk.delta.type === 'text_delta'
@@ -445,11 +487,24 @@ export async function POST(req: Request) {
         // attribute the row to, skip rather than send a bad payload.
         if (session?.userId) {
           logChatUsage(stream, session.userId, chatStartedAt).catch((err) => {
-            console.error('[ai/chat] usage logging failed:', err);
+            console.error('[ai/chat] usage logging failed:', JSON.stringify({ requestId }), err);
           });
         }
       } catch (err) {
+        outcome = watchdog.outcome();
+        console.error('[ai/chat] stream error', JSON.stringify({ requestId, outcome }), err);
+        // Ends the HTTP response in an error state — AiChatClient's fetch
+        // + reader.read() loop already wraps its whole read in try/catch
+        // and shows a generic connection-failed message on ANY rejection
+        // from here, so this alone satisfies "user gets a clear error, not
+        // an infinite wait" without needing a client-side change.
         controller.error(err);
+      } finally {
+        watchdog.clear();
+        console.log(
+          '[ai/chat] stream-end',
+          JSON.stringify({ requestId, outcome, durationMs: Date.now() - chatStartedAt }),
+        );
       }
     },
   });
