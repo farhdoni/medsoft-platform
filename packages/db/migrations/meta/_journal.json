@@ -71,6 +71,41 @@
       "when": 1789700000000,
       "tag": "0062_medication_schedule_status_drift",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789800000000,
+      "tag": "0063_pharmacy_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1789800000001,
+      "tag": "0064_landing_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1789800000002,
+      "tag": "0065_medical_entity_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1789800000003,
+      "tag": "0066_misc_app_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1789800000004,
+      "tag": "0067_family_members_notifications_drift_columns",
+      "breakpoints": true
     }
   ]
 }
