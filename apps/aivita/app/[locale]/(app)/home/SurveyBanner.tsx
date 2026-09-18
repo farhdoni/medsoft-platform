@@ -1,14 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { HelpCircle, X } from 'lucide-react';
 import { formatBloodType } from '@medsoft/shared';
 import type { SurveyQuestion } from './data';
+import {
+  addToList,
+  isPausedThisVisit,
+  itemsIncludingDraft,
+  listPlaceholderKeyFor,
+  pauseForRestOfVisit,
+  removeFromList,
+  shouldAddChipOnKeydown,
+} from './survey-banner-logic';
 
 type Locale = 'ru' | 'uz' | 'en';
 type Phase = 'prompt' | 'answering' | 'done' | 'hidden';
+
+function sessionStorageOrUndefined(): Storage | undefined {
+  return typeof window === 'undefined' ? undefined : window.sessionStorage;
+}
 
 // Chrome/layout modeled on TelegramBanner.tsx (card, icon circle, dismiss-X)
 // — but NOT its state model: TelegramBanner is one permanent localStorage
@@ -36,6 +49,15 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
   const [listDraft, setListDraft] = useState('');
   const [numberValue, setNumberValue] = useState('');
 
+  // Runs before paint (useLayoutEffect, not useEffect) so a paused visit
+  // never flashes the banner for a frame before hiding it. Always starts
+  // from 'prompt' on the server and on this first client render (matching
+  // SSR output, so no hydration mismatch) — this effect is what actually
+  // applies the pause, right after mount.
+  useLayoutEffect(() => {
+    if (isPausedThisVisit(sessionStorageOrUndefined())) setPhase('hidden');
+  }, []);
+
   if (phase === 'hidden') return null;
 
   const q = initialQuestion;
@@ -50,6 +72,7 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
         body: JSON.stringify(none ? { field: q.field, channel: 'banner', none: true } : { field: q.field, channel: 'banner', value }),
       });
       if (!res.ok) { setError(true); setSaving(false); return; }
+      pauseForRestOfVisit(sessionStorageOrUndefined());
       setPhase('done');
       setTimeout(() => setPhase('hidden'), 1800);
     } catch {
@@ -59,6 +82,7 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
   }
 
   function skip() {
+    pauseForRestOfVisit(sessionStorageOrUndefined());
     setPhase('hidden'); // don't make the user wait on the network for a dismiss
     fetch('/api/proxy/survey/skip', {
       method: 'POST',
@@ -68,14 +92,23 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
   }
 
   function addListChip() {
-    const v = listDraft.trim();
-    if (!v) return;
-    if (!listItems.includes(v)) setListItems([...listItems, v]);
-    setListDraft('');
+    const next = addToList({ items: listItems, draft: listDraft });
+    setListItems(next.items);
+    setListDraft(next.draft);
   }
 
   function removeListChip(v: string) {
-    setListItems(listItems.filter((x) => x !== v));
+    setListItems(removeFromList(listItems, v));
+  }
+
+  // Computed synchronously (not via addListChip()+setState, whose update
+  // wouldn't be visible until the next render) so submitAnswer always gets
+  // the complete list — including unconfirmed draft text — on the very
+  // click that triggers it. See itemsIncludingDraft() for why this exists.
+  function saveList() {
+    const items = itemsIncludingDraft({ items: listItems, draft: listDraft });
+    if (items.length === 0) return;
+    void submitAnswer(items);
   }
 
   const pillClass = (active: boolean) =>
@@ -147,17 +180,38 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
                 type="text"
                 value={listDraft}
                 onChange={(e) => setListDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addListChip(); } }}
-                placeholder={t('listPlaceholder')}
+                onKeyDown={(e) => {
+                  // isComposing covers an IME composition still in
+                  // progress (some mobile/OS Cyrillic keyboards route
+                  // Enter through composition-commit rather than a plain
+                  // keydown) — see shouldAddChipOnKeydown for why this
+                  // keystroke is left alone rather than treated as "add".
+                  // The following, real Enter still works — and the
+                  // explicit "+" button plus the flush-on-save in
+                  // saveList() never depend on this path firing at all.
+                  if (shouldAddChipOnKeydown(e.key, e.nativeEvent.isComposing || e.keyCode === 229)) {
+                    e.preventDefault();
+                    addListChip();
+                  }
+                }}
+                placeholder={t(listPlaceholderKeyFor(q.field))}
                 className="min-w-0 flex-1 rounded-xl border border-[#e8e4dc] px-3 py-2 text-[13px] font-semibold text-[#2a2540] outline-none focus:border-[#3a8fc7]"
               />
+              <button
+                type="button"
+                onClick={addListChip}
+                disabled={!listDraft.trim()}
+                className="flex-shrink-0 rounded-xl border border-[#3a8fc7] px-3 py-2 text-[12px] font-bold text-[#3a8fc7] active:scale-95 disabled:opacity-40"
+              >
+                {t('addButton')}
+              </button>
             </div>
             <p className="mt-1 text-[10px] text-[#9a96a8]">{t('listAddHint')}</p>
             <div className="mt-2 flex gap-2">
-              <button type="button" disabled={saving || listItems.length === 0}
+              <button type="button" disabled={saving || (listItems.length === 0 && !listDraft.trim())}
                 className="rounded-full px-3.5 py-2 text-[12px] font-bold text-white active:scale-95 disabled:opacity-40"
                 style={{ background: '#3a8fc7' }}
-                onClick={() => submitAnswer(listItems)}>
+                onClick={saveList}>
                 {t('saveButton')}
               </button>
               <button type="button" disabled={saving} className={pillClass(false)} onClick={() => submitAnswer(undefined, true)}>

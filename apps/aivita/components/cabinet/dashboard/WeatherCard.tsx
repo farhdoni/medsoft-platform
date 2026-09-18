@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from 'react';
+import { useTranslations } from 'next-intl';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,21 +83,28 @@ function wmoDesc(code: number): string {
 }
 
 // ─── Label helpers ────────────────────────────────────────────────────────────
+//
+// These return an i18n *key* (app.weatherBadges), not display text — the
+// small colored chips (UV/geomagnetic level, the overall risk chip, the
+// PM2.5 unit) are the only part of this card that's localized so far; the
+// rest (day names, wmoDesc, alert bodies) is still hardcoded Russian. Scoped
+// deliberately to "badges" per this task — a full pass is a bigger, separate
+// job. See kpLabelKey/uvLabelKey call sites in the component body below.
 
-function uvLabel(uv: number): string {
-  if (uv <= 2) return 'Низкий';
-  if (uv <= 5) return 'Умеренный';
-  if (uv <= 7) return 'Высокий';
-  if (uv <= 10) return 'Очень высокий';
-  return 'Экстремальный';
+function uvLabelKey(uv: number): string {
+  if (uv <= 2) return 'uvLow';
+  if (uv <= 5) return 'uvModerate';
+  if (uv <= 7) return 'uvHigh';
+  if (uv <= 10) return 'uvVeryHigh';
+  return 'uvExtreme';
 }
 
-function kpLabel(kp: number): string {
-  if (kp < 4) return 'Спокойно';
-  if (kp < 5) return 'Активно';
-  if (kp < 6) return 'Буря G1';
-  if (kp < 7) return 'Буря G2';
-  return 'Буря G3+';
+function kpLabelKey(kp: number): string {
+  if (kp < 4) return 'kpQuiet';
+  if (kp < 5) return 'kpActive';
+  if (kp < 6) return 'kpStormG1';
+  if (kp < 7) return 'kpStormG2';
+  return 'kpStormG3Plus';
 }
 
 // ─── Health alert logic ───────────────────────────────────────────────────────
@@ -165,6 +173,7 @@ function SkeletonRect({ h, w = '100%', r = 8 }: { h: number; w?: string; r?: num
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function WeatherCard() {
+  const t = useTranslations('app.weatherBadges');
   const [coords, setCoords] = useState<Coords>({ lat: DEFAULT_LAT, lon: DEFAULT_LON });
   const [city, setCity] = useState(DEFAULT_CITY);
   const [geoReady, setGeoReady] = useState(false);
@@ -413,7 +422,7 @@ export function WeatherCard() {
               background: worstLevel === 'bad' ? '#fde8e8' : worstLevel === 'warn' ? '#fff3cd' : '#d4e8d8',
               color: worstLevel === 'bad' ? '#dc3545' : worstLevel === 'warn' ? '#c96a00' : '#3a7a4a',
             }}>
-              {worstLevel === 'good' ? '✓ Спокойно' : 'Осторожно'}
+              {worstLevel === 'good' ? t('riskGood') : t('riskWarn')}
             </span>
 
             {/* Chevron */}
@@ -575,7 +584,7 @@ export function WeatherCard() {
                     {Math.round(weather.current.uv_index)}
                   </div>
                   <div style={{ fontSize: 10, color: uvColor(weather.current.uv_index) }}>
-                    {uvLabel(weather.current.uv_index)}
+                    {t(uvLabelKey(weather.current.uv_index))}
                   </div>
                 </div>
 
@@ -587,7 +596,7 @@ export function WeatherCard() {
                     {air ? Math.round(pm25) : '—'}
                   </div>
                   <div style={{ fontSize: 10, color: airColor }}>
-                    {air ? 'мкг/м³' : 'нет данных'}
+                    {air ? t('airUnit') : t('airNoData')}
                   </div>
                 </div>
 
@@ -598,7 +607,7 @@ export function WeatherCard() {
                   <div style={{ fontSize: 16, fontWeight: 700, color: kpColor, lineHeight: 1.1, marginTop: 2 }}>
                     {kp !== null ? `Kp ${Math.round(kpVal)}` : '—'}
                   </div>
-                  <div style={{ fontSize: 10, color: kpColor }}>{kpLabel(kpVal)}</div>
+                  <div style={{ fontSize: 10, color: kpColor }}>{t(kpLabelKey(kpVal))}</div>
                 </div>
 
               </div>
