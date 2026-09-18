@@ -11,7 +11,7 @@ import {
   doctorProfiles,
   referrals,
 } from '@medsoft/db';
-import { eq, or, and, isNull, gt } from 'drizzle-orm';
+import { eq, and, isNull, gt, desc } from 'drizzle-orm';
 import { grantReferralReward } from './referral.js';
 import bcrypt from 'bcryptjs';
 import { randomInt, createHash, randomBytes } from 'crypto';
@@ -22,6 +22,8 @@ import { sendAuthMessage } from '../../lib/notify-code.js';
 import { resolveBotLocale, verificationCodeMessage, passwordResetMessage } from '../../lib/telegram-i18n.js';
 import { safeTimezone, isValidTimezone, DEFAULT_TIMEZONE } from '../../lib/timezone.js';
 import { env } from '../../env.js';
+import { logger } from '../../lib/logger.js';
+import { decideRegistration, RESEND_ATTEMPT_WINDOW_MS } from '../../lib/registration-guard.js';
 
 function getSessionSecret(): Uint8Array {
   return new TextEncoder().encode(env.SESSION_SECRET);
@@ -98,19 +100,72 @@ aivitaAuthRouter.post(
   })),
   async (c) => {
     const { email, nickname, password, name, locale, timezone, role, specialization, refCode, phone, experienceYears, workplace } = c.req.valid('json');
+    const normalizedEmail = email.toLowerCase();
 
-    // Check uniqueness
-    const existing = await db.query.aivitaUsers.findFirst({
-      where: or(
-        eq(aivitaUsers.email, email.toLowerCase()),
-        eq(aivitaUsers.nickname, nickname.toLowerCase())
-      ),
+    const existingByEmail = await db.query.aivitaUsers.findFirst({
+      where: eq(aivitaUsers.email, normalizedEmail),
+    });
+    const existingByNickname = existingByEmail ? null : await db.query.aivitaUsers.findFirst({
+      where: eq(aivitaUsers.nickname, nickname.toLowerCase()),
     });
 
-    if (existing) {
-      const field = existing.email === email.toLowerCase() ? 'email' : 'nickname';
-      return c.json({ error: `${field}_taken` }, 409);
+    const recentCodes = existingByEmail
+      ? await db.select({ createdAt: aivitaEmailVerifications.createdAt })
+          .from(aivitaEmailVerifications)
+          .where(and(
+            eq(aivitaEmailVerifications.userId, existingByEmail.id),
+            gt(aivitaEmailVerifications.createdAt, new Date(Date.now() - RESEND_ATTEMPT_WINDOW_MS)),
+          ))
+          .orderBy(desc(aivitaEmailVerifications.createdAt))
+      : [];
+
+    const decision = decideRegistration(
+      existingByEmail ? { id: existingByEmail.id, emailVerified: existingByEmail.emailVerified } : null,
+      existingByNickname?.id ?? null,
+      recentCodes.map((r) => r.createdAt),
+      new Date(),
+    );
+
+    // B3: three distinct outcomes for "this email already exists" instead
+    // of one blanket "занято" — verified means "go sign in"; unverified
+    // means "we're resending your code, not blocking you". `nickname` is
+    // a real, separate conflict (a different account already has it).
+    if (decision.action === 'already_verified') {
+      return c.json({ error: 'email_taken' }, 409);
     }
+    if (decision.action === 'nickname_taken') {
+      return c.json({ error: 'nickname_taken' }, 409);
+    }
+    if (decision.action === 'too_many_attempts') {
+      return c.json({ error: 'too_many_attempts' }, 429);
+    }
+    if (decision.action === 'resend_cooldown') {
+      return c.json({ error: 'resend_cooldown', retryAfterSeconds: decision.retryAfterSeconds }, 429);
+    }
+    if (decision.action === 'resend') {
+      // B2: this is the orphaned-account recovery path — same unverified
+      // row as a previous failed attempt, just a fresh code + another
+      // delivery attempt. Not a second aivita_users row.
+      const code = String(randomInt(100000, 999999));
+      await db.insert(aivitaEmailVerifications).values({
+        userId: decision.userId,
+        code,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
+      try {
+        await sendAuthMessage(
+          decision.userId,
+          verificationCodeMessage(resolveBotLocale(undefined, existingByEmail!.locale), code),
+          () => sendVerificationCode(existingByEmail!.email!, code),
+        );
+      } catch (err) {
+        logger.error({ err, userId: decision.userId }, '[auth/register] resend to unverified account failed');
+        return c.json({ error: 'delivery_failed' }, 502);
+      }
+      return c.json({ data: { userId: decision.userId, email: existingByEmail!.email } }, 201);
+    }
+
+    // decision.action === 'create' from here on.
 
     const passwordHash = await bcrypt.hash(password, 12);
     const verificationCode = String(randomInt(100000, 999999));
@@ -127,63 +182,81 @@ aivitaAuthRouter.post(
       if (referrer.length) referrerId = referrer[0].id;
     }
 
-    const [user] = await db.insert(aivitaUsers).values({
-      email: email.toLowerCase(),
-      nickname: nickname.toLowerCase(),
-      name: name ?? nickname,
-      passwordHash,
-      provider: 'email',
-      locale,
-      timezone: safeTimezone(timezone ?? DEFAULT_TIMEZONE),
-      role,
-      plan: 'free',
-      referralCode,
-      referredBy: referrerId ?? undefined,
-    }).returning();
+    // B1: user + (optional) doctor profile + (optional) referral + the
+    // verification-code row are one atomic transaction — either all of
+    // them land or none do. The email send below is deliberately OUTSIDE
+    // it: it's a third-party HTTP call, which can't be rolled back and
+    // shouldn't hold a DB transaction open for its round-trip. Its own
+    // failure mode is handled by the try/catch + compensating delete right
+    // after — that's what actually fixes the "orphaned unverified account"
+    // bug (Resend rejects the domain, network blip, etc. → the row this
+    // transaction just committed is removed again, cascading to the
+    // profile/referral/verification rows via ON DELETE CASCADE, freeing
+    // the email/nickname immediately instead of leaving them stuck).
+    const user = await db.transaction(async (tx) => {
+      const [inserted] = await tx.insert(aivitaUsers).values({
+        email: normalizedEmail,
+        nickname: nickname.toLowerCase(),
+        name: name ?? nickname,
+        passwordHash,
+        provider: 'email',
+        locale,
+        timezone: safeTimezone(timezone ?? DEFAULT_TIMEZONE),
+        role,
+        plan: 'free',
+        referralCode,
+        referredBy: referrerId ?? undefined,
+      }).returning();
 
-    // Если врач — создать профиль с базовыми данными
-    if (role === 'doctor') {
-      // Compute experienceStartDate from experienceYears
-      let experienceStartDate: string | null = null;
-      if (experienceYears != null && experienceYears > 0) {
-        const startYear = new Date().getFullYear() - experienceYears;
-        experienceStartDate = `${startYear}-01-01`;
+      // Если врач — создать профиль с базовыми данными
+      if (role === 'doctor') {
+        let experienceStartDate: string | null = null;
+        if (experienceYears != null && experienceYears > 0) {
+          const startYear = new Date().getFullYear() - experienceYears;
+          experienceStartDate = `${startYear}-01-01`;
+        }
+        await tx.insert(doctorProfiles).values({
+          userId: inserted.id,
+          specialization: specialization ?? null,
+          phone: phone ?? null,
+          experienceStartDate: experienceStartDate ?? null,
+          clinicName: workplace ?? null,
+          verificationStatus: 'not_verified',
+        });
       }
-      await db.insert(doctorProfiles).values({
-        userId: user.id,
-        specialization: specialization ?? null,
-        phone: phone ?? null,
-        experienceStartDate: experienceStartDate ?? null,
-        clinicName: workplace ?? null,
-        verificationStatus: 'not_verified',
+
+      if (referrerId) {
+        await tx.insert(referrals).values({
+          referrerId,
+          referredId: inserted.id,
+          code: refCode!.toUpperCase(),
+          status: 'pending',
+          rewardGiven: false,
+        }).onConflictDoNothing();
+      }
+
+      await tx.insert(aivitaEmailVerifications).values({
+        userId: inserted.id,
+        code: verificationCode,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       });
-    }
 
-    // If referred — create pending referral record
-    if (referrerId) {
-      await db.insert(referrals).values({
-        referrerId,
-        referredId: user.id,
-        code: refCode!.toUpperCase(),
-        status: 'pending',
-        rewardGiven: false,
-      }).onConflictDoNothing();
-    }
-
-    // Create verification code (15 min TTL)
-    await db.insert(aivitaEmailVerifications).values({
-      userId: user.id,
-      code: verificationCode,
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      return inserted;
     });
 
-    // A just-created user has no notification_settings row yet, so this
-    // always resolves to email here — no special-casing needed.
-    await sendAuthMessage(
-      user.id,
-      verificationCodeMessage(resolveBotLocale(undefined, user.locale), verificationCode),
-      () => sendVerificationCode(user.email!, verificationCode),
-    );
+    try {
+      // A just-created user has no notification_settings row yet, so this
+      // always resolves to email here — no special-casing needed.
+      await sendAuthMessage(
+        user.id,
+        verificationCodeMessage(resolveBotLocale(undefined, user.locale), verificationCode),
+        () => sendVerificationCode(user.email!, verificationCode),
+      );
+    } catch (err) {
+      logger.error({ err, userId: user.id }, '[auth/register] verification message failed — removing the just-created account');
+      await db.delete(aivitaUsers).where(eq(aivitaUsers.id, user.id));
+      return c.json({ error: 'delivery_failed' }, 502);
+    }
 
     return c.json({ data: { userId: user.id, email: user.email } }, 201);
   }

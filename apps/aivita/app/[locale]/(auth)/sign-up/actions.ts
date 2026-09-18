@@ -56,8 +56,16 @@ export async function registerAction(
   }
 
   if (!res.ok || !json.data) {
+    // email_taken here means the email is verified — go sign in instead.
+    // An unverified email doesn't reach this branch at all: the API
+    // resends a fresh code to that same account and returns 201 with
+    // `data`, so it flows through the success path below exactly like a
+    // brand-new registration (same next screen — enter the code).
     if (json.error === 'email_taken') return { error: 'email_taken' };
     if (json.error === 'nickname_taken') return { error: 'nickname_taken' };
+    if (json.error === 'delivery_failed') return { error: 'delivery_failed' };
+    if (json.error === 'resend_cooldown') return { error: 'resend_cooldown' };
+    if (json.error === 'too_many_attempts') return { error: 'too_many_attempts' };
     return { error: 'server_error' };
   }
 
