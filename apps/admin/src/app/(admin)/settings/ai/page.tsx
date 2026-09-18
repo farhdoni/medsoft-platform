@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -179,6 +179,10 @@ export default function AiSettingsPage() {
             <CardTitle className="text-base">{t.common.provider}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>{t.settings.aiNotWiredNotice}</span>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-sm">{t.settings.aiProvider}</Label>
               <Select value={form.ai_provider} onValueChange={v => setForm(f => ({ ...f, ai_provider: v }))}>
@@ -280,7 +284,11 @@ export default function AiSettingsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>{t.settings.aiNotWiredNotice}</span>
+            </div>
             <Textarea
               className="text-xs font-mono resize-none"
               rows={12}
