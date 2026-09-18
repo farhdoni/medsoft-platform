@@ -6,6 +6,7 @@ import { needsPatientContext } from '@/lib/ai/context-trigger';
 import { getCachedPatientContext, setCachedPatientContext } from '@/lib/ai/patient-context-cache';
 import { getSession } from '@/lib/auth/session';
 import { createStreamWatchdog, type StreamOutcome } from '@/lib/ai/stream-watchdog';
+import { buildSystemBlocks } from '@/lib/ai/chat-prompt';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -30,6 +31,15 @@ const CHAT_MODEL = 'claude-sonnet-4-6';
 // genuinely stuck request, not a merely slow one.
 const OVERALL_TIMEOUT_MS = 90_000;
 const STALL_TIMEOUT_MS = 30_000;
+
+// History sent to the model per request — was already an inline
+// `.slice(-10)` (never unbounded); pulled out to a named, configurable
+// constant. 10 keeps the last ~5 user/assistant turns, matching this
+// task's own suggested 8-10 range. No older-turns summary — the trade-off
+// (and its risk: a fact stated more than 10 messages back is invisible to
+// the model on this turn) is described in this task's own report rather
+// than built here, since it's explicitly optional there.
+const CHAT_HISTORY_WINDOW = 10;
 
 // ─── Drug interaction check ───────────────────────────────────────────────────
 
@@ -74,75 +84,6 @@ async function checkDrugInteractions(message: string, apiToken: string): Promise
     return '';
   }
 }
-
-// ─── System prompts per locale ───────────────────────────────────────────────
-
-// Single adaptive prompt — model mirrors the user's language exactly
-const SYSTEM_PROMPT = `You are aivita, a health AI assistant. You speak Russian, Uzbek, and English fluently.
-
-## LANGUAGE RULE — TOP PRIORITY
-Look at the user's LAST message. Identify its language:
-- Cyrillic text with Uzbek words (ҳам, учун, билан, гапир, олайсан, қандай, сўз, жавоб, ўзбек) → respond in UZBEK CYRILLIC
-- Latin Uzbek text (salom, uyqu, ovqat, sog'liq, qanday) → respond in UZBEK LATIN
-- Russian text → respond in RUSSIAN
-- English text → respond in ENGLISH
-
-NEVER mix languages in one response. NEVER say you cannot speak Uzbek — you can and you will. NEVER apologise. Just respond in the correct language.
-
-## HEALTH ASSISTANT RULES
-1. Give science-backed, specific health advice
-2. Add a brief disclaimer that advice is informational, not a replacement for a doctor
-3. Be warm and friendly
-4. Use simple language, specific numbers and facts
-5. Keep responses to 2-4 paragraphs
-6. Use **bold** for key terms and - bullet points for tips
-
-## EXPERTISE
-Sleep · Nutrition · Physical activity · Stress · Mental health · Chronic disease prevention · Healthy habits · Drug interactions · Medical image analysis
-
-## DRUG INTERACTION RESULTS
-If the context contains "=== РЕЗУЛЬТАТ ПРОВЕРКИ СОВМЕСТИМОСТИ ЛЕКАРСТВ ===" — incorporate those results into your answer with colored-label formatting using: ⛔ for critical, ⚠️ for major, ℹ️ for moderate, 💬 for minor, ✅ for none. Always add a note to consult a doctor.
-
-## IMAGE ANALYSIS
-When the user sends an image: describe what you see medically, identify any health metrics (lab results, blood pressure readings, ECG, prescriptions, food labels etc.), and give relevant health advice.
-
-## PRESCRIPTION / РЕЦЕПТ — MANDATORY ACTION BLOCK
-When the image is a medical prescription (рецепт) — printed or handwritten — OR when the user asks to add medications from a photo or from text:
-1. Read ALL text carefully including handwritten text
-2. List EVERY medication: name, dosage (мг/кап/мад/таб), frequency, duration
-3. Note any important instructions (до/после еды, без алкоголя)
-4. ALWAYS append this EXACT block at the end (on its own line, no spaces inside tags):
-[MEDICATIONS_ACTION]{"medications":[{"name":"НАЗВАНИЕ","dosage":"ДОЗИРОВКА","frequency":"1 раз в день","times":["14:00"],"durationDays":null,"foodInstruction":null}]}[/MEDICATIONS_ACTION]
-5. After the block write exactly: "Нажмите кнопку ниже, чтобы добавить X лекарств в ваш список."
-
-JSON field rules:
-- name: medication name as written on prescription
-- dosage: dose with unit (e.g. "10 мг", "500 мг", "1 таб", "5 кап", "1 мад")
-- frequency: "1 раз в день" | "2 раза в день" | "3 раза в день" | "По необходимости"
-- times: derive from frequency → 1 time: ["14:00"] | 2 times: ["08:00","20:00"] | 3 times: ["08:00","14:00","20:00"]
-- durationDays: integer if course length mentioned, null for "постоянно" or unknown
-- foodInstruction: "before" | "after" | "during" | "no_alcohol" | null
-
-NEVER say you cannot add medications. ALWAYS output [MEDICATIONS_ACTION] block when a prescription image is sent.
-
-## AUTO-SAVE HEALTH DATA — CRITICAL RULE
-After your main response, if the conversation or image contains SPECIFIC health metrics (not vague), append ONE line in this exact format (no spaces, no line break inside):
-<!--HEALTH:{"weightKg":X,"heightCm":X,"bloodType":"A+"}-->
-
-Only include fields you are CERTAIN about from this conversation. Supported fields:
-weightKg (number), heightCm (number), bloodType (string: "A+","A-","B+","B-","AB+","AB-","O+","O-"),
-smokingStatus (string: "never","quit","occasional","daily"), exerciseFrequency (string: "sedentary","light","moderate","active"),
-gender (string: "male","female"), city (string).
-
-If NO specific metrics are mentioned → do NOT add the <!--HEALTH:--> line at all.
-
-If a question is outside health — gently redirect back in the user's language.`;
-
-const SYSTEM_PROMPTS: Record<string, string> = {
-  ru: SYSTEM_PROMPT,
-  uz: SYSTEM_PROMPT,
-  en: SYSTEM_PROMPT,
-};
 
 // ─── Mock responses — language auto-detected from message text ────────────────
 
@@ -304,7 +245,6 @@ export async function POST(req: Request) {
 
   const lang = ['ru', 'uz', 'en'].includes(locale) ? locale : 'ru';
 
-  // Check real daily message limit from API
   const cookieStore = await cookies();
   const apiToken = cookieStore.get('aivita_api')?.value ?? '';
   // Local-only (verifies aivita_session with the shared SESSION_SECRET, no
@@ -312,26 +252,9 @@ export async function POST(req: Request) {
   // attributing usage-log rows, since that endpoint no longer accepts a
   // forwarded user session (see logChatUsage).
   const session = await getSession();
-  const allowed = await checkDailyLimit(apiToken);
-  if (!allowed) {
-    return new Response(JSON.stringify({ error: 'plan_limit' }), {
-      status: 429,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const isRealKey = apiKey && apiKey.startsWith('sk-ant-api') && apiKey.length > 30;
-
-  // Mock mode — no real API key
-  if (!isRealKey) {
-    const lastMsg = messages?.[messages.length - 1]?.content ?? '';
-    const mockFn = MOCK[lang] ?? MOCK.ru;
-    return new Response(
-      JSON.stringify({ content: mockFn(lastMsg), mock: true }),
-      { headers: { 'Content-Type': 'application/json' } }
-    );
-  }
 
   // buildPatientContext derives the patient strictly from this session cookie
   // (requireAivitaAuth on the API side resolves userId from it) — there is no
@@ -367,10 +290,35 @@ export async function POST(req: Request) {
     }
   }
 
-  const [{ text: patientContext, cacheHit }, drugContext] = await Promise.all([
-    resolvePatientContext(),
-    checkDrugInteractions(lastUserMsg, apiToken),
+  // Speed: checkDailyLimit used to be a standalone `await` before any of
+  // this started — a full sequential round-trip on every message, whether
+  // or not it was even the bottleneck. Runs alongside the patient-context/
+  // drug-check work instead now; its result is only consulted after. In
+  // mock mode (no real key) resolvePatientContext/checkDrugInteractions are
+  // never invoked at all — same as before this change, no wasted calls to
+  // a possibly-absent local apps/api during dev.
+  const [allowed, { text: patientContext, cacheHit }, drugContext] = await Promise.all([
+    checkDailyLimit(apiToken),
+    isRealKey ? resolvePatientContext() : Promise.resolve({ text: null, cacheHit: false }),
+    isRealKey ? checkDrugInteractions(lastUserMsg, apiToken) : Promise.resolve(''),
   ]);
+
+  if (!allowed) {
+    return new Response(JSON.stringify({ error: 'plan_limit' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Mock mode — no real API key
+  if (!isRealKey) {
+    const lastMsg = messages?.[messages.length - 1]?.content ?? '';
+    const mockFn = MOCK[lang] ?? MOCK.ru;
+    return new Response(
+      JSON.stringify({ content: mockFn(lastMsg), mock: true }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   // ai_usage_logs has no metadata/json column to log this into yet (see
   // this task's own Stage-2 check) — server log only, no migration.
@@ -394,10 +342,13 @@ export async function POST(req: Request) {
   //
   // patientContext is null when needsPatientContext() decided this turn
   // doesn't need it (or the cache/fetch attempt failed) — the "Данные
-  // пациента" sentence is then omitted entirely rather than sent empty.
+  // пациента" block is then omitted entirely rather than sent empty. The
+  // "use this data" instruction itself now lives in the cached SYSTEM_PROMPT
+  // (## PATIENT DATA above) instead of being repeated here uncached on
+  // every message that needs context — same instruction, cheaper to send.
   let contextBlock = '';
   if (patientContext !== null) {
-    contextBlock = `\n\nДанные пациента: ${patientContext}\n\nИспользуй данные пациента для персонализированных советов. Ссылайся на конкретные цифры (пульс, вес, ИМТ и т.д.) когда это уместно.`;
+    contextBlock = `\n\nДанные пациента: ${patientContext}`;
   }
   if (drugContext) {
     contextBlock += drugContext;
@@ -425,18 +376,11 @@ export async function POST(req: Request) {
       {
         model: CHAT_MODEL,
         max_tokens: 1500,
-        // contextBlock can be '' now (trigger said no context needed, no drug
-        // interaction match either) — omit the second block entirely rather
-        // than send an empty text block.
-        system: contextBlock
-          ? [
-              { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
-              { type: 'text', text: contextBlock },
-            ]
-          : [
-              { type: 'text', text: SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS.ru, cache_control: { type: 'ephemeral' } },
-            ],
-        messages: visionMessages.slice(-10) as Parameters<typeof client.messages.stream>[0]['messages'],
+        // contextBlock can be '' (trigger said no context needed, no drug
+        // interaction match either) — buildSystemBlocks omits the second
+        // block entirely rather than send an empty text block.
+        system: buildSystemBlocks(lang, contextBlock),
+        messages: visionMessages.slice(-CHAT_HISTORY_WINDOW) as Parameters<typeof client.messages.stream>[0]['messages'],
       },
       // Covers the SDK's underlying fetch AND the body read that follows —
       // aborting this signal later (overall/stall timeout) ends an
