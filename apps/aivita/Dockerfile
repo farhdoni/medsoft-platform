@@ -24,8 +24,40 @@ RUN pnpm --filter aivita build
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Coolify passes this as a build ARG on every deployment — converting it to
+# an ENV here is what makes it readable at runtime via process.env in
+# app/api/health/route.ts. Defaults to 'unknown', never fails the build.
+ARG SOURCE_COMMIT=unknown
+ENV SOURCE_COMMIT=$SOURCE_COMMIT
+# Found while verifying the HEALTHCHECK below: Next.js standalone's own
+# server.js binds to `process.env.HOSTNAME || '0.0.0.0'` — and Docker
+# ALWAYS sets HOSTNAME to the container's short ID by default, so that
+# fallback never triggers. The server ends up listening only on the
+# container's assigned network IP, never on loopback — external traffic
+# through Docker's own port-mapping/NAT still reaches it fine (that's why
+# this went unnoticed), but anything hitting localhost/127.0.0.1 FROM
+# INSIDE the same container — exactly what a Docker HEALTHCHECK CMD does —
+# gets connection refused. This ENV overrides Docker's own HOSTNAME for
+# the running process, same fix as the well-documented public issues for
+# this exact Next.js-standalone-in-Docker gotcha.
+ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/apps/aivita/.next/standalone ./
 COPY --from=builder /app/apps/aivita/.next/static ./apps/aivita/.next/static
 COPY --from=builder /app/apps/aivita/public ./apps/aivita/public
 EXPOSE 3000
+# wget (BusyBox), not curl — this image doesn't have curl (see apps/api's
+# Dockerfile, same reasoning). /api/health does no I/O of its own (see that
+# route's comment) — a stuck response here means the event loop itself
+# can't run the callback, which is the actual failure mode from the
+# 2026-09-18 incident. start-period=30s is generous relative to this app's
+# own observed ~100-300ms cold start.
+#
+# 127.0.0.1, not localhost — verified live: BusyBox wget resolves
+# "localhost" to the IPv6 loopback (::1) first in this image, but the
+# HOSTNAME fix above only put the server on the IPv4 any-address
+# (0.0.0.0:3000), not the IPv6 one — "localhost" got connection-refused
+# even with the server correctly listening, while an explicit 127.0.0.1
+# worked immediately. Sidesteps the resolution question entirely.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget --spider -q http://127.0.0.1:3000/api/health || exit 1
 CMD ["node", "apps/aivita/server.js"]
