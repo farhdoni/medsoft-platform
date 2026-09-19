@@ -81,11 +81,23 @@ CREATE TABLE IF NOT EXISTS "symptom_reports" (
 	"reported_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "health_checkups" ADD CONSTRAINT "health_checkups_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "health_checkups" ADD CONSTRAINT "health_checkups_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "lab_results" ADD CONSTRAINT "lab_results_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "lab_results" ADD CONSTRAINT "lab_results_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "symptom_reports" ADD CONSTRAINT "symptom_reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE set null ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "symptom_reports" ADD CONSTRAINT "symptom_reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "health_checkups_user_idx" ON "health_checkups" ("user_id");
 --> statement-breakpoint

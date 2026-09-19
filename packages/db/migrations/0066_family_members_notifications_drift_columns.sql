@@ -31,6 +31,20 @@ ALTER TABLE "notifications"
   ADD COLUMN IF NOT EXISTS "priority" text DEFAULT 'normal' NOT NULL,
   ADD COLUMN IF NOT EXISTS "metadata" jsonb;
 --> statement-breakpoint
-ALTER TABLE "family_members" ADD CONSTRAINT "family_members_card_number_key" UNIQUE("card_number");
+DO $$ BEGIN
+ ALTER TABLE "family_members" ADD CONSTRAINT "family_members_card_number_key" UNIQUE("card_number");
+EXCEPTION
+ -- A named UNIQUE constraint implicitly creates a backing index of the
+ -- same name — if that index already exists (constraint already applied
+ -- in an earlier run), Postgres raises duplicate_table (42P07) for the
+ -- index, not duplicate_object (42710) for the constraint itself. Confirmed
+ -- live: the plain duplicate_object guard used everywhere else in this
+ -- migration set does NOT catch this case on a second run.
+ WHEN duplicate_object OR duplicate_table THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "family_members" ADD CONSTRAINT "family_members_migrated_to_user_id_fkey" FOREIGN KEY ("migrated_to_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE set null ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "family_members" ADD CONSTRAINT "family_members_migrated_to_user_id_fkey" FOREIGN KEY ("migrated_to_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;

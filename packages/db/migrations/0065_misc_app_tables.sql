@@ -52,23 +52,59 @@ CREATE TABLE IF NOT EXISTS "referrals" (
 	CONSTRAINT "referrals_referred_id_key" UNIQUE("referred_id")
 );
 --> statement-breakpoint
-ALTER TABLE "card_claim_requests" ADD CONSTRAINT "card_claim_requests_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "card_claim_requests" ADD CONSTRAINT "card_claim_requests_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "card_claim_requests" ADD CONSTRAINT "card_claim_requests_family_member_id_fkey" FOREIGN KEY ("family_member_id") REFERENCES "public"."family_members"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "card_claim_requests" ADD CONSTRAINT "card_claim_requests_family_member_id_fkey" FOREIGN KEY ("family_member_id") REFERENCES "public"."family_members"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "card_claim_requests" ADD CONSTRAINT "card_claim_requests_parent_user_id_fkey" FOREIGN KEY ("parent_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "card_claim_requests" ADD CONSTRAINT "card_claim_requests_parent_user_id_fkey" FOREIGN KEY ("parent_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "family_link_requests" ADD CONSTRAINT "family_link_requests_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "family_link_requests" ADD CONSTRAINT "family_link_requests_from_user_id_fkey" FOREIGN KEY ("from_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "family_link_requests" ADD CONSTRAINT "family_link_requests_to_user_id_fkey" FOREIGN KEY ("to_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "family_link_requests" ADD CONSTRAINT "family_link_requests_to_user_id_fkey" FOREIGN KEY ("to_user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "family_link_requests" ADD CONSTRAINT "family_link_requests_family_member_id_fkey" FOREIGN KEY ("family_member_id") REFERENCES "public"."family_members"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "family_link_requests" ADD CONSTRAINT "family_link_requests_family_member_id_fkey" FOREIGN KEY ("family_member_id") REFERENCES "public"."family_members"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "ai_chat_archives" ADD CONSTRAINT "ai_chat_archives_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "ai_chat_archives" ADD CONSTRAINT "ai_chat_archives_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "referrals" ADD CONSTRAINT "referrals_referrer_id_fkey" FOREIGN KEY ("referrer_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "referrals" ADD CONSTRAINT "referrals_referrer_id_fkey" FOREIGN KEY ("referrer_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
-ALTER TABLE "referrals" ADD CONSTRAINT "referrals_referred_id_fkey" FOREIGN KEY ("referred_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+ ALTER TABLE "referrals" ADD CONSTRAINT "referrals_referred_id_fkey" FOREIGN KEY ("referred_id") REFERENCES "public"."aivita_users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "card_claim_req_from_idx" ON "card_claim_requests" ("from_user_id");
 --> statement-breakpoint
