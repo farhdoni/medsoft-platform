@@ -72,6 +72,7 @@ export default function GeneralSettingsPage() {
           <div className="space-y-1.5">
             <Label>{t.settings.logoUrl}</Label>
             <Input value={form.platform_logo_url} onChange={e => set('platform_logo_url', e.target.value)} placeholder="https://..." />
+            <p className="text-xs text-muted-foreground mt-0.5">{t.settings.logoUrlHint}</p>
           </div>
         </CardContent>
       </Card>
