@@ -12,8 +12,20 @@ Coolify-приложение и не покрыто нативным Coolify-в�
   По умолчанию `dry_run=true` (только показывает, что изменится, ничего
   не копирует) — поставьте `false`, чтобы реально выкатить.
 
-Секреты те же, что у `deploy-coolify.yml` (`COOLIFY_SSH_KEY`, `VPS_HOST`) —
-новых не заводили.
+Секрет `VPS_HOST` тот же, что у `deploy-coolify.yml`. SSH-ключ — свой,
+`LANDING_SSH_KEY`: `COOLIFY_SSH_KEY` для этого не подошёл — он сам
+заужен только под port-forward (`command="exit ..."` в authorized_keys),
+`rsync` через него выполнить нельзя. `LANDING_SSH_KEY` в authorized_keys
+на VPS заужен симметрично, но под свою задачу:
+
+```
+command="/usr/bin/rrsync -wo -no-del /var/www/aivita-landing/",no-pty,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-user-rc ssh-ed25519 <...> landing-rsync-only
+```
+
+Этим ключом нельзя выполнить ничего, кроме `rsync`-записи именно в эту
+папку (проверено: произвольная команда и попытка синка в другую
+директорию — обе отклоняются; `rrsync` трактует любой путь назначения
+как путь ВНУТРИ уже зафиксированной папки, выйти за её пределы нечем).
 
 ## Что исключено из синка и почему
 
