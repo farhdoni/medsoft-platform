@@ -5,15 +5,36 @@ name: Deploy Landing (aivita.uz)
 # Coolify's native webhook). See apps/landing/DEPLOY.md for the full
 # rationale and the exclude list explained.
 #
-# REQUIRED REPO SECRETS (reused from deploy-coolify.yml, none new):
-#   COOLIFY_SSH_KEY  — PEM/OpenSSH private key for root@<VPS_HOST>
-#   VPS_HOST         — e.g. 109.123.249.224
+# REQUIRED REPO SECRETS:
+#   LANDING_SSH_KEY  — PEM/OpenSSH private key for a key scoped ONLY to
+#                      this job. authorized_keys on the VPS pins it to:
+#                        command="/usr/bin/rrsync -wo -no-del /var/www/aivita-landing/"
+#                      plus no-pty/no-port-forwarding/no-X11-forwarding/
+#                      no-agent-forwarding/no-user-rc. It cannot run any
+#                      command other than a write-only rsync confined to
+#                      that one directory (verified: arbitrary commands
+#                      and syncs to any other path are both rejected —
+#                      rrsync treats every destination path as relative
+#                      to its confined root, so there is no path that can
+#                      escape it). This is deliberately NOT the same key
+#                      deploy-coolify.yml uses (COOLIFY_SSH_KEY) — that
+#                      one is itself restricted to tunnel-only use
+#                      (command="exit ...") and cannot run rsync at all.
+#   VPS_HOST         — e.g. 109.123.249.224 (reused from deploy-coolify.yml)
 #
 # No-op (exit 0 notice) when either required secret is absent.
 #
+# Because the SSH key is confined via a forced rrsync command, the rsync
+# destination below is deliberately just "root@$VPS_HOST:" with NO path
+# — rrsync silently treats any path the client sends as relative to its
+# own confined root, so repeating /var/www/aivita-landing/ here would
+# resolve to a nonexistent nested subdirectory and fail.
+#
 # Safety properties:
 #   - rsync runs WITHOUT --delete: files that exist on the server but not
-#     in the repo (see apps/landing/DEPLOY.md) are never removed.
+#     in the repo (see apps/landing/DEPLOY.md) are never removed. The key
+#     itself also enforces this server-side (-no-del), independent of
+#     what flags this workflow ever sends.
 #   - downloads/aivita-patient.apk is excluded outright — the server's
 #     copy is newer than git's (see apps/landing/DEPLOY.md, point 6).
 #   - workflow_dispatch defaults to a dry run (rsync --dry-run); a push
@@ -56,7 +77,7 @@ jobs:
 
       - name: Sync to VPS
         env:
-          COOLIFY_SSH_KEY: ${{ secrets.COOLIFY_SSH_KEY }}
+          LANDING_SSH_KEY: ${{ secrets.LANDING_SSH_KEY }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
           DRY_RUN_INPUT: ${{ inputs.dry_run }}
           EVENT_NAME: ${{ github.event_name }}
@@ -65,8 +86,8 @@ jobs:
           set -euo pipefail
 
           # ── Guard ────────────────────────────────────────────────────────────
-          if [ -z "${COOLIFY_SSH_KEY:-}" ] || [ -z "${VPS_HOST:-}" ]; then
-            echo "::notice::Required secrets not set (COOLIFY_SSH_KEY / VPS_HOST) — no-op."
+          if [ -z "${LANDING_SSH_KEY:-}" ] || [ -z "${VPS_HOST:-}" ]; then
+            echo "::notice::Required secrets not set (LANDING_SSH_KEY / VPS_HOST) — no-op."
             exit 0
           fi
 
@@ -79,9 +100,9 @@ jobs:
           fi
 
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          echo "${COOLIFY_SSH_KEY}" > ~/.ssh/coolify_key
-          chmod 600 ~/.ssh/coolify_key
-          SSH_OPTS="-o StrictHostKeyChecking=no -o ServerAliveInterval=15 -i ~/.ssh/coolify_key"
+          echo "${LANDING_SSH_KEY}" > ~/.ssh/landing_key
+          chmod 600 ~/.ssh/landing_key
+          SSH_OPTS="-o StrictHostKeyChecking=no -o ServerAliveInterval=15 -i ~/.ssh/landing_key"
 
           # ── Exclusions ───────────────────────────────────────────────────────
           # Everything below either (a) lives on the server only and is never
@@ -90,10 +111,13 @@ jobs:
           # git but must not reach the server. Full rationale in
           # apps/landing/DEPLOY.md. No --delete is used anywhere, so anything
           # NOT listed here that only exists on the server is left alone
-          # regardless.
+          # regardless (the key's -no-del restriction enforces this too).
+          #
+          # Destination is deliberately "root@$VPS_HOST:" with no path — see
+          # the header comment above for why repeating the directory here
+          # would break under the confined key.
           rsync -avz --itemize-changes $DRY_FLAG \
             -e "ssh $SSH_OPTS" \
-            --chown=root:root \
             --exclude='*.bak*' \
             --exclude='downloads/aivita-patient.apk' \
             --exclude='6e3a3321e0a7ac487e75f14c6909ebf9.txt' \
@@ -105,7 +129,7 @@ jobs:
             --exclude='.gitignore' \
             --exclude='CLAUDE.md' \
             --exclude='README.md' \
-            "${STAGE_DIR}/" "root@${VPS_HOST}:/var/www/aivita-landing/"
+            "${STAGE_DIR}/" "root@${VPS_HOST}:"
 
           if [ -n "$DRY_FLAG" ]; then
             echo ""
