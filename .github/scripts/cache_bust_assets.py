@@ -7,23 +7,34 @@ update to an asset is otherwise invisible to anyone who already has it
 cached. Appending a commit-scoped query string makes each deploy a new
 URL for the browser, without touching the nginx cache policy itself.
 
-Matches both reference forms actually used in apps/landing:
-  - root-relative:      /assets/logo.png
-  - same-origin absolute: https://aivita.uz/assets/og-image.png
-Deliberately does NOT touch /downloads/ links or any other domain's
-/assets/ path — the regex only fires on a bare path or one prefixed
-with exactly https://aivita.uz.
+Matches every reference form actually used in apps/landing (verified by
+an unanchored grep across the whole tree, not just a "/assets/" substring
+search — the first version of this script used exactly that anchored
+search both here and during recon, which is why it silently missed the
+no-slash form below until a live deploy exposed it):
+  - root-relative:        /assets/logo.png
+  - bare relative:         assets/logo.png   (only <img src=...> in
+                            index.html uses this; three occurrences)
+  - same-origin absolute:  https://aivita.uz/assets/og-image.png
+A negative lookbehind requires whatever precedes the match to NOT be a
+letter or digit, so a third-party URL that merely contains "/assets/"
+as a sub-path (e.g. https://cdn.example.com/assets/font.woff2) is never
+matched — only our own domain or a path with no domain at all. /downloads/
+links are untouched by construction (the pattern never mentions that
+path at all).
 
 Only .html and .webmanifest files reference /assets/ in this tree today
 (verified by grepping the whole apps/landing tree before writing this);
-those are the two extensions processed below.
+those are the two extensions processed below. No srcset, no CSS url(),
+no single-quoted attributes, and no other file type reference assets/
+anywhere in the tree (also verified).
 """
 import re
 import sys
 from pathlib import Path
 
 ASSET_RE = re.compile(
-    r'(?:https://aivita\.uz)?/assets/[A-Za-z0-9_./-]+\.(?:png|ico|css|js|mjs|svg|webp|jpe?g|gif|woff2?|ttf)'
+    r'(?<![A-Za-z0-9])(?:https://aivita\.uz/)?/?assets/[A-Za-z0-9_./-]+\.(?:png|ico|css|js|mjs|svg|webp|jpe?g|gif|woff2?|ttf)'
 )
 
 
