@@ -1,11 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Pill, FlaskConical, Building2 } from 'lucide-react';
+import { FlaskConical, Building2 } from 'lucide-react';
+// import { Pill } from 'lucide-react'; // only used by the hidden pharmacy tab below
 import { useI18n } from '@/lib/i18n';
 
 const TABS = [
-  { href: '/partners/pharmacies', key: 'tabPharmacies', icon: Pill },
+  // 'tabPharmacies' hidden 2026-09-20 — kept in sync with sidebar.tsx, see
+  // docs/pharmacy-disabled.md.
+  // { href: '/partners/pharmacies', key: 'tabPharmacies', icon: Pill },
   { href: '/partners/labs', key: 'tabLabs', icon: FlaskConical },
   { href: '/partners/clinics', key: 'tabClinics', icon: Building2 },
 ];

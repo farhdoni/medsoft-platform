@@ -8,6 +8,12 @@ import Modal from '@/components/ui/Modal';
 
 const PROXY = '/api/proxy';
 
+// Pharmacy search — DISABLED 2026-09-20, see docs/pharmacy-disabled.md.
+// This card used to link into /pharmacy/search, which is itself disabled
+// (backend routes unmounted); keep the flag in sync with
+// apps/aivita/app/[locale]/(app)/medications/MedicationsClient.tsx.
+const PHARMACY_SEARCH_ENABLED = false;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OtherUser { id: string; name: string; avatarUrl?: string; specialization?: string; role: string; }
@@ -88,7 +94,7 @@ function PrescriptionCard({ meta, locale }: { meta: Record<string, unknown>; loc
         <p className="text-xs text-[#6a6580] mt-0.5">{String(meta.dosage ?? '')} · {String(meta.frequency ?? '')}</p>
         {!!meta.duration && <p className="text-xs text-[#9a96a8] mt-0.5">Курс: {String(meta.duration)}</p>}
       </div>
-      {drug && (
+      {drug && PHARMACY_SEARCH_ENABLED && (
         <a
           href={`/${locale}/pharmacy/search?drug=${encodeURIComponent(drug)}`}
           className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white"
