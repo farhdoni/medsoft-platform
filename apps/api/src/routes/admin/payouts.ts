@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { requireAuth } from '../../middleware/auth.js';
 import { requireRight } from '../../lib/rbac.js';
 import { auditLog } from '../aivita-admin-audit.js';
@@ -151,6 +151,19 @@ adminPayoutsRouter.post('/doctors/:id/mark-paid', requireRight('finance:edit'), 
 
   return c.json({ success: true });
 });
+
+// ─── Pharmacy payouts — DISABLED 2026-09-20, see docs/pharmacy-disabled.md ────
+// Same reason as the rest of the pharmacy feature (see apps/api/src/index.ts,
+// "Pharmacy partner system — DISABLED"): the `pharmacies`/`pharmacy_branches`
+// tables migration 0063 was never deployed, so payouts here reference a
+// pharmacyId with no real pharmacy behind it. Guarded here rather than
+// removed so re-enabling is a one-line revert.
+const pharmacyPayoutsDisabled = async (c: Context) =>
+  c.json({ error: 'Pharmacy payouts are temporarily disabled' }, 404);
+// Two registrations, not one "/pharmacies/*" — Hono's wildcard requires a
+// trailing segment and does not match the bare "/pharmacies" path itself.
+adminPayoutsRouter.use('/pharmacies', pharmacyPayoutsDisabled);
+adminPayoutsRouter.use('/pharmacies/*', pharmacyPayoutsDisabled);
 
 // ─── GET /v1/admin/payouts/pharmacies ────────────────────────────────────────
 

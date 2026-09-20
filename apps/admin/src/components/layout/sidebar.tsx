@@ -62,7 +62,9 @@ const baseNavItems = [
   { href: '/aivita/notifications', labelKey: 'notifications',  icon: Bell,          section: 'aivita' },
   { href: '/aivita/support',       labelKey: 'support',        icon: HelpCircle,    section: 'aivita' },
   // ── ПАРТНЁРЫ ──
-  { href: '/partners/pharmacies',  labelKey: 'pharmacies',     icon: Pill,          section: 'partners' },
+  // 'pharmacies' hidden 2026-09-20 — see docs/pharmacy-disabled.md. Page
+  // code and route stay in place; uncomment this line to bring it back.
+  // { href: '/partners/pharmacies',  labelKey: 'pharmacies',     icon: Pill,          section: 'partners' },
   { href: '/partners/labs',        labelKey: 'labs',           icon: FlaskConical,  section: 'partners' },
   { href: '/partners/clinics',     labelKey: 'clinics',        icon: Building2,     section: 'partners' },
   // ── ФИНАНСЫ ──
@@ -72,7 +74,10 @@ const baseNavItems = [
   { href: '/finance/payments',           labelKey: 'payments',        icon: CreditCard,      section: 'finance' },
   { href: '/finance/subscriptions',      labelKey: 'subscriptions',   icon: Repeat,          section: 'finance' },
   { href: '/finance/payouts/doctors',    labelKey: 'payoutsDoctors',  icon: Stethoscope,     section: 'finance' },
-  { href: '/finance/payouts/pharmacies', labelKey: 'payoutsPharm',    icon: Pill,            section: 'finance' },
+  // 'payoutsPharm' hidden 2026-09-20 along with the pharmacy feature — see
+  // docs/pharmacy-disabled.md. The backend routes it points at
+  // (/v1/admin/payouts/pharmacies/*) are disabled too (admin/payouts.ts).
+  // { href: '/finance/payouts/pharmacies', labelKey: 'payoutsPharm',    icon: Pill,            section: 'finance' },
   { href: '/finance/promo-codes',        labelKey: 'promoCodes',      icon: Ticket,          section: 'finance' },
   { href: '/finance/plans',              labelKey: 'plans',           icon: Layers,          section: 'finance' },
   { href: '/finance/settings',           labelKey: 'settings',        icon: Settings2,       section: 'finance' },

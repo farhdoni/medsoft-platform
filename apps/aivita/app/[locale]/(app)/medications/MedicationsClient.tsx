@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { ScheduleItem, MedStats, MedicationRow } from './page';
 
+// Pharmacy tab + "Купить" buttons — DISABLED 2026-09-20, see
+// docs/pharmacy-disabled.md. The tab used to link to a real backend search
+// that never shipped (migration 0063 never deployed); this was a
+// placeholder that only opened tabletka.uz and an external maps link while
+// promising "Скоро: аптеки-партнёры AIVITA". Flip to true once the real
+// pharmacy search (see aivita/pharmacy/PharmacySearchClient.tsx) is wired
+// back into this app's navigation instead.
+const PHARMACY_TAB_ENABLED = false;
+
 // ─── CSS Variables ────────────────────────────────────────────────────────────
 const C = {
   bg: '#f4f3ef', card: '#fff', border: '#e8e4dc',
@@ -240,7 +249,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
     { key: 'meds',     label: '💊 Лекарства' },
     { key: 'add',      label: '➕ Добавить'   },
     { key: 'log',      label: '📅 Журнал'     },
-    { key: 'pharmacy', label: '🔍 Аптеки'     },
+    ...(PHARMACY_TAB_ENABLED ? [{ key: 'pharmacy' as const, label: '🔍 Аптеки' }] : []),
     { key: 'family',   label: '👨‍👩‍👧 Семья'    },
   ];
 
@@ -316,7 +325,7 @@ export function MedicationsClient({ initialSchedule, initialStats, initialMedica
           <TabAdd onAdded={(med) => { setMedications(prev => [med, ...prev]); setTab('meds'); }} />
         )}
         {tab === 'log'      && <TabLog />}
-        {tab === 'pharmacy' && <TabPharmacy />}
+        {tab === 'pharmacy' && PHARMACY_TAB_ENABLED && <TabPharmacy />}
         {tab === 'family'   && <TabFamily locale={locale} />}
       </div>
 
@@ -1260,7 +1269,7 @@ function MedGroupCard({ med, items, colorBg, onTake, onSkip, onInfo, onBuy, onMe
               <span className="tt">Пропустить этот приём</span>
             </button>
           ))}
-          {lowPills && (
+          {lowPills && PHARMACY_TAB_ENABLED && (
             <button className="tt-btn" onClick={onBuy} style={{
               padding: '8px 14px', borderRadius: 12, border: 'none',
               background: C.blueBg, color: C.blue, fontSize: 11, fontWeight: 700,

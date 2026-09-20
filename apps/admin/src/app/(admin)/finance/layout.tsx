@@ -10,7 +10,9 @@ const TABS = [
   { href: '/finance/payments',            key: 'tabPayments' },
   { href: '/finance/subscriptions',       key: 'tabSubscriptions' },
   { href: '/finance/payouts/doctors',     key: 'tabPayoutsDoctors' },
-  { href: '/finance/payouts/pharmacies',  key: 'tabPayoutsPharm' },
+  // 'tabPayoutsPharm' hidden 2026-09-20 — kept in sync with sidebar.tsx, see
+  // docs/pharmacy-disabled.md.
+  // { href: '/finance/payouts/pharmacies',  key: 'tabPayoutsPharm' },
   { href: '/finance/promo-codes',         key: 'tabPromoCodes' },
   { href: '/finance/plans',               key: 'tabPlans' },
   { href: '/finance/settings',            key: 'tabSettings' },

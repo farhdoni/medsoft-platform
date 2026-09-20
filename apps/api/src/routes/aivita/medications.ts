@@ -815,6 +815,16 @@ aivitaMedicationsRouter.get('/family', async (c) => {
 });
 
 // ─── GET /pharmacy/search — поиск аптек ──────────────────────────────────────
+// DISABLED 2026-09-20 along with the rest of the pharmacy feature (see
+// docs/pharmacy-disabled.md). Confirmed dead separately from that: this is a
+// duplicate of /v1/aivita/pharmacy/search with a DIFFERENT auth policy (this
+// one requires a token, the real one is public) and no caller anywhere in
+// apps/aivita, apps/mobile-patient, or apps/mobile-doctor — grepped the whole
+// monorepo, zero references outside this file. Guard added rather than
+// touching the handler below, so re-enabling is just deleting this .use()
+// line.
+aivitaMedicationsRouter.use('/pharmacy/search', async (c) =>
+  c.json({ error: 'Pharmacy search is temporarily disabled' }, 404));
 
 aivitaMedicationsRouter.get('/pharmacy/search', async (c) => {
   const { drug } = c.req.query();

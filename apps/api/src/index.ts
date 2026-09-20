@@ -211,10 +211,19 @@ app.route('/v1/aivita/ai-chat-usage-log', aiChatUsageLogRouter);
 app.route('/v1/aivita/upload', uploadRouter);
 app.route('/v1/aivita/uploads', uploadsServeRouter);
 app.route('/v1/aivita/consents', aivitaConsentsRouter);
-// Pharmacy partner system
-app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
-app.route('/v1/pharmacy', pharmacyRouter);
-app.route('/v1/aivita/pharmacy', aivitaPharmacyRouter);
+// Pharmacy partner system — DISABLED 2026-09-20, see docs/pharmacy-disabled.md.
+// Migration 0063 (pharmacies/pharmacy_branches/pharmacy_users/
+// pharmacy_products/pharmacy_orders/pharmacy_promotions) was never deployed,
+// so every one of these routes hit missing tables — including
+// /v1/aivita/pharmacy/search, which is publicly reachable with no auth and
+// was failing on every request. Not removed, just unmounted: code, admin UI,
+// and patient pages all stay in place for a one-line revert once 0063 is
+// deployed (branch feature/pharmacy-tables), the /v1/admin/pharmacies RBAC
+// gap is closed (currently requireAuth only, no requireRight), and a real
+// payment story exists.
+// app.route('/v1/admin/pharmacies', adminPharmaciesRouter);
+// app.route('/v1/pharmacy', pharmacyRouter);
+// app.route('/v1/aivita/pharmacy', aivitaPharmacyRouter);
 app.route('/v1/aivita/medical', medicalRouter);
 app.route('/v1/aivita/referral', aivitaReferralRouter);
 app.route('/v1/aivita/agents', agentsRouter);
