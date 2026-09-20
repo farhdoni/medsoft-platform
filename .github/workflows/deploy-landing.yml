@@ -1,0 +1,116 @@
+name: Deploy Landing (aivita.uz)
+
+# Syncs apps/landing to the VPS's plain nginx-served directory
+# (/var/www/aivita-landing — NOT a Coolify application, NOT behind
+# Coolify's native webhook). See apps/landing/DEPLOY.md for the full
+# rationale and the exclude list explained.
+#
+# REQUIRED REPO SECRETS (reused from deploy-coolify.yml, none new):
+#   COOLIFY_SSH_KEY  — PEM/OpenSSH private key for root@<VPS_HOST>
+#   VPS_HOST         — e.g. 109.123.249.224
+#
+# No-op (exit 0 notice) when either required secret is absent.
+#
+# Safety properties:
+#   - rsync runs WITHOUT --delete: files that exist on the server but not
+#     in the repo (see apps/landing/DEPLOY.md) are never removed.
+#   - downloads/aivita-patient.apk is excluded outright — the server's
+#     copy is newer than git's (see apps/landing/DEPLOY.md, point 6).
+#   - workflow_dispatch defaults to a dry run (rsync --dry-run); a push
+#     to main always does a real sync.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/landing/**"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run only (rsync --dry-run — nothing is actually copied)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-landing-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Sync apps/landing to the VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage landing content with cache-busted asset URLs
+        id: stage
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse --short=8 HEAD)"
+          STAGE="$(mktemp -d)"
+          cp -a apps/landing/. "$STAGE/"
+          python3 .github/scripts/cache_bust_assets.py "$STAGE" "$SHA"
+          echo "dir=$STAGE" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Sync to VPS
+        env:
+          COOLIFY_SSH_KEY: ${{ secrets.COOLIFY_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          DRY_RUN_INPUT: ${{ inputs.dry_run }}
+          EVENT_NAME: ${{ github.event_name }}
+          STAGE_DIR: ${{ steps.stage.outputs.dir }}
+        run: |
+          set -euo pipefail
+
+          # ── Guard ────────────────────────────────────────────────────────────
+          if [ -z "${COOLIFY_SSH_KEY:-}" ] || [ -z "${VPS_HOST:-}" ]; then
+            echo "::notice::Required secrets not set (COOLIFY_SSH_KEY / VPS_HOST) — no-op."
+            exit 0
+          fi
+
+          # push -> always a real sync. workflow_dispatch -> dry-run unless
+          # explicitly set to false.
+          DRY_FLAG=""
+          if [ "$EVENT_NAME" != "push" ] && [ "${DRY_RUN_INPUT}" != "false" ]; then
+            DRY_FLAG="--dry-run"
+            echo "::notice::DRY RUN — rsync will report changes but copy nothing."
+          fi
+
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${COOLIFY_SSH_KEY}" > ~/.ssh/coolify_key
+          chmod 600 ~/.ssh/coolify_key
+          SSH_OPTS="-o StrictHostKeyChecking=no -o ServerAliveInterval=15 -i ~/.ssh/coolify_key"
+
+          # ── Exclusions ───────────────────────────────────────────────────────
+          # Everything below either (a) lives on the server only and is never
+          # in git — listed here for documentation and as a defensive backstop
+          # against a future accidental commit of the same name — or (b) IS in
+          # git but must not reach the server. Full rationale in
+          # apps/landing/DEPLOY.md. No --delete is used anywhere, so anything
+          # NOT listed here that only exists on the server is left alone
+          # regardless.
+          rsync -avz --itemize-changes $DRY_FLAG \
+            -e "ssh $SSH_OPTS" \
+            --chown=root:root \
+            --exclude='*.bak*' \
+            --exclude='downloads/aivita-patient.apk' \
+            --exclude='6e3a3321e0a7ac487e75f14c6909ebf9.txt' \
+            --exclude='api/' \
+            --exclude='package.json' \
+            --exclude='vercel.json' \
+            --exclude='nginx.conf' \
+            --exclude='.env.example' \
+            --exclude='.gitignore' \
+            --exclude='CLAUDE.md' \
+            --exclude='README.md' \
+            "${STAGE_DIR}/" "root@${VPS_HOST}:/var/www/aivita-landing/"
+
+          if [ -n "$DRY_FLAG" ]; then
+            echo ""
+            echo "::notice::Dry run complete — nothing was copied. Re-run with dry_run=false (or push to main) to apply."
+          else
+            echo ""
+            echo "Sync complete."
+          fi
