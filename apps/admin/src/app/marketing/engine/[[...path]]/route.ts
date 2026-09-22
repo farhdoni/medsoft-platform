@@ -223,6 +223,13 @@ async function handleProxy(req: NextRequest) {
     'x-forwarded-for',
     'x-forwarded-proto',
     'x-forwarded-host',
+    // Engine's Router::assertSameOriginRequest() requires this on every
+    // mutating request (POST/PUT/PATCH/DELETE) — app.js's own fetch()
+    // wrapper always sets it client-side, but this allowlist was dropping
+    // it before it ever reached the engine, so every write through this
+    // proxy (not just Connections) 403'd regardless of what the browser
+    // actually sent.
+    'x-requested-with',
   ];
 
   for (const h of passThroughHeaders) {
