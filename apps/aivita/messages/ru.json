@@ -197,7 +197,8 @@
       "doctorBadge": "Врач",
       "sosAriaLabel": "SOS Экстренный вызов",
       "searchAriaLabel": "Найти врача",
-      "notificationsAriaLabel": "Уведомления"
+      "notificationsAriaLabel": "Уведомления",
+      "languageAriaLabel": "Язык интерфейса"
     },
     "hero": {
       "greetingNight": "Доброй ночи",

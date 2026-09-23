@@ -101,8 +101,36 @@ function stripLocale(pathname: string): string {
   return pathname.replace(/^\/(ru|uz|en)(\/|$)/, '/') || '/';
 }
 
+// Best-effort Accept-Language match against our 3 supported locales — used
+// only as a last-resort default before falling back to DEFAULT_LOCALE, never
+// to override an explicit URL locale or a cookie (a returning visitor's own
+// choice always wins). Deliberately small/manual: next-intl's own
+// localeDetection only ever fires for requests that reach intlMiddleware()
+// at the bottom of this file, which the root path and the bare /sign-in
+// redirect (the two most common first-touch URLs) never do — see the two
+// call sites below.
+function pickFromAcceptLanguage(header: string | null): string | null {
+  if (!header) return null;
+  const ranked = header
+    .split(',')
+    .map((part) => {
+      const [tag, ...params] = part.trim().split(';');
+      const q = params.find((p) => p.trim().startsWith('q='));
+      return { tag: tag.trim().toLowerCase(), quality: q ? parseFloat(q.split('=')[1]) : 1 };
+    })
+    .sort((a, b) => b.quality - a.quality);
+
+  for (const { tag } of ranked) {
+    const primary = tag.split('-')[0];
+    if ((LOCALES as readonly string[]).includes(primary)) return primary;
+  }
+  return null;
+}
+
 // Extract locale from pathname.
-// Priority: 1) explicit locale in URL  2) NEXT_LOCALE cookie  3) default
+// Priority: 1) explicit locale in URL  2) NEXT_LOCALE cookie  3) browser
+// Accept-Language (first visit only — a reasonable default, not imposed:
+// the new language menu is one tap away regardless)  4) default
 function extractLocale(pathname: string, request?: NextRequest): string {
   const m = pathname.match(/^\/(ru|uz|en)(\/|$)/);
   if (m) return m[1];
@@ -110,6 +138,9 @@ function extractLocale(pathname: string, request?: NextRequest): string {
   if (request) {
     const cookie = request.cookies.get('NEXT_LOCALE')?.value;
     if (cookie && (LOCALES as readonly string[]).includes(cookie)) return cookie;
+
+    const detected = pickFromAcceptLanguage(request.headers.get('accept-language'));
+    if (detected) return detected;
   }
 
   return DEFAULT_LOCALE;

@@ -1,10 +1,11 @@
 'use client';
 import { useActionState, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { OrbBackground } from '@/components/shared/orb-background';
+import { LanguageMenuButton } from '@/components/shared/LanguageMenu';
 import { registerAction, verifyEmailAction, resendCodeAction } from './actions';
 
 // ─── Form translations ────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ const T = {
     too_many_attempts: 'Слишком много попыток отправки кода. Попробуйте позже.',
     invalid_code: 'Неверный или истёкший код.',
     unknown: 'Произошла ошибка.',
+    chooseLanguage: 'Язык интерфейса',
   },
   uz: {
     heading: 'Hisob',
@@ -91,6 +93,7 @@ const T = {
     too_many_attempts: "Kod yuborish urinishlari juda ko'p. Keyinroq urinib ko'ring.",
     invalid_code: "Noto'g'ri yoki muddati o'tgan kod.",
     unknown: 'Xato yuz berdi.',
+    chooseLanguage: 'Interfeys tili',
   },
   en: {
     heading: 'Create',
@@ -132,46 +135,11 @@ const T = {
     too_many_attempts: 'Too many code-send attempts. Please try again later.',
     invalid_code: 'Invalid or expired code.',
     unknown: 'An error occurred.',
+    chooseLanguage: 'Interface language',
   },
 } as const;
 
 type TLocale = keyof typeof T;
-
-// ─── Compact language switcher ────────────────────────────────────────────────
-
-const LOCALE_META = [
-  { code: 'ru', flag: '🇷🇺', label: 'RU' },
-  { code: 'uz', flag: '🇺🇿', label: 'UZ' },
-  { code: 'en', flag: '🇬🇧', label: 'EN' },
-] as const;
-
-function LangSwitcher({ current, refCode }: { current: string; refCode: string }) {
-  const router = useRouter();
-  function switchTo(code: string) {
-    document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-    const href = refCode ? `/${code}/sign-up?ref=${refCode}` : `/${code}/sign-up`;
-    router.push(href);
-  }
-  return (
-    <div className="flex items-center justify-center gap-1 mb-6">
-      {LOCALE_META.map(l => (
-        <button
-          key={l.code}
-          onClick={() => switchTo(l.code)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
-          style={
-            l.code === current
-              ? { background: 'linear-gradient(135deg,#fce4ea,#dde8fc)', color: '#9c5e6c', border: '1.5px solid #e4a8b4' }
-              : { background: 'white', color: '#9a96a8', border: '1.5px solid #e8e4dc' }
-          }
-        >
-          <span>{l.flag}</span>
-          <span>{l.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export default function SignUpPage() {
   const params = useParams();
@@ -222,7 +190,7 @@ export default function SignUpPage() {
         <OrbBackground />
         <div className="relative z-10 w-full max-w-md">
           <div className="flex justify-center mb-6"><Logo /></div>
-          <LangSwitcher current={locale} refCode={refCode} />
+          <LanguageMenuButton locale={locale} title={t.chooseLanguage} variant="pill" />
 
           <div className="text-center mb-8">
             <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-pink-blue-mint flex items-center justify-center shadow-pink">
@@ -298,7 +266,7 @@ export default function SignUpPage() {
       <OrbBackground />
       <div className="relative z-10 w-full max-w-md">
         <div className="flex justify-center mb-6"><Logo /></div>
-        <LangSwitcher current={locale} refCode={refCode} />
+        <LanguageMenuButton locale={locale} title={t.chooseLanguage} variant="pill" />
 
         {/* Referral badge */}
         {refCode && (

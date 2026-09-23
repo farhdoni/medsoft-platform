@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Globe, Bell, ChevronRight, Navigation, Fingerprint, Clock } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import { LanguageMenuModal } from '@/components/shared/LanguageMenu';
+import type { LocaleCode } from '@/lib/i18n/locales';
 import { ALL_NAV_OPTIONS, loadNavConfig, saveNavConfig } from '@/components/cabinet/dashboard/FloatingNav';
 
 // Popular IANA timezones shown first; any IANA zone is accepted by the API.
@@ -27,22 +29,19 @@ const POPULAR_TIMEZONES = [
   { value: 'Asia/Shanghai',    label: 'Шанхай (UTC+8)' },
 ];
 
-const LOCALES = [
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'uz', label: "O'zbek", flag: '🇺🇿' },
-  { code: 'en', label: 'English', flag: '🇺🇸' },
-];
-
 // ─── Language Modal ───────────────────────────────────────────────────────────
+// Picker list itself lives in the shared LanguageMenu component (also used by
+// TopBar and the pre-login sign-in/sign-up screens) — this wrapper just adds
+// the account-PATCH side effect Settings needs on top of the shared behavior.
 
 function LanguageModal({ current, onClose }: { current: string; onClose: () => void }) {
   const router = useRouter();
   const t = useTranslations('app.settings');
 
-  function switchLocale(code: string) {
+  function switchLocale(code: LocaleCode) {
     const path = window.location.pathname;
     const newPath = path.replace(/^\/(ru|uz|en)(\/|$)/, `/${code}$2`);
-    document.cookie = `NEXT_LOCALE=${code};path=/;max-age=31536000`;
+    document.cookie = `NEXT_LOCALE=${code};path=/;max-age=31536000;SameSite=Lax`;
     onClose();
     router.push(newPath || `/${code}/settings`);
     router.refresh();
@@ -57,27 +56,7 @@ function LanguageModal({ current, onClose }: { current: string; onClose: () => v
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={t('languageModalTitle')}>
-      <div className="space-y-2">
-        {LOCALES.map((loc) => (
-          <button
-            key={loc.code}
-            onClick={() => switchLocale(loc.code)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all"
-            style={{
-              background: current === loc.code ? 'var(--accent-bg-light)' : '#f4f3ef',
-              border: current === loc.code ? '2px solid var(--accent-dark)' : '2px solid transparent',
-            }}
-          >
-            <span className="text-2xl">{loc.flag}</span>
-            <span className="text-sm font-semibold flex-1 text-app-t1">{loc.label}</span>
-            {current === loc.code && (
-              <span className="text-xs font-bold text-[color:var(--accent-dark)]">✓</span>
-            )}
-          </button>
-        ))}
-      </div>
-    </Modal>
+    <LanguageMenuModal locale={current} title={t('languageModalTitle')} onClose={onClose} onSelect={switchLocale} />
   );
 }
 
