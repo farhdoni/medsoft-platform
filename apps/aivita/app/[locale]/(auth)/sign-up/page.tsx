@@ -6,7 +6,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { OrbBackground } from '@/components/shared/orb-background';
 import { LanguageMenuButton } from '@/components/shared/LanguageMenu';
-import { registerAction, verifyEmailAction, resendCodeAction } from './actions';
+import { registerAction, verifyEmailAction, resendCodeAction, quickStartAction } from './actions';
 
 // ─── Form translations ────────────────────────────────────────────────────────
 
@@ -50,8 +50,18 @@ const T = {
     resend_cooldown: 'Код уже отправлен недавно. Подождите немного перед повторной попыткой.',
     too_many_attempts: 'Слишком много попыток отправки кода. Попробуйте позже.',
     invalid_code: 'Неверный или истёкший код.',
+    verify_locked: 'Слишком много неверных попыток. Запросите новый код и попробуйте снова через 15 минут.',
     unknown: 'Произошла ошибка.',
     chooseLanguage: 'Язык интерфейса',
+    // quick (passwordless) mode
+    quickTab: 'Быстро',
+    passwordTab: 'С паролем',
+    quickHeading: 'Создай',
+    quickHeadingEm: 'аккаунт',
+    quickSubtitle: 'Без пароля — только email и код из письма',
+    quickSubmit: 'Получить код',
+    quickSubmitting: 'Отправляем код...',
+    goSignIn: 'Войти →',
   },
   uz: {
     heading: 'Hisob',
@@ -92,8 +102,18 @@ const T = {
     resend_cooldown: "Kod yaqinda yuborilgan edi. Qayta urinishdan oldin biroz kuting.",
     too_many_attempts: "Kod yuborish urinishlari juda ko'p. Keyinroq urinib ko'ring.",
     invalid_code: "Noto'g'ri yoki muddati o'tgan kod.",
+    verify_locked: "Noto'g'ri urinishlar juda ko'p. Yangi kod so'rang va 15 daqiqadan so'ng qayta urinib ko'ring.",
     unknown: 'Xato yuz berdi.',
     chooseLanguage: 'Interfeys tili',
+    // quick (passwordless) mode
+    quickTab: 'Tezkor',
+    passwordTab: 'Parol bilan',
+    quickHeading: 'Hisob',
+    quickHeadingEm: 'yarating',
+    quickSubtitle: "Parolsiz — faqat email va xatdagi kod",
+    quickSubmit: 'Kod olish',
+    quickSubmitting: 'Kod yuborilmoqda...',
+    goSignIn: 'Kirish →',
   },
   en: {
     heading: 'Create',
@@ -134,8 +154,18 @@ const T = {
     resend_cooldown: 'A code was already sent recently. Please wait a moment before trying again.',
     too_many_attempts: 'Too many code-send attempts. Please try again later.',
     invalid_code: 'Invalid or expired code.',
+    verify_locked: 'Too many wrong attempts. Request a new code and try again in 15 minutes.',
     unknown: 'An error occurred.',
     chooseLanguage: 'Interface language',
+    // quick (passwordless) mode
+    quickTab: 'Quick',
+    passwordTab: 'With password',
+    quickHeading: 'Create',
+    quickHeadingEm: 'account',
+    quickSubtitle: 'No password — just your email and a code',
+    quickSubmit: 'Get code',
+    quickSubmitting: 'Sending code...',
+    goSignIn: 'Sign in →',
   },
 } as const;
 
@@ -148,8 +178,10 @@ export default function SignUpPage() {
   const refCode = searchParams?.get('ref') ?? '';
   const t = T[(locale as TLocale) in T ? (locale as TLocale) : 'ru'];
 
+  const [mode, setMode] = useState<'quick' | 'password'>('quick');
   const [showPassword, setShowPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendError, setResendError] = useState<string | null>(null);
   const [detectedTz, setDetectedTz] = useState('Asia/Tashkent');
   useEffect(() => {
     try { setDetectedTz(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch {}
@@ -161,14 +193,26 @@ export default function SignUpPage() {
     { error: null }
   );
 
+  const boundQuickStart = quickStartAction.bind(null, locale);
+  const [quickState, quickFormAction, quickStarting] = useActionState(
+    boundQuickStart,
+    { error: null }
+  );
+
   const boundVerify = verifyEmailAction.bind(null, locale);
   const [verifyState, verifyFormAction, verifying] = useActionState(
     boundVerify,
     { error: null }
   );
 
-  function startResendCooldown() {
-    setResendCooldown(60);
+  // Whichever path (quick or full-form) reached the verify step first —
+  // both produce the same { userId, email, step: 'verify' } shape, so one
+  // verify screen serves both (B3: the old password path keeps working
+  // exactly as before, it just now shares this step with the new one).
+  const activeVerify = quickState.step === 'verify' ? quickState : (registerState.step === 'verify' ? registerState : null);
+
+  function startResendCooldown(seconds = 60) {
+    setResendCooldown(seconds);
     const timer = setInterval(() => {
       setResendCooldown((v) => {
         if (v <= 1) { clearInterval(timer); return 0; }
@@ -178,13 +222,19 @@ export default function SignUpPage() {
   }
 
   async function handleResend() {
-    if (resendCooldown > 0 || !registerState.userId) return;
-    await resendCodeAction(registerState.userId);
+    if (resendCooldown > 0 || !activeVerify?.userId) return;
+    setResendError(null);
+    const result = await resendCodeAction(activeVerify.userId);
+    if (!result.ok) {
+      setResendError(result.error ?? 'server_error');
+      startResendCooldown(result.retryAfterSeconds ?? 60);
+      return;
+    }
     startResendCooldown();
   }
 
   // ── Verify step ─────────────────────────────────────────────────────────────
-  if (registerState.step === 'verify') {
+  if (activeVerify) {
     return (
       <div className="relative min-h-screen flex items-center justify-center px-6 py-12 overflow-hidden">
         <OrbBackground />
@@ -202,7 +252,7 @@ export default function SignUpPage() {
             </h1>
             <p className="text-[rgb(var(--text-secondary))] text-sm">
               {t.verifySub}{' '}
-              <span className="font-medium text-navy">{registerState.email}</span>
+              <span className="font-medium text-navy">{activeVerify.email}</span>
             </p>
           </div>
 
@@ -210,12 +260,19 @@ export default function SignUpPage() {
             action={verifyFormAction}
             className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium space-y-4 mb-4"
           >
-            <input type="hidden" name="userId" value={registerState.userId} />
+            <input type="hidden" name="userId" value={activeVerify.userId} />
 
             {verifyState.error && (
               <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
                 {verifyState.error === 'invalid_code' ? t.invalid_code :
+                 verifyState.error === 'verify_locked' ? t.verify_locked :
                  verifyState.error === 'network' ? t.network : t.unknown}
+              </div>
+            )}
+
+            {resendError && (
+              <div className="bg-amber-50 text-amber-700 text-sm rounded-xl px-4 py-3 border border-amber-100">
+                {(t as Record<string, unknown>)[resendError] as string ?? t.unknown}
               </div>
             )}
 
@@ -287,15 +344,84 @@ export default function SignUpPage() {
             <span className="text-3xl">✨</span>
           </div>
           <h1 className="text-3xl font-light tracking-tight text-navy mb-2">
-            {t.heading}{' '}
-            <em className="font-serif italic font-normal text-pink-500">{t.headingEm}</em>
+            {mode === 'quick' ? t.quickHeading : t.heading}{' '}
+            <em className="font-serif italic font-normal text-pink-500">
+              {mode === 'quick' ? t.quickHeadingEm : t.headingEm}
+            </em>
           </h1>
           <p className="text-[rgb(var(--text-secondary))] text-sm">
-            {t.subtitle}
+            {mode === 'quick' ? t.quickSubtitle : t.subtitle}
           </p>
         </div>
 
-        <form
+        {/* B2/B3: quick (email+code, no password) is the default — the old
+            password form stays one tap away, fully intact. */}
+        <div className="flex gap-2 mb-5 p-1 rounded-2xl bg-white/60 border border-[rgba(120,160,200,0.15)]">
+          <button
+            type="button"
+            onClick={() => setMode('quick')}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-all ${
+              mode === 'quick' ? 'bg-gradient-pink-blue-mint text-white shadow-pink' : 'text-[rgb(var(--text-secondary))]'
+            }`}
+          >
+            {t.quickTab}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('password')}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition-all ${
+              mode === 'password' ? 'bg-gradient-pink-blue-mint text-white shadow-pink' : 'text-[rgb(var(--text-secondary))]'
+            }`}
+          >
+            {t.passwordTab}
+          </button>
+        </div>
+
+        {mode === 'quick' && (
+          <form
+            action={quickFormAction}
+            className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium space-y-4 mb-4"
+          >
+            {quickState.error && (
+              <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
+                {(t as Record<string, unknown>)[quickState.error] as string ?? t.unknown}
+                {quickState.error === 'email_taken' && (
+                  <Link href={`/${locale}/sign-in`} className="block mt-1 font-semibold text-pink-600 hover:underline">
+                    {t.goSignIn}
+                  </Link>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label htmlFor="quick-email" className="text-xs font-medium text-[rgb(var(--text-secondary))] pl-1">
+                {t.labelEmail}
+              </label>
+              <input
+                id="quick-email"
+                name="email"
+                type="email"
+                placeholder="example@mail.com"
+                autoComplete="email"
+                required
+                className="w-full h-12 px-4 rounded-2xl border border-[rgba(120,160,200,0.2)] bg-white/80 text-navy text-sm outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100 transition-all"
+              />
+            </div>
+
+            <input type="hidden" name="timezone" value={detectedTz} />
+
+            <button
+              type="submit"
+              disabled={quickStarting}
+              className="w-full flex items-center justify-center gap-2 h-14 bg-gradient-pink-blue-mint text-white font-bold rounded-2xl shadow-pink hover:shadow-pink-strong hover:-translate-y-0.5 transition-all text-sm disabled:opacity-60 disabled:translate-y-0"
+            >
+              {quickStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {quickStarting ? t.quickSubmitting : t.quickSubmit}
+            </button>
+          </form>
+        )}
+
+        {mode === 'password' && <form
           action={registerFormAction}
           className="bg-white/75 backdrop-blur-xl rounded-3xl border border-[rgba(120,160,200,0.15)] p-6 shadow-medium space-y-4 mb-4"
         >
@@ -304,6 +430,11 @@ export default function SignUpPage() {
           {registerState.error && (
             <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3 border border-red-100">
               {(t as Record<string, unknown>)[registerState.error] as string ?? t.unknown}
+              {registerState.error === 'email_taken' && (
+                <Link href={`/${locale}/sign-in`} className="block mt-1 font-semibold text-pink-600 hover:underline">
+                  {t.goSignIn}
+                </Link>
+              )}
             </div>
           )}
 
@@ -391,7 +522,7 @@ export default function SignUpPage() {
             {registering ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {registering ? t.submitting : t.submit}
           </button>
-        </form>
+        </form>}
 
         <p className="text-center text-sm text-[rgb(var(--text-secondary))] mb-4">
           {t.haveAccount}{' '}

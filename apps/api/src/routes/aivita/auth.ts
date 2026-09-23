@@ -23,7 +23,8 @@ import { resolveBotLocale, verificationCodeMessage, passwordResetMessage } from 
 import { safeTimezone, isValidTimezone, DEFAULT_TIMEZONE } from '../../lib/timezone.js';
 import { env } from '../../env.js';
 import { logger } from '../../lib/logger.js';
-import { decideRegistration, RESEND_ATTEMPT_WINDOW_MS } from '../../lib/registration-guard.js';
+import { decideRegistration, decideResend, RESEND_ATTEMPT_WINDOW_MS } from '../../lib/registration-guard.js';
+import { checkVerifyLock, nextVerifyLockState } from '../../lib/verify-guard.js';
 
 function getSessionSecret(): Uint8Array {
   return new TextEncoder().encode(env.SESSION_SECRET);
@@ -153,10 +154,11 @@ aivitaAuthRouter.post(
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       });
       try {
+        const botLocale = resolveBotLocale(undefined, existingByEmail!.locale);
         await sendAuthMessage(
           decision.userId,
-          verificationCodeMessage(resolveBotLocale(undefined, existingByEmail!.locale), code),
-          () => sendVerificationCode(existingByEmail!.email!, code),
+          verificationCodeMessage(botLocale, code),
+          () => sendVerificationCode(existingByEmail!.email!, code, botLocale),
         );
       } catch (err) {
         logger.error({ err, userId: decision.userId }, '[auth/register] resend to unverified account failed');
@@ -247,13 +249,134 @@ aivitaAuthRouter.post(
     try {
       // A just-created user has no notification_settings row yet, so this
       // always resolves to email here — no special-casing needed.
+      const botLocale = resolveBotLocale(undefined, user.locale);
       await sendAuthMessage(
         user.id,
-        verificationCodeMessage(resolveBotLocale(undefined, user.locale), verificationCode),
-        () => sendVerificationCode(user.email!, verificationCode),
+        verificationCodeMessage(botLocale, verificationCode),
+        () => sendVerificationCode(user.email!, verificationCode, botLocale),
       );
     } catch (err) {
       logger.error({ err, userId: user.id }, '[auth/register] verification message failed — removing the just-created account');
+      await db.delete(aivitaUsers).where(eq(aivitaUsers.id, user.id));
+      return c.json({ error: 'delivery_failed' }, 502);
+    }
+
+    return c.json({ data: { userId: user.id, email: user.email } }, 201);
+  }
+);
+
+// ─── Passwordless quick sign-up (Part B) ──────────────────────────────────────
+//
+// email -> code -> in. No password at this step (aivita_users.passwordHash
+// stays null — nothing else in the schema required a migration for this;
+// a user can set a password later from Settings). Verification itself
+// reuses POST /verify-email as-is: it already doesn't care how the account
+// was created, it just checks the code and returns a session.
+//
+// Three outcomes for an email that already exists, same B3 framing as
+// /register: verified -> clear "sign in instead" error, not a dead end;
+// unverified -> resend to the SAME row (decideRegistration's normal resend
+// path handles both an abandoned password signup and a repeated quick-
+// signup attempt identically); rate-limited -> decideResend's shared cap.
+
+aivitaAuthRouter.post(
+  '/passwordless/start',
+  zValidator('json', z.object({
+    email: z.string().email(),
+    locale: z.string().default('ru'),
+    timezone: z.string().refine(isValidTimezone, { message: 'Invalid IANA timezone' }).optional(),
+  })),
+  async (c) => {
+    const { email, locale, timezone } = c.req.valid('json');
+    const normalizedEmail = email.toLowerCase();
+
+    const existingByEmail = await db.query.aivitaUsers.findFirst({
+      where: eq(aivitaUsers.email, normalizedEmail),
+    });
+
+    const recentCodes = existingByEmail
+      ? await db.select({ createdAt: aivitaEmailVerifications.createdAt })
+          .from(aivitaEmailVerifications)
+          .where(and(
+            eq(aivitaEmailVerifications.userId, existingByEmail.id),
+            gt(aivitaEmailVerifications.createdAt, new Date(Date.now() - RESEND_ATTEMPT_WINDOW_MS)),
+          ))
+          .orderBy(desc(aivitaEmailVerifications.createdAt))
+      : [];
+
+    const decision = decideRegistration(
+      existingByEmail ? { id: existingByEmail.id, emailVerified: existingByEmail.emailVerified } : null,
+      null, // no nickname submitted at this step — nothing to conflict on
+      recentCodes.map((r) => r.createdAt),
+      new Date(),
+    );
+
+    if (decision.action === 'already_verified') {
+      return c.json({ error: 'email_taken' }, 409);
+    }
+    if (decision.action === 'too_many_attempts') {
+      return c.json({ error: 'too_many_attempts' }, 429);
+    }
+    if (decision.action === 'resend_cooldown') {
+      return c.json({ error: 'resend_cooldown', retryAfterSeconds: decision.retryAfterSeconds }, 429);
+    }
+    if (decision.action === 'resend') {
+      const code = String(randomInt(100000, 999999));
+      await db.insert(aivitaEmailVerifications).values({
+        userId: decision.userId,
+        code,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
+      try {
+        const botLocale = resolveBotLocale(undefined, existingByEmail!.locale);
+        await sendAuthMessage(
+          decision.userId,
+          verificationCodeMessage(botLocale, code),
+          () => sendVerificationCode(existingByEmail!.email!, code, botLocale),
+        );
+      } catch (err) {
+        logger.error({ err, userId: decision.userId }, '[auth/passwordless/start] resend to unverified account failed');
+        return c.json({ error: 'delivery_failed' }, 502);
+      }
+      return c.json({ data: { userId: decision.userId, email: existingByEmail!.email } }, 201);
+    }
+
+    // decision.action === 'create' from here on — brand-new account, no
+    // password, no nickname (both columns are nullable; a null nickname is
+    // already handled safely everywhere it's read — name/nickname/email
+    // fallback chains, or a truthy guard before display).
+    const verificationCode = String(randomInt(100000, 999999));
+    const referralCode = `AIVI${String(randomInt(1000, 9999))}`;
+
+    const user = await db.transaction(async (tx) => {
+      const [inserted] = await tx.insert(aivitaUsers).values({
+        email: normalizedEmail,
+        provider: 'email_code',
+        locale,
+        timezone: safeTimezone(timezone ?? DEFAULT_TIMEZONE),
+        role: 'patient',
+        plan: 'free',
+        referralCode,
+      }).returning();
+
+      await tx.insert(aivitaEmailVerifications).values({
+        userId: inserted.id,
+        code: verificationCode,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
+
+      return inserted;
+    });
+
+    try {
+      const botLocale = resolveBotLocale(undefined, user.locale);
+      await sendAuthMessage(
+        user.id,
+        verificationCodeMessage(botLocale, verificationCode),
+        () => sendVerificationCode(user.email!, verificationCode, botLocale),
+      );
+    } catch (err) {
+      logger.error({ err, userId: user.id }, '[auth/passwordless/start] verification message failed — removing the just-created account');
       await db.delete(aivitaUsers).where(eq(aivitaUsers.id, user.id));
       return c.json({ error: 'delivery_failed' }, 502);
     }
@@ -274,6 +397,16 @@ aivitaAuthRouter.post(
     const { userId, code } = c.req.valid('json');
     const now = new Date();
 
+    const existingUser = await db.query.aivitaUsers.findFirst({
+      where: eq(aivitaUsers.id, userId),
+    });
+    if (!existingUser) return c.json({ error: 'user_not_found' }, 404);
+
+    const lock = checkVerifyLock(existingUser.emailVerifyLockedUntil, now);
+    if (lock.locked) {
+      return c.json({ error: 'too_many_attempts', retryAfterSeconds: lock.retryAfterSeconds }, 429);
+    }
+
     const verification = await db.query.aivitaEmailVerifications.findFirst({
       where: and(
         eq(aivitaEmailVerifications.userId, userId),
@@ -284,16 +417,24 @@ aivitaAuthRouter.post(
     });
 
     if (!verification) {
+      const next = nextVerifyLockState(existingUser.emailVerifyFailedAttempts, now);
+      await db.update(aivitaUsers)
+        .set({ emailVerifyFailedAttempts: next.attempts, emailVerifyLockedUntil: next.lockedUntil })
+        .where(eq(aivitaUsers.id, userId));
+      if (next.lockedUntil) {
+        const retryAfterSeconds = Math.ceil((next.lockedUntil.getTime() - now.getTime()) / 1000);
+        return c.json({ error: 'too_many_attempts', retryAfterSeconds }, 429);
+      }
       return c.json({ error: 'invalid_code' }, 400);
     }
 
-    // Mark code used + verify email
+    // Mark code used + verify email + reset the wrong-attempt counter
     await Promise.all([
       db.update(aivitaEmailVerifications)
         .set({ usedAt: now })
         .where(eq(aivitaEmailVerifications.id, verification.id)),
       db.update(aivitaUsers)
-        .set({ emailVerified: now, updatedAt: now })
+        .set({ emailVerified: now, updatedAt: now, emailVerifyFailedAttempts: 0, emailVerifyLockedUntil: null })
         .where(eq(aivitaUsers.id, userId)),
     ]);
 
@@ -346,6 +487,27 @@ aivitaAuthRouter.post(
 
     if (!user) return c.json({ error: 'not_found' }, 404);
 
+    // B4: this endpoint used to have no server-side throttling at all — the
+    // 60s cooldown on the resend button was purely client-side JS, trivially
+    // bypassed by calling the endpoint directly. Same decideResend() cooldown
+    // + hard cap as /register's own resend branch, keyed the same way (this
+    // user's recent aivitaEmailVerifications rows).
+    const recentCodes = await db.select({ createdAt: aivitaEmailVerifications.createdAt })
+      .from(aivitaEmailVerifications)
+      .where(and(
+        eq(aivitaEmailVerifications.userId, user.id),
+        gt(aivitaEmailVerifications.createdAt, new Date(Date.now() - RESEND_ATTEMPT_WINDOW_MS)),
+      ))
+      .orderBy(desc(aivitaEmailVerifications.createdAt));
+
+    const decision = decideResend(recentCodes.map((r) => r.createdAt), new Date());
+    if (decision.action === 'too_many_attempts') {
+      return c.json({ error: 'too_many_attempts' }, 429);
+    }
+    if (decision.action === 'resend_cooldown') {
+      return c.json({ error: 'resend_cooldown', retryAfterSeconds: decision.retryAfterSeconds }, 429);
+    }
+
     const code = String(randomInt(100000, 999999));
 
     await db.insert(aivitaEmailVerifications).values({
@@ -354,10 +516,11 @@ aivitaAuthRouter.post(
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
+    const botLocale = resolveBotLocale(undefined, user.locale);
     await sendAuthMessage(
       user.id,
-      verificationCodeMessage(resolveBotLocale(undefined, user.locale), code),
-      () => sendVerificationCode(user.email!, code),
+      verificationCodeMessage(botLocale, code),
+      () => sendVerificationCode(user.email!, code, botLocale),
     );
 
     // In non-production: return the code directly so admins can verify test accounts

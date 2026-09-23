@@ -1,11 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import {
   decideRegistration,
+  decideResend,
   MAX_RESEND_ATTEMPTS_PER_WINDOW,
   RESEND_COOLDOWN_MS,
 } from './registration-guard.js';
 
 const NOW = new Date('2026-09-18T12:00:00.000Z');
+
+describe('decideResend', () => {
+  it('resend when there is no recent code', () => {
+    expect(decideResend([], NOW)).toEqual({ action: 'resend' });
+  });
+
+  it('resend_cooldown when the last code was sent under a minute ago', () => {
+    const last = new Date(NOW.getTime() - 30_000);
+    const result = decideResend([last], NOW);
+    expect(result).toEqual({ action: 'resend_cooldown', retryAfterSeconds: 30 });
+  });
+
+  it('resend once exactly RESEND_COOLDOWN_MS has elapsed', () => {
+    const last = new Date(NOW.getTime() - RESEND_COOLDOWN_MS);
+    expect(decideResend([last], NOW)).toEqual({ action: 'resend' });
+  });
+
+  it('too_many_attempts once the recent-code count hits the cap, even past cooldown', () => {
+    const codes = Array.from({ length: MAX_RESEND_ATTEMPTS_PER_WINDOW }, (_, i) =>
+      new Date(NOW.getTime() - (RESEND_COOLDOWN_MS * 2 + i * 1000)),
+    );
+    expect(decideResend(codes, NOW)).toEqual({ action: 'too_many_attempts' });
+  });
+});
 
 describe('decideRegistration', () => {
   it('creates normally when nothing matches the email or nickname', () => {
