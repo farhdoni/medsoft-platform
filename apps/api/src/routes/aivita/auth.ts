@@ -82,6 +82,50 @@ type SessionPayload = {
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
+// ─── Referral attachment (shared by /register and /passwordless/start) ───────
+//
+// Both sign-up paths must carry ?ref= through to the account: /verify-email
+// grants the reward only when aivita_users.referredBy is set AND a pending
+// referrals row exists — a path that skips either one silently loses the
+// referral (that is exactly how quick sign-up lost it until 2026-09-24).
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function findReferrerId(refCode: string | undefined): Promise<string | null> {
+  if (!refCode) return null;
+  const [referrer] = await db.select({ id: aivitaUsers.id })
+    .from(aivitaUsers).where(eq(aivitaUsers.referralCode, refCode.toUpperCase())).limit(1);
+  return referrer?.id ?? null;
+}
+
+async function recordReferral(tx: Tx, referrerId: string, referredId: string, refCode: string) {
+  await tx.insert(referrals).values({
+    referrerId,
+    referredId,
+    code: refCode.toUpperCase(),
+    status: 'pending',
+    rewardGiven: false,
+  }).onConflictDoNothing();
+}
+
+// Resend path: the account already exists but is unverified (an abandoned
+// earlier attempt). If THAT attempt came without a code and this one has
+// one, attach it now — otherwise opening the invite link on the second try
+// would still lose the referral. Never overwrites an existing referrer and
+// never lets an account refer itself.
+async function attachReferralIfMissing(
+  user: { id: string; referredBy: string | null },
+  refCode: string | undefined,
+) {
+  if (user.referredBy || !refCode) return;
+  const referrerId = await findReferrerId(refCode);
+  if (!referrerId || referrerId === user.id) return;
+  await db.transaction(async (tx) => {
+    await tx.update(aivitaUsers).set({ referredBy: referrerId }).where(eq(aivitaUsers.id, user.id));
+    await recordReferral(tx, referrerId, user.id, refCode);
+  });
+}
+
 aivitaAuthRouter.post(
   '/register',
   zValidator('json', z.object({
@@ -147,6 +191,7 @@ aivitaAuthRouter.post(
       // B2: this is the orphaned-account recovery path — same unverified
       // row as a previous failed attempt, just a fresh code + another
       // delivery attempt. Not a second aivita_users row.
+      await attachReferralIfMissing(existingByEmail!, refCode);
       const code = String(randomInt(100000, 999999));
       await db.insert(aivitaEmailVerifications).values({
         userId: decision.userId,
@@ -176,13 +221,7 @@ aivitaAuthRouter.post(
     const namePrefix = (name ?? nickname).trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'AIVI';
     const referralCode = `${namePrefix}${String(randomInt(1000, 9999))}`;
 
-    // Resolve referrer if refCode provided
-    let referrerId: string | null = null;
-    if (refCode) {
-      const referrer = await db.select({ id: aivitaUsers.id })
-        .from(aivitaUsers).where(eq(aivitaUsers.referralCode, refCode.toUpperCase())).limit(1);
-      if (referrer.length) referrerId = referrer[0].id;
-    }
+    const referrerId = await findReferrerId(refCode);
 
     // B1: user + (optional) doctor profile + (optional) referral + the
     // verification-code row are one atomic transaction — either all of
@@ -227,15 +266,7 @@ aivitaAuthRouter.post(
         });
       }
 
-      if (referrerId) {
-        await tx.insert(referrals).values({
-          referrerId,
-          referredId: inserted.id,
-          code: refCode!.toUpperCase(),
-          status: 'pending',
-          rewardGiven: false,
-        }).onConflictDoNothing();
-      }
+      if (referrerId) await recordReferral(tx, referrerId, inserted.id, refCode!);
 
       await tx.insert(aivitaEmailVerifications).values({
         userId: inserted.id,
@@ -285,9 +316,10 @@ aivitaAuthRouter.post(
     email: z.string().email(),
     locale: z.string().default('ru'),
     timezone: z.string().refine(isValidTimezone, { message: 'Invalid IANA timezone' }).optional(),
+    refCode: z.string().max(20).optional(),
   })),
   async (c) => {
-    const { email, locale, timezone } = c.req.valid('json');
+    const { email, locale, timezone, refCode } = c.req.valid('json');
     const normalizedEmail = email.toLowerCase();
 
     const existingByEmail = await db.query.aivitaUsers.findFirst({
@@ -321,6 +353,7 @@ aivitaAuthRouter.post(
       return c.json({ error: 'resend_cooldown', retryAfterSeconds: decision.retryAfterSeconds }, 429);
     }
     if (decision.action === 'resend') {
+      await attachReferralIfMissing(existingByEmail!, refCode);
       const code = String(randomInt(100000, 999999));
       await db.insert(aivitaEmailVerifications).values({
         userId: decision.userId,
@@ -347,6 +380,7 @@ aivitaAuthRouter.post(
     // fallback chains, or a truthy guard before display).
     const verificationCode = String(randomInt(100000, 999999));
     const referralCode = `AIVI${String(randomInt(1000, 9999))}`;
+    const referrerId = await findReferrerId(refCode);
 
     const user = await db.transaction(async (tx) => {
       const [inserted] = await tx.insert(aivitaUsers).values({
@@ -357,7 +391,10 @@ aivitaAuthRouter.post(
         role: 'patient',
         plan: 'free',
         referralCode,
+        referredBy: referrerId ?? undefined,
       }).returning();
+
+      if (referrerId) await recordReferral(tx, referrerId, inserted.id, refCode!);
 
       await tx.insert(aivitaEmailVerifications).values({
         userId: inserted.id,
