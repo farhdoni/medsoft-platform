@@ -9,6 +9,7 @@ import { DangerZone } from './danger-zone';
 import { SettingsInteractive } from './SettingsInteractive';
 import { loadSettingsData } from './data';
 import { getSession } from '@/lib/auth/session';
+import { localeLabel } from '@/lib/i18n/locales';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,8 +68,7 @@ export default async function SettingsPage({
 }) {
   const { locale } = await params;
   const { notificationsOn, currentTimezone } = await loadSettingsData();
-  const LOCALE_LABELS: Record<string, string> = { ru: 'Русский', uz: "O'zbek", en: 'English' };
-  const localeLabel = LOCALE_LABELS[locale] ?? 'Русский';
+  const localeLabelValue = localeLabel(locale);
   const session = await getSession();
   const isDoctor = session?.role === 'doctor';
   const t = await getTranslations('app.settings');
@@ -95,7 +95,7 @@ export default async function SettingsPage({
       id: 'app',
       title: t('sectionApp'),
       items: [
-        { icon: Globe, label: t('language'),      sub: localeLabel,                     href: '#', value: localeLabel,                                           bg: '#d4dff0', color: '#5e75a8' },
+        { icon: Globe, label: t('language'),      sub: localeLabelValue,                href: '#', value: localeLabelValue,                                      bg: '#d4dff0', color: '#5e75a8' },
         { icon: Bell,  label: t('notifications'), sub: t('notificationsSubDoctor'),     href: '#', value: notificationsOn ? t('notifOn') : t('notifOff'),        bg: '#dbeeff', color: '#4a7fb5' },
         { icon: Lock,  label: t('privacy'),       sub: t('privacySubDoctor'),           href: `/${locale}/privacy`,                                              bg: '#e8f4ec', color: '#2d7a56' },
       ],
@@ -126,7 +126,7 @@ export default async function SettingsPage({
       id: 'app',
       title: t('sectionApp'),
       items: [
-        { icon: Globe, label: t('language'),      sub: localeLabel,                 href: '#', value: localeLabel,                                       bg: '#d4dff0',               color: '#5e75a8' },
+        { icon: Globe, label: t('language'),      sub: localeLabelValue,            href: '#', value: localeLabelValue,                                  bg: '#d4dff0',               color: '#5e75a8' },
         { icon: Bell,  label: t('notifications'), sub: t('notificationsSub'),       href: `/${locale}/settings/notifications`, value: notificationsOn ? t('notifOn') : t('notifOff'),    bg: 'var(--accent-bg-light)', color: 'var(--accent-dark)' },
         { icon: Lock,  label: t('privacy'),       sub: t('privacySub'),             href: `/${locale}/privacy`,                                          bg: '#d4e8d8',               color: '#548068' },
       ],
@@ -177,7 +177,7 @@ export default async function SettingsPage({
               </p>
               {section.id === 'app' ? (
                 /* Language + Notifications + Navigation rendered as interactive client component */
-                <SettingsInteractive locale={locale} localeLabel={localeLabel} notificationsOn={notificationsOn} currentTimezone={currentTimezone} />
+                <SettingsInteractive locale={locale} localeLabel={localeLabelValue} notificationsOn={notificationsOn} currentTimezone={currentTimezone} />
               ) : (
                 <div className="rounded-card bg-white border border-border-soft overflow-hidden">
                   {section.items.map((item, idx) => (

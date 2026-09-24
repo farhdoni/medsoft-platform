@@ -1,5 +1,6 @@
 import { env } from '../env.js';
 import { logger } from './logger.js';
+import type { BotLocale } from './telegram-i18n.js';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
 const FROM = 'AIVITA <noreply@aivita.uz>';
@@ -67,28 +68,58 @@ export async function sendMagicLink(email: string, token: string) {
   logger.info({ email, messageId }, 'Magic link email sent via Resend');
 }
 
-export async function sendVerificationCode(email: string, code: string) {
+const VERIFICATION_CODE_TEXT: Record<BotLocale, {
+  subject: (code: string) => string;
+  heading: string;
+  intro: string;
+  note: string;
+  textBody: (code: string) => string;
+}> = {
+  ru: {
+    subject: (code) => `${code} — код подтверждения Aivita`,
+    heading: 'Подтверди email',
+    intro: 'Твой код подтверждения:',
+    note: 'Код действителен 15 минут. Если ты не регистрировался — проигнорируй это письмо.',
+    textBody: (code) => `Ваш код: ${code}\n\nДействителен 15 минут. Если ты не регистрировался — проигнорируй это письмо.`,
+  },
+  uz: {
+    subject: (code) => `${code} — AIVITA tasdiqlash kodi`,
+    heading: 'Emailni tasdiqlang',
+    intro: 'Tasdiqlash kodingiz:',
+    note: "Kod 15 daqiqa amal qiladi. Agar ro'yxatdan o'tmagan bo'lsangiz — bu xatni e'tiborsiz qoldiring.",
+    textBody: (code) => `Kodingiz: ${code}\n\n15 daqiqa amal qiladi. Agar ro'yxatdan o'tmagan bo'lsangiz — bu xatni e'tiborsiz qoldiring.`,
+  },
+  en: {
+    subject: (code) => `${code} — your AIVITA verification code`,
+    heading: 'Verify your email',
+    intro: 'Your verification code:',
+    note: "This code is valid for 15 minutes. If you didn't sign up, you can ignore this email.",
+    textBody: (code) => `Your code: ${code}\n\nValid for 15 minutes. If you didn't sign up, ignore this email.`,
+  },
+};
+
+export async function sendVerificationCode(email: string, code: string, locale: BotLocale = 'ru') {
   if (env.EMAIL_PROVIDER === 'mock') {
-    logger.info({ email, code }, '[MOCK EMAIL] Verification code');
+    logger.info({ email, code, locale }, '[MOCK EMAIL] Verification code');
     return;
   }
+
+  const t = VERIFICATION_CODE_TEXT[locale];
 
   const html = `
 <!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-  <h2 style="color:#1a1a2e;">Подтверди email</h2>
-  <p>Твой код подтверждения:</p>
+  <h2 style="color:#1a1a2e;">${t.heading}</h2>
+  <p>${t.intro}</p>
   <div style="font-size:40px;font-weight:bold;letter-spacing:12px;color:#e879a0;text-align:center;padding:20px 0;">${code}</div>
-  <p style="color:#666;font-size:13px;">Код действителен 15 минут. Если ты не регистрировался — проигнорируй это письмо.</p>
+  <p style="color:#666;font-size:13px;">${t.note}</p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
   <p style="color:#999;font-size:12px;">Aivita · aivita.uz</p>
 </body></html>`;
 
-  const text = `Ваш код: ${code}\n\nДействителен 15 минут. Если ты не регистрировался — проигнорируй это письмо.`;
+  const messageId = await sendViaResend(email, t.subject(code), html, t.textBody(code));
 
-  const messageId = await sendViaResend(email, `${code} — код подтверждения Aivita`, html, text);
-
-  logger.info({ email, messageId }, 'Verification code sent via Resend');
+  logger.info({ email, messageId, locale }, 'Verification code sent via Resend');
 }
 
 export async function sendPasswordReset(

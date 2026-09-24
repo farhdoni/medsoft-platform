@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Icon } from "@/components/cabinet/icons/Icon";
 import { ProfileMenu } from "@/components/cabinet/ProfileMenu";
 import { SosModal } from "@/components/sos/SosButton";
+import { LanguageMenuButton } from "@/components/shared/LanguageMenu";
 import type { AivitaSession } from "@/lib/auth/session";
 
 interface TopBarProps {
@@ -115,6 +116,7 @@ export function TopBar({ avatarInitial, session, locale = 'ru', role, unreadCoun
               </span>
             )}
           </Link>
+          <LanguageMenuButton locale={locale} title={t('languageAriaLabel')} />
           <ProfileMenu session={session} locale={locale} role={role} />
         </div>
       </header>

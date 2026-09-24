@@ -44,6 +44,13 @@ export const aivitaUsers = pgTable(
     failedLoginAttempts: integer('failed_login_attempts').default(0).notNull(),
     lockedUntil: timestamp('locked_until'),
 
+    // Email-code verification security (registration OTP + passwordless
+    // sign-up) — same attempts/lockout shape as failedLoginAttempts/
+    // lockedUntil above, kept as separate columns since a wrong OTP guess
+    // and a wrong password are different events with different callers.
+    emailVerifyFailedAttempts: integer('email_verify_failed_attempts').default(0).notNull(),
+    emailVerifyLockedUntil: timestamp('email_verify_locked_until'),
+
     role: text('role').notNull().default('patient'), // 'patient' | 'doctor' | 'admin'
     plan: text('plan').notNull().default('free'),   // 'free' | 'plus' | 'pro'
 

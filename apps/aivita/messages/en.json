@@ -197,7 +197,8 @@
       "doctorBadge": "Doctor",
       "sosAriaLabel": "SOS Emergency call",
       "searchAriaLabel": "Find a doctor",
-      "notificationsAriaLabel": "Notifications"
+      "notificationsAriaLabel": "Notifications",
+      "languageAriaLabel": "Interface language"
     },
     "hero": {
       "greetingNight": "Good night",

@@ -99,6 +99,13 @@
       "when": 1789800000004,
       "tag": "0066_family_members_notifications_drift_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1789800000005,
+      "tag": "0068_email_verify_lockout_columns",
+      "breakpoints": true
     }
   ]
 }

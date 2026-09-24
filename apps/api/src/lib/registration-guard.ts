@@ -36,13 +36,45 @@ export interface ExistingUserByEmail {
   emailVerified: Date | null;
 }
 
+// Pure cooldown/cap decision for "send this account another code" — shared
+// by decideRegistration's resend branch below, POST /resend-code, and POST
+// /passwordless/start (the quick-signup email→code flow), so all three
+// enforce the exact same limits instead of /resend-code having none at all.
+export type ResendDecision =
+  | { action: 'resend' }
+  | { action: 'resend_cooldown'; retryAfterSeconds: number }
+  | { action: 'too_many_attempts' };
+
+/**
+ * @param recentCodeCreatedAts this user's aivitaEmailVerifications rows
+ *   created within RESEND_ATTEMPT_WINDOW_MS, newest first
+ * @param now injected for deterministic tests, not `new Date()` internally
+ */
+export function decideResend(recentCodeCreatedAts: Date[], now: Date): ResendDecision {
+  if (recentCodeCreatedAts.length >= MAX_RESEND_ATTEMPTS_PER_WINDOW) {
+    return { action: 'too_many_attempts' };
+  }
+
+  const last = recentCodeCreatedAts[0];
+  if (last) {
+    const elapsedMs = now.getTime() - last.getTime();
+    if (elapsedMs < RESEND_COOLDOWN_MS) {
+      return {
+        action: 'resend_cooldown',
+        retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - elapsedMs) / 1000),
+      };
+    }
+  }
+
+  return { action: 'resend' };
+}
+
 /**
  * @param existingByEmail row matching the submitted email, or null
  * @param existingByNicknameId id of a (different) row matching the
  *   submitted nickname, or null — irrelevant once existingByEmail already
  *   decided the outcome, since we're resending to that same account.
- * @param recentCodeCreatedAts this user's aivitaEmailVerifications rows
- *   created within RESEND_ATTEMPT_WINDOW_MS, newest first
+ * @param recentCodeCreatedAts see decideResend
  * @param now injected for deterministic tests, not `new Date()` internally
  */
 export function decideRegistration(
@@ -54,21 +86,8 @@ export function decideRegistration(
   if (existingByEmail) {
     if (existingByEmail.emailVerified) return { action: 'already_verified' };
 
-    if (recentCodeCreatedAts.length >= MAX_RESEND_ATTEMPTS_PER_WINDOW) {
-      return { action: 'too_many_attempts' };
-    }
-
-    const last = recentCodeCreatedAts[0];
-    if (last) {
-      const elapsedMs = now.getTime() - last.getTime();
-      if (elapsedMs < RESEND_COOLDOWN_MS) {
-        return {
-          action: 'resend_cooldown',
-          retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - elapsedMs) / 1000),
-        };
-      }
-    }
-
+    const resend = decideResend(recentCodeCreatedAts, now);
+    if (resend.action !== 'resend') return resend;
     return { action: 'resend', userId: existingByEmail.id };
   }
 

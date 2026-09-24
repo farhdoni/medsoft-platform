@@ -197,7 +197,8 @@
       "doctorBadge": "Shifokor",
       "sosAriaLabel": "SOS Favqulodda chaqiruv",
       "searchAriaLabel": "Shifokor izlash",
-      "notificationsAriaLabel": "Bildirishnomalar"
+      "notificationsAriaLabel": "Bildirishnomalar",
+      "languageAriaLabel": "Interfeys tili"
     },
     "hero": {
       "greetingNight": "Yaxshi tun",

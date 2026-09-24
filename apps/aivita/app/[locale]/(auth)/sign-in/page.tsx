@@ -2,10 +2,11 @@
 // build: 2026-05-03
 import { useActionState, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2, Fingerprint } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { OrbBackground } from '@/components/shared/orb-background';
+import { LanguageMenuButton } from '@/components/shared/LanguageMenu';
 import { loginAction } from './actions';
 
 // ─── Native bridge (mobile app WebView shell only — no-op in a plain browser) ──
@@ -51,6 +52,7 @@ const T = {
     bioAuthenticating: 'Проверяем...',
     bioFailed: 'Не распознано. Попробуйте ещё раз или войдите паролем.',
     bioSessionExpired: 'Нужно снова войти паролем.',
+    chooseLanguage: 'Язык интерфейса',
   },
   uz: {
     heading: 'Xush',
@@ -77,6 +79,7 @@ const T = {
     bioAuthenticating: 'Tekshirilmoqda...',
     bioFailed: "Aniqlanmadi. Qayta urinib ko'ring yoki parol bilan kiring.",
     bioSessionExpired: "Parol bilan qayta kirish kerak.",
+    chooseLanguage: 'Interfeys tili',
   },
   en: {
     heading: 'Welcome',
@@ -103,45 +106,11 @@ const T = {
     bioAuthenticating: 'Checking...',
     bioFailed: 'Not recognized. Try again or sign in with your password.',
     bioSessionExpired: 'Please sign in with your password again.',
+    chooseLanguage: 'Interface language',
   },
 } as const;
 
 type TLocale = keyof typeof T;
-
-// ─── Compact language switcher ────────────────────────────────────────────────
-
-const LOCALE_META = [
-  { code: 'ru', flag: '🇷🇺', label: 'RU' },
-  { code: 'uz', flag: '🇺🇿', label: 'UZ' },
-  { code: 'en', flag: '🇬🇧', label: 'EN' },
-] as const;
-
-function LangSwitcher({ current }: { current: string }) {
-  const router = useRouter();
-  function switchTo(code: string) {
-    document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-    router.push(`/${code}/sign-in`);
-  }
-  return (
-    <div className="flex items-center justify-center gap-1 mb-6">
-      {LOCALE_META.map(l => (
-        <button
-          key={l.code}
-          onClick={() => switchTo(l.code)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
-          style={
-            l.code === current
-              ? { background: 'linear-gradient(135deg,#fce4ea,#dde8fc)', color: '#9c5e6c', border: '1.5px solid #e4a8b4' }
-              : { background: 'white', color: '#9a96a8', border: '1.5px solid #e8e4dc' }
-          }
-        >
-          <span>{l.flag}</span>
-          <span>{l.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -209,7 +178,7 @@ export default function SignInPage() {
       <div className="relative z-10 w-full max-w-md">
 
         <div className="flex justify-center mb-6"><Logo /></div>
-        <LangSwitcher current={locale} />
+        <LanguageMenuButton locale={locale} title={t.chooseLanguage} variant="pill" />
 
         {/* Heading */}
         <div className="text-center mb-8">
