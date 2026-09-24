@@ -16,6 +16,12 @@ WORKDIR /app
 # attempt (`tsc: not found`).
 ENV NODE_ENV=development
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
+# root "postinstall" (scripts/bootstrap-workspace-libs.mjs) needs to exist
+# for `pnpm install` below to find it — packages/shared and packages/db's
+# real source is already copied below, so this actually builds them here
+# too; harmless (it's what the explicit build step right after does anyway,
+# tsc just recompiles unchanged output).
+COPY scripts/bootstrap-workspace-libs.mjs scripts/bootstrap-workspace-libs.mjs
 COPY patches/ patches/
 COPY packages/shared ./packages/shared
 COPY packages/db ./packages/db
