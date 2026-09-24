@@ -39,8 +39,23 @@ ssh root@109.123.249.224 '
   cp -p aivita-patient.apk /root/backups/aivita-patient-$(date +%Y%m%d-%H%M).apk
   chmod 644 aivita-patient.apk.new
   mv aivita-patient.apk.new aivita-patient.apk
-  sha256sum aivita-patient.apk
+  aivita-apk-version-json      # пересобрать downloads/version.json
 '
+```
+
+`aivita-apk-version-json` достаёт `versionName`/`versionCode` из самих APK
+через `aapt`, считает размер и sha256 и атомарно пишет
+`downloads/version.json`. Из него `get-app.html` подставляет версию и
+размер на кнопки скачивания — руками цифры на странице больше не
+правятся. Если шаг забыть, страница покажет старую версию из прошлого
+`version.json`; если файла нет вовсе — нейтральный текст «APK для Android».
+
+Исходник скрипта — `scripts/landing/apk-version-json.sh`; при изменении
+переустановить на VPS (`sed` снимает CRLF, если файл брался из Windows-чекаута):
+
+```bash
+scp scripts/landing/apk-version-json.sh root@109.123.249.224:/tmp/
+ssh root@109.123.249.224 'sed -i "s/\r$//" /tmp/apk-version-json.sh && install -m 755 /tmp/apk-version-json.sh /usr/local/bin/aivita-apk-version-json && rm /tmp/apk-version-json.sh'
 ```
 
 Для врача — то же самое с `aivita-doctor.apk`.
@@ -52,8 +67,8 @@ curl -sI https://aivita.uz/downloads/aivita-patient.apk | grep -iE "^HTTP|conten
 ```
 
 `content-length` должен совпасть с размером загруженного файла. Затем
-открыть `https://aivita.uz/get-app.html` и убедиться, что кнопка качает
-новую версию.
+открыть `https://aivita.uz/get-app.html`: на кнопке должна стоять новая
+версия (та же, что в `https://aivita.uz/downloads/version.json`).
 
 Старые бэкапы APK в `/root/backups/` удалять, когда новая версия
 подтверждена на устройстве.

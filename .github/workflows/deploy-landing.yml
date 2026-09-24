@@ -121,6 +121,7 @@ jobs:
             -e "ssh $SSH_OPTS" \
             --exclude='*.bak*' \
             --exclude='downloads/*.apk' \
+            --exclude='downloads/version.json' \
             --exclude='6e3a3321e0a7ac487e75f14c6909ebf9.txt' \
             --exclude='api/' \
             --exclude='package.json' \
