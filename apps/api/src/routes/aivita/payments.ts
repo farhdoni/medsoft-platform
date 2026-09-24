@@ -8,7 +8,7 @@ import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { clickCardCharge } from '../../lib/click.js';
 import { paymeCardCharge } from '../../lib/payme.js';
 import { uzumCardCharge, uzumCreatePayment } from '../../lib/uzum.js';
-import { env } from '../../env.js';
+import { userAppUrl } from '../../lib/app-url.js';
 
 export const aivitaPaymentsRouter = new Hono();
 export const aivitaPaymentMethodsRouter = new Hono();
@@ -191,7 +191,7 @@ aivitaPaymentsRouter.post('/create', requireAivitaAuth, async (c) => {
 
   // No saved card — return checkout URL for the chosen provider
   const provider = body.provider ?? 'click';
-  let checkoutUrl = `${env.AIVITA_URL}/settings/payment-methods?addCard=1&provider=${provider}&paymentId=${payment.id}&planSlug=${body.planSlug ?? ''}`;
+  let checkoutUrl = await userAppUrl(userId, `/settings/payment-methods?addCard=1&provider=${provider}&paymentId=${payment.id}&planSlug=${body.planSlug ?? ''}`);
 
   if (provider === 'uzum') {
     try {
@@ -199,7 +199,7 @@ aivitaPaymentsRouter.post('/create', requireAivitaAuth, async (c) => {
         amount,
         orderId: String(payment.id),
         description: `Подписка ${body.planSlug}`,
-        returnUrl: `${env.AIVITA_URL}/settings/subscription?status=success`,
+        returnUrl: await userAppUrl(userId, '/settings/subscription?status=success'),
       });
       checkoutUrl = uzumResult.paymentUrl;
     } catch {

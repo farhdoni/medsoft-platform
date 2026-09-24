@@ -7,7 +7,7 @@ import { chargeByToken } from './payments.js';
 import { uzumCreatePayment } from '../../lib/uzum.js';
 import { getConsultationCommissionPercent } from '../../lib/commission.js';
 import { notifyConversationParticipant } from './messaging.js';
-import { env } from '../../env.js';
+import { userAppUrl } from '../../lib/app-url.js';
 
 // Paying and cancelling a consultation invoice — the two things that happen
 // to an invoice message after a doctor sends it (see
@@ -104,7 +104,7 @@ aivitaConsultationsRouter.post('/invoices/:id/pay', async (c) => {
     // fallback subscription checkout uses. The click/payme webhook handlers
     // read metadata.invoiceId to transition this invoice once that completes.
     const provider = body.provider ?? 'click';
-    let checkoutUrl = `${env.AIVITA_URL}/settings/payment-methods?addCard=1&provider=${provider}&paymentId=${payment.id}&invoiceId=${invoice.id}`;
+    let checkoutUrl = await userAppUrl(me, `/settings/payment-methods?addCard=1&provider=${provider}&paymentId=${payment.id}&invoiceId=${invoice.id}`);
 
     if (provider === 'uzum') {
       try {
@@ -112,7 +112,7 @@ aivitaConsultationsRouter.post('/invoices/:id/pay', async (c) => {
           amount: invoice.amount,
           orderId: String(payment.id),
           description: `Консультация — счёт ${invoice.id}`,
-          returnUrl: `${env.AIVITA_URL}/messenger/${invoice.conversationId}?status=success`,
+          returnUrl: await userAppUrl(me, `/messenger/${invoice.conversationId}?status=success`),
         });
         checkoutUrl = uzumResult.paymentUrl;
       } catch {

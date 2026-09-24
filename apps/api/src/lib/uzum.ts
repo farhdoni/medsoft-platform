@@ -28,7 +28,8 @@ export async function uzumCreatePayment(params: {
 }): Promise<{ paymentUrl: string; transactionId: string }> {
   if (MOCK) {
     return {
-      paymentUrl: `${env.AIVITA_URL}/settings/subscription?status=success`,
+      // Без реальной кассы «оплата» сразу возвращает туда же, куда вернула бы касса.
+      paymentUrl: params.returnUrl,
       transactionId: `mock_uzum_${Date.now()}`,
     };
   }

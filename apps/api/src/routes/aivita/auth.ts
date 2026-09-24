@@ -22,6 +22,7 @@ import { sendAuthMessage } from '../../lib/notify-code.js';
 import { resolveBotLocale, verificationCodeMessage, passwordResetMessage } from '../../lib/telegram-i18n.js';
 import { safeTimezone, isValidTimezone, DEFAULT_TIMEZONE } from '../../lib/timezone.js';
 import { env } from '../../env.js';
+import { appUrl } from '../../lib/app-url.js';
 import { logger } from '../../lib/logger.js';
 import { decideRegistration, decideResend, RESEND_ATTEMPT_WINDOW_MS } from '../../lib/registration-guard.js';
 import { checkVerifyLock, nextVerifyLockState } from '../../lib/verify-guard.js';
@@ -723,7 +724,7 @@ aivitaAuthRouter.post(
       // matches sendPasswordReset's own default when no opts.linkUrl is given.
       // Locale-prefixed to the account's own language, same as the message text below.
       const locale = resolveBotLocale(undefined, user.locale);
-      const resetUrl = `${env.AIVITA_URL}/${locale}/reset-password?token=${rawToken}`;
+      const resetUrl = appUrl(`/reset-password?token=${rawToken}`, locale);
       await sendAuthMessage(
         user.id,
         passwordResetMessage(locale, resetUrl),
