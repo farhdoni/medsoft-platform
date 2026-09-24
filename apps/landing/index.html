@@ -190,27 +190,7 @@
 }
 </script>
 
-<!-- ===== Google Tag Manager (replace GTM-XXXXXXX with real ID) ===== -->
-<script>
-window.__gtmId = "GTM-XXXXXXX";  // replace with real ID, e.g. GTM-A1B2C3
-if (window.__gtmId && window.__gtmId !== "GTM-XXXXXXX") {
-  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',window.__gtmId);
-}
-</script>
-<!-- End GTM -->
 
-<!-- ===== Yandex Metrika (replace YOUR_COUNTER_ID with real ID) ===== -->
-<script type="text/javascript">
-(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-window.__ymCounterId = "YOUR_COUNTER_ID";   // replace before deploy
-if (window.__ymCounterId && window.__ymCounterId !== "YOUR_COUNTER_ID") {
-  ym(window.__ymCounterId, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true });
-}
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/YOUR_COUNTER_ID" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<!-- End Yandex Metrika -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -991,50 +971,6 @@ h1 .gradient {
 
 .footer-copy { font-size: 11px; color: #ccc; }
 
-/* ===== COOKIE CONSENT ===== */
-.cookie-banner {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  transform: translate(-50%, 120%);
-  z-index: 150;
-  max-width: 760px;
-  width: calc(100% - 32px);
-  padding: 14px 18px 14px 22px;
-  background: rgba(26, 24, 36, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 20px 60px rgba(26,24,36,.4);
-  color: #fff;
-  font-family: 'Outfit', sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  opacity: 0;
-  transition: opacity .35s cubic-bezier(.4,0,.2,1), transform .45s cubic-bezier(.4,0,.2,1);
-}
-.cookie-banner.show { opacity: 1; transform: translate(-50%, 0); }
-.cookie-banner__text { flex: 1; font-size: 13px; color: rgba(255,255,255,.85); line-height: 1.45; }
-.cookie-banner__accept {
-  flex-shrink: 0;
-  padding: 10px 22px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .25s;
-}
-.cookie-banner__accept:hover { background: #b86a78; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(200,125,138,.4); }
-@media (max-width: 540px) {
-  .cookie-banner { flex-direction: column; gap: 10px; padding: 16px; text-align: center; }
-  .cookie-banner__accept { width: 100%; padding: 12px; }
-}
 
 /* ===== BACK TO TOP ===== */
 .back-to-top {
@@ -1072,7 +1008,7 @@ h1 .gradient {
 }
 .back-to-top svg { width: 18px; height: 18px; }
 @media (max-width: 540px) {
-  .back-to-top { right: 16px; bottom: 90px; } /* keep clear of cookie banner */
+  .back-to-top { right: 16px; bottom: 90px; } /* keep clear of the consent banner (assets/analytics.js) */
 }
 
 /* ===== WAITLIST MODAL ===== */
@@ -1481,8 +1417,6 @@ h1 .gradient {
 </style>
 </head>
 <body>
-<!-- GTM noscript fallback (replace GTM-XXXXXXX with real ID) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- ===== TOP NAV ===== -->
 <header class="topnav">
@@ -1794,12 +1728,6 @@ h1 .gradient {
   </svg>
 </button>
 
-<!-- ===== COOKIE CONSENT ===== -->
-<div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite">
-  <div class="cookie-banner__text" data-i18n="cookie.text">Мы используем cookies для улучшения сервиса</div>
-  <button class="cookie-banner__accept" id="cookieAccept" data-i18n="cookie.accept">Принять</button>
-</div>
-
 <!-- ===== WAITLIST MODAL ===== -->
 <div class="modal-backdrop" id="waitModal" role="dialog" aria-modal="true" aria-labelledby="waitModalTitle">
   <div class="modal">
@@ -1850,8 +1778,6 @@ const I18N = {
     "wait.sending": "Отправляем…",
     "wait.success": "Спасибо! Мы свяжемся с вами.",
     "wait.error": "Что-то пошло не так. Попробуйте ещё раз.",
-    "cookie.text": "Мы используем cookies для улучшения сервиса",
-    "cookie.accept": "Принять",
     "eco.medcard.lab": "Медкарта", "eco.medcard.val": "QR готов",
     "eco.checkup.lab": "AI-чекап",
     "eco.pulse.lab": "Пульс",
@@ -1924,8 +1850,6 @@ const I18N = {
     "wait.sending": "Yuborilmoqda…",
     "wait.success": "Rahmat! Tez orada bog'lanamiz.",
     "wait.error": "Xatolik yuz berdi. Qayta urinib ko'ring.",
-    "cookie.text": "Biz xizmatni yaxshilash uchun cookies'dan foydalanamiz",
-    "cookie.accept": "Qabul qilaman",
     "eco.medcard.lab": "Tibbiy karta", "eco.medcard.val": "QR tayyor",
     "eco.checkup.lab": "AI-tekshiruv",
     "eco.pulse.lab": "Puls",
@@ -1998,8 +1922,6 @@ const I18N = {
     "wait.sending": "Sending…",
     "wait.success": "Thank you! We'll be in touch.",
     "wait.error": "Something went wrong. Please try again.",
-    "cookie.text": "We use cookies to improve the service",
-    "cookie.accept": "Accept",
     "eco.medcard.lab": "Medical card", "eco.medcard.val": "QR ready",
     "eco.checkup.lab": "AI checkup",
     "eco.pulse.lab": "Pulse",
@@ -2167,22 +2089,6 @@ waitForm?.addEventListener('submit', async (e) => {
   }
 });
 
-// ===== Cookie consent =====
-(function () {
-  const banner = document.getElementById('cookieBanner');
-  const acceptBtn = document.getElementById('cookieAccept');
-  if (!banner) return;
-  let accepted = false;
-  try { accepted = localStorage.getItem('aivita-cookie-ok') === '1'; } catch (e) {}
-  if (!accepted) {
-    setTimeout(() => banner.classList.add('show'), 600);
-  }
-  acceptBtn?.addEventListener('click', () => {
-    try { localStorage.setItem('aivita-cookie-ok', '1'); } catch (e) {}
-    banner.classList.remove('show');
-  });
-})();
-
 // ===== Back to top =====
 (function () {
   const btn = document.getElementById('backToTop');
@@ -2206,7 +2112,8 @@ waitForm?.addEventListener('submit', async (e) => {
 //     doctor_block_title, doctor_block_subtitle,
 //     social_links: {telegram, whatsapp, instagram, facebook, youtube},
 //     app_links: {appstore, googleplay},
-//     waitlist_enabled, yandex_metrika_id, gtm_id, cookie_text
+//     waitlist_enabled
+// (yandex_metrika_id / gtm_id из того же конфига читает assets/analytics.js — после согласия на cookie)
 //   }
 function applyConfig(cfg) {
   if (!cfg || typeof cfg !== 'object') return;
@@ -2288,24 +2195,6 @@ function applyConfig(cfg) {
       newCta.addEventListener('click', () => { window.location.href = appUrl + '/ru/sign-up'; });
     }
   }
-
-  // Cookie banner override
-  if (cfg.cookie_text) setText('[data-i18n="cookie.text"]', cfg.cookie_text);
-
-  // Inject analytics IDs at runtime if not yet baked in
-  if (cfg.yandex_metrika_id && cfg.yandex_metrika_id !== 'YOUR_COUNTER_ID') {
-    try {
-      window.__ymCounterId = cfg.yandex_metrika_id;
-      if (typeof window.ym === 'function') {
-        window.ym(cfg.yandex_metrika_id, 'init', { clickmap: true, trackLinks: true, accurateTrackBounce: true });
-      }
-    } catch (e) { console.warn('ym init', e); }
-  }
-  if (cfg.gtm_id && cfg.gtm_id !== 'GTM-XXXXXXX') {
-    // GTM is loaded synchronously in <head>, but we can still dataLayer.push
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.runtime_id', gtm_id: cfg.gtm_id });
-  }
 }
 
 async function loadConfig() {
@@ -2341,5 +2230,6 @@ if (document.readyState === 'loading') {
 })();
 </script>
 
+<script src="/assets/analytics.js" defer></script>
 </body>
 </html>
