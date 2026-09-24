@@ -38,13 +38,16 @@ export async function quickStartAction(
 ): Promise<QuickStartState> {
   const email = (formData.get('email') as string).trim().toLowerCase();
   const timezone = (formData.get('timezone') as string | null)?.trim() || undefined;
+  // ?ref= из приглашения — без него быстрая регистрация (режим по умолчанию)
+  // теряла привязку к пригласившему, и бонус не получал никто.
+  const refCode = (formData.get('refCode') as string | null)?.trim() || undefined;
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/v1/aivita/auth/passwordless/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, locale, timezone }),
+      body: JSON.stringify({ email, locale, timezone, refCode }),
     });
   } catch {
     return { error: 'network' };

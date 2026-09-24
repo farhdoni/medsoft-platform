@@ -34,6 +34,7 @@ export async function registerDoctorAction(
   const experienceYearsRaw = formData.get('experienceYears') as string | null;
   const experienceYears = experienceYearsRaw ? parseInt(experienceYearsRaw, 10) || undefined : undefined;
   const workplace = (formData.get('workplace') as string | null)?.trim() || undefined;
+  const timezone = (formData.get('timezone') as string | null)?.trim() || undefined;
 
   // Auto-generate a unique nickname from name + random suffix
   const base = fullName
@@ -60,6 +61,7 @@ export async function registerDoctorAction(
         phone,
         experienceYears,
         workplace,
+        timezone,
       }),
     });
   } catch {

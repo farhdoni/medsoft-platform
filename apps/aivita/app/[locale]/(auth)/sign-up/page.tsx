@@ -409,6 +409,7 @@ export default function SignUpPage() {
             </div>
 
             <input type="hidden" name="timezone" value={detectedTz} />
+            {refCode && <input type="hidden" name="refCode" value={refCode} />}
 
             <button
               type="submit"
