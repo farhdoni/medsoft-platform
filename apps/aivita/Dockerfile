@@ -6,6 +6,11 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# root "postinstall" (scripts/bootstrap-workspace-libs.mjs) needs to exist
+# for `pnpm install` below to find it — it no-ops here anyway (no
+# tsconfig.build.json yet at this stub-only layer, see that script's own
+# comment) but a missing file makes postinstall itself fail the whole step.
+COPY scripts/bootstrap-workspace-libs.mjs scripts/bootstrap-workspace-libs.mjs
 COPY patches/ patches/
 COPY apps/aivita/package.json apps/aivita/
 COPY packages/db/package.json packages/db/
