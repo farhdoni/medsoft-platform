@@ -37,7 +37,8 @@ export async function HeroSection({ isAuthenticated = false }: Props) {
             {/* Android APK download */}
             <div style={{ marginTop: 12 }}>
               <a
-                href="https://aivita.uz/downloads/aivita.apk"
+                href="https://aivita.uz/downloads/aivita-patient.apk"
+                download
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -55,7 +56,7 @@ export async function HeroSection({ isAuthenticated = false }: Props) {
                 Скачать для Android (APK)
               </a>
               <p style={{ fontSize: 11, color: '#9090a8', marginTop: 6 }}>
-                Android 7+  ·  ~65 MB  ·  бесплатно
+                Android 7+  ·  бесплатно
               </p>
             </div>
 
