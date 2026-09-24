@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { LangSetter } from '@/components/LangSetter';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { AivitaMetrika } from '@/components/analytics/AivitaMetrika';
+import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 
 const locales = ['ru', 'uz', 'en'];
 
@@ -45,6 +46,7 @@ export default async function LocaleLayout({
       {children}
       <InstallPrompt />
       <AivitaMetrika counterId={metrikaCounterId} />
+      <ConsentBanner locale={locale} enabled={metrikaCounterId !== null} />
     </NextIntlClientProvider>
   );
 }
