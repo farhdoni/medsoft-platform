@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
 import { resolveScreenName, setActiveCounter, trackHit, trackScreenView } from '@/lib/analytics/metrika';
+import { CONSENT_EVENT, readConsent } from '@/lib/analytics/consent';
 
 /**
  * Loads the Yandex Metrika tag and auto-tracks screen views by route.
@@ -19,24 +20,36 @@ import { resolveScreenName, setActiveCounter, trackHit, trackScreenView } from '
  * content, only structure" rule extends to Metrika's own init options here,
  * not just to the params this file passes to reachGoal.
  *
+ * Loads ONLY after the visitor accepted analytics cookies (ConsentBanner /
+ * the landing's banner — one shared `aivita_consent` cookie on .aivita.uz).
+ *
  * counterId comes from landing_config.yandex_metrika_id (fetched server-side
  * in the layout) — no separate config for this app, reusing the same value
  * aivita.uz's landing already reads from.
  */
 export function AivitaMetrika({ counterId }: { counterId: number | null }) {
   const pathname = usePathname();
+  const [granted, setGranted] = useState(false);
+  const active = granted ? counterId : null;
 
   useEffect(() => {
-    setActiveCounter(counterId);
-  }, [counterId]);
+    setGranted(readConsent() === 'granted');
+    const onChange = (e: Event) => setGranted((e as CustomEvent).detail === 'granted');
+    window.addEventListener(CONSENT_EVENT, onChange);
+    return () => window.removeEventListener(CONSENT_EVENT, onChange);
+  }, []);
 
   useEffect(() => {
-    if (counterId === null || !pathname) return;
+    setActiveCounter(active);
+  }, [active]);
+
+  useEffect(() => {
+    if (active === null || !pathname) return;
     trackHit(pathname);
     trackScreenView(resolveScreenName(pathname));
-  }, [counterId, pathname]);
+  }, [active, pathname]);
 
-  if (counterId === null) return null;
+  if (active === null) return null;
 
   return (
     <Script
@@ -44,7 +57,7 @@ export function AivitaMetrika({ counterId }: { counterId: number | null }) {
       src="https://mc.yandex.ru/metrika/tag.js"
       strategy="afterInteractive"
       onLoad={() => {
-        window.ym?.(counterId, 'init', {
+        window.ym?.(active, 'init', {
           clickmap: false,
           trackLinks: false,
           accurateTrackBounce: true,
