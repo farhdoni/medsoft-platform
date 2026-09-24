@@ -7,7 +7,12 @@ export const metadata = {
   description: 'Условия использования сервиса aivita.uz',
 };
 
-export default function TermsPage() {
+export default async function TermsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   return (
     <>
       <PublicNav />
@@ -39,7 +44,7 @@ export default function TermsPage() {
           <p>legal@aivita.uz</p>
         </article>
         <div className="mt-12 pt-8 border-t border-[rgba(120,160,200,0.15)]">
-          <Link href="/privacy" className="text-sm text-pink-600 hover:text-pink-700">← Политика конфиденциальности</Link>
+          <Link href={`/${locale}/privacy`} className="text-sm text-pink-600 hover:text-pink-700">← Политика конфиденциальности</Link>
         </div>
       </main>
       <PublicFooter />

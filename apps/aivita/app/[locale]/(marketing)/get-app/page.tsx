@@ -17,7 +17,12 @@ const FEATURES = [
 
 const APK_URL = process.env.ANDROID_APK_URL;
 
-export default function GetAppPage() {
+export default async function GetAppPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   return (
     <main
       style={{
@@ -133,7 +138,7 @@ export default function GetAppPage() {
           Уже есть аккаунт?
         </p>
         <Link
-          href="/home"
+          href={`/${locale}/home`}
           style={{
             display: 'inline-block',
             padding: '10px 24px',
