@@ -154,7 +154,7 @@ aivitaOnboardingRouter.post('/snapshot', async (c) => {
 
 // ─── Card code generator (AI-{year}-{seq}) ────────────────────────────────────
 
-async function generateCardNumber(): Promise<string> {
+export async function generateCardNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const pattern = `AI-${year}-%`;
   const [last] = await db

@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers';
 import { apiRequest } from '@/lib/api-client';
+import { getSession } from '@/lib/auth/session';
+import { isSoft3dEnabled } from '@/lib/soft3d/flag';
 import { PageShell } from '@/components/cabinet/dashboard/PageShell';
 import { MedicalCardClient } from './MedicalCardClient';
 
@@ -78,17 +80,19 @@ export default async function MedicalCardPage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
-  const result = await apiRequest<MedicalCardData>('/onboarding/medical-card', {
-    sessionCookie,
-  });
+  const [result, session] = await Promise.all([
+    apiRequest<MedicalCardData>('/onboarding/medical-card', { sessionCookie }),
+    getSession(),
+  ]);
 
   const cardData: MedicalCardData | null =
     'data' in result ? result.data : null;
+  const showAnamnesisLink = !!session && isSoft3dEnabled(session.email);
 
   return (
     <PageShell active="medical-card" locale={locale}>
       <div className="max-w-[680px] mx-auto pb-24">
-        <MedicalCardClient data={cardData} locale={locale} />
+        <MedicalCardClient data={cardData} locale={locale} showAnamnesisLink={showAnamnesisLink} />
       </div>
     </PageShell>
   );
