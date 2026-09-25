@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Прививки ребёнка</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --clay:#CC8A8F; --clay-lt:#D69AA0; --clay-dk:#BE7D85; --clay-wall:#B67982; --clay-sh:116,62,70;
+  --sky:#6BA3D6;  --sky-lt:#86B8E1;  --sky-dk:#5D92C4;  --sky-wall:#5589B9;  --sky-sh:38,74,112;
+  --navy:#2A2540; --navy-lt:#3C3556; --navy-dk:#241F38; --navy-wall:#1E1A2C; --navy-sh:18,14,32;
+  --ink:#3A3646; --ink-soft:#6B6577;
+  --wall:#E7E1D7; --board:#F5F2EC; --tile:#FCFBF8;
+  --lit:255,255,255; --shd:150,134,116;
+  --d:1; --w:1; --cv:1.15; --op:1;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body{margin:0;font-family:Nunito,system-ui,sans-serif}
+a{color:#A86A72}a:hover{color:#8C555C}
+
+.grain{position:relative}
+.grain::after{content:"";position:absolute;inset:0;border-radius:inherit;background-image:var(--grain);background-size:140px;opacity:.13;mix-blend-mode:soft-light;pointer-events:none}
+
+.tile{
+  border:1px solid transparent;
+  background:
+    linear-gradient(176deg,var(--tile),#F2EEE6) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.60), rgba(var(--lit),.14) 44%, rgba(var(--shd),.30)) border-box;
+  box-shadow:
+    0 0 0 1px rgba(var(--shd),calc(.045*var(--op))),
+    0 calc(1px*var(--d))  calc(2px*var(--d))  -1px  rgba(var(--shd),calc(.05*var(--op))),
+    0 calc(4px*var(--d))  calc(6px*var(--d))  -3px  rgba(var(--shd),calc(.045*var(--op))),
+    0 calc(10px*var(--d)) calc(16px*var(--d)) -8px  rgba(var(--shd),calc(.045*var(--op))),
+    0 calc(20px*var(--d)) calc(30px*var(--d)) -16px rgba(var(--shd),calc(.04*var(--op)));
+}
+
+.panel{
+  border:1px solid transparent;
+  background:
+    radial-gradient(calc(138%/var(--cv)) calc(128%/var(--cv)) at 50% 42%,
+      rgba(var(--lit),.05) 0%, rgba(var(--lit),0) 46%, rgba(var(--navy-sh),.18) 100%) padding-box,
+    linear-gradient(176deg,var(--navy-lt) 0%,var(--navy) 58%,var(--navy-dk) 100%) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.22), rgba(var(--lit),.05) 44%, rgba(var(--navy-sh),.50)) border-box;
+  box-shadow:
+    inset 0 calc(10px*var(--cv)) calc(18px*var(--cv)) -11px rgba(var(--navy-sh),calc(.30*var(--op))),
+    inset 0 calc(-7px*var(--cv)) calc(14px*var(--cv)) -12px rgba(var(--navy-sh),calc(.16*var(--op))),
+    0 calc(5px*var(--w)) 0 -2px var(--navy-wall),
+    0 calc(8px*var(--w))  calc(9px*var(--d))  calc(-5px*var(--d))  rgba(var(--shd),calc(.05*var(--op))),
+    0 calc(14px*var(--w)) calc(20px*var(--d)) calc(-11px*var(--d)) rgba(var(--shd),calc(.045*var(--op))),
+    0 calc(24px*var(--w)) calc(36px*var(--d)) calc(-19px*var(--d)) rgba(var(--shd),calc(.04*var(--op)));
+}
+
+.well{
+  border:1px solid transparent;
+  background:
+    linear-gradient(176deg,#E5DFD5,#F5F1EB) padding-box,
+    linear-gradient(180deg, rgba(var(--shd),.30), rgba(var(--lit),.55)) border-box;
+  box-shadow:
+    inset 0 calc(5px*var(--d)) calc(11px*var(--d)) calc(-3px*var(--d)) rgba(var(--shd),calc(.24*var(--op))),
+    inset 0 calc(-4px*var(--d)) calc(9px*var(--d)) calc(-4px*var(--d)) rgba(var(--lit),calc(.70*var(--op)));
+  color:var(--ink);
+}
+.well::placeholder{color:#8A8494}
+.well-dark{
+  border:1px solid transparent;
+  background:
+    linear-gradient(176deg,var(--navy-dk),#2E2946) padding-box,
+    linear-gradient(180deg, rgba(var(--navy-sh),.60), rgba(var(--lit),.14)) border-box;
+  box-shadow:
+    inset 0 calc(5px*var(--d)) calc(11px*var(--d)) calc(-3px*var(--d)) rgba(var(--navy-sh),calc(.55*var(--op))),
+    inset 0 calc(-4px*var(--d)) calc(9px*var(--d)) calc(-4px*var(--d)) rgba(var(--lit),calc(.10*var(--op)));
+  color:#fff;
+}
+
+.btn3d{
+  border:1px solid transparent;
+  border-radius:999px;
+  color:#fff;
+  font-family:Nunito,sans-serif;
+  text-shadow:0 1px 0 rgba(var(--lit),.22), 0 -1px 0 rgba(var(--sh),.28);
+  cursor:pointer;
+  background:
+    radial-gradient(calc(138%/var(--cv)) calc(128%/var(--cv)) at 50% 46%,
+      rgba(var(--lit),.06) 0%, rgba(var(--lit),0) 44%, rgba(var(--sh),.14) 100%) padding-box,
+    linear-gradient(176deg,var(--c1) 0%,var(--c2) 58%,var(--c3) 100%) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.45), rgba(var(--lit),.10) 44%, rgba(var(--sh),.38)) border-box;
+  box-shadow:
+    inset 0 calc(10px*var(--cv)) calc(16px*var(--cv)) -9px  rgba(var(--sh),calc(.26*var(--op))),
+    inset 0 calc(-7px*var(--cv)) calc(14px*var(--cv)) -10px rgba(var(--sh),calc(.15*var(--op))),
+    inset calc(8px*var(--cv))  0 calc(16px*var(--cv)) -13px rgba(var(--sh),calc(.14*var(--op))),
+    inset calc(-8px*var(--cv)) 0 calc(16px*var(--cv)) -13px rgba(var(--sh),calc(.14*var(--op))),
+    0 calc(5px*var(--w)) 0 -2px var(--cw),
+    0 calc(6px*var(--w))  calc(5px*var(--d))  calc(-3px*var(--d))  rgba(var(--sh),calc(.035*var(--op))),
+    0 calc(9px*var(--w))  calc(11px*var(--d)) calc(-6px*var(--d))  rgba(var(--sh),calc(.032*var(--op))),
+    0 calc(14px*var(--w)) calc(20px*var(--d)) calc(-11px*var(--d)) rgba(var(--sh),calc(.028*var(--op))),
+    0 calc(22px*var(--w)) calc(34px*var(--d)) calc(-18px*var(--d)) rgba(var(--sh),calc(.025*var(--op)));
+}
+.btn3d:hover{
+  box-shadow:
+    inset 0 calc(10px*var(--cv)) calc(16px*var(--cv)) -9px  rgba(var(--sh),calc(.26*var(--op))),
+    inset 0 calc(-7px*var(--cv)) calc(14px*var(--cv)) -10px rgba(var(--sh),calc(.15*var(--op))),
+    inset calc(8px*var(--cv))  0 calc(16px*var(--cv)) -13px rgba(var(--sh),calc(.14*var(--op))),
+    inset calc(-8px*var(--cv)) 0 calc(16px*var(--cv)) -13px rgba(var(--sh),calc(.14*var(--op))),
+    0 calc(8px*var(--w)) 0 -2px var(--cw),
+    0 calc(10px*var(--w)) calc(8px*var(--d))  calc(-4px*var(--d))  rgba(var(--sh),calc(.035*var(--op))),
+    0 calc(14px*var(--w)) calc(16px*var(--d)) calc(-8px*var(--d))  rgba(var(--sh),calc(.032*var(--op))),
+    0 calc(20px*var(--w)) calc(28px*var(--d)) calc(-14px*var(--d)) rgba(var(--sh),calc(.028*var(--op))),
+    0 calc(30px*var(--w)) calc(44px*var(--d)) calc(-22px*var(--d)) rgba(var(--sh),calc(.025*var(--op)));
+}
+.btn3d:active{
+  transform:translateY(calc(4px*var(--w))) scale(.995);
+  background:
+    radial-gradient(calc(138%/var(--cv)) calc(128%/var(--cv)) at 50% 46%,
+      rgba(var(--lit),.04) 0%, rgba(var(--lit),0) 44%, rgba(var(--sh),.16) 100%) padding-box,
+    linear-gradient(176deg,var(--c3) 0%,var(--c2) 42%,var(--c1) 100%) padding-box,
+    linear-gradient(180deg, rgba(var(--sh),.30), rgba(var(--lit),.20)) border-box;
+  box-shadow:
+    inset 0 calc(12px*var(--d)) calc(17px*var(--d)) -6px rgba(var(--sh),calc(.26*var(--op))),
+    inset  9px 0 17px -13px rgba(var(--sh),calc(.15*var(--op))),
+    inset -9px 0 17px -13px rgba(var(--sh),calc(.15*var(--op))),
+    0 1px 0 -.5px var(--cw),
+    0 3px 5px -3px rgba(var(--sh),calc(.07*var(--op)));
+}
+.btn3d:focus-visible{outline:3px solid rgba(var(--sh),.45);outline-offset:5px}
+.btn3d[disabled]{filter:grayscale(.5) opacity(.55);transform:none;cursor:default}
+
+.btn-flat{
+  border:1px solid transparent;
+  border-radius:999px;
+  font-family:Nunito,sans-serif;
+  cursor:pointer;
+  color:var(--ink);
+  background:
+    linear-gradient(176deg,#EFEBE3,#E3DDD3) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.60), rgba(var(--shd),.28)) border-box;
+  box-shadow:
+    0 calc(3px*var(--w)) 0 -1px #D6CFC3,
+    0 calc(5px*var(--w)) calc(7px*var(--d)) calc(-4px*var(--d)) rgba(var(--shd),calc(.05*var(--op))),
+    0 calc(10px*var(--w)) calc(14px*var(--d)) calc(-8px*var(--d)) rgba(var(--shd),calc(.04*var(--op)));
+}
+.btn-flat:active{transform:translateY(calc(3px*var(--w)));box-shadow:0 1px 0 -.5px #D6CFC3, inset 0 6px 10px -5px rgba(var(--shd),.22)}
+.btn-flat:focus-visible{outline:3px solid rgba(var(--shd),.45);outline-offset:5px}
+
+.chip-dark{
+  border:1px solid transparent;
+  border-radius:999px;
+  font-family:Nunito,sans-serif;
+  cursor:pointer;
+  color:#fff;
+  background:
+    linear-gradient(176deg,#3C3556,#2A2540) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.26), rgba(var(--navy-sh),.50)) border-box;
+  box-shadow:0 calc(3px*var(--w)) 0 -1px var(--navy-wall), 0 calc(6px*var(--w)) calc(9px*var(--d)) calc(-5px*var(--d)) rgba(var(--navy-sh),calc(.30*var(--op)));
+}
+.chip-dark:active{transform:translateY(calc(3px*var(--w)));box-shadow:0 1px 0 -.5px var(--navy-wall)}
+.chip-dark:focus-visible{outline:3px solid rgba(var(--lit),.45);outline-offset:4px}
+
+.stat{
+  border:1px solid transparent;
+  background:
+    linear-gradient(176deg,var(--tile),#F1EDE5) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.60), rgba(var(--lit),.14) 44%, rgba(var(--shd),.30)) border-box;
+  box-shadow:
+    0 0 0 1px rgba(var(--shd),calc(.045*var(--op))),
+    0 calc(2px*var(--w)) 0 -1px #E0D9CC,
+    0 calc(4px*var(--d))  calc(6px*var(--d))  -3px  rgba(var(--shd),calc(.045*var(--op))),
+    0 calc(10px*var(--d)) calc(16px*var(--d)) -8px  rgba(var(--shd),calc(.045*var(--op)));
+}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.navbtn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  width:64px;height:56px;border:none;background:none;border-radius:18px;
+  font-family:Nunito,sans-serif;font-size:11px;font-weight:700;color:#8A8494;cursor:pointer;
+}
+.navbtn[aria-current="page"]{color:var(--ink)}
+.navbtn-on{
+  border:1px solid transparent;
+  background:
+    linear-gradient(176deg,var(--clay-lt),var(--clay-dk)) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.45), rgba(var(--clay-sh),.38)) border-box;
+  box-shadow:0 3px 0 -1px var(--clay-wall), 0 7px 10px -5px rgba(var(--clay-sh),.30);
+}
+.bubble-me{
+  border:1px solid transparent;
+  background:
+    linear-gradient(176deg,var(--clay-lt),var(--clay-dk)) padding-box,
+    linear-gradient(180deg, rgba(var(--lit),.40), rgba(var(--clay-sh),.40)) border-box;
+  box-shadow:0 3px 0 -1px var(--clay-wall), 0 8px 12px -6px rgba(var(--clay-sh),.28);
+  color:#fff;
+}
+</style>
+</helmet>
+<div class="grain" style="width: 390px; height: 844px; box-sizing: border-box; background: var(--board); position: relative; overflow: hidden;">
+  <img src="/_blob/0f5f334a8c937a173c5e7d53a2d9cb4d" alt="" style="position: absolute; top: 0; left: 0; width: 390px; height: 5px; object-fit: cover;">
+  <header style="position: relative; padding: 20px 18px 0 18px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="/_blob/99381540c72161dae28612b91d487914" alt="AIVITA" style="width: 34px; height: 34px; border-radius: 11px; display: block;">
+      <span style="font-size: 17px; font-weight: 800; letter-spacing: 0.14em; color: var(--ink);">AIVITA</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="SOS.dc.html" aria-label="Экстренная помощь" style="display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 999px; text-decoration: none; font: 800 13px/1 Nunito, sans-serif; color: #ffffff; letter-spacing: .06em; border: 1px solid transparent; background: linear-gradient(176deg,#C4666E,#A8525A) padding-box, linear-gradient(180deg, rgba(255,255,255,.42), rgba(90,40,46,.42)) border-box; box-shadow: 0 4px 0 -2px #93454D, 0 9px 12px -6px rgba(90,40,46,.32);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.1" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 9v5M12 17h.01"/></svg>
+        SOS
+      </a>
+      <a href="Notices.dc.html" class="btn-flat" aria-label="Уведомления" style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3A3646" stroke-width="1.9" aria-hidden="true"><path d="M18 15V10a6 6 0 0 0-12 0v5l-2 3h16zM10 21h4"/></svg>
+      </a>
+      <a href="Settings.dc.html" class="well" aria-label="Профиль и настройки" style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font: 800 15px/1 Nunito, sans-serif; color: var(--ink);">Ф</a>
+    </div>
+  </header>
+
+  <a href="#weather" style="position: relative; display: flex; align-items: center; gap: 10px; margin: 12px 18px 0 18px; height: 46px; padding: 0 14px; border-radius: 16px; text-decoration: none; border: 1px solid transparent; background: linear-gradient(176deg,#E5DFD5,#F5F1EB) padding-box, linear-gradient(180deg, rgba(150,134,116,.30), rgba(255,255,255,.55)) border-box; box-shadow: inset 0 5px 11px -3px rgba(150,134,116,.24), inset 0 -4px 9px -4px rgba(255,255,255,.70);">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6BA3D6" stroke-width="1.8" style="flex-shrink: 0;" aria-hidden="true"><path d="M7 17a4.5 4.5 0 0 1 .6-8.96 6 6 0 0 1 11.2-1.1A4 4 0 0 1 18 17z"/></svg>
+    <span style="font-size: 14px; font-weight: 800; color: var(--ink);">+12°</span>
+    <span style="font-size: 13px; color: var(--ink-soft);">Ташкент</span>
+    <span style="width: 1px; height: 18px; background: #D6CFC3;"></span>
+    <span style="flex-grow: 1; min-width: 0; font-size: 13px; font-weight: 700; color: #A86A72; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Резкий перепад давления</span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8494" stroke-width="2.2" style="flex-shrink: 0;" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+
+
+  <div style="position: absolute; top: 134px; left: 0; right: 0; bottom: 96px; overflow: hidden; padding: 16px 18px 0 18px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <a href="Family.dc.html" class="btn-flat" aria-label="Назад" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3A3646" stroke-width="2.2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+      <h1 style="margin: 0; font-size: 25px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;">Прививки</h1>
+    </div>
+
+    <div class="well" style="margin-top: 14px; border-radius: 999px; padding: 5px; display: flex; gap: 4px;">
+      <button type="button" class="btn3d" style="--c1: var(--clay-lt); --c2: var(--clay); --c3: var(--clay-dk); --cw: var(--clay-wall); --sh: var(--clay-sh); flex-grow: 1; height: 40px; border-radius: 999px; font-size: 13px; font-weight: 800;">Амина, 7 лет</button>
+      <button type="button" style="flex-grow: 1; height: 40px; border: none; background: none; border-radius: 999px; font: 700 13px/1 Nunito, sans-serif; color: var(--ink-soft); cursor: pointer;">Темур, 16 лет</button>
+    </div>
+
+    <div class="panel grain" style="margin-top: 12px; border-radius: 24px; padding: 18px 20px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+        <p style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;">По календарю</p>
+        <p style="margin: 0; font-size: 14px; font-weight: 800; color: #ffffff;">9 из 10</p>
+      </div>
+      <div class="well-dark" style="margin-top: 10px; height: 12px; border-radius: 999px; padding: 2px;">
+        <div style="width: 90%; height: 100%; border-radius: 999px; background: linear-gradient(176deg, var(--clay-lt), var(--clay-dk));"></div>
+      </div>
+    </div>
+
+    <p class="eyebrow" style="margin: 16px 0 0 0; color: var(--ink-soft);">Ближайшая</p>
+    <div class="tile grain" style="margin-top: 9px; border-radius: 22px; padding: 16px 18px;">
+      <p style="margin: 0; font-size: 15px; font-weight: 800; color: var(--ink);">Ревакцинация АДС-М</p>
+      <p style="margin: 3px 0 0 0; font-size: 13px; color: #A86A72; font-weight: 700;">До 30 ноября</p>
+      <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <a href="Booking.dc.html" class="btn3d" style="--c1: var(--clay-lt); --c2: var(--clay); --c3: var(--clay-dk); --cw: var(--clay-wall); --sh: var(--clay-sh); display: flex; align-items: center; justify-content: center; height: 44px; border-radius: 999px; font-size: 14px; font-weight: 800; color: #ffffff; text-decoration: none;">Записаться</a>
+        <button type="button" class="btn-flat" style="height: 44px; border-radius: 999px; font-size: 14px; font-weight: 700;">Уже сделали</button>
+      </div>
+    </div>
+
+    <p class="eyebrow" style="margin: 16px 0 0 0; color: var(--ink-soft);">Сделано</p>
+    <div style="margin-top: 9px; display: flex; flex-direction: column; gap: 8px;">
+      <div class="tile grain" style="border-radius: 20px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+        <span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; background: linear-gradient(176deg, var(--sky-lt), var(--sky-dk)) padding-box, linear-gradient(180deg, rgba(255,255,255,.45), rgba(38,74,112,.38)) border-box; box-shadow: 0 3px 0 -1px var(--sky-wall);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" aria-hidden="true"><path d="M5 13l4.5 4.5L19 7"/></svg>
+        </span>
+        <span style="flex-grow: 1; min-width: 0;">
+          <span style="display: block; font-size: 14px; font-weight: 800; color: var(--ink);">Корь, краснуха, паротит</span>
+          <span style="display: block; margin-top: 2px; font-size: 12px; color: var(--ink-soft);">2 дозы · последняя в 6 лет</span>
+        </span>
+      </div>
+      <div class="tile grain" style="border-radius: 20px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+        <span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; background: linear-gradient(176deg, var(--sky-lt), var(--sky-dk)) padding-box, linear-gradient(180deg, rgba(255,255,255,.45), rgba(38,74,112,.38)) border-box; box-shadow: 0 3px 0 -1px var(--sky-wall);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" aria-hidden="true"><path d="M5 13l4.5 4.5L19 7"/></svg>
+        </span>
+        <span style="flex-grow: 1; min-width: 0;">
+          <span style="display: block; font-size: 14px; font-weight: 800; color: var(--ink);">Полиомиелит</span>
+          <span style="display: block; margin-top: 2px; font-size: 12px; color: var(--ink-soft);">4 дозы · справка приложена</span>
+        </span>
+      </div>
+    </div>
+    <a href="#all" style="display: block; margin-top: 10px; font-size: 13px; font-weight: 700; text-decoration: none;">Ещё 7 сделанных</a>
+  </div>
+  <nav class="tile grain" style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 72px; border-radius: 26px; display: flex; align-items: center; justify-content: space-around; padding: 0 6px;">
+    <a href="Main.dc.html" class="navbtn" style="text-decoration: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8494" stroke-width="1.9" aria-hidden="true"><path d="M4 11l8-7 8 7v8a2 2 0 0 1-2 2h-3v-6h-6v6H6a2 2 0 0 1-2-2z"/></svg>
+      Главная
+    </a>
+    <a href="Card.dc.html" class="navbtn" style="text-decoration: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8494" stroke-width="1.9" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 9h4M7 13h7"/></svg>
+      Медкарта
+    </a>
+    <a href="Chat.dc.html" class="navbtn" style="text-decoration: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8494" stroke-width="1.9" aria-hidden="true"><path d="M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2z"/></svg>
+      Ассистент
+    </a>
+    <a href="Meds.dc.html" class="navbtn" style="text-decoration: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8494" stroke-width="1.9" aria-hidden="true"><rect x="3" y="9" width="18" height="7" rx="3.5" transform="rotate(-42 12 12.5)"/><path d="M9 9l6 6"/></svg>
+      Лекарства
+    </a>
+    <a href="Checkup.dc.html" class="navbtn" style="text-decoration: none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8494" stroke-width="1.9" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+      Чекап
+    </a>
+  </nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

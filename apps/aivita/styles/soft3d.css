@@ -1,0 +1,390 @@
+/*
+ * Soft 3D design system — patient cabinet redesign (feat/patient-cabinet-soft3d).
+ *
+ * Ported verbatim from the reference mockups (docs/design/patient-cabinet/,
+ * :root block in every *.dc.html — they're all identical, checked against
+ * Main.dc.html and cross-verified against Gadgets/Docs/Vaccines/DocView).
+ * Every color, shadow layer, and multiplier here is copied exactly, not
+ * approximated — see docs/design/patient-cabinet/README.md for the token
+ * table this corresponds to.
+ *
+ * Scoping: every rule lives under `.soft3d` so nothing here can ever affect
+ * a page that hasn't opted in, and no existing Tailwind/global class name
+ * collides (none of tile/panel/well/btn3d/etc. exist anywhere else in this
+ * app — verified during Step 0). Tokens are --s3-* prefixed for the same
+ * reason: the app already has real tokens at these bare names (--tile,
+ * --ink etc. do NOT exist today, but --text-primary and friends do, and a
+ * bare --tile could easily collide with something added later).
+ */
+
+.soft3d {
+  --s3-clay: #CC8A8F;
+  --s3-clay-lt: #D69AA0;
+  --s3-clay-dk: #BE7D85;
+  --s3-clay-wall: #B67982;
+  --s3-clay-sh: 116, 62, 70;
+
+  /* Mockup's own clay is #fff-on-clay ≈2.76:1 at best (2.34:1 at the
+     gradient's lightest stop) — fails WCAG AA's 4.5:1 for normal text.
+     These are a separate, darker fill used ONLY for the gradient behind
+     white button text (Button3D/SegmentedControl's active tab); every
+     other clay token above is untouched. Measured at the button's actual
+     text position (gradient + radial highlight composited): ~5.07:1. */
+  --s3-clay-btn-lt: #9E5A62;
+  --s3-clay-btn: #965058;
+  --s3-clay-btn-dk: #8C4850;
+
+  --s3-sky: #6BA3D6;
+  --s3-sky-lt: #86B8E1;
+  --s3-sky-dk: #5D92C4;
+  --s3-sky-wall: #5589B9;
+  --s3-sky-sh: 38, 74, 112;
+
+  /* Same fix, sky variant — measured at text position: ~5.14:1. */
+  --s3-sky-btn-lt: #437194;
+  --s3-sky-btn: #3B678C;
+  --s3-sky-btn-dk: #335E83;
+
+  --s3-navy: #2A2540;
+  --s3-navy-lt: #3C3556;
+  --s3-navy-dk: #241F38;
+  --s3-navy-wall: #1E1A2C;
+  --s3-navy-sh: 18, 14, 32;
+
+  --s3-ink: #3A3646;
+  --s3-ink-soft: #6B6577;
+
+  --s3-wall: #E7E1D7;
+  --s3-board: #F5F2EC;
+  --s3-tile: #FCFBF8;
+
+  --s3-lit: 255, 255, 255;
+  --s3-shd: 150, 134, 116;
+
+  /* Depth / width / curvature / opacity multipliers — every shadow layer
+     below is written in terms of these so the whole system can be tuned in
+     one place, exactly as the mockups do it. */
+  --s3-d: 1;
+  --s3-w: 1;
+  --s3-cv: 1.15;
+  --s3-op: 1;
+
+  --s3-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* SOS header button — its own red, not the clay accent (Main.dc.html header). */
+  --s3-sos: #C4666E;
+  --s3-sos-dk: #A8525A;
+  --s3-sos-wall: #93454D;
+  --s3-sos-sh: 90, 40, 46;
+
+  background: var(--s3-board);
+  color: var(--s3-ink);
+  font-family: var(--font-app), Nunito, system-ui, sans-serif;
+}
+
+.soft3d a { color: #A86A72; }
+.soft3d a:hover { color: #8C555C; }
+
+/* ── grain texture overlay ─────────────────────────────────────────────── */
+.soft3d .grain { position: relative; }
+.soft3d .grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--s3-grain);
+  background-size: 140px;
+  opacity: .13;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+/* ── .tile — convex light plate ────────────────────────────────────────── */
+.soft3d .tile {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, var(--s3-tile), #F2EEE6) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .60), rgba(var(--s3-lit), .14) 44%, rgba(var(--s3-shd), .30)) border-box;
+  box-shadow:
+    0 0 0 1px rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
+    0 calc(1px * var(--s3-d))  calc(2px * var(--s3-d))  -1px  rgba(var(--s3-shd), calc(.05 * var(--s3-op))),
+    0 calc(4px * var(--s3-d))  calc(6px * var(--s3-d))  -3px  rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
+    0 calc(10px * var(--s3-d)) calc(16px * var(--s3-d)) -8px  rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
+    0 calc(20px * var(--s3-d)) calc(30px * var(--s3-d)) -16px rgba(var(--s3-shd), calc(.04 * var(--s3-op)));
+}
+
+/* ── .panel — dark (navy) plate ────────────────────────────────────────── */
+.soft3d .panel {
+  border: 1px solid transparent;
+  background:
+    radial-gradient(calc(138% / var(--s3-cv)) calc(128% / var(--s3-cv)) at 50% 42%,
+      rgba(var(--s3-lit), .05) 0%, rgba(var(--s3-lit), 0) 46%, rgba(var(--s3-navy-sh), .18) 100%) padding-box,
+    linear-gradient(176deg, var(--s3-navy-lt) 0%, var(--s3-navy) 58%, var(--s3-navy-dk) 100%) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .22), rgba(var(--s3-lit), .05) 44%, rgba(var(--s3-navy-sh), .50)) border-box;
+  box-shadow:
+    inset 0 calc(10px * var(--s3-cv)) calc(18px * var(--s3-cv)) -11px rgba(var(--s3-navy-sh), calc(.30 * var(--s3-op))),
+    inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -12px rgba(var(--s3-navy-sh), calc(.16 * var(--s3-op))),
+    0 calc(5px * var(--s3-w)) 0 -2px var(--s3-navy-wall),
+    0 calc(8px * var(--s3-w))  calc(9px * var(--s3-d))  calc(-5px * var(--s3-d))  rgba(var(--s3-shd), calc(.05 * var(--s3-op))),
+    0 calc(14px * var(--s3-w)) calc(20px * var(--s3-d)) calc(-11px * var(--s3-d)) rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
+    0 calc(24px * var(--s3-w)) calc(36px * var(--s3-d)) calc(-19px * var(--s3-d)) rgba(var(--s3-shd), calc(.04 * var(--s3-op)));
+  color: #fff;
+}
+
+/* ── .well / .well-dark — recessed inputs & sockets ─────────────────────── */
+.soft3d .well {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, #E5DFD5, #F5F1EB) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-shd), .30), rgba(var(--s3-lit), .55)) border-box;
+  box-shadow:
+    inset 0 calc(5px * var(--s3-d)) calc(11px * var(--s3-d)) calc(-3px * var(--s3-d)) rgba(var(--s3-shd), calc(.24 * var(--s3-op))),
+    inset 0 calc(-4px * var(--s3-d)) calc(9px * var(--s3-d)) calc(-4px * var(--s3-d)) rgba(var(--s3-lit), calc(.70 * var(--s3-op)));
+  color: var(--s3-ink);
+}
+.soft3d .well::placeholder { color: #8A8494; }
+
+.soft3d .well-dark {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, var(--s3-navy-dk), #2E2946) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-navy-sh), .60), rgba(var(--s3-lit), .14)) border-box;
+  box-shadow:
+    inset 0 calc(5px * var(--s3-d)) calc(11px * var(--s3-d)) calc(-3px * var(--s3-d)) rgba(var(--s3-navy-sh), calc(.55 * var(--s3-op))),
+    inset 0 calc(-4px * var(--s3-d)) calc(9px * var(--s3-d)) calc(-4px * var(--s3-d)) rgba(var(--s3-lit), calc(.10 * var(--s3-op)));
+  color: #fff;
+}
+
+/* ── .btn3d — convex button with a coloured "edge" (clay/sky variants set
+   --s3-c1/--s3-c2/--s3-c3/--s3-cw/--s3-sh via inline style, see Button3D) ── */
+.soft3d .btn3d {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #fff;
+  font-family: var(--font-app), Nunito, sans-serif;
+  text-shadow: 0 1px 0 rgba(var(--s3-lit), .22), 0 -1px 0 rgba(var(--s3-sh), .28);
+  cursor: pointer;
+  min-height: 44px;
+  background:
+    radial-gradient(calc(138% / var(--s3-cv)) calc(128% / var(--s3-cv)) at 50% 46%,
+      rgba(var(--s3-lit), .06) 0%, rgba(var(--s3-lit), 0) 44%, rgba(var(--s3-sh), .14) 100%) padding-box,
+    linear-gradient(176deg, var(--s3-c1) 0%, var(--s3-c2) 58%, var(--s3-c3) 100%) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .45), rgba(var(--s3-lit), .10) 44%, rgba(var(--s3-sh), .38)) border-box;
+  box-shadow:
+    inset 0 calc(10px * var(--s3-cv)) calc(16px * var(--s3-cv)) -9px  rgba(var(--s3-sh), calc(.26 * var(--s3-op))),
+    inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -10px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
+    inset calc(8px * var(--s3-cv))  0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
+    inset calc(-8px * var(--s3-cv)) 0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
+    0 calc(5px * var(--s3-w)) 0 -2px var(--s3-cw),
+    0 calc(6px * var(--s3-w))  calc(5px * var(--s3-d))  calc(-3px * var(--s3-d))  rgba(var(--s3-sh), calc(.035 * var(--s3-op))),
+    0 calc(9px * var(--s3-w))  calc(11px * var(--s3-d)) calc(-6px * var(--s3-d))  rgba(var(--s3-sh), calc(.032 * var(--s3-op))),
+    0 calc(14px * var(--s3-w)) calc(20px * var(--s3-d)) calc(-11px * var(--s3-d)) rgba(var(--s3-sh), calc(.028 * var(--s3-op))),
+    0 calc(22px * var(--s3-w)) calc(34px * var(--s3-d)) calc(-18px * var(--s3-d)) rgba(var(--s3-sh), calc(.025 * var(--s3-op)));
+}
+.soft3d .btn3d:hover {
+  box-shadow:
+    inset 0 calc(10px * var(--s3-cv)) calc(16px * var(--s3-cv)) -9px  rgba(var(--s3-sh), calc(.26 * var(--s3-op))),
+    inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -10px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
+    inset calc(8px * var(--s3-cv))  0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
+    inset calc(-8px * var(--s3-cv)) 0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
+    0 calc(8px * var(--s3-w)) 0 -2px var(--s3-cw),
+    0 calc(10px * var(--s3-w)) calc(8px * var(--s3-d))  calc(-4px * var(--s3-d))  rgba(var(--s3-sh), calc(.035 * var(--s3-op))),
+    0 calc(14px * var(--s3-w)) calc(16px * var(--s3-d)) calc(-8px * var(--s3-d))  rgba(var(--s3-sh), calc(.032 * var(--s3-op))),
+    0 calc(20px * var(--s3-w)) calc(28px * var(--s3-d)) calc(-14px * var(--s3-d)) rgba(var(--s3-sh), calc(.028 * var(--s3-op))),
+    0 calc(30px * var(--s3-w)) calc(44px * var(--s3-d)) calc(-22px * var(--s3-d)) rgba(var(--s3-sh), calc(.025 * var(--s3-op)));
+}
+.soft3d .btn3d:active {
+  transform: translateY(calc(4px * var(--s3-w))) scale(.995);
+  background:
+    radial-gradient(calc(138% / var(--s3-cv)) calc(128% / var(--s3-cv)) at 50% 46%,
+      rgba(var(--s3-lit), .04) 0%, rgba(var(--s3-lit), 0) 44%, rgba(var(--s3-sh), .16) 100%) padding-box,
+    linear-gradient(176deg, var(--s3-c3) 0%, var(--s3-c2) 42%, var(--s3-c1) 100%) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-sh), .30), rgba(var(--s3-lit), .20)) border-box;
+  box-shadow:
+    inset 0 calc(12px * var(--s3-d)) calc(17px * var(--s3-d)) -6px rgba(var(--s3-sh), calc(.26 * var(--s3-op))),
+    inset  9px 0 17px -13px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
+    inset -9px 0 17px -13px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
+    0 1px 0 -.5px var(--s3-cw),
+    0 3px 5px -3px rgba(var(--s3-sh), calc(.07 * var(--s3-op)));
+}
+.soft3d .btn3d:focus-visible { outline: 3px solid rgba(var(--s3-sh), .45); outline-offset: 5px; }
+.soft3d .btn3d[disabled] { filter: grayscale(.5) opacity(.55); transform: none; cursor: default; }
+
+/* ── .btn-flat — plate-coloured flat button ──────────────────────────────── */
+.soft3d .btn-flat {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-app), Nunito, sans-serif;
+  cursor: pointer;
+  color: var(--s3-ink);
+  min-height: 44px;
+  background:
+    linear-gradient(176deg, #EFEBE3, #E3DDD3) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .60), rgba(var(--s3-shd), .28)) border-box;
+  box-shadow:
+    0 calc(3px * var(--s3-w)) 0 -1px #D6CFC3,
+    0 calc(5px * var(--s3-w)) calc(7px * var(--s3-d)) calc(-4px * var(--s3-d)) rgba(var(--s3-shd), calc(.05 * var(--s3-op))),
+    0 calc(10px * var(--s3-w)) calc(14px * var(--s3-d)) calc(-8px * var(--s3-d)) rgba(var(--s3-shd), calc(.04 * var(--s3-op)));
+}
+.soft3d .btn-flat:active {
+  transform: translateY(calc(3px * var(--s3-w)));
+  box-shadow: 0 1px 0 -.5px #D6CFC3, inset 0 6px 10px -5px rgba(var(--s3-shd), .22);
+}
+.soft3d .btn-flat:focus-visible { outline: 3px solid rgba(var(--s3-shd), .45); outline-offset: 5px; }
+
+/* ── .chip-dark — small navy pill (e.g. active nav indicator elsewhere) ──── */
+.soft3d .chip-dark {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-app), Nunito, sans-serif;
+  cursor: pointer;
+  color: #fff;
+  background:
+    linear-gradient(176deg, #3C3556, #2A2540) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .26), rgba(var(--s3-navy-sh), .50)) border-box;
+  box-shadow:
+    0 calc(3px * var(--s3-w)) 0 -1px var(--s3-navy-wall),
+    0 calc(6px * var(--s3-w)) calc(9px * var(--s3-d)) calc(-5px * var(--s3-d)) rgba(var(--s3-navy-sh), calc(.30 * var(--s3-op)));
+}
+.soft3d .chip-dark:active {
+  transform: translateY(calc(3px * var(--s3-w)));
+  box-shadow: 0 1px 0 -.5px var(--s3-navy-wall);
+}
+.soft3d .chip-dark:focus-visible { outline: 3px solid rgba(var(--s3-lit), .45); outline-offset: 4px; }
+
+/* ── .stat — small tile variant used for stat cards ──────────────────────── */
+.soft3d .stat {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, var(--s3-tile), #F1EDE5) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .60), rgba(var(--s3-lit), .14) 44%, rgba(var(--s3-shd), .30)) border-box;
+  box-shadow:
+    0 0 0 1px rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
+    0 calc(2px * var(--s3-w)) 0 -1px #E0D9CC,
+    0 calc(4px * var(--s3-d))  calc(6px * var(--s3-d))  -3px  rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
+    0 calc(10px * var(--s3-d)) calc(16px * var(--s3-d)) -8px  rgba(var(--s3-shd), calc(.045 * var(--s3-op)));
+}
+
+.soft3d .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+
+/* ── nav buttons — bottom nav items ──────────────────────────────────────── */
+.soft3d .navbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 64px;
+  height: 56px;
+  border: none;
+  background: none;
+  border-radius: 18px;
+  font-family: var(--font-app), Nunito, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8A8494;
+  cursor: pointer;
+  text-decoration: none;
+}
+.soft3d .navbtn[aria-current="page"] { color: var(--s3-ink); }
+.soft3d .navbtn-on {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk)) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .45), rgba(var(--s3-clay-sh), .38)) border-box;
+  box-shadow: 0 3px 0 -1px var(--s3-clay-wall), 0 7px 10px -5px rgba(var(--s3-clay-sh), .30);
+}
+
+/* ── .bubble-me — clay chat bubble (assistant chat, patient's own messages) ─ */
+.soft3d .bubble-me {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk)) padding-box,
+    linear-gradient(180deg, rgba(var(--s3-lit), .40), rgba(var(--s3-clay-sh), .40)) border-box;
+  box-shadow: 0 3px 0 -1px var(--s3-clay-wall), 0 8px 12px -6px rgba(var(--s3-clay-sh), .28);
+  color: #fff;
+}
+
+/* ── toggle switch (Gadgets.dc.html) — real checkbox, visually hidden ────── */
+.soft3d .s3-toggle-track {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: #E3DDD3;
+  box-shadow: inset 0 3px 6px -2px rgba(var(--s3-shd), .35);
+  transition: background .15s ease;
+}
+.soft3d .s3-toggle-input:checked + .s3-toggle-track {
+  background:
+    linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(var(--s3-clay-sh), .38)) border-box;
+  box-shadow: 0 3px 0 -1px var(--s3-clay-wall);
+}
+.soft3d .s3-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--s3-tile);
+  box-shadow: 0 2px 4px rgba(90, 70, 60, .25);
+  transition: left .15s ease;
+}
+.soft3d .s3-toggle-input:checked + .s3-toggle-track .s3-toggle-knob { left: 22px; }
+.soft3d .s3-toggle-input:focus-visible + .s3-toggle-track {
+  outline: 3px solid rgba(var(--s3-shd), .45);
+  outline-offset: 3px;
+}
+
+/* ── ProgressTrough (Vaccines.dc.html) — recessed track + convex fill ────── */
+.soft3d .s3-progress-track {
+  height: 12px;
+  border-radius: 999px;
+  padding: 2px;
+}
+.soft3d .s3-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk));
+  transition: width .2s ease;
+}
+
+/* ── SOS header button — Main.dc.html header, its own red palette ────────── */
+.soft3d .s3-sos-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font: 800 13px/1 var(--font-app), Nunito, sans-serif;
+  color: #ffffff;
+  letter-spacing: .06em;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(176deg, var(--s3-sos), var(--s3-sos-dk)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(var(--s3-sos-sh), .42)) border-box;
+  box-shadow: 0 4px 0 -2px var(--s3-sos-wall), 0 9px 12px -6px rgba(var(--s3-sos-sh), .32);
+}
+.soft3d .s3-sos-btn:hover { color: #ffffff; }
+.soft3d .s3-sos-btn:focus-visible { outline: 3px solid rgba(var(--s3-sos-sh), .5); outline-offset: 3px; }
+
+/* ── Badge (DocView.dc.html) — normal (sky) vs deviation (clay) ──────────── */
+.soft3d .s3-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+}
+.soft3d .s3-badge-normal { color: #3F6E9A; background: #DCE8F4; }
+.soft3d .s3-badge-deviation { color: #A0555E; background: #F3E1E3; }

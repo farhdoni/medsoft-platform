@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Soft 3D design system (feat/patient-cabinet-soft3d, Part A) — everything
+   in it is scoped under .soft3d, see the file itself for why. */
+@import '../styles/soft3d.css';
+
 @media print {
   .no-print { display: none !important; }
   #report-content { padding: 0; }

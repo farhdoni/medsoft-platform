@@ -481,6 +481,22 @@
           "Other"
         ]
       }
+    },
+    "soft3d": {
+      "nav": {
+        "home": "Home",
+        "medicalCard": "Medical card",
+        "assistant": "Assistant",
+        "medications": "Medications",
+        "checkup": "Checkup"
+      },
+      "header": {
+        "sos": "SOS",
+        "sosAriaLabel": "SOS Emergency call",
+        "notificationsAriaLabel": "Notifications",
+        "settingsAriaLabel": "Profile and settings"
+      },
+      "showcaseTitle": "Soft 3D showcase"
     }
   }
 }
