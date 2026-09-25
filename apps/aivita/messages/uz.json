@@ -481,6 +481,22 @@
           "Boshqa"
         ]
       }
+    },
+    "soft3d": {
+      "nav": {
+        "home": "Bosh sahifa",
+        "medicalCard": "Tibbiy karta",
+        "assistant": "Yordamchi",
+        "medications": "Dorilar",
+        "checkup": "Tekshiruv"
+      },
+      "header": {
+        "sos": "SOS",
+        "sosAriaLabel": "SOS Favqulodda chaqiruv",
+        "notificationsAriaLabel": "Bildirishnomalar",
+        "settingsAriaLabel": "Profil va sozlamalar"
+      },
+      "showcaseTitle": "Soft 3D vitrinasi"
     }
   }
 }

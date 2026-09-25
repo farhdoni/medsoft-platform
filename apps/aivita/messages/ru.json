@@ -481,6 +481,22 @@
           "Другое"
         ]
       }
+    },
+    "soft3d": {
+      "nav": {
+        "home": "Главная",
+        "medicalCard": "Медкарта",
+        "assistant": "Ассистент",
+        "medications": "Лекарства",
+        "checkup": "Чекап"
+      },
+      "header": {
+        "sos": "SOS",
+        "sosAriaLabel": "SOS Экстренный вызов",
+        "notificationsAriaLabel": "Уведомления",
+        "settingsAriaLabel": "Профиль и настройки"
+      },
+      "showcaseTitle": "Витрина Soft 3D"
     }
   }
 }
