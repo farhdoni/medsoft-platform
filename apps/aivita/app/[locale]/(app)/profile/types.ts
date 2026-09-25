@@ -1,6 +1,9 @@
 // Shared types for profile page — no server imports here
 
 export type HealthProfile = {
+  // Явное «нет» на аллергии / хронические болезни (null — не указано).
+  allergiesNone?: boolean | null;
+  chronicConditionsNone?: boolean | null;
   birthDate?: string | null;
   gender?: string | null;
   bloodType?: string | null;

@@ -467,6 +467,44 @@ function AllergyList({ items, onAdd, onDelete }: {
   );
 }
 
+// ─── «Нет» for allergies / chronic conditions ───────────────────────────────
+//
+// Пустой список сам по себе — «не указано». «Нет» — явный ответ, его
+// засчитывает процент заполненности. Кнопка видна, только пока записей нет.
+
+function NoneToggle({ hasItems, none, onChange }: {
+  hasItems: boolean;
+  none: boolean;
+  onChange: (none: boolean) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  if (hasItems) return null;
+
+  async function set(value: boolean) {
+    setSaving(true);
+    try { await onChange(value); } catch { /* keep previous state */ }
+    finally { setSaving(false); }
+  }
+
+  return none ? (
+    <div className="flex items-center gap-2 mt-1">
+      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#e7f3ea]" style={{ color: '#548068' }}>
+        ✓ Нет
+      </span>
+      <button type="button" disabled={saving} onClick={() => void set(false)}
+        className="text-[11px] underline disabled:opacity-50" style={{ color: '#9a96a8' }}>
+        изменить ответ
+      </button>
+    </div>
+  ) : (
+    <button type="button" disabled={saving} onClick={() => void set(true)}
+      className="mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full border hover:opacity-70 transition-opacity disabled:opacity-50"
+      style={{ borderColor: '#548068', color: '#548068' }}>
+      Нет
+    </button>
+  );
+}
+
 // ─── Section card ─────────────────────────────────────────────────────────────
 
 function Card({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
@@ -526,26 +564,12 @@ function PassportSection({ profile, onSave }: {
 
 // ─── Completion ───────────────────────────────────────────────────────────────
 
-function calcCompletion(p: HealthProfile | null, allergies: Allergy[]): number {
-  if (!p) return 0;
-  const fields = [
-    { filled: !!p.birthDate, w: 3 }, { filled: !!p.gender, w: 3 },
-    { filled: !!p.heightCm, w: 3 }, { filled: !!p.weightKg, w: 3 },
-    { filled: allergies.length > 0, w: 3 }, { filled: !!p.city, w: 2 },
-    { filled: !!p.bloodType, w: 2 }, { filled: !!p.smokingStatus, w: 2 },
-    { filled: !!p.exerciseFrequency, w: 2 }, { filled: !!p.emergencyContactName, w: 2 },
-    { filled: !!p.dietType, w: 1 }, { filled: !!p.doctorName, w: 1 },
-  ];
-  const total = fields.reduce((s, f) => s + f.w, 0);
-  const done  = fields.filter(f => f.filled).reduce((s, f) => s + f.w, 0);
-  return Math.round((done / total) * 100);
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
   locale: string;
   profile: HealthProfile | null;
+  completionPercent: number | null;
   allergies: Allergy[];
   chronic: ChronicCondition[];
   history: HistoryEntry[];
@@ -559,7 +583,7 @@ interface AiRec {
   specialization: string | null;
 }
 
-export function ProfileClient({ locale, profile: initProfile, allergies: initAllergies, chronic: initChronic, history: initHistory, medications: initMeds }: Props) {
+export function ProfileClient({ locale, profile: initProfile, completionPercent, allergies: initAllergies, chronic: initChronic, history: initHistory, medications: initMeds }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -569,6 +593,10 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
   const [history,   setHistory]   = useState<HistoryEntry[]>(initHistory);
   const [meds,      setMeds]      = useState<Medication[]>(initMeds);
   const [aiRec,     setAiRec]     = useState<AiRec | null>(null);
+  // С сервера (та же формула, что у медкарты); обновляется router.refresh()
+  // после любых правок и сразу — из ответа PUT /health-profile/none.
+  const [completion, setCompletion] = useState<number>(completionPercent ?? 0);
+  useEffect(() => { if (completionPercent !== null) setCompletion(completionPercent); }, [completionPercent]);
 
   function showAiRec(rec: AiRec | null) {
     if (!rec) return;
@@ -594,27 +622,38 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
   const bmi = profile?.heightCm && profile?.weightKg
     ? (Number(profile.weightKg) / Math.pow(profile.heightCm / 100, 2)).toFixed(1)
     : null;
-  const completion = calcCompletion(profile, allergies);
 
   // ── Allergies ───────────────────────────────────────────────────────────────
   async function addAllergy(data: Omit<Allergy, 'id'>) {
     const json = await apiPost('/health-profile/allergies', data as Record<string, unknown>);
     setAllergies(prev => [...prev, json.data as Allergy]);
+    setProfile(prev => (prev ? { ...prev, allergiesNone: null } : prev));
     if (json.aiRecommendation) showAiRec(json.aiRecommendation as AiRec);
+    refresh();
   }
   function deleteAllergy(id: string) {
-    void apiDelete(`/health-profile/allergies/${id}`);
+    void apiDelete(`/health-profile/allergies/${id}`).then(refresh);
     setAllergies(prev => prev.filter(x => x.id !== id));
+  }
+
+  // ── Explicit «нет» ──────────────────────────────────────────────────────────
+  async function setNone(field: 'allergies' | 'chronicConditions', none: boolean) {
+    const json = await apiPut('/health-profile/none', { field, none });
+    const key = field === 'allergies' ? 'allergiesNone' : 'chronicConditionsNone';
+    setProfile(prev => ({ ...(prev ?? {}), [key]: none ? true : null }));
+    if (typeof json.data?.completionPercent === 'number') setCompletion(json.data.completionPercent);
   }
 
   // ── Chronic ─────────────────────────────────────────────────────────────────
   async function addChronic(name: string) {
     const json = await apiPost('/health-profile/chronic-conditions', { name });
     setChronic(prev => [...prev, json.data as ChronicCondition]);
+    setProfile(prev => (prev ? { ...prev, chronicConditionsNone: null } : prev));
     if (json.aiRecommendation) showAiRec(json.aiRecommendation as AiRec);
+    refresh();
   }
   function deleteChronic(id: string) {
-    void apiDelete(`/health-profile/chronic-conditions/${id}`);
+    void apiDelete(`/health-profile/chronic-conditions/${id}`).then(refresh);
     setChronic(prev => prev.filter(x => x.id !== id));
   }
 
@@ -737,6 +776,8 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
           <div className="space-y-3">
             <ListSection label="Аллергии">
               <AllergyList items={allergies} onAdd={addAllergy} onDelete={deleteAllergy} />
+              <NoneToggle hasItems={allergies.length > 0} none={profile?.allergiesNone === true}
+                onChange={none => setNone('allergies', none)} />
             </ListSection>
             <ListSection label="Хронические заболевания">
               <QuickAddList
@@ -744,6 +785,8 @@ export function ProfileClient({ locale, profile: initProfile, allergies: initAll
                 onAdd={addChronic} onDelete={deleteChronic}
                 placeholder="Название болезни" tagBg="#d4dff0" tagColor="#5e75a8"
               />
+              <NoneToggle hasItems={chronic.length > 0} none={profile?.chronicConditionsNone === true}
+                onChange={none => setNone('chronicConditions', none)} />
             </ListSection>
             <ListSection label="Препараты">
               <QuickAddList

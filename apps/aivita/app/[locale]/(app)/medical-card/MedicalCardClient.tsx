@@ -556,7 +556,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
     );
   }
 
-  const { card, completionPercent, isMinor, personal, body, allergies, chronicConditions, lifestyle, emergency, doctor, insurance, teen } = data;
+  const { card, completionPercent, isMinor, personal, body, allergies, chronicConditions, allergiesNone, chronicConditionsNone, lifestyle, emergency, doctor, insurance, teen } = data;
 
   // Compute BMI
   let bmi = '';
@@ -705,7 +705,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         onAttach={() => fileInputRef.current?.click()}
       >
         {allergies.length === 0 ? (
-          <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Аллергии не указаны</p>
+          <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>{allergiesNone ? 'Аллергий нет' : 'Аллергии не указаны'}</p>
         ) : (
           <div className="pt-2 flex flex-wrap">
             {allergies.map(a => (
@@ -743,7 +743,7 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
         onAttach={() => fileInputRef.current?.click()}
       >
         {chronicConditions.length === 0 ? (
-          <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>Хронические заболевания не указаны</p>
+          <p className="text-[13px] py-2" style={{ color: '#9a96a8' }}>{chronicConditionsNone ? 'Хронических заболеваний нет' : 'Хронические заболевания не указаны'}</p>
         ) : (
           <div className="pt-2 flex flex-wrap">
             {chronicConditions.map(c => (

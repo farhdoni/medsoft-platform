@@ -30,6 +30,9 @@ export type MedicalCardData = {
   };
   allergies: Array<{ id: string; allergen: string; type: string; severity?: string | null }>;
   chronicConditions: Array<{ id: string; name: string; diagnosedYear?: number | null }>;
+  // Явный ответ «нет» (иначе пустой список — «не указано»).
+  allergiesNone?: boolean;
+  chronicConditionsNone?: boolean;
   lifestyle: {
     smoking?: string | null;
     alcohol?: string | null;

@@ -10,6 +10,9 @@ import { CardCodeBadge } from '@/components/medical-card/CardCodeBadge';
 // ─── Types (exported so ProfileClient can import) ─────────────────────────────
 
 export type HealthProfile = {
+  // Явное «нет» на аллергии / хронические болезни (null — не указано).
+  allergiesNone?: boolean | null;
+  chronicConditionsNone?: boolean | null;
   birthDate?: string | null;
   gender?: string | null;
   bloodType?: string | null;
@@ -69,6 +72,13 @@ async function getProfileData(cookie: string) {
       ? (profileRes.value.data as HealthProfile | null)
       : null;
 
+  // Процент заполненности считает API (lib/medical-card-completion) — та же
+  // формула, что на странице медкарты.
+  const completionPercent =
+    profileRes.status === 'fulfilled' && 'completionPercent' in profileRes.value
+      ? Number((profileRes.value as { completionPercent?: number }).completionPercent ?? 0)
+      : null;
+
   const allergies: Allergy[] =
     allergiesRes.status === 'fulfilled' && 'data' in allergiesRes.value
       ? (allergiesRes.value.data as Allergy[])
@@ -89,7 +99,7 @@ async function getProfileData(cookie: string) {
       ? (medsRes.value.data as Medication[])
       : [];
 
-  return { user, profile, allergies, chronic, history, medications };
+  return { user, profile, completionPercent, allergies, chronic, history, medications };
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -103,7 +113,7 @@ export default async function ProfilePage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('aivita_api')?.value ?? '';
 
-  const { user, profile, allergies, chronic, history, medications } =
+  const { user, profile, completionPercent, allergies, chronic, history, medications } =
     await getProfileData(sessionCookie);
 
   const name = user?.name ?? 'Пользователь';
@@ -137,6 +147,7 @@ export default async function ProfilePage({
         <ProfileClient
           locale={locale}
           profile={profile}
+          completionPercent={completionPercent}
           allergies={allergies}
           chronic={chronic}
           history={history}

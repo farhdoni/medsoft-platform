@@ -9,6 +9,7 @@ import {
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { createNotification } from '../../lib/notification-service.js';
+import { clearNoneFlag } from '../../lib/medical-card-completion.js';
 
 export const aivitaFamilyRouter = new Hono();
 
@@ -389,6 +390,7 @@ aivitaFamilyRouter.post(
         await db.insert(allergies).values(
           allergyList.map(allergen => ({ userId: fromUserId, allergen, type: 'other' as const }))
         ).onConflictDoNothing();
+        await clearNoneFlag(fromUserId, 'allergies');
       }
 
       // Insert chronic conditions
@@ -397,6 +399,7 @@ aivitaFamilyRouter.post(
         await db.insert(chronicConditions).values(
           chronicList.map(name => ({ userId: fromUserId, name }))
         ).onConflictDoNothing();
+        await clearNoneFlag(fromUserId, 'chronicConditions');
       }
     } else {
       // Rejected — no data transfer

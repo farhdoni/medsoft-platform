@@ -14,6 +14,7 @@ import {
 } from '@medsoft/db';
 import { eq, and, isNull, like, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { clearNoneFlag, loadMedicalCardCompletion } from '../../lib/medical-card-completion.js';
 import { computeHealthSnapshot, birthDateFromPinfl, ageFromBirthDate, FACTOR_LABELS_RU, type HealthSnapshot } from '@medsoft/shared';
 import { cachedAI } from '../../lib/ai-cache.js';
 
@@ -315,11 +316,13 @@ aivitaOnboardingRouter.post(
         await db.insert(allergies).values(
           d.allergiesList.map(a => ({ userId, allergen: a, type: 'other' as const }))
         ).onConflictDoNothing();
+        await clearNoneFlag(userId, 'allergies');
       }
       if (d.chronicList?.length) {
         await db.insert(chronicConditions).values(
           d.chronicList.map(n => ({ userId, name: n }))
         ).onConflictDoNothing();
+        await clearNoneFlag(userId, 'chronicConditions');
       }
       if (d.childDiseases) {
         await db
@@ -478,16 +481,9 @@ aivitaOnboardingRouter.get('/medical-card', async (c) => {
     .where(eq(medicalCards.userId, userId))
     .limit(1);
 
-  // Completeness %
-  const checkFields = [
-    user?.name, profile?.birthDate, profile?.gender, profile?.phone, profile?.city,
-    profile?.heightCm, profile?.weightKg, profile?.bloodType,
-    allergyRows.length > 0, chronicRows.length > 0,
-    profile?.smokingStatus, profile?.exerciseFrequency,
-    profile?.emergencyContactName, profile?.emergencyContactPhone,
-  ];
-  const filled = checkFields.filter(f => f != null && f !== '').length;
-  const completionPercent = Math.round((filled / checkFields.length) * 100);
+  // Completeness % — одна формула на медкарту и профиль (14 вопросов,
+  // засчитываются только реально отвеченные; см. lib/medical-card-completion).
+  const { percent: completionPercent } = await loadMedicalCardCompletion(userId);
 
   return c.json({
     data: {
@@ -510,6 +506,8 @@ aivitaOnboardingRouter.get('/medical-card', async (c) => {
       },
       allergies: allergyRows,
       chronicConditions: chronicRows,
+      allergiesNone: profile?.allergiesNone === true,
+      chronicConditionsNone: profile?.chronicConditionsNone === true,
       lifestyle: {
         smoking: profile?.smokingStatus,
         alcohol: profile?.alcoholFrequency,
