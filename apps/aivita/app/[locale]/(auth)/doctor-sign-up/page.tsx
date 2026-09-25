@@ -1,5 +1,5 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -39,6 +39,11 @@ export default function DoctorSignUpPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Как в sign-up: без этого врач всегда получал Asia/Tashkent по умолчанию.
+  const [detectedTz, setDetectedTz] = useState('Asia/Tashkent');
+  useEffect(() => {
+    try { setDetectedTz(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch {}
+  }, []);
 
   const boundRegister = registerDoctorAction.bind(null, locale);
   const [registerState, registerFormAction, registering] = useActionState<DoctorRegisterState, FormData>(
@@ -328,6 +333,8 @@ export default function DoctorSignUpPage() {
               />
             </div>
           </div>
+
+          <input type="hidden" name="timezone" value={detectedTz} />
 
           <button
             type="submit"
