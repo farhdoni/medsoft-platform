@@ -23,6 +23,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
   SESSION_SECRET: z.string().min(32),
   AIVITA_URL: z.string().default('https://aivita.uz'),
+  // Хост веб-приложения. Ссылки внутрь приложения собирать только через
+  // lib/app-url.ts — на AIVITA_URL (лендинг) живо лишь /ru/*.
+  APP_URL: z.string().default('https://app.aivita.uz'),
   // ─── Payment providers ───────────────────────────────────────────────────────
   CLICK_MERCHANT_ID: z.string().optional(),
   CLICK_SERVICE_ID: z.string().optional(),

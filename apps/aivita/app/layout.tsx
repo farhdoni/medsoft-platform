@@ -22,14 +22,17 @@ export const metadata: Metadata = {
   title: 'AIVITA — AI Health Assistant',
   description: 'Превентивная медицинская платформа для Узбекистана. Health Score за 3 минуты, AI-помощник 24/7, цифровой паспорт здоровья. Бесплатно.',
   manifest: '/manifest.webmanifest',
+  // Иконки и логотипы — только из /icons/: на aivita.uz системный nginx
+  // пускает в Next лишь /ru/*, /icons/ и ещё несколько префиксов, а корневые
+  // /favicon.ico, /logo.png и т.п. там отдаёт статический лендинг.
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/favicon.ico', sizes: 'any' },
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
   },
   appleWebApp: {
@@ -55,10 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" suppressHydrationWarning className={`${appFont.variable} ${instrumentSerif.variable}`}>
       <head>
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+        <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
       </head>
       <body>
         {children}

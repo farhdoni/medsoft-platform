@@ -5,10 +5,10 @@ import {
 } from '@medsoft/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { appUrl } from '../../lib/app-url.js';
 
 export const aivitaReferralRouter = new Hono();
 
-const AIVITA_URL = process.env.AIVITA_URL ?? 'https://aivita.uz';
 const PREMIUM_SLUG = 'premium';
 const REWARD_DAYS = 30;
 
@@ -84,6 +84,7 @@ aivitaReferralRouter.get('/my', requireAivitaAuth, async (c) => {
   const user = await db.select({
     referralCode: aivitaUsers.referralCode,
     name: aivitaUsers.name,
+    locale: aivitaUsers.locale,
   }).from(aivitaUsers).where(eq(aivitaUsers.id, userId)).limit(1);
 
   if (!user.length) return c.json({ error: 'user_not_found' }, 404);
@@ -96,7 +97,9 @@ aivitaReferralRouter.get('/my', requireAivitaAuth, async (c) => {
     await db.update(aivitaUsers).set({ referralCode: code }).where(eq(aivitaUsers.id, userId));
   }
 
-  const refLink = code ? `${AIVITA_URL}/ref/${code}` : null;
+  // Сразу на регистрацию с кодом — страница sign-up читает ?ref=. Язык —
+  // пригласившего: язык приглашённого на этом шаге ещё неизвестен.
+  const refLink = code ? appUrl(`/sign-up?ref=${encodeURIComponent(code)}`, user[0].locale) : null;
 
   // Stats: who I invited
   const invited = await db.select({

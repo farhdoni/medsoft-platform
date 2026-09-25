@@ -32,12 +32,11 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareCode = latest?.shareToken ?? latest?.id ?? null;
-  const shareUrl = latest?.shareToken
-    ? `https://aivita.uz/r/${latest.shareToken}`
-    : latest
-    ? `https://aivita.uz/report/${latest.id}`
-    : null;
+  // Публичной страницы отчёта пока нет (API /reports/shared/:token отдаёт
+  // только JSON, а /r/<token> не существует нигде) — врачу уходит ссылка на
+  // публичную медкарту, она открывается без приложения. Полноценный публичный
+  // отчёт — отдельная задача.
+  const shareUrl = cardCode ? `https://aivita.uz/card/${cardCode}` : null;
   const pdfFilename = latest
     ? `AIVITA-Report-${latest.reportNumber}.pdf`
     : 'AIVITA-Report.pdf';
@@ -61,7 +60,7 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
     const url = shareUrl ?? window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Мой медицинский отчёт — Aivita', url });
+        await navigator.share({ title: 'Моя медкарта — Aivita', url });
         return;
       } catch { /* cancelled */ }
     }
@@ -167,7 +166,7 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
         </div>
 
         {/* ── QR + Share ────────────────────────────────────────────────────── */}
-        {shareCode && shareUrl && (
+        {cardCode && shareUrl && (
           <div className="rounded-2xl p-4 mb-5 flex items-start gap-4" style={{ background: '#e8e4f8', border: '1px solid #d4ccf0' }}>
             {/* QR */}
             <div
@@ -182,7 +181,7 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
                 level="M"
               />
               <p className="text-[9px] font-mono text-center" style={{ color: '#9a96a8', maxWidth: 110, wordBreak: 'break-all' }}>
-                aivita.uz/r/{shareCode}
+                aivita.uz/card/{cardCode}
               </p>
             </div>
 
@@ -195,7 +194,7 @@ export function ReportClient({ latest, reports, cardCode }: Props) {
                 Покажи врачу QR или отправь ссылку — откроется без приложения
               </p>
               <p className="text-[11px] font-mono break-all" style={{ color: '#9a96a8' }}>
-                aivita.uz/r/{shareCode}
+                aivita.uz/card/{cardCode}
               </p>
             </div>
           </div>

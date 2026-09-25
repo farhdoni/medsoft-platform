@@ -1,9 +1,12 @@
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { DoctorCtaBanner } from './doctor-cta-banner';
 
 export async function PublicFooter() {
   const t = await getTranslations('footer');
+  // Пути приложения — только с локалью: без неё на aivita.uz ссылка уходит
+  // в статический лендинг (nginx пускает в Next лишь /ru/*).
+  const locale = await getLocale();
 
   return (
     <footer className="lp-footer">
@@ -12,12 +15,12 @@ export async function PublicFooter() {
           {/* Brand column */}
           <div className="lp-footer-brand">
             <Link href="/" className="lp-logo">
-              <img src="/logo.png" alt="AIVITA" style={{ height: '28px', display: 'block', width: 'auto', mixBlendMode: 'multiply' }} />
+              <img src="/icons/logo.png" alt="AIVITA" style={{ height: '28px', display: 'block', width: 'auto', mixBlendMode: 'multiply' }} />
             </Link>
             <p>{t('desc')}</p>
 
             <div className="lp-footer-stores">
-              <Link href="/coming-soon" className="lp-store-btn">
+              <Link href={`/${locale}/coming-soon`} className="lp-store-btn">
                 <span className="lp-store-btn-icon">🍎</span>
                 <span className="lp-store-btn-text">
                   <span className="lp-store-btn-small">{t('storeComingTo')}</span>
@@ -25,7 +28,7 @@ export async function PublicFooter() {
                 </span>
                 <span className="lp-store-btn-soon">SOON</span>
               </Link>
-              <Link href="/coming-soon" className="lp-store-btn">
+              <Link href={`/${locale}/coming-soon`} className="lp-store-btn">
                 <span className="lp-store-btn-icon">▶</span>
                 <span className="lp-store-btn-text">
                   <span className="lp-store-btn-small">{t('storeComingTo')}</span>
@@ -42,13 +45,13 @@ export async function PublicFooter() {
             <a href="#features">{t('features')}</a>
             <a href="#how">{t('how')}</a>
             <a href="#personas">{t('forWhom')}</a>
-            <Link href="/sign-in">{t('openApp')}</Link>
+            <Link href={`/${locale}/sign-in`}>{t('openApp')}</Link>
           </div>
 
           {/* Company */}
           <div className="lp-footer-col">
             <h4>{t('company')}</h4>
-            <Link href="/ru/privacy">{t('aboutMedsoft')}</Link>
+            <Link href={`/${locale}/privacy`}>{t('aboutMedsoft')}</Link>
             <span style={{ opacity: 0.4, cursor: 'default' }}>{t('partners')}</span>
             <span style={{ opacity: 0.4, cursor: 'default' }}>{t('careers')}</span>
             <span style={{ opacity: 0.4, cursor: 'default' }}>{t('blog')}</span>
@@ -69,8 +72,8 @@ export async function PublicFooter() {
         <div className="lp-footer-bottom">
           <div>{t('copyright')}</div>
           <div>
-            <Link href="/privacy">{t('privacy')}</Link>
-            <Link href="/terms">{t('terms')}</Link>
+            <Link href={`/${locale}/privacy`}>{t('privacy')}</Link>
+            <Link href={`/${locale}/terms`}>{t('terms')}</Link>
           </div>
         </div>
       </div>

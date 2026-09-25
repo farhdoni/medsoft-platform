@@ -1,4 +1,5 @@
 import { env } from '../env.js';
+import { appUrl } from './app-url.js';
 import { logger } from './logger.js';
 import type { BotLocale } from './telegram-i18n.js';
 
@@ -127,7 +128,7 @@ export async function sendPasswordReset(
   token: string,
   opts?: { linkUrl?: string; expiryLabel?: string; subject?: string },
 ) {
-  const url = opts?.linkUrl ?? `${env.AIVITA_URL}/ru/reset-password?token=${token}`;
+  const url = opts?.linkUrl ?? appUrl(`/reset-password?token=${token}`);
   const expiryLabel = opts?.expiryLabel ?? '1 час';
   const subject = opts?.subject ?? 'Сброс пароля Aivita';
 
