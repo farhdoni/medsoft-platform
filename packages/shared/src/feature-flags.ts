@@ -7,13 +7,15 @@
  * everyone at once. Instead this checks a signed-in account's email
  * against a small allowlist.
  *
- * Lives in @medsoft/shared (not just apps/aivita/lib/soft3d/flag.ts, which
- * now just re-exports this) because apps/api needs the exact same decision
- * for server-side enforcement (see onboarding-ladder.ts's consent guard,
- * Part B) — two independent copies of an allowlist parser would drift.
- * Reads SOFT3D_TEST_ACCOUNTS from whichever process calls it, so this env
- * var needs to be set on BOTH the aivita and api services in Coolify, not
- * just aivita.
+ * Pure and environment-agnostic on purpose — this package is built with
+ * its own tsconfig (no `process` global, no Node types: it's meant to be
+ * usable from the browser-side aivita app too, not just apps/api), and it
+ * shouldn't assume Node's env-access mechanism regardless. Each caller
+ * reads its own SOFT3D_TEST_ACCOUNTS and passes it in — see
+ * apps/aivita/lib/soft3d/flag.ts and apps/api/src/lib/consent-gate.ts for
+ * the two thin wrappers that do that (each process reads its own copy of
+ * the env var, so it needs to be set on BOTH the aivita and api services
+ * in Coolify, not just one).
  *
  * Why an env var and not a DB column: Part A's own rules said not to touch
  * the database at all. A `soft3dEnabled` column would need a migration;
@@ -24,16 +26,15 @@
  * that yet.
  */
 
-const raw = process.env.SOFT3D_TEST_ACCOUNTS ?? '';
-
-const allowlist = new Set(
-  raw
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean),
-);
-
-export function isSoft3dEnabled(email: string | null | undefined): boolean {
+export function isSoft3dEnabled(email: string | null | undefined, allowlistCsv: string | null | undefined): boolean {
   if (!email) return false;
+
+  const allowlist = new Set(
+    (allowlistCsv ?? '')
+      .split(',')
+      .map((s: string) => s.trim().toLowerCase())
+      .filter((s: string) => s.length > 0),
+  );
+
   return allowlist.has(email.trim().toLowerCase());
 }

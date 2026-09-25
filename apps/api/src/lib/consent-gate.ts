@@ -32,7 +32,7 @@ export function shouldAllowConsentGatedWrite(isFlagged: boolean, hasDataProcessi
  *  asked and answered once. */
 export async function assertConsentIfFlagged(userId: string): Promise<boolean> {
   const [user] = await db.select({ email: aivitaUsers.email }).from(aivitaUsers).where(eq(aivitaUsers.id, userId)).limit(1);
-  const flagged = isSoft3dEnabled(user?.email);
+  const flagged = isSoft3dEnabled(user?.email, process.env.SOFT3D_TEST_ACCOUNTS);
 
   if (!flagged) return shouldAllowConsentGatedWrite(false, false);
 
