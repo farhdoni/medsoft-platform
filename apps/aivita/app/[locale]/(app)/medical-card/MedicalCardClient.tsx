@@ -89,11 +89,12 @@ const GENDER_LABELS: Record<string, string> = {
 // from the letter instead of trusting one already embedded in the raw value.
 
 // Lifestyle option vocabularies are NOT unified across entry points (Profile
-// inline edit, the legacy onboarding wizard, the modern onboarding/lifestyle
-// step, and the teen onboarding step all write different value sets into the
-// same health_profiles columns) — these label dicts (app.common.lifestyle.*
-// in messages/*.json) cover the union of every value any entry point can
-// actually produce, so nothing here leaks as a raw code.
+// inline edit, the onboarding wizard, and the teen onboarding step all write
+// different value sets into the same health_profiles columns) — these label
+// dicts (app.common.lifestyle.* in messages/*.json) cover the union of every
+// value any entry point can actually produce, so nothing here leaks as a raw
+// code. (The routed welcome/age/anamnesis/lifestyle/result ladder was a
+// fourth such writer; removed in fix/onboarding-flow-b-removal.)
 
 // ─── QR Code (simple data URL via canvas) ────────────────────────────────────
 
