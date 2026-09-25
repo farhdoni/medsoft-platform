@@ -236,6 +236,11 @@
       "listPlaceholderMedications": "E.g.: metformin",
       "listAddHint": "Press Enter, comma, or \"+\" to add",
       "numberPlaceholder": "Enter a number",
+      "textPlaceholder": "Enter your answer",
+      "textPlaceholderPhone": "+998 90 123 45 67",
+      "textPlaceholderCity": "E.g.: Tashkent",
+      "textPlaceholderDoctorName": "E.g.: Anna Ivanova",
+      "textPlaceholderClinic": "E.g.: Chilanzar Clinic",
       "medsYes": "I take medication",
       "medsNo": "I don't"
     },
@@ -496,7 +501,141 @@
         "notificationsAriaLabel": "Notifications",
         "settingsAriaLabel": "Profile and settings"
       },
-      "showcaseTitle": "Soft 3D showcase"
+      "showcaseTitle": "Soft 3D showcase",
+      "onboardingLadder": {
+        "backAriaLabel": "Back",
+        "consent": {
+          "title": "Before we start",
+          "subtitle": "I'll be storing your health information. By law I need your consent — and you have the right to know what happens to this data.",
+          "briefTitle": "In brief",
+          "brief1": "Only you and those you grant access see the data",
+          "brief2": "Encrypted in transit and at rest",
+          "brief3": "Export or delete anytime",
+          "brief4": "Not sold or shared with third parties",
+          "medicalLabel": "I consent to processing of medical data",
+          "medicalHelper": "Without this the app won't work — there'll be nowhere to store your record",
+          "marketingLabel": "Newsletter and tips emails",
+          "marketingHelper": "Optional, can be turned off with one click",
+          "legalTextBefore": "Details in the",
+          "privacyLinkText": "privacy policy",
+          "legalTextMiddle": "and",
+          "termsLinkText": "terms of service",
+          "continueButton": "I agree, continue",
+          "laterButton": "Not now",
+          "declinedTitle": "We can't continue without consent to medical data",
+          "declinedText": "We don't process medical data without your consent. You still have access to settings and account deletion.",
+          "goToSettings": "Go to settings",
+          "deleteAccount": "Delete account"
+        },
+        "q1": {
+          "stepLabel": "Step 1 of 4 · Questionnaire",
+          "title": "Let's start with the essentials",
+          "subtitle": "Two answers and I can already tell you something",
+          "sexLabel": "Sex",
+          "male": "Male",
+          "female": "Female",
+          "ageLabel": "Age",
+          "agePlaceholder": "Enter your age",
+          "noteText": "Only you and the doctor you show it to see this data",
+          "continueButton": "Next"
+        },
+        "r1": {
+          "headerText": "Here's what's already visible",
+          "resultMale": "Male, {age}. The age when you should start monitoring blood pressure and sugar — even if nothing bothers you.",
+          "resultFemale": "Female, {age}. The age when you should start monitoring blood pressure and sugar — even if nothing bothers you.",
+          "watchForTitle": "What to watch for",
+          "watchForText": "Once a year, measure blood pressure and get blood tested for sugar and cholesterol. That's enough to not miss the onset.",
+          "teaser": "If you add height and weight, I can tell you more — about strain on the heart and joints.",
+          "prompt": "Shall we continue, or is that enough for today?",
+          "continueButton": "Continue",
+          "skipButton": "Enough for today"
+        },
+        "parentConsent": {
+          "stepLabel": "Step 1 of 4 · Questionnaire",
+          "title": "A parent's consent is needed",
+          "subtitle": "You're under 18 — by law we need a parent's or guardian's consent before creating a medical card",
+          "phoneLabel": "Parent's phone",
+          "phonePlaceholder": "+998 90 123 45 67",
+          "relationLabel": "Relationship",
+          "relationPlaceholder": "Mom, dad, guardian…",
+          "consentLabel": "I confirm that I have obtained a parent's or legal guardian's consent to use this service",
+          "continueButton": "Next",
+          "errorRequired": "Fill in every field and confirm consent"
+        },
+        "q2": {
+          "stepLabel": "Step 1 of 4 · Questionnaire",
+          "title": "Height and weight",
+          "subtitle": "Needed to understand strain on the heart and joints",
+          "heightLabel": "Height, cm",
+          "weightLabel": "Weight, kg",
+          "bmiCalculating": "Calculated on the fly",
+          "bmiLabel": "Body mass index",
+          "bmiBelow": "slightly below normal",
+          "bmiNormal": "within normal range",
+          "bmiAbove": "slightly above normal",
+          "noteText": "Don't know exactly — enter an estimate, we'll refine later",
+          "continueButton": "Next"
+        },
+        "done1": {
+          "title": "Your medical record is ready",
+          "subtitle": "Now you can show it to the doctor — they'll see everything you entered without extra questions",
+          "summary": "{age} years · BMI {bmi}",
+          "nextStepTitle": "Checkup — assessment of five systems",
+          "nextStepText": "Six questions about wellbeing. Takes a minute, but I'll see exactly where the weak spot is.",
+          "prompt": "Shall we continue, or is that enough for today?",
+          "continueButton": "Take the checkup",
+          "skipButton": "Enough for today"
+        },
+        "step2": {
+          "stepLabel": "Step 2 of 4",
+          "title": "Checkup in a minute",
+          "subtitle": "Six questions about wellbeing: sleep, fatigue, breathing, digestion, mobility, mood",
+          "whatThisGivesTitle": "What this gives you",
+          "whatThisGivesText": "I'll see which of the five systems is lagging — and can give specific, not generic, advice",
+          "prompt": "Shall we continue, or is that enough for today?",
+          "continueButton": "Start the checkup",
+          "skipButton": "Enough for today"
+        },
+        "step3": {
+          "stepLabel": "Step 3 of 4",
+          "title": "Connect your watch",
+          "subtitle": "Heart rate, sleep and activity will come automatically — no manual entry needed",
+          "appleHealth": "Apple Health",
+          "googleFit": "Google Fit",
+          "whatThisGivesTitle": "What this gives you",
+          "whatThisGivesText": "A single reading says little. A series of readings shows what's changing — and I'll notice it before you do",
+          "noDeviceNote": "No watch — no problem, readings can be entered manually",
+          "prompt": "Shall we continue, or is that enough for today?",
+          "continueButton": "Connect",
+          "skipButton": "Enough for today"
+        },
+        "step4": {
+          "stepLabel": "Step 4 of 4",
+          "title": "Add your records",
+          "subtitle": "Reports, lab results, scans — photograph them or upload as a file",
+          "dropzoneText": "Drag a file here or take a photo with the camera",
+          "whatThisGivesTitle": "What this gives you",
+          "whatThisGivesText": "Your history will become complete. I'll stop asking what's already recorded, and the doctor will see the full picture",
+          "prompt": "Shall we continue, or is that enough for today?",
+          "continueButton": "Add document",
+          "skipButton": "Enough for today"
+        },
+        "anamnesis": {
+          "title": "Allergies and chronic conditions",
+          "subtitle": "Fill everything in at once — instead of answering one question at a time in the banner",
+          "allergiesLabel": "Allergies",
+          "allergiesPlaceholder": "E.g.: penicillin",
+          "chronicLabel": "Chronic conditions",
+          "chronicPlaceholder": "E.g.: hypertension",
+          "noneButton": "None",
+          "addButton": "+ Add",
+          "listAddHint": "Press Enter, comma, or \"+\" to add",
+          "childDiseasesLabel": "Childhood illnesses",
+          "saveButton": "Save",
+          "savedMessage": "Saved",
+          "backAriaLabel": "Back to medical card"
+        }
+      }
     }
   }
 }

@@ -452,7 +452,7 @@ function SuggestionsModal({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function MedicalCardClient({ data, locale }: { data: MedicalCardData | null; locale: string }) {
+export function MedicalCardClient({ data, locale, showAnamnesisLink }: { data: MedicalCardData | null; locale: string; showAnamnesisLink?: boolean }) {
   const router = useRouter();
   const tLifestyle = useTranslations('app.common.lifestyle');
   const SMOKING_LABELS = tLifestyle.raw('smoking') as Record<string, string>;
@@ -753,6 +753,21 @@ export function MedicalCardClient({ data, locale }: { data: MedicalCardData | nu
           </div>
         )}
       </Section>
+
+      {/* Part B (flag-gated): fill allergies + chronic conditions in one
+          sitting, outside the onboarding wizard — the new short ladder no
+          longer asks for these during onboarding at all (moved to the
+          survey banner, one question at a time), so this is the "I'd
+          rather do it all now" alternative. */}
+      {showAnamnesisLink && (
+        <a
+          href={`/${locale}/medical-card/anamnesis`}
+          className="block text-center text-[13px] font-bold py-2.5 -mt-2 mb-2"
+          style={{ color: '#3a8fc7' }}
+        >
+          Заполнить аллергии и хронические болезни сразу →
+        </a>
+      )}
 
       {/* 6. Lifestyle */}
       {!isMinor && (

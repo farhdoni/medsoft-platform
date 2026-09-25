@@ -236,6 +236,11 @@
       "listPlaceholderMedications": "Masalan: metformin",
       "listAddHint": "Qo'shish uchun Enter, vergul yoki «+»",
       "numberPlaceholder": "Raqam kiriting",
+      "textPlaceholder": "Javobingizni kiriting",
+      "textPlaceholderPhone": "+998 90 123 45 67",
+      "textPlaceholderCity": "Masalan: Toshkent",
+      "textPlaceholderDoctorName": "Masalan: Ivanova Anna",
+      "textPlaceholderClinic": "Masalan: Chilonzordagi klinika",
       "medsYes": "Qabul qilaman",
       "medsNo": "Qabul qilmayman"
     },
@@ -496,7 +501,141 @@
         "notificationsAriaLabel": "Bildirishnomalar",
         "settingsAriaLabel": "Profil va sozlamalar"
       },
-      "showcaseTitle": "Soft 3D vitrinasi"
+      "showcaseTitle": "Soft 3D vitrinasi",
+      "onboardingLadder": {
+        "backAriaLabel": "Orqaga",
+        "consent": {
+          "title": "Boshlashdan oldin",
+          "subtitle": "Men sog'ligingiz haqidagi ma'lumotlarni saqlayman. Qonun bo'yicha sizning roziligingiz kerak — va bu ma'lumotlar bilan aynan nima sodir bo'lishini bilish huquqingiz bor.",
+          "briefTitle": "Qisqacha",
+          "brief1": "Ma'lumotlarni siz va siz ruxsat bergan kishilar ko'radi",
+          "brief2": "Uzatishda va saqlashda shifrlanadi",
+          "brief3": "Istalgan vaqtda yuklab olish yoki o'chirish mumkin",
+          "brief4": "Uchinchi shaxslarga sotilmaydi va berilmaydi",
+          "medicalLabel": "Tibbiy ma'lumotlarni qayta ishlashga roziman",
+          "medicalHelper": "Buni rozi bo'lmasangiz ilova ishlamaydi — kartangizni saqlash imkoni bo'lmaydi",
+          "marketingLabel": "Yangiliklar va maslahatlar haqida xatlar",
+          "marketingHelper": "Ixtiyoriy, bir tugma bilan o'chiriladi",
+          "legalTextBefore": "Batafsil —",
+          "privacyLinkText": "maxfiylik siyosatida",
+          "legalTextMiddle": "va",
+          "termsLinkText": "ofertada",
+          "continueButton": "Roziman, davom etish",
+          "laterButton": "Hozir emas",
+          "declinedTitle": "Tibbiy ma'lumotlarga rozilik bo'lmasa, davom etib bo'lmaydi",
+          "declinedText": "Roziligingizsiz tibbiy ma'lumotlarni qayta ishlamaymiz. Sizga faqat sozlamalar va hisobni o'chirish mavjud.",
+          "goToSettings": "Sozlamalarga o'tish",
+          "deleteAccount": "Hisobni o'chirish"
+        },
+        "q1": {
+          "stepLabel": "1-qadam / 4 · Anketa",
+          "title": "Eng muhimidan boshlaylik",
+          "subtitle": "Ikkita javob — va men allaqachon nimadir ayta olaman",
+          "sexLabel": "Jinsi",
+          "male": "Erkak",
+          "female": "Ayol",
+          "ageLabel": "Yoshi",
+          "agePlaceholder": "Yoshingizni kiriting",
+          "noteText": "Ma'lumotlarni faqat siz va siz ko'rsatgan shifokor ko'radi",
+          "continueButton": "Keyingisi"
+        },
+        "r1": {
+          "headerText": "Mana nima ko'rinib turibdi",
+          "resultMale": "Erkak, {age} yosh. Bosim va qandni kuzatishni boshlash kerak bo'lgan yosh — hech narsa bezovta qilmasa ham.",
+          "resultFemale": "Ayol, {age} yosh. Bosim va qandni kuzatishni boshlash kerak bo'lgan yosh — hech narsa bezovta qilmasa ham.",
+          "watchForTitle": "Nimaga e'tibor berish kerak",
+          "watchForText": "Yiliga bir marta bosimni o'lchash va qand hamda xolesteringa qon topshirish. Boshlanishini o'tkazib yubormaslik uchun shu yetarli.",
+          "teaser": "Bo'y va vazningizni qo'shsangiz, ko'proq narsa ayta olaman — yurak va bo'g'imlarga yuk haqida.",
+          "prompt": "Davom etamizmi yoki bugungiga yetarlimi?",
+          "continueButton": "Davom etish",
+          "skipButton": "Bugungiga yetarli"
+        },
+        "parentConsent": {
+          "stepLabel": "1-qadam / 4 · Anketa",
+          "title": "Ota-ona roziligi kerak",
+          "subtitle": "Sizga 18 yosh to'lmagan — qonun bo'yicha tibbiy karta yaratishdan oldin ota-ona yoki vasiyning roziligi kerak",
+          "phoneLabel": "Ota-ona telefoni",
+          "phonePlaceholder": "+998 90 123 45 67",
+          "relationLabel": "Kim bo'ladi",
+          "relationPlaceholder": "Ona, ota, vasiy…",
+          "consentLabel": "Ushbu xizmatdan foydalanish uchun ota-ona yoki qonuniy vasiyning roziligini olganimni tasdiqlayman",
+          "continueButton": "Keyingisi",
+          "errorRequired": "Barcha maydonlarni to'ldiring va roziligingizni tasdiqlang"
+        },
+        "q2": {
+          "stepLabel": "1-qadam / 4 · Anketa",
+          "title": "Bo'y va vazn",
+          "subtitle": "Yurak va bo'g'imlarga yukni tushunish uchun kerak",
+          "heightLabel": "Bo'y, sm",
+          "weightLabel": "Vazn, kg",
+          "bmiCalculating": "Avtomatik hisoblanadi",
+          "bmiLabel": "Tana massasi indeksi",
+          "bmiBelow": "me'yordan biroz past",
+          "bmiNormal": "me'yor chegarasida",
+          "bmiAbove": "me'yordan biroz yuqori",
+          "noteText": "Aniq bilmasangiz — taxminan qo'ying, keyin aniqlashtiramiz",
+          "continueButton": "Keyingisi"
+        },
+        "done1": {
+          "title": "Tibbiy karta tayyor",
+          "subtitle": "Endi uni shifokorga ko'rsatishingiz mumkin — u kiritgan barcha ma'lumotlaringizni ortiqcha so'roqsiz ko'radi",
+          "summary": "{age} yosh · TMI {bmi}",
+          "nextStepTitle": "Chekap — beshta tizimni baholash",
+          "nextStepText": "Farovonlik haqida oltita savol. Bir daqiqa vaqt oladi, ammo qaysi joy zaif ekanini ko'raman.",
+          "prompt": "Davom etamizmi yoki bugungiga yetarlimi?",
+          "continueButton": "Chekapdan o'tish",
+          "skipButton": "Bugungiga yetarli"
+        },
+        "step2": {
+          "stepLabel": "2-qadam / 4",
+          "title": "Bir daqiqada chekap",
+          "subtitle": "Farovonlik haqida oltita savol: uyqu, charchoq, nafas, ovqat hazm qilish, harakatchanlik, kayfiyat",
+          "whatThisGivesTitle": "Bu nima beradi",
+          "whatThisGivesText": "Beshta tizimdan qaysi biri zaiflashayotganini ko'raman — va umumiy emas, aniq maslahat bera olaman",
+          "prompt": "Davom etamizmi yoki bugungiga yetarlimi?",
+          "continueButton": "Chekapni boshlash",
+          "skipButton": "Bugungiga yetarli"
+        },
+        "step3": {
+          "stepLabel": "3-qadam / 4",
+          "title": "Soatingizni ulang",
+          "subtitle": "Puls, uyqu va faollik o'zi keladi — qo'lda hech narsa kiritish shart emas",
+          "appleHealth": "Apple Health",
+          "googleFit": "Google Fit",
+          "whatThisGivesTitle": "Bu nima beradi",
+          "whatThisGivesText": "Bitta o'lchov kam narsa aytadi. Bir qator o'lchovlar nima o'zgarayotganini ko'rsatadi — va men buni sizdan oldin sezaman",
+          "noDeviceNote": "Soat yo'qmi — hech qisi yo'q, ko'rsatkichlarni qo'lda kiritish mumkin",
+          "prompt": "Davom etamizmi yoki bugungiga yetarlimi?",
+          "continueButton": "Ulash",
+          "skipButton": "Bugungiga yetarli"
+        },
+        "step4": {
+          "stepLabel": "4-qadam / 4",
+          "title": "Hujjatlarni qo'shing",
+          "subtitle": "Xulosalar, tahlillar, suratlar — fotosurat oling yoki fayl sifatida yuklang",
+          "dropzoneText": "Faylni tashlang yoki kamera bilan suratga oling",
+          "whatThisGivesTitle": "Bu nima beradi",
+          "whatThisGivesText": "Tarix to'liq bo'ladi. Allaqachon yozilgan narsani so'ramayman, shifokor esa to'liq manzarani ko'radi",
+          "prompt": "Davom etamizmi yoki bugungiga yetarlimi?",
+          "continueButton": "Hujjat qo'shish",
+          "skipButton": "Bugungiga yetarli"
+        },
+        "anamnesis": {
+          "title": "Allergiya va surunkali kasalliklar",
+          "subtitle": "Hammasini birdan to'ldiring — bannerda bittalab javob berish o'rniga",
+          "allergiesLabel": "Allergiyalar",
+          "allergiesPlaceholder": "Masalan: penitsillin",
+          "chronicLabel": "Surunkali kasalliklar",
+          "chronicPlaceholder": "Masalan: gipertoniya",
+          "noneButton": "Yo'q",
+          "addButton": "+ Qo'shish",
+          "listAddHint": "Qo'shish uchun Enter, vergul yoki «+»",
+          "childDiseasesLabel": "Bolalik kasalliklari",
+          "saveButton": "Saqlash",
+          "savedMessage": "Saqlandi",
+          "backAriaLabel": "Tibbiy kartaga qaytish"
+        }
+      }
     }
   }
 }

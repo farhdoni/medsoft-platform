@@ -21,16 +21,34 @@ export type SurveyStatus = 'shown' | 'skipped' | 'answered';
 // names for the medications/chronic_conditions tables — kept distinct from
 // the DB's own column/table names since this key is also the public API
 // contract for the (future) chat channel.
+//
+// Part B (2026-09-25): the onboarding ladder was trimmed to sex/age/height/
+// weight only — everything else it used to collect (emergency contact,
+// chronic/allergies/medications, phone/city, lifestyle, doctor info) now
+// lands here instead, in this priority order (SOS-critical first, then
+// anamnesis, then the rest): emergency contact phone and blood type first
+// (both feed the SOS flow), then gender (right after blood type — the
+// women's-cycle feature and reference norms both depend on it), then
+// chronic/allergies/medications, then the original heightCm/weightKg/
+// lifestyle set (still asked here too, as a fallback for accounts that
+// skipped or never reached that step in onboarding), then the lowest-
+// priority profile fields at the end.
 export const SURVEY_FIELD_PRIORITY = [
+  'emergencyContactPhone',
+  'bloodType',
+  'gender',
+  'chronicDiseases',
   'allergies',
   'medications',
-  'chronicDiseases',
   'heightCm',
   'weightKg',
-  'bloodType',
+  'phone',
+  'city',
   'smokingStatus',
   'alcohol',
   'activity',
+  'doctorName',
+  'clinic',
 ] as const;
 
 export type SurveyField = (typeof SURVEY_FIELD_PRIORITY)[number];
@@ -44,7 +62,7 @@ export function isSurveyField(value: string): value is SurveyField {
 type Locale = 'ru' | 'uz' | 'en';
 type LocalizedText = Record<Locale, string>;
 
-export type SurveyFieldType = 'enum' | 'number' | 'list' | 'blood_type' | 'medications_special';
+export type SurveyFieldType = 'enum' | 'number' | 'list' | 'blood_type' | 'medications_special' | 'text';
 
 export interface SurveyFieldDef {
   field: SurveyField;
@@ -63,6 +81,38 @@ export interface SurveyFieldDef {
 // so a survey answer always matches what the profile edit screen itself would
 // have written for the same field.
 export const SURVEY_FIELD_DEFS: Record<SurveyField, SurveyFieldDef> = {
+  emergencyContactPhone: {
+    field: 'emergencyContactPhone',
+    type: 'text',
+    question: {
+      ru: 'Кому позвонить, если случится экстренная ситуация?',
+      uz: "Favqulodda vaziyat yuz bersa, kimga qo'ng'iroq qilish kerak?",
+      en: 'Who should we call in an emergency?',
+    },
+    why: {
+      ru: 'Это нужно для SOS — без номера мы не сможем оповестить ваших близких.',
+      uz: "Bu SOS uchun kerak — raqamsiz yaqinlaringizga xabar bera olmaymiz.",
+      en: 'This powers SOS — without a number we can’t alert anyone for you.',
+    },
+  },
+  gender: {
+    field: 'gender',
+    type: 'enum',
+    question: {
+      ru: 'Укажите ваш пол',
+      uz: 'Jinsingizni ko‘rsating',
+      en: 'What is your sex?',
+    },
+    why: {
+      ru: 'Это влияет на нормы показателей и открывает женский календарь.',
+      uz: "Bu ko'rsatkichlar me'yoriga ta'sir qiladi va ayollar kalendarini ochadi.",
+      en: 'This affects reference norms and unlocks the women’s cycle calendar.',
+    },
+    options: [
+      { value: 'male', label: { ru: 'Мужской', uz: 'Erkak', en: 'Male' } },
+      { value: 'female', label: { ru: 'Женский', uz: 'Ayol', en: 'Female' } },
+    ],
+  },
   allergies: {
     field: 'allergies',
     type: 'list',
@@ -210,6 +260,62 @@ export const SURVEY_FIELD_DEFS: Record<SurveyField, SurveyFieldDef> = {
       { value: 'moderate', label: { ru: 'Умеренная активность', uz: "O'rtacha faollik", en: 'Moderate activity' } },
       { value: 'active', label: { ru: 'Высокая активность', uz: 'Yuqori faollik', en: 'High activity' } },
     ],
+  },
+  phone: {
+    field: 'phone',
+    type: 'text',
+    question: {
+      ru: 'Ваш номер телефона?',
+      uz: 'Telefon raqamingiz?',
+      en: 'What is your phone number?',
+    },
+    why: {
+      ru: 'Понадобится, если врач или клиника захотят связаться с вами напрямую.',
+      uz: "Shifokor yoki klinika siz bilan to'g'ridan-to'g'ri bog'lanmoqchi bo'lsa kerak bo'ladi.",
+      en: 'Needed if a doctor or clinic wants to reach you directly.',
+    },
+  },
+  city: {
+    field: 'city',
+    type: 'text',
+    question: {
+      ru: 'В каком городе вы находитесь?',
+      uz: 'Qaysi shaharda yashaysiz?',
+      en: 'Which city are you in?',
+    },
+    why: {
+      ru: 'Поможет подобрать клиники и врачей рядом с вами.',
+      uz: "Yaqiningizdagi klinika va shifokorlarni tanlashga yordam beradi.",
+      en: 'Helps us suggest clinics and doctors near you.',
+    },
+  },
+  doctorName: {
+    field: 'doctorName',
+    type: 'text',
+    question: {
+      ru: 'Как зовут вашего лечащего врача?',
+      uz: 'Shifokoringizning ismi kim?',
+      en: 'What is your doctor’s name?',
+    },
+    why: {
+      ru: 'Так карту можно будет быстро показать именно вашему врачу.',
+      uz: "Shunda kartani aynan shifokoringizga tezda ko'rsatish mumkin bo'ladi.",
+      en: 'Makes it easy to share your card with the right doctor.',
+    },
+  },
+  clinic: {
+    field: 'clinic',
+    type: 'text',
+    question: {
+      ru: 'В какой клинике вы обычно наблюдаетесь?',
+      uz: "Odatda qaysi klinikada kuzatuvdasiz?",
+      en: 'Which clinic do you usually go to?',
+    },
+    why: {
+      ru: 'Пригодится, если понадобится быстро найти вашу историю болезни.',
+      uz: "Kasallik tarixingizni tezda topish kerak bo'lganda foydali bo'ladi.",
+      en: 'Useful if we ever need to quickly find your medical history.',
+    },
   },
 };
 
@@ -360,15 +466,21 @@ async function fetchFilledState(userId: string): Promise<FilledState> {
   const has = (v: unknown) => v !== null && v !== undefined && v !== '';
 
   return {
+    emergencyContactPhone: has(profile?.emergencyContactPhone),
+    gender: has(profile?.gender),
     allergies: allergyRow.length > 0 || profile?.allergiesNone === true,
     medications: activeMedRow.length > 0,
     chronicDiseases: chronicRow.length > 0 || profile?.chronicConditionsNone === true,
     heightCm: has(profile?.heightCm),
     weightKg: has(profile?.weightKg),
     bloodType: has(profile?.bloodType),
+    phone: has(profile?.phone),
+    city: has(profile?.city),
     smokingStatus: has(profile?.smokingStatus),
     alcohol: has(profile?.alcoholFrequency),
     activity: has(profile?.exerciseFrequency),
+    doctorName: has(profile?.doctorName),
+    clinic: has(profile?.clinic),
   };
 }
 

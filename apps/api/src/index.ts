@@ -60,6 +60,7 @@ import cardRouter from './routes/aivita/card.js';
 import { aivitaMedicationsRouter } from './routes/aivita/medications.js';
 import { aivitaDrugsRouter } from './routes/aivita/drugs.js';
 import { aivitaOnboardingRouter } from './routes/aivita/onboarding.js';
+import { aivitaOnboardingLadderRouter } from './routes/aivita/onboarding-ladder.js';
 import { aivitaCheckupRouter } from './routes/aivita/checkup.js';
 import { outbreakRouter, symptomsRouter } from './routes/aivita/outbreak.js';
 import { healthSearchRouter } from './routes/aivita/health-search.js';
@@ -162,6 +163,7 @@ app.route('/v1/aivita-admin/cms', landingAdminRouter);
 // Aivita
 app.route('/v1/aivita/auth', aivitaAuthRouter);
 app.route('/v1/aivita/onboarding', aivitaOnboardingRouter);
+app.route('/v1/aivita/onboarding-ladder', aivitaOnboardingLadderRouter);
 app.route('/v1/aivita-admin/support', aivitaAdminSupportRouter);
 app.route('/v1/aivita-admin', aivitaAdminUsersRouter);
 app.route('/v1/aivita-admin', aivitaAdminDoctorsRouter);

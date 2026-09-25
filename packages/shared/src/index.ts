@@ -8,3 +8,4 @@ export * from './schemas/sos-call.js';
 export * from './schemas/transaction.js';
 export * from './health/snapshot.js';
 export * from './health/blood-type.js';
+export * from './feature-flags.js';

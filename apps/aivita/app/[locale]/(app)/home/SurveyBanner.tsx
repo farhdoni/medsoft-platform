@@ -14,6 +14,7 @@ import {
   pauseForRestOfVisit,
   removeFromList,
   shouldAddChipOnKeydown,
+  textPlaceholderKeyFor,
 } from './survey-banner-logic';
 
 type Locale = 'ru' | 'uz' | 'en';
@@ -48,6 +49,7 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
   const [listItems, setListItems] = useState<string[]>([]);
   const [listDraft, setListDraft] = useState('');
   const [numberValue, setNumberValue] = useState('');
+  const [textValue, setTextValue] = useState('');
 
   // Runs before paint (useLayoutEffect, not useEffect) so a paused visit
   // never flashes the banner for a frame before hiding it. Always starts
@@ -157,6 +159,25 @@ export function SurveyBanner({ locale, initialQuestion }: { locale: string; init
               className="rounded-full px-3.5 py-2 text-[12px] font-bold text-white active:scale-95 disabled:opacity-40"
               style={{ background: '#3a8fc7' }}
               onClick={() => submitAnswer(Number(numberValue))}>
+              {t('saveButton')}
+            </button>
+          </div>
+        );
+
+      case 'text':
+        return (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type={q.field === 'emergencyContactPhone' || q.field === 'phone' ? 'tel' : 'text'}
+              value={textValue}
+              onChange={(e) => setTextValue(e.target.value)}
+              placeholder={t(textPlaceholderKeyFor(q.field))}
+              className="min-w-0 flex-1 rounded-xl border border-[#e8e4dc] px-3 py-2 text-[13px] font-semibold text-[#2a2540] outline-none focus:border-[#3a8fc7]"
+            />
+            <button type="button" disabled={saving || !textValue.trim()}
+              className="flex-shrink-0 rounded-full px-3.5 py-2 text-[12px] font-bold text-white active:scale-95 disabled:opacity-40"
+              style={{ background: '#3a8fc7' }}
+              onClick={() => submitAnswer(textValue.trim())}>
               {t('saveButton')}
             </button>
           </div>
