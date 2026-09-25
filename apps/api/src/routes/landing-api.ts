@@ -26,7 +26,6 @@ const DEFAULT_CONFIG = {
   app_url: 'https://app.aivita.uz',
   waitlist_enabled: true,
   yandex_metrika_id: '',
-  gtm_id: '',
   cookie_text: 'Мы используем cookies для улучшения сервиса',
   contact_email: 'info@aivita.uz',
   contact_phone: '+998 XX XXX XX XX',
