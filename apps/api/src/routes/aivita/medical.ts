@@ -7,6 +7,7 @@ import {
 } from '@medsoft/db';
 import { eq, and, isNull, gte, lte, desc } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
+import { clearNoneFlag } from '../../lib/medical-card-completion.js';
 
 export const medicalRouter = new Hono();
 medicalRouter.use('*', requireAivitaAuth);
@@ -165,6 +166,8 @@ medicalRouter.post('/apply', zValidator('json', applySchema), async (c) => {
     }
   }
 
+  if (added.allergies > 0) await clearNoneFlag(userId, 'allergies');
+
   // Chronic diseases
   for (const name of body.chronicDiseases) {
     const [existing] = await db.select({ id: chronicConditions.id }).from(chronicConditions)
@@ -175,6 +178,8 @@ medicalRouter.post('/apply', zValidator('json', applySchema), async (c) => {
       added.chronicDiseases++;
     }
   }
+
+  if (added.chronicDiseases > 0) await clearNoneFlag(userId, 'chronicConditions');
 
   // Medications
   for (const med of body.medications) {

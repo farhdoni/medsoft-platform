@@ -216,6 +216,14 @@ export const healthProfiles = pgTable(
     vaccinationHistory: jsonb('vaccination_history').$type<Array<{ name: string; status: 'done' | 'not_done' | 'unknown'; date?: string }>>(),
     screenTime: text('screen_time'), // '<2h' | '2-4h' | '>4h'
 
+    // Явный ответ «нет» на вопросы об аллергиях / хронических болезнях.
+    // null — «не указано», true — человек ответил «нет». Пустой список в
+    // allergies / chronic_conditions сам по себе ничего не значит: без этого
+    // флага «аллергий нет» и «не отвечал» неотличимы. Добавление любой записи
+    // сбрасывает флаг (apps/api/src/lib/medical-card-completion.ts).
+    allergiesNone: boolean('allergies_none'),
+    chronicConditionsNone: boolean('chronic_conditions_none'),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

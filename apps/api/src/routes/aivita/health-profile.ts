@@ -8,6 +8,7 @@ import {
 import { eq, isNull, and } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { analyzeHealthChange } from '../../lib/health-monitor.js';
+import { clearNoneFlag, hasActiveItems, loadMedicalCardCompletion, setNoneFlag } from '../../lib/medical-card-completion.js';
 
 export const aivitaHealthProfileRouter = new Hono();
 
@@ -16,11 +17,33 @@ aivitaHealthProfileRouter.use('*', requireAivitaAuth);
 // ─── Health Profile ────────────────────────────────────────────────────────────
 aivitaHealthProfileRouter.get('/', async (c) => {
   const userId = c.get('aivitaUserId');
-  const profile = await db.query.healthProfiles.findFirst({
-    where: eq(healthProfiles.userId, userId),
-  });
-  return c.json({ data: profile ?? null });
+  const [profile, completion] = await Promise.all([
+    db.query.healthProfiles.findFirst({ where: eq(healthProfiles.userId, userId) }),
+    loadMedicalCardCompletion(userId),
+  ]);
+  return c.json({ data: profile ?? null, completionPercent: completion.percent });
 });
+
+// ─── Явное «нет» на аллергии / хронические болезни ──────────────────────────
+// none=true — «нет» (только пока список пуст: сначала удалить записи);
+// none=false — снять ответ, вернуть «не указано».
+aivitaHealthProfileRouter.put(
+  '/none',
+  zValidator('json', z.object({
+    field: z.enum(['allergies', 'chronicConditions']),
+    none: z.boolean(),
+  })),
+  async (c) => {
+    const userId = c.get('aivitaUserId');
+    const { field, none } = c.req.valid('json');
+    if (none && await hasActiveItems(userId, field)) {
+      return c.json({ error: 'has_items' }, 409);
+    }
+    await setNoneFlag(userId, field, none);
+    const completion = await loadMedicalCardCompletion(userId);
+    return c.json({ data: { field, none, completionPercent: completion.percent } });
+  }
+);
 
 aivitaHealthProfileRouter.put(
   '/',
@@ -102,6 +125,7 @@ aivitaHealthProfileRouter.post(
     const [created] = await db.insert(chronicConditions)
       .values({ userId, ...body })
       .returning();
+    await clearNoneFlag(userId, 'chronicConditions');
 
     // AI monitor: analyze the new chronic condition
     const aiRecommendation = analyzeHealthChange('chronicConditions', body.name);
@@ -141,6 +165,7 @@ aivitaHealthProfileRouter.post(
     const [created] = await db.insert(allergies)
       .values({ userId, ...body })
       .returning();
+    await clearNoneFlag(userId, 'allergies');
 
     // AI monitor: analyze the new allergy
     // Anaphylaxis severity always triggers critical alert

@@ -6,6 +6,7 @@ import { healthProfiles, chronicConditions, allergies, medications } from '@meds
 import { eq } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { rateLimit } from '../../middleware/rate-limit.js';
+import { clearNoneFlag, setNoneFlag } from '../../lib/medical-card-completion.js';
 import {
   getNextSurveyQuestion,
   recordSurveySkip,
@@ -105,9 +106,12 @@ surveyRouter.post(
       if (!NONE_ALLOWED_FIELDS.has(field)) {
         return c.json({ error: 'none_not_allowed_for_field' }, 400);
       }
-      // Nothing to write into allergies/chronic_conditions/medications/
-      // health_profiles.blood_type for "none" — the answered event alone
-      // closes the field (see survey-queue.ts's everAnswered check).
+      // Allergies / chronic: «нет» is a real answer about the person and is
+      // stored as such (health_profiles.*_none) — the medical-card
+      // completion counts it. Medications / blood type: the answered event
+      // alone closes the field (see survey-queue.ts's everAnswered check).
+      if (field === 'allergies') await setNoneFlag(userId, 'allergies', true);
+      if (field === 'chronicDiseases') await setNoneFlag(userId, 'chronicConditions', true);
       await recordSurveyAnswered(userId, field, channel as SurveyChannel);
       return c.json({ data: { ok: true, field, none: true } });
     }
@@ -129,8 +133,10 @@ surveyRouter.post(
         const items = Array.from(new Set(parsed.data)); // dedup
         if (field === 'allergies') {
           await db.insert(allergies).values(items.map((allergen) => ({ userId, allergen, type: 'other' as const })));
+          await clearNoneFlag(userId, 'allergies');
         } else if (field === 'chronicDiseases') {
           await db.insert(chronicConditions).values(items.map((name) => ({ userId, name })));
+          await clearNoneFlag(userId, 'chronicConditions');
         }
         break;
       }

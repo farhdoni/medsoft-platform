@@ -360,9 +360,9 @@ async function fetchFilledState(userId: string): Promise<FilledState> {
   const has = (v: unknown) => v !== null && v !== undefined && v !== '';
 
   return {
-    allergies: allergyRow.length > 0,
+    allergies: allergyRow.length > 0 || profile?.allergiesNone === true,
     medications: activeMedRow.length > 0,
-    chronicDiseases: chronicRow.length > 0,
+    chronicDiseases: chronicRow.length > 0 || profile?.chronicConditionsNone === true,
     heightCm: has(profile?.heightCm),
     weightKg: has(profile?.weightKg),
     bloodType: has(profile?.bloodType),
