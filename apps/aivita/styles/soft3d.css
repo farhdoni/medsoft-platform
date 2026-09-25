@@ -24,11 +24,26 @@
   --s3-clay-wall: #B67982;
   --s3-clay-sh: 116, 62, 70;
 
+  /* Mockup's own clay is #fff-on-clay ≈2.76:1 at best (2.34:1 at the
+     gradient's lightest stop) — fails WCAG AA's 4.5:1 for normal text.
+     These are a separate, darker fill used ONLY for the gradient behind
+     white button text (Button3D/SegmentedControl's active tab); every
+     other clay token above is untouched. Measured at the button's actual
+     text position (gradient + radial highlight composited): ~5.07:1. */
+  --s3-clay-btn-lt: #9E5A62;
+  --s3-clay-btn: #965058;
+  --s3-clay-btn-dk: #8C4850;
+
   --s3-sky: #6BA3D6;
   --s3-sky-lt: #86B8E1;
   --s3-sky-dk: #5D92C4;
   --s3-sky-wall: #5589B9;
   --s3-sky-sh: 38, 74, 112;
+
+  /* Same fix, sky variant — measured at text position: ~5.14:1. */
+  --s3-sky-btn-lt: #437194;
+  --s3-sky-btn: #3B678C;
+  --s3-sky-btn-dk: #335E83;
 
   --s3-navy: #2A2540;
   --s3-navy-lt: #3C3556;

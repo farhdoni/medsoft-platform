@@ -74,6 +74,58 @@ export function ShowcaseClient({ title }: { title: string }) {
         </p>
       </Section>
 
+      <Section title="Contrast fix — before / after" mockup="README.md (token table)">
+        <p style={{ fontSize: 12, color: 'var(--s3-ink-soft)', margin: 0 }}>
+          Mockup's literal clay/sky (unchanged everywhere else) fails WCAG AA
+          for white button text. Button3D/SegmentedControl now use a
+          separate, darker <code>*-btn-*</code> fill instead.
+        </p>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 4 }}>
+          <div>
+            <div
+              style={{
+                height: 46, minWidth: 140, borderRadius: 999, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: '#fff',
+                fontWeight: 800, fontSize: 14,
+                background: 'linear-gradient(176deg, var(--s3-clay-lt) 0%, var(--s3-clay) 58%, var(--s3-clay-dk) 100%)',
+              }}
+            >
+              Before
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--s3-ink-soft)', margin: '6px 0 0 0' }}>
+              clay: 2.34:1 (lt) – 2.76:1 (base) — fails 4.5:1
+            </p>
+          </div>
+          <div>
+            <Button3D variant="clay" style={{ minWidth: 140 }}>After</Button3D>
+            <p style={{ fontSize: 11, color: 'var(--s3-ink-soft)', margin: '6px 0 0 0' }}>
+              clay-btn: ≈5.07:1 at text position — passes AA
+            </p>
+          </div>
+          <div>
+            <div
+              style={{
+                height: 46, minWidth: 140, borderRadius: 999, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: '#fff',
+                fontWeight: 800, fontSize: 14,
+                background: 'linear-gradient(176deg, var(--s3-sky-lt) 0%, var(--s3-sky) 58%, var(--s3-sky-dk) 100%)',
+              }}
+            >
+              Before
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--s3-ink-soft)', margin: '6px 0 0 0' }}>
+              sky: 2.11:1 (lt) – 2.68:1 (base) — fails 4.5:1
+            </p>
+          </div>
+          <div>
+            <Button3D variant="sky" style={{ minWidth: 140 }}>After</Button3D>
+            <p style={{ fontSize: 11, color: 'var(--s3-ink-soft)', margin: '6px 0 0 0' }}>
+              sky-btn: ≈5.14:1 at text position — passes AA
+            </p>
+          </div>
+        </div>
+      </Section>
+
       <Section title="FlatButton / ChipDark" mockup="Main.dc.html">
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <FlatButton>Позже</FlatButton>

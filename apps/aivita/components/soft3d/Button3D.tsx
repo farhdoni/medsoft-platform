@@ -3,18 +3,21 @@ import * as React from 'react';
 type Variant = 'clay' | 'sky';
 type Size = 'md' | 'sm';
 
+// Fill uses the darker *-btn-* tones (WCAG-AA-safe for white text — see
+// soft3d.css); edge/shadow (--s3-cw/--s3-sh) stay on the original clay/sky
+// tokens, unchanged, since they're not behind the text.
 const VARIANT_VARS: Record<Variant, React.CSSProperties> = {
   clay: {
-    ['--s3-c1' as string]: 'var(--s3-clay-lt)',
-    ['--s3-c2' as string]: 'var(--s3-clay)',
-    ['--s3-c3' as string]: 'var(--s3-clay-dk)',
+    ['--s3-c1' as string]: 'var(--s3-clay-btn-lt)',
+    ['--s3-c2' as string]: 'var(--s3-clay-btn)',
+    ['--s3-c3' as string]: 'var(--s3-clay-btn-dk)',
     ['--s3-cw' as string]: 'var(--s3-clay-wall)',
     ['--s3-sh' as string]: 'var(--s3-clay-sh)',
   },
   sky: {
-    ['--s3-c1' as string]: 'var(--s3-sky-lt)',
-    ['--s3-c2' as string]: 'var(--s3-sky)',
-    ['--s3-c3' as string]: 'var(--s3-sky-dk)',
+    ['--s3-c1' as string]: 'var(--s3-sky-btn-lt)',
+    ['--s3-c2' as string]: 'var(--s3-sky-btn)',
+    ['--s3-c3' as string]: 'var(--s3-sky-btn-dk)',
     ['--s3-cw' as string]: 'var(--s3-sky-wall)',
     ['--s3-sh' as string]: 'var(--s3-sky-sh)',
   },
