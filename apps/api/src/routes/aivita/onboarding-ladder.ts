@@ -8,6 +8,7 @@ import { requireAivitaAuth } from '../../middleware/aivita-auth.js';
 import { generateCardNumber } from './onboarding.js';
 import { clearNoneFlag, setNoneFlag } from '../../lib/medical-card-completion.js';
 import { HEIGHT_CM_MIN, HEIGHT_CM_MAX, WEIGHT_KG_MIN, WEIGHT_KG_MAX, isValidHeightCm, isValidWeightKg } from '../../lib/survey-queue.js';
+import { assertConsentIfFlagged } from '../../lib/consent-gate.js';
 import { ageFromBirthDate } from '@medsoft/shared';
 
 // ─── Part B: the new Consent → Q1 → R1 → Q2 → Done1 ladder ──────────────────
@@ -31,19 +32,12 @@ aivitaOnboardingLadderRouter.use('*', requireAivitaAuth);
 
 const CONSENT_TEXT_VERSION_MAX = 40;
 
-// Server-side, not just UI routing — page.tsx routes a non-consented account
-// to /consent first, but nothing stops a direct request to these endpoints
-// bypassing the UI entirely. "без согласия медданные не обрабатываем" is
-// enforced here, not just implied by which screen a browser happens to be
-// on. Any row (even historically revoked) satisfies this — revocation is a
-// distinct, not-yet-built flow; what matters here is that the person was
-// asked and answered once.
-async function hasDataProcessingConsent(userId: string): Promise<boolean> {
-  const row = await db.query.patientConsents.findFirst({
-    where: (t, { and: andOp, eq: eqOp }) => andOp(eqOp(t.userId, userId), eqOp(t.consentType, 'data_processing'), eqOp(t.granted, true)),
-  });
-  return !!row;
-}
+// assertConsentIfFlagged (lib/consent-gate.ts): server-side enforcement,
+// not just UI routing — page.tsx routes a non-consented flagged account to
+// /consent first, but nothing stops a direct request to these endpoints
+// bypassing the UI entirely. Flag-gated the same way the UI itself is —
+// see that file's own comment for why an unconditional check here would
+// have broken every write for every real account on deploy.
 
 // ─── GET /status — where in the ladder this user actually is ────────────────
 //
@@ -131,7 +125,7 @@ aivitaOnboardingLadderRouter.post(
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
-    if (!(await hasDataProcessingConsent(userId))) return c.json({ error: 'consent_required' }, 403);
+    if (!(await assertConsentIfFlagged(userId))) return c.json({ error: 'consent_required' }, 403);
     const { gender, age } = c.req.valid('json');
 
     const birthYear = new Date().getFullYear() - age;
@@ -162,7 +156,7 @@ aivitaOnboardingLadderRouter.post(
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
-    if (!(await hasDataProcessingConsent(userId))) return c.json({ error: 'consent_required' }, 403);
+    if (!(await assertConsentIfFlagged(userId))) return c.json({ error: 'consent_required' }, 403);
     const { parentPhone, parentRelation, consent } = c.req.valid('json');
 
     const [user] = await db.select({ isMinor: aivitaUsers.isMinor }).from(aivitaUsers).where(eq(aivitaUsers.id, userId)).limit(1);
@@ -186,7 +180,7 @@ aivitaOnboardingLadderRouter.post(
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
-    if (!(await hasDataProcessingConsent(userId))) return c.json({ error: 'consent_required' }, 403);
+    if (!(await assertConsentIfFlagged(userId))) return c.json({ error: 'consent_required' }, 403);
     const { height, weight } = c.req.valid('json');
 
     if (!isValidHeightCm(height)) return c.json({ error: 'invalid_height', min: HEIGHT_CM_MIN, max: HEIGHT_CM_MAX }, 400);
@@ -244,7 +238,7 @@ aivitaOnboardingLadderRouter.post(
   })),
   async (c) => {
     const userId = c.get('aivitaUserId');
-    if (!(await hasDataProcessingConsent(userId))) return c.json({ error: 'consent_required' }, 403);
+    if (!(await assertConsentIfFlagged(userId))) return c.json({ error: 'consent_required' }, 403);
     const { allergiesList, allergiesNone, chronicList, chronicNone, childDiseases } = c.req.valid('json');
 
     if (allergiesList?.length) {
