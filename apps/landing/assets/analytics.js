@@ -7,11 +7,14 @@
  * - Согласие хранится в cookie `aivita_consent` (granted | denied) на
  *   .aivita.uz — его же читает приложение app.aivita.uz, так что человек
  *   отвечает один раз на оба сайта. Срок — год.
- * - Пока ответа нет — показывается баннер. Метрика и GTM НЕ загружаются,
- *   пока человек не нажал «Принять». «Отклонить» — не грузится ничего.
- * - ID счётчиков берутся из /api/landing-config (landing_config.payload:
- *   yandex_metrika_id, gtm_id) — одно место и для лендинга, и для
- *   приложения. Пустой ID — соответствующий тег просто не грузится.
+ * - Пока ответа нет — показывается баннер. Метрика НЕ загружается, пока
+ *   человек не нажал «Принять». «Отклонить» — не грузится ничего.
+ * - ID счётчика берётся из /api/landing-config (landing_config.payload.
+ *   yandex_metrika_id) — одно место и для лендинга, и для приложения.
+ *   Пустой ID — тег не грузится и баннер не показывается.
+ * - Кроме Яндекс Метрики, сторонних тегов нет (GTM убран 2026-09-25: не
+ *   использовался и не планируется, а политика конфиденциальности
+ *   называет только Метрику).
  */
 (function () {
   'use strict';
@@ -54,22 +57,9 @@
     window.ym(id, 'init', { clickmap: true, trackLinks: true, accurateTrackBounce: true });
   }
 
-  function loadGtm(id) {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtm.js?id=' + encodeURIComponent(id);
-    document.head.appendChild(s);
-  }
-
   function metrikaId(cfg) {
     var id = Number(cfg && cfg.yandex_metrika_id);
     return id > 0 ? id : null;
-  }
-  function gtmId(cfg) {
-    var id = cfg && cfg.gtm_id;
-    return typeof id === 'string' && /^GTM-[A-Z0-9]+$/.test(id) ? id : null;
   }
 
   var tagsStarted = false;
@@ -79,8 +69,6 @@
     loadConfig().then(function (cfg) {
       var ym = metrikaId(cfg);
       if (ym) loadMetrika(ym);
-      var gtm = gtmId(cfg);
-      if (gtm) loadGtm(gtm);
     });
   }
 
@@ -147,13 +135,13 @@
 
   // ─── Start ─────────────────────────────────────────────────────────────────
 
-  // Баннер — только если есть на что соглашаться: пока в настройках нет ни
-  // одного счётчика, человека не спрашиваем.
+  // Баннер — только если есть на что соглашаться: пока в настройках нет
+  // счётчика, человека не спрашиваем.
   var consent = readConsent();
   if (consent === 'granted') startTags();
   else if (consent === null) {
     loadConfig().then(function (cfg) {
-      if (!metrikaId(cfg) && !gtmId(cfg)) return;
+      if (!metrikaId(cfg)) return;
       if (document.body) showBanner();
       else document.addEventListener('DOMContentLoaded', showBanner);
     });

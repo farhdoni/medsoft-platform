@@ -117,6 +117,28 @@ export function resolveScreenName(pathname: string): string {
   return `${base} · ${subLabel}`;
 }
 
+// ─── Where Metrika may run ───────────────────────────────────────────────────
+
+/**
+ * Metrika works ONLY on the public funnel: sign-in / sign-up (patient and
+ * doctor), email verification and get-app. Inside the cabinet it is off
+ * entirely — screen names like «Drug checker» or «Symptom checker» tied to a
+ * Metrika visitor id are health data about a specific person, and product
+ * analytics for logged-in users is done in-house instead.
+ *
+ * Exactly `/<locale>/<page>` — nothing nested, no onboarding (it already
+ * asks health questions).
+ */
+const METRIKA_PAGES = new Set([
+  'sign-in', 'sign-up', 'doctor-login', 'doctor-sign-up', 'verify-email', 'get-app',
+]);
+
+export function isMetrikaPage(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  const m = pathname.match(/^\/(?:ru|uz|en)\/([^/]+)\/?$/);
+  return !!m && METRIKA_PAGES.has(m[1]);
+}
+
 // ─── Event helpers ───────────────────────────────────────────────────────────
 
 function ym(counterId: number, action: string, ...args: unknown[]): void {

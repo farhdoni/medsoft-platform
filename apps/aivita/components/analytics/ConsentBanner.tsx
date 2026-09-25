@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { readConsent, writeConsent } from '@/lib/analytics/consent';
+import { isMetrikaPage } from '@/lib/analytics/metrika';
 
 const TEXT = {
   ru: { text: 'Мы используем cookie для аналитики: так мы понимаем, откуда к нам приходят и что улучшать.', accept: 'Принять', decline: 'Отклонить', more: 'Подробнее' },
@@ -11,15 +13,19 @@ const TEXT = {
 
 /**
  * Простой баннер согласия: текст + «Принять» / «Отклонить». Показывается,
- * только когда есть что включать (настроен счётчик) и человек ещё не отвечал
- * ни здесь, ни на лендинге. Тексты — те же, что в assets/analytics.js лендинга.
+ * только когда есть что включать (настроен счётчик), человек ещё не отвечал
+ * ни здесь, ни на лендинге, и только на публичных страницах, где Метрика
+ * вообще работает (isMetrikaPage) — в кабинете спрашивать не о чем.
+ * Тексты — те же, что в assets/analytics.js лендинга.
  */
 export function ConsentBanner({ locale, enabled }: { locale: string; enabled: boolean }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const onMetrikaPage = isMetrikaPage(pathname);
 
   useEffect(() => {
-    if (enabled && readConsent() === null) setOpen(true);
-  }, [enabled]);
+    setOpen(enabled && onMetrikaPage && readConsent() === null);
+  }, [enabled, onMetrikaPage]);
 
   if (!open) return null;
   const t = TEXT[(locale as keyof typeof TEXT)] ?? TEXT.ru;

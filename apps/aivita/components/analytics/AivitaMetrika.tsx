@@ -3,15 +3,19 @@
 import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
-import { resolveScreenName, setActiveCounter, trackHit, trackScreenView } from '@/lib/analytics/metrika';
+import { isMetrikaPage, resolveScreenName, setActiveCounter, trackHit, trackScreenView } from '@/lib/analytics/metrika';
 import { CONSENT_EVENT, readConsent } from '@/lib/analytics/consent';
 
 /**
  * Loads the Yandex Metrika tag and auto-tracks screen views by route.
  *
- * Mounted once in app/[locale]/layout.tsx, so it covers every page —
- * authenticated app screens and the public sign-in/sign-up/pricing funnel
- * alike — the same way InstallPrompt is mounted there.
+ * Mounted once in app/[locale]/layout.tsx, but ACTIVE only on the public
+ * funnel pages (isMetrikaPage: sign-in, sign-up, doctor-login, doctor-sign-up,
+ * verify-email, get-app). Anywhere else the counter is null: the tag is not
+ * loaded if the visit starts there, and if it was loaded on a funnel page
+ * earlier, trackHit / reachGoal helpers become no-ops the moment the person
+ * leaves the funnel — Metrika's tag itself sends no hits on client-side
+ * navigation (see trackHit), so nothing from the cabinet reaches Yandex.
  *
  * webvisor / clickmap / trackLinks are OFF, matching the CRM's posture
  * (D3 in this same round of work): Webvisor records DOM interactions
@@ -30,7 +34,7 @@ import { CONSENT_EVENT, readConsent } from '@/lib/analytics/consent';
 export function AivitaMetrika({ counterId }: { counterId: number | null }) {
   const pathname = usePathname();
   const [granted, setGranted] = useState(false);
-  const active = granted ? counterId : null;
+  const active = granted && isMetrikaPage(pathname) ? counterId : null;
 
   useEffect(() => {
     setGranted(readConsent() === 'granted');
