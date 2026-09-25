@@ -122,7 +122,7 @@ type LocalizedText = { ru: string; uz: string; en: string };
 
 export interface SurveyQuestion {
   field: string;
-  type: 'enum' | 'number' | 'list' | 'blood_type' | 'medications_special';
+  type: 'enum' | 'number' | 'list' | 'blood_type' | 'medications_special' | 'text';
   question: LocalizedText;
   why: LocalizedText;
   options?: Array<{ value: string; label: LocalizedText }>;

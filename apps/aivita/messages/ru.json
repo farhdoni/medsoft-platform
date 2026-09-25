@@ -236,6 +236,11 @@
       "listPlaceholderMedications": "Например: метформин",
       "listAddHint": "Enter, запятая или «+», чтобы добавить",
       "numberPlaceholder": "Введите число",
+      "textPlaceholder": "Введите ответ",
+      "textPlaceholderPhone": "+998 90 123 45 67",
+      "textPlaceholderCity": "Например: Ташкент",
+      "textPlaceholderDoctorName": "Например: Иванова Анна",
+      "textPlaceholderClinic": "Например: Клиника на Чиланзаре",
       "medsYes": "Принимаю",
       "medsNo": "Не принимаю"
     },

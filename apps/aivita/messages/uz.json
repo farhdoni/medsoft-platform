@@ -236,6 +236,11 @@
       "listPlaceholderMedications": "Masalan: metformin",
       "listAddHint": "Qo'shish uchun Enter, vergul yoki «+»",
       "numberPlaceholder": "Raqam kiriting",
+      "textPlaceholder": "Javobingizni kiriting",
+      "textPlaceholderPhone": "+998 90 123 45 67",
+      "textPlaceholderCity": "Masalan: Toshkent",
+      "textPlaceholderDoctorName": "Masalan: Ivanova Anna",
+      "textPlaceholderClinic": "Masalan: Chilonzordagi klinika",
       "medsYes": "Qabul qilaman",
       "medsNo": "Qabul qilmayman"
     },

@@ -62,6 +62,21 @@ export function listPlaceholderKeyFor(field: string): string {
   return LIST_PLACEHOLDER_KEY[field] ?? 'listPlaceholder';
 }
 
+// ─── Field-dependent text-input placeholder (Part B's new 'text' type) ─────
+
+const TEXT_PLACEHOLDER_KEY: Record<string, string> = {
+  emergencyContactPhone: 'textPlaceholderPhone',
+  phone: 'textPlaceholderPhone',
+  city: 'textPlaceholderCity',
+  doctorName: 'textPlaceholderDoctorName',
+  clinic: 'textPlaceholderClinic',
+};
+
+/** Falls back to the generic key for any field not in the map above. */
+export function textPlaceholderKeyFor(field: string): string {
+  return TEXT_PLACEHOLDER_KEY[field] ?? 'textPlaceholder';
+}
+
 // ─── "Pause for the rest of this visit" (sessionStorage-backed) ────────────
 //
 // sessionStorage, not localStorage — localStorage would hide the banner

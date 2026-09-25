@@ -12,15 +12,21 @@ import {
 } from './survey-queue.js';
 
 const EMPTY_FILLED: FilledState = {
+  emergencyContactPhone: false,
+  gender: false,
   allergies: false,
   medications: false,
   chronicDiseases: false,
   heightCm: false,
   weightKg: false,
   bloodType: false,
+  phone: false,
+  city: false,
   smokingStatus: false,
   alcohol: false,
   activity: false,
+  doctorName: false,
+  clinic: false,
 };
 
 // A fixed "now" inside a Tashkent (UTC+5) calendar day, with a matching
@@ -32,17 +38,28 @@ function ev(field: SurveyEvent['field'], status: SurveyEvent['status'], createdA
   return { field, status, createdAt };
 }
 
+// These tests are about ORDER, not about any specific field's identity —
+// referencing SURVEY_FIELD_PRIORITY by index (rather than hardcoding e.g.
+// 'allergies') keeps them meaningful regardless of how the list is
+// reprioritized (as it was for Part B, 2026-09-25: allergies moved from
+// index 0 to index 4). pickNextField itself is field-type-agnostic — it
+// only ever compares opaque SurveyField keys — so substituting which three
+// fields stand in for "first/second/third priority" changes nothing about
+// what these tests actually verify.
+const P0 = SURVEY_FIELD_PRIORITY[0];
+const P1 = SURVEY_FIELD_PRIORITY[1];
+const P2 = SURVEY_FIELD_PRIORITY[2];
+
 describe('pickNextField — priority order', () => {
   it('picks the first unfilled field in SURVEY_FIELD_PRIORITY when nothing has happened yet', () => {
     const result = pickNextField([], EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result).toEqual({ field: 'allergies', isNew: true });
-    expect(SURVEY_FIELD_PRIORITY[0]).toBe('allergies');
+    expect(result).toEqual({ field: P0, isNew: true });
   });
 
   it('skips filled fields and picks the next eligible one in order', () => {
-    const filled: FilledState = { ...EMPTY_FILLED, allergies: true, medications: true };
+    const filled: FilledState = { ...EMPTY_FILLED, [P0]: true, [P1]: true };
     const result = pickNextField([], filled, NOW, START_OF_TODAY);
-    expect(result?.field).toBe('chronicDiseases');
+    expect(result?.field).toBe(P2);
   });
 });
 
@@ -50,67 +67,67 @@ describe('pickNextField — closed via an answered event (incl. "none" answers)'
   it('a field with an answered event is never re-offered, even though filled[field] is still false', () => {
     // Exactly the "нет аллергий" / "не принимаю" case: no table row was ever
     // written, only the answered event — filled state stays false forever.
-    const events = [ev('allergies', 'answered', new Date('2026-06-01T00:00:00.000Z'))];
+    const events = [ev(P0, 'answered', new Date('2026-06-01T00:00:00.000Z'))];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result?.field).toBe('medications');
+    expect(result?.field).toBe(P1);
   });
 
   it('real data (filled=true) closes a field exactly like an answered event does', () => {
-    const filled: FilledState = { ...EMPTY_FILLED, allergies: true };
+    const filled: FilledState = { ...EMPTY_FILLED, [P0]: true };
     const result = pickNextField([], filled, NOW, START_OF_TODAY);
-    expect(result?.field).toBe('medications');
+    expect(result?.field).toBe(P1);
   });
 });
 
 describe('pickNextField — 7-day skip cooldown', () => {
   it('a field skipped 3 days ago is NOT re-offered (inside the 7-day window)', () => {
     const threeDaysAgo = new Date(NOW.getTime() - 3 * 24 * 60 * 60 * 1000);
-    const events = [ev('allergies', 'skipped', threeDaysAgo)];
+    const events = [ev(P0, 'skipped', threeDaysAgo)];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result?.field).toBe('medications');
+    expect(result?.field).toBe(P1);
   });
 
   it('a field skipped 8 days ago IS re-offered (outside the 7-day window)', () => {
     const eightDaysAgo = new Date(NOW.getTime() - 8 * 24 * 60 * 60 * 1000);
-    const events = [ev('allergies', 'skipped', eightDaysAgo)];
+    const events = [ev(P0, 'skipped', eightDaysAgo)];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result).toEqual({ field: 'allergies', isNew: true });
+    expect(result).toEqual({ field: P0, isNew: true });
   });
 
   it('cooldown boundary is configurable via opts (custom cooldownDays)', () => {
     const twoDaysAgo = new Date(NOW.getTime() - 2 * 24 * 60 * 60 * 1000);
-    const events = [ev('allergies', 'skipped', twoDaysAgo)];
+    const events = [ev(P0, 'skipped', twoDaysAgo)];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY, { cooldownDays: 1 });
-    expect(result?.field).toBe('allergies'); // 2 days > 1-day cooldown -> eligible again
+    expect(result?.field).toBe(P0); // 2 days > 1-day cooldown -> eligible again
   });
 });
 
 describe('pickNextField — idempotency of repeated /next calls', () => {
   it('a field shown today with no later event today is returned again, isNew: false (no duplicate row)', () => {
     const shownEarlierToday = new Date(START_OF_TODAY.getTime() + 60 * 60 * 1000); // 1h into today
-    const events = [ev('allergies', 'shown', shownEarlierToday)];
+    const events = [ev(P0, 'shown', shownEarlierToday)];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result).toEqual({ field: 'allergies', isNew: false });
+    expect(result).toEqual({ field: P0, isNew: false });
   });
 
   it('once answered today, the NEXT field is offered fresh (isNew: true), not re-asking the answered one', () => {
     const shownEarlierToday = new Date(START_OF_TODAY.getTime() + 60 * 60 * 1000);
     const answeredLaterToday = new Date(START_OF_TODAY.getTime() + 2 * 60 * 60 * 1000);
     const events = [
-      ev('allergies', 'shown', shownEarlierToday),
-      ev('allergies', 'answered', answeredLaterToday),
+      ev(P0, 'shown', shownEarlierToday),
+      ev(P0, 'answered', answeredLaterToday),
     ];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result).toEqual({ field: 'medications', isNew: true });
+    expect(result).toEqual({ field: P1, isNew: true });
   });
 
   it('a shown event from a PRIOR day does not trigger idempotent re-ask today', () => {
     const yesterday = new Date(START_OF_TODAY.getTime() - 60 * 60 * 1000); // 1h before today started
-    const events = [ev('allergies', 'shown', yesterday)];
+    const events = [ev(P0, 'shown', yesterday)];
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
     // Not idempotent-returned (that only applies to TODAY's shown events) —
     // and not filled/answered/in-cooldown either, so it's freely offered again.
-    expect(result).toEqual({ field: 'allergies', isNew: true });
+    expect(result).toEqual({ field: P0, isNew: true });
   });
 });
 
@@ -129,17 +146,17 @@ describe('pickNextField — shared daily limit of 3 distinct fields', () => {
     expect(result).toBeNull();
   });
 
-  it('the limit counts DISTINCT fields, not events — allergies being shown+skipped is 1 slot, not 2', () => {
+  it('the limit counts DISTINCT fields, not events — one field shown+skipped is 1 slot, not 2', () => {
     const t = (h: number) => new Date(START_OF_TODAY.getTime() + h * 60 * 60 * 1000);
     const events = [
-      ev('allergies', 'shown', t(1)),
-      ev('allergies', 'skipped', t(1.1)),
+      ev(P0, 'shown', t(1)),
+      ev(P0, 'skipped', t(1.1)),
     ];
-    // 1 distinct field shown today (allergies) — well under the limit of 3.
-    // allergies itself is now in its skip cooldown, so the next distinct
-    // pick should be medications.
+    // 1 distinct field shown today (P0) — well under the limit of 3. P0
+    // itself is now in its skip cooldown, so the next distinct pick should
+    // be P1.
     const result = pickNextField(events, EMPTY_FILLED, NOW, START_OF_TODAY);
-    expect(result?.field).toBe('medications');
+    expect(result?.field).toBe(P1);
   });
 
   it('limit is configurable via opts (custom dailyLimit)', () => {

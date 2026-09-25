@@ -22,3 +22,4 @@ export * from './system.js';
 export * from './messaging.js';
 export * from './support.js';
 export * from './survey.js';
+export * from './patient-consents.js';

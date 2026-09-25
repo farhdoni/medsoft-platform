@@ -236,6 +236,11 @@
       "listPlaceholderMedications": "E.g.: metformin",
       "listAddHint": "Press Enter, comma, or \"+\" to add",
       "numberPlaceholder": "Enter a number",
+      "textPlaceholder": "Enter your answer",
+      "textPlaceholderPhone": "+998 90 123 45 67",
+      "textPlaceholderCity": "E.g.: Tashkent",
+      "textPlaceholderDoctorName": "E.g.: Anna Ivanova",
+      "textPlaceholderClinic": "E.g.: Chilanzar Clinic",
       "medsYes": "I take medication",
       "medsNo": "I don't"
     },

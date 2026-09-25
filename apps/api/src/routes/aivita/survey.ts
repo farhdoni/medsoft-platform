@@ -175,6 +175,25 @@ surveyRouter.post(
         if (field === 'smokingStatus') await upsertHealthProfile(userId, { smokingStatus: parsed.data });
         else if (field === 'alcohol') await upsertHealthProfile(userId, { alcoholFrequency: parsed.data });
         else if (field === 'activity') await upsertHealthProfile(userId, { exerciseFrequency: parsed.data });
+        else if (field === 'gender') await upsertHealthProfile(userId, { gender: parsed.data });
+        break;
+      }
+
+      case 'text': {
+        // Phone fields get a loose format check (digits/+/spaces/dashes,
+        // 7-20 chars) — everything else is just a non-empty trimmed string,
+        // same bound as the 'list' case above.
+        const isPhoneField = field === 'emergencyContactPhone' || field === 'phone';
+        const schema = isPhoneField
+          ? z.string().trim().regex(/^[+\d][\d\s()-]{6,19}$/)
+          : z.string().trim().min(1).max(200);
+        const parsed = schema.safeParse(body.value);
+        if (!parsed.success) return c.json({ error: 'invalid_value' }, 400);
+        if (field === 'emergencyContactPhone') await upsertHealthProfile(userId, { emergencyContactPhone: parsed.data });
+        else if (field === 'phone') await upsertHealthProfile(userId, { phone: parsed.data });
+        else if (field === 'city') await upsertHealthProfile(userId, { city: parsed.data });
+        else if (field === 'doctorName') await upsertHealthProfile(userId, { doctorName: parsed.data });
+        else if (field === 'clinic') await upsertHealthProfile(userId, { clinic: parsed.data });
         break;
       }
 
