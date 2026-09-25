@@ -45,6 +45,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // The old routed ladder (welcome/age/anamnesis/lifestyle/result) is gone —
+      // it never persisted anamnesis and had no resume mechanism. Folded into
+      // the single /onboarding wizard. Not `permanent` since the wizard itself
+      // is still being restructured (see fix/onboarding-flow-b-removal).
+      {
+        source: '/:locale(ru|uz|en)/onboarding/:step(welcome|age|anamnesis|lifestyle|result)',
+        destination: '/:locale/onboarding',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

@@ -67,7 +67,7 @@ export async function loginAction(
     ? `/${locale}/doctor-home`
     : onboardingCompleted
       ? `/${locale}/home`
-      : `/${locale}/onboarding/welcome`;
+      : `/${locale}/onboarding`;
 
   return { error: null, redirectTo: dest };
 }
