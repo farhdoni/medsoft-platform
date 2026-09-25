@@ -35,8 +35,9 @@ name: Deploy Landing (aivita.uz)
 #     in the repo (see apps/landing/DEPLOY.md) are never removed. The key
 #     itself also enforces this server-side (-no-del), independent of
 #     what flags this workflow ever sends.
-#   - downloads/aivita-patient.apk is excluded outright — the server's
-#     copy is newer than git's (see apps/landing/DEPLOY.md, point 6).
+#   - downloads/*.apk is excluded outright — APKs are not in git at all
+#     and are published straight to the VPS (see docs/apk-release.md);
+#     the exclude is a backstop against an accidental `git add -f`.
 #   - workflow_dispatch defaults to a dry run (rsync --dry-run); a push
 #     to main always does a real sync.
 
@@ -119,7 +120,8 @@ jobs:
           rsync -avz --itemize-changes $DRY_FLAG \
             -e "ssh $SSH_OPTS" \
             --exclude='*.bak*' \
-            --exclude='downloads/aivita-patient.apk' \
+            --exclude='downloads/*.apk' \
+            --exclude='downloads/version.json' \
             --exclude='6e3a3321e0a7ac487e75f14c6909ebf9.txt' \
             --exclude='api/' \
             --exclude='package.json' \

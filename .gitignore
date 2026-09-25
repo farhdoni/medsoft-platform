@@ -27,6 +27,10 @@ apps/api/uploads/
 apps/mobile-patient/.expo/
 apps/mobile-doctor/.expo/
 *.apk
+# APK лендинга (apps/landing/downloads/) живут только на VPS и выкладываются
+# через scp, минуя git — см. docs/apk-release.md. Не добавлять через -f.
+# version.json рядом с ними генерируется на VPS из самих APK.
+apps/landing/downloads/version.json
 *.ipa
 *.aab
 
