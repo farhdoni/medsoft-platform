@@ -35,7 +35,6 @@ function CheckRow({
                 background:
                   'linear-gradient(176deg, var(--s3-clay-btn-lt), var(--s3-clay-btn-dk)) padding-box, ' +
                   'linear-gradient(180deg, rgba(255,255,255,.45), rgba(var(--s3-clay-sh),.38)) border-box',
-                boxShadow: '0 3px 0 -1px var(--s3-clay-wall)',
               }
             : { background: '#E8E2D8', boxShadow: 'inset 0 3px 6px -2px rgba(150,134,116,.30)' }),
         }}

@@ -73,7 +73,7 @@ export async function HomeReplyView({
                 {t(timeKey, { name: senderName, count: rel.value })}
               </p>
             </div>
-            <span style={{ width: 11, height: 11, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk))', boxShadow: '0 2px 0 -1px var(--s3-clay-wall)' }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk))' }} />
           </div>
           <p style={{ margin: '16px 0 0 0', fontSize: 17, lineHeight: 1.45, fontWeight: 700, color: '#ffffff' }}>«{message}»</p>
           <Button3D style={{ marginTop: 18, width: '100%', height: 48, fontSize: 14 }}>{t('reply.openButton')}</Button3D>

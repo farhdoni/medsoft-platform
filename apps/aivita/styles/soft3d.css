@@ -4,9 +4,21 @@
  * Ported verbatim from the reference mockups (docs/design/patient-cabinet/,
  * :root block in every *.dc.html — they're all identical, checked against
  * Main.dc.html and cross-verified against Gadgets/Docs/Vaccines/DocView).
- * Every color, shadow layer, and multiplier here is copied exactly, not
- * approximated — see docs/design/patient-cabinet/README.md for the token
- * table this corresponds to.
+ * Every color and multiplier here is copied exactly, not approximated —
+ * see docs/design/patient-cabinet/README.md for the token table this
+ * corresponds to.
+ *
+ * No-shadows revision (2026-09-26, style/soft3d-no-shadows): every
+ * EXTERNAL box-shadow layer (drop shadows, and the "leg" pattern —
+ * `0 Npx 0 -Mpx var(--*-wall)` — used to fake a bevelled bottom edge) was
+ * removed from buttons/controls and cards. Cards keep only their 1px
+ * outline (.tile/.stat) or inset volume (.panel); buttons/controls keep
+ * only their inset volume, or nothing if they never had one. .well/
+ * .well-dark, text-shadow, and .grain are untouched — see each rule below
+ * for what changed. The aivita-design-2026-09-26.zip archive's own mockup
+ * files still show the pre-revision shadow-heavy CSS (checked several,
+ * including new ones) — this revision was implemented from the written
+ * spec, not matched pixel-for-pixel against an updated mockup file.
  *
  * Scoping: every rule lives under `.soft3d` so nothing here can ever affect
  * a page that hasn't opted in, and no existing Tailwind/global class name
@@ -21,7 +33,6 @@
   --s3-clay: #CC8A8F;
   --s3-clay-lt: #D69AA0;
   --s3-clay-dk: #BE7D85;
-  --s3-clay-wall: #B67982;
   --s3-clay-sh: 116, 62, 70;
 
   /* Mockup's own clay is #fff-on-clay ≈2.76:1 at best (2.34:1 at the
@@ -37,7 +48,6 @@
   --s3-sky: #6BA3D6;
   --s3-sky-lt: #86B8E1;
   --s3-sky-dk: #5D92C4;
-  --s3-sky-wall: #5589B9;
   --s3-sky-sh: 38, 74, 112;
 
   /* Same fix, sky variant — measured at text position: ~5.14:1. */
@@ -48,7 +58,6 @@
   --s3-navy: #2A2540;
   --s3-navy-lt: #3C3556;
   --s3-navy-dk: #241F38;
-  --s3-navy-wall: #1E1A2C;
   --s3-navy-sh: 18, 14, 32;
 
   --s3-ink: #3A3646;
@@ -61,11 +70,12 @@
   --s3-lit: 255, 255, 255;
   --s3-shd: 150, 134, 116;
 
-  /* Depth / width / curvature / opacity multipliers — every shadow layer
-     below is written in terms of these so the whole system can be tuned in
-     one place, exactly as the mockups do it. */
+  /* Depth / curvature / opacity multipliers — every shadow layer below is
+     written in terms of these so the whole system can be tuned in one
+     place, exactly as the mockups do it. --s3-w (the outer "leg" shadows'
+     own width multiplier) is gone with them — no-shadows pass (2026-09-26
+     design update) removed every rule that read it. */
   --s3-d: 1;
-  --s3-w: 1;
   --s3-cv: 1.15;
   --s3-op: 1;
 
@@ -74,7 +84,6 @@
   /* SOS header button — its own red, not the clay accent (Main.dc.html header). */
   --s3-sos: #C4666E;
   --s3-sos-dk: #A8525A;
-  --s3-sos-wall: #93454D;
   --s3-sos-sh: 90, 40, 46;
 
   background: var(--s3-board);
@@ -100,20 +109,22 @@
 }
 
 /* ── .tile — convex light plate ────────────────────────────────────────── */
+/* No-shadows pass (2026-09-26 design update): only the 1px outline stays —
+   it's what separates the plate from the page background, not elevation.
+   The gradient border-box above (the lit/shadow edge) is untouched — that's
+   what still reads as a card edge without any external shadow. */
 .soft3d .tile {
   border: 1px solid transparent;
   background:
     linear-gradient(176deg, var(--s3-tile), #F2EEE6) padding-box,
     linear-gradient(180deg, rgba(var(--s3-lit), .60), rgba(var(--s3-lit), .14) 44%, rgba(var(--s3-shd), .30)) border-box;
-  box-shadow:
-    0 0 0 1px rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
-    0 calc(1px * var(--s3-d))  calc(2px * var(--s3-d))  -1px  rgba(var(--s3-shd), calc(.05 * var(--s3-op))),
-    0 calc(4px * var(--s3-d))  calc(6px * var(--s3-d))  -3px  rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
-    0 calc(10px * var(--s3-d)) calc(16px * var(--s3-d)) -8px  rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
-    0 calc(20px * var(--s3-d)) calc(30px * var(--s3-d)) -16px rgba(var(--s3-shd), calc(.04 * var(--s3-op)));
+  box-shadow: 0 0 0 1px rgba(var(--s3-shd), calc(.045 * var(--s3-op)));
 }
 
 /* ── .panel — dark (navy) plate ────────────────────────────────────────── */
+/* No-shadows pass: only the inset volume stays (the top/bottom inner
+   highlight+shadow that reads as the panel's own depth) — every external
+   layer, including the navy "leg" strip, is gone. */
 .soft3d .panel {
   border: 1px solid transparent;
   background:
@@ -123,11 +134,7 @@
     linear-gradient(180deg, rgba(var(--s3-lit), .22), rgba(var(--s3-lit), .05) 44%, rgba(var(--s3-navy-sh), .50)) border-box;
   box-shadow:
     inset 0 calc(10px * var(--s3-cv)) calc(18px * var(--s3-cv)) -11px rgba(var(--s3-navy-sh), calc(.30 * var(--s3-op))),
-    inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -12px rgba(var(--s3-navy-sh), calc(.16 * var(--s3-op))),
-    0 calc(5px * var(--s3-w)) 0 -2px var(--s3-navy-wall),
-    0 calc(8px * var(--s3-w))  calc(9px * var(--s3-d))  calc(-5px * var(--s3-d))  rgba(var(--s3-shd), calc(.05 * var(--s3-op))),
-    0 calc(14px * var(--s3-w)) calc(20px * var(--s3-d)) calc(-11px * var(--s3-d)) rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
-    0 calc(24px * var(--s3-w)) calc(36px * var(--s3-d)) calc(-19px * var(--s3-d)) rgba(var(--s3-shd), calc(.04 * var(--s3-op)));
+    inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -12px rgba(var(--s3-navy-sh), calc(.16 * var(--s3-op)));
   color: #fff;
 }
 
@@ -156,7 +163,12 @@
 }
 
 /* ── .btn3d — convex button with a coloured "edge" (clay/sky variants set
-   --s3-c1/--s3-c2/--s3-c3/--s3-cw/--s3-sh via inline style, see Button3D) ── */
+   --s3-c1/--s3-c2/--s3-c3/--s3-sh via inline style, see Button3D) ──
+   No-shadows pass: only the 4 inset layers stay (the convex volume inside
+   the pill) — the outer "leg" (--s3-cw's whole reason to exist) and every
+   external blur layer are gone. text-shadow is untouched (not an
+   elevation shadow, out of scope). :active uses scale(.98) instead of
+   translateY (see the prefers-reduced-motion block below this rule). */
 .soft3d .btn3d {
   border: 1px solid transparent;
   border-radius: 999px;
@@ -174,27 +186,17 @@
     inset 0 calc(10px * var(--s3-cv)) calc(16px * var(--s3-cv)) -9px  rgba(var(--s3-sh), calc(.26 * var(--s3-op))),
     inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -10px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
     inset calc(8px * var(--s3-cv))  0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
-    inset calc(-8px * var(--s3-cv)) 0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
-    0 calc(5px * var(--s3-w)) 0 -2px var(--s3-cw),
-    0 calc(6px * var(--s3-w))  calc(5px * var(--s3-d))  calc(-3px * var(--s3-d))  rgba(var(--s3-sh), calc(.035 * var(--s3-op))),
-    0 calc(9px * var(--s3-w))  calc(11px * var(--s3-d)) calc(-6px * var(--s3-d))  rgba(var(--s3-sh), calc(.032 * var(--s3-op))),
-    0 calc(14px * var(--s3-w)) calc(20px * var(--s3-d)) calc(-11px * var(--s3-d)) rgba(var(--s3-sh), calc(.028 * var(--s3-op))),
-    0 calc(22px * var(--s3-w)) calc(34px * var(--s3-d)) calc(-18px * var(--s3-d)) rgba(var(--s3-sh), calc(.025 * var(--s3-op)));
+    inset calc(-8px * var(--s3-cv)) 0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op)));
 }
 .soft3d .btn3d:hover {
   box-shadow:
     inset 0 calc(10px * var(--s3-cv)) calc(16px * var(--s3-cv)) -9px  rgba(var(--s3-sh), calc(.26 * var(--s3-op))),
     inset 0 calc(-7px * var(--s3-cv)) calc(14px * var(--s3-cv)) -10px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
     inset calc(8px * var(--s3-cv))  0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
-    inset calc(-8px * var(--s3-cv)) 0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op))),
-    0 calc(8px * var(--s3-w)) 0 -2px var(--s3-cw),
-    0 calc(10px * var(--s3-w)) calc(8px * var(--s3-d))  calc(-4px * var(--s3-d))  rgba(var(--s3-sh), calc(.035 * var(--s3-op))),
-    0 calc(14px * var(--s3-w)) calc(16px * var(--s3-d)) calc(-8px * var(--s3-d))  rgba(var(--s3-sh), calc(.032 * var(--s3-op))),
-    0 calc(20px * var(--s3-w)) calc(28px * var(--s3-d)) calc(-14px * var(--s3-d)) rgba(var(--s3-sh), calc(.028 * var(--s3-op))),
-    0 calc(30px * var(--s3-w)) calc(44px * var(--s3-d)) calc(-22px * var(--s3-d)) rgba(var(--s3-sh), calc(.025 * var(--s3-op)));
+    inset calc(-8px * var(--s3-cv)) 0 calc(16px * var(--s3-cv)) -13px rgba(var(--s3-sh), calc(.14 * var(--s3-op)));
 }
 .soft3d .btn3d:active {
-  transform: translateY(calc(4px * var(--s3-w))) scale(.995);
+  transform: scale(.98);
   background:
     radial-gradient(calc(138% / var(--s3-cv)) calc(128% / var(--s3-cv)) at 50% 46%,
       rgba(var(--s3-lit), .04) 0%, rgba(var(--s3-lit), 0) 44%, rgba(var(--s3-sh), .16) 100%) padding-box,
@@ -203,14 +205,19 @@
   box-shadow:
     inset 0 calc(12px * var(--s3-d)) calc(17px * var(--s3-d)) -6px rgba(var(--s3-sh), calc(.26 * var(--s3-op))),
     inset  9px 0 17px -13px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
-    inset -9px 0 17px -13px rgba(var(--s3-sh), calc(.15 * var(--s3-op))),
-    0 1px 0 -.5px var(--s3-cw),
-    0 3px 5px -3px rgba(var(--s3-sh), calc(.07 * var(--s3-op)));
+    inset -9px 0 17px -13px rgba(var(--s3-sh), calc(.15 * var(--s3-op)));
 }
 .soft3d .btn3d:focus-visible { outline: 3px solid rgba(var(--s3-sh), .45); outline-offset: 5px; }
 .soft3d .btn3d[disabled] { filter: grayscale(.5) opacity(.55); transform: none; cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .soft3d .btn3d:active { transform: none; }
+}
 
 /* ── .btn-flat — plate-coloured flat button ──────────────────────────────── */
+/* No-shadows pass: resting state has no shadow at all (its "leg" was the
+   only shadow it ever had) — the gradient border-box still gives it an
+   edge. :active keeps its one inset (the only inset this rule ever had)
+   and drops the leg; scale(.98) replaces translateY. */
 .soft3d .btn-flat {
   border: 1px solid transparent;
   border-radius: 999px;
@@ -221,18 +228,20 @@
   background:
     linear-gradient(176deg, #EFEBE3, #E3DDD3) padding-box,
     linear-gradient(180deg, rgba(var(--s3-lit), .60), rgba(var(--s3-shd), .28)) border-box;
-  box-shadow:
-    0 calc(3px * var(--s3-w)) 0 -1px #D6CFC3,
-    0 calc(5px * var(--s3-w)) calc(7px * var(--s3-d)) calc(-4px * var(--s3-d)) rgba(var(--s3-shd), calc(.05 * var(--s3-op))),
-    0 calc(10px * var(--s3-w)) calc(14px * var(--s3-d)) calc(-8px * var(--s3-d)) rgba(var(--s3-shd), calc(.04 * var(--s3-op)));
 }
 .soft3d .btn-flat:active {
-  transform: translateY(calc(3px * var(--s3-w)));
-  box-shadow: 0 1px 0 -.5px #D6CFC3, inset 0 6px 10px -5px rgba(var(--s3-shd), .22);
+  transform: scale(.98);
+  box-shadow: inset 0 6px 10px -5px rgba(var(--s3-shd), .22);
 }
 .soft3d .btn-flat:focus-visible { outline: 3px solid rgba(var(--s3-shd), .45); outline-offset: 5px; }
+@media (prefers-reduced-motion: reduce) {
+  .soft3d .btn-flat:active { transform: none; }
+}
 
 /* ── .chip-dark — small navy pill (e.g. active nav indicator elsewhere) ──── */
+/* No-shadows pass: had no inset to begin with (leg + outer blur only), so
+   it's shadowless in both states now — the gradient border-box is its
+   only edge. scale(.98) replaces translateY on :active. */
 .soft3d .chip-dark {
   border: 1px solid transparent;
   border-radius: 999px;
@@ -242,27 +251,21 @@
   background:
     linear-gradient(176deg, #3C3556, #2A2540) padding-box,
     linear-gradient(180deg, rgba(var(--s3-lit), .26), rgba(var(--s3-navy-sh), .50)) border-box;
-  box-shadow:
-    0 calc(3px * var(--s3-w)) 0 -1px var(--s3-navy-wall),
-    0 calc(6px * var(--s3-w)) calc(9px * var(--s3-d)) calc(-5px * var(--s3-d)) rgba(var(--s3-navy-sh), calc(.30 * var(--s3-op)));
 }
-.soft3d .chip-dark:active {
-  transform: translateY(calc(3px * var(--s3-w)));
-  box-shadow: 0 1px 0 -.5px var(--s3-navy-wall);
-}
+.soft3d .chip-dark:active { transform: scale(.98); }
 .soft3d .chip-dark:focus-visible { outline: 3px solid rgba(var(--s3-lit), .45); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .soft3d .chip-dark:active { transform: none; }
+}
 
 /* ── .stat — small tile variant used for stat cards ──────────────────────── */
+/* No-shadows pass: same rule as .tile — outline only. */
 .soft3d .stat {
   border: 1px solid transparent;
   background:
     linear-gradient(176deg, var(--s3-tile), #F1EDE5) padding-box,
     linear-gradient(180deg, rgba(var(--s3-lit), .60), rgba(var(--s3-lit), .14) 44%, rgba(var(--s3-shd), .30)) border-box;
-  box-shadow:
-    0 0 0 1px rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
-    0 calc(2px * var(--s3-w)) 0 -1px #E0D9CC,
-    0 calc(4px * var(--s3-d))  calc(6px * var(--s3-d))  -3px  rgba(var(--s3-shd), calc(.045 * var(--s3-op))),
-    0 calc(10px * var(--s3-d)) calc(16px * var(--s3-d)) -8px  rgba(var(--s3-shd), calc(.045 * var(--s3-op)));
+  box-shadow: 0 0 0 1px rgba(var(--s3-shd), calc(.045 * var(--s3-op)));
 }
 
 .soft3d .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -289,21 +292,22 @@
   text-decoration: none;
 }
 .soft3d .navbtn[aria-current="page"] { color: var(--s3-ink); }
+/* No-shadows pass: had no inset (leg + outer blur only) — shadowless now,
+   gradient border-box is its only edge. */
 .soft3d .navbtn-on {
   border: 1px solid transparent;
   background:
     linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk)) padding-box,
     linear-gradient(180deg, rgba(var(--s3-lit), .45), rgba(var(--s3-clay-sh), .38)) border-box;
-  box-shadow: 0 3px 0 -1px var(--s3-clay-wall), 0 7px 10px -5px rgba(var(--s3-clay-sh), .30);
 }
 
 /* ── .bubble-me — clay chat bubble (assistant chat, patient's own messages) ─ */
+/* No-shadows pass: same as .navbtn-on — no inset existed, shadowless now. */
 .soft3d .bubble-me {
   border: 1px solid transparent;
   background:
     linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk)) padding-box,
     linear-gradient(180deg, rgba(var(--s3-lit), .40), rgba(var(--s3-clay-sh), .40)) border-box;
-  box-shadow: 0 3px 0 -1px var(--s3-clay-wall), 0 8px 12px -6px rgba(var(--s3-clay-sh), .28);
   color: #fff;
 }
 
@@ -323,8 +327,13 @@
   background:
     linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk)) padding-box,
     linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(var(--s3-clay-sh), .38)) border-box;
-  box-shadow: 0 3px 0 -1px var(--s3-clay-wall);
+  /* No-shadows pass: this override used to REPLACE the base track's inset
+     with a leg-only shadow (losing the recessed-groove look while checked)
+     — re-declaring the same inset here instead of dropping the leg to
+     nothing, so the track reads the same depth in both states. */
+  box-shadow: inset 0 3px 6px -2px rgba(var(--s3-shd), .35);
 }
+/* No-shadows pass: plain outer drop-shadow, no inset — shadowless now. */
 .soft3d .s3-toggle-knob {
   position: absolute;
   top: 3px;
@@ -333,7 +342,6 @@
   height: 22px;
   border-radius: 50%;
   background: var(--s3-tile);
-  box-shadow: 0 2px 4px rgba(90, 70, 60, .25);
   transition: left .15s ease;
 }
 .soft3d .s3-toggle-input:checked + .s3-toggle-track .s3-toggle-knob { left: 22px; }
@@ -356,6 +364,7 @@
 }
 
 /* ── SOS header button — Main.dc.html header, its own red palette ────────── */
+/* No-shadows pass: had no inset (leg + outer blur only) — shadowless now. */
 .soft3d .s3-sos-btn {
   display: flex;
   align-items: center;
@@ -371,7 +380,6 @@
   background:
     linear-gradient(176deg, var(--s3-sos), var(--s3-sos-dk)) padding-box,
     linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(var(--s3-sos-sh), .42)) border-box;
-  box-shadow: 0 4px 0 -2px var(--s3-sos-wall), 0 9px 12px -6px rgba(var(--s3-sos-sh), .32);
 }
 .soft3d .s3-sos-btn:hover { color: #ffffff; }
 .soft3d .s3-sos-btn:focus-visible { outline: 3px solid rgba(var(--s3-sos-sh), .5); outline-offset: 3px; }

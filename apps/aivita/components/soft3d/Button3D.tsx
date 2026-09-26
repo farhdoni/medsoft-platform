@@ -4,21 +4,21 @@ type Variant = 'clay' | 'sky';
 type Size = 'md' | 'sm';
 
 // Fill uses the darker *-btn-* tones (WCAG-AA-safe for white text — see
-// soft3d.css); edge/shadow (--s3-cw/--s3-sh) stay on the original clay/sky
-// tokens, unchanged, since they're not behind the text.
+// soft3d.css); edge/shadow (--s3-sh) stays on the original clay/sky tokens,
+// unchanged, since it's not behind the text. --s3-cw (the outer "leg"
+// shadow's color) is gone — no-shadows pass removed every box-shadow line
+// in .btn3d that read it, so setting it here would be dead weight.
 const VARIANT_VARS: Record<Variant, React.CSSProperties> = {
   clay: {
     ['--s3-c1' as string]: 'var(--s3-clay-btn-lt)',
     ['--s3-c2' as string]: 'var(--s3-clay-btn)',
     ['--s3-c3' as string]: 'var(--s3-clay-btn-dk)',
-    ['--s3-cw' as string]: 'var(--s3-clay-wall)',
     ['--s3-sh' as string]: 'var(--s3-clay-sh)',
   },
   sky: {
     ['--s3-c1' as string]: 'var(--s3-sky-btn-lt)',
     ['--s3-c2' as string]: 'var(--s3-sky-btn)',
     ['--s3-c3' as string]: 'var(--s3-sky-btn-dk)',
-    ['--s3-cw' as string]: 'var(--s3-sky-wall)',
     ['--s3-sh' as string]: 'var(--s3-sky-sh)',
   },
 };

@@ -47,7 +47,6 @@ export function LadderFooter({
             ['--s3-c1' as string]: 'var(--s3-clay-btn-lt)',
             ['--s3-c2' as string]: 'var(--s3-clay-btn)',
             ['--s3-c3' as string]: 'var(--s3-clay-btn-dk)',
-            ['--s3-cw' as string]: 'var(--s3-clay-wall)',
             ['--s3-sh' as string]: 'var(--s3-clay-sh)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             height: 56, borderRadius: 999, fontSize: 16, fontWeight: 800, color: '#fff', textDecoration: 'none',
