@@ -3,6 +3,7 @@ import { db } from '@medsoft/db';
 import {
   doctorProfiles, aivitaUsers, doctorReviews, doctorSchedule, aivitaAppointments,
 } from '@medsoft/db';
+import { toPublicDoctorProfile, maskCatalogListRow } from '../../../lib/public-doctor.js';
 import { eq, and, ilike, desc, asc, gte, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../../middleware/aivita-auth.js';
 
@@ -56,10 +57,11 @@ doctorCatalogRouter.get('/', async (c) => {
     .limit(limit)
     .offset(offset);
 
-  return c.json({ data: rows });
+  return c.json({ data: rows.map(maskCatalogListRow) });
 });
 
 // ─── GET /:id — публичная страница врача ─────────────────────────────────────
+// Только врачи из каталога; поля — lib/public-doctor.ts.
 doctorCatalogRouter.get('/:id', async (c) => {
   const userId = c.req.param('id');
 
@@ -77,16 +79,23 @@ doctorCatalogRouter.get('/:id', async (c) => {
     .where(and(
       eq(doctorProfiles.userId, userId),
       eq(doctorProfiles.isActive, true),
+      eq(doctorProfiles.showInCatalog, true),
     ))
     .limit(1);
 
   if (!row) return c.json({ error: 'Doctor not found' }, 404);
 
-  if (!row.profile.showPrice)  (row.profile as Record<string, unknown>).consultationPrice = null;
-  if (!row.profile.showRating) (row.profile as Record<string, unknown>).rating = null;
-  if (!row.profile.showEmail)  (row.user as Record<string, unknown>).email = null;
-
-  return c.json({ data: row });
+  return c.json({
+    data: {
+      profile: toPublicDoctorProfile(row.profile),
+      user: {
+        id: row.user.id,
+        name: row.user.name,
+        avatarUrl: row.user.avatarUrl,
+        email: row.profile.showEmail ? row.user.email : null,
+      },
+    },
+  });
 });
 
 // ─── GET /:id/reviews — отзывы о враче (публичные) ───────────────────────────
