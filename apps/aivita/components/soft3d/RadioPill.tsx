@@ -40,7 +40,6 @@ export function RadioPill({
               background:
                 'linear-gradient(176deg, var(--s3-clay-btn-lt), var(--s3-clay-btn-dk)) padding-box, ' +
                 'linear-gradient(180deg, rgba(255,255,255,.45), rgba(var(--s3-clay-sh),.38)) border-box',
-              boxShadow: '0 4px 0 -2px var(--s3-clay-wall), 0 9px 12px -6px rgba(var(--s3-clay-sh),.28)',
             }
           : {}),
       }}

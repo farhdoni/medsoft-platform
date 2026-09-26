@@ -145,7 +145,6 @@ export function BottomNav({ locale, badges }: { locale: string; badges?: BottomN
                     borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     font: '800 11px/1 Nunito, sans-serif', color: '#fff',
                     background: 'linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk))',
-                    boxShadow: '0 2px 0 -1px var(--s3-clay-wall)',
                   }}
                 >
                   {badgeCount}

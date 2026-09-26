@@ -45,7 +45,6 @@ export function SegmentedControl({
               ['--s3-c1' as string]: 'var(--s3-clay-btn-lt)',
               ['--s3-c2' as string]: 'var(--s3-clay-btn)',
               ['--s3-c3' as string]: 'var(--s3-clay-btn-dk)',
-              ['--s3-cw' as string]: 'var(--s3-clay-wall)',
               ['--s3-sh' as string]: 'var(--s3-clay-sh)',
               flexGrow: 1,
               height: 40,
