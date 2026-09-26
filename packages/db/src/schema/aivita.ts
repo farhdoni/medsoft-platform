@@ -1099,31 +1099,25 @@ export const healthCheckups = pgTable(
 // column type this should have — but changing it is a separate decision,
 // not bundled into this drift-closure pass; flagged, not touched.
 //
-// userId/diseaseCategory/severity: prod's real columns are all NOT NULL
-// (migration 0072 matches that on prod, where it's a no-op either way —
-// it's already enforced there today). But two pieces of real, currently-
-// working code insert rows without them: outbreak.ts's own Zod validator
-// marks diseaseCategory/severity `.optional()` at the API layer, and
-// scripts/seed-outbreaks.ts (the outbreak-map demo-data generator) writes
-// symptom_reports with no userId at all — matching this table's sibling
-// health_search_queries, which is explicitly anonymous by design (see that
-// table's own comment). Whether symptom_reports is *meant* to allow
-// anonymous/incomplete reports, or prod's NOT NULL is an accidental
-// drizzle-kit-push tightening nobody meant to keep, is a real product
-// question this task isn't the place to answer unilaterally — left
-// nullable here so both pieces of already-working code keep compiling and
-// behaving exactly as they do today. Flagged for a real decision, not
-// picked for anyone.
+// userId/diseaseCategory/severity: all three required (product decision
+// 2026-09-26) — reports only come from signed-in users (anonymity lives on
+// the public outbreak map, which only ever surfaces aggregates), and a
+// report without a disease category or severity isn't useful for that map
+// either. Matches prod's real NOT NULL columns, which were already there
+// (this table drifted from its own migration file over time — migration
+// 0072 already closed that gap; this is the follow-up TS-type + app-code
+// change). See outbreak.ts's Zod validator and scripts/seed-outbreaks.ts's
+// NODE_ENV guard for the other halves of this change.
 export const symptomReports = pgTable(
   'symptom_reports',
   {
     id:               uuid('id').primaryKey().defaultRandom(),
-    userId:           uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    userId:           uuid('user_id').notNull().references(() => aivitaUsers.id, { onDelete: 'cascade' }),
     city:             text('city').notNull().default('Ташкент'),
     symptomType:      text('symptom_type').notNull(), // fever|cough|diarrhea|rash|headache|vomiting|sore_throat
     temperature:      numeric('temperature', { precision: 4, scale: 1 }),
-    diseaseCategory:  text('disease_category'), // orvi|measles|hepatitis|intestinal|flu|other — see note above re: NOT NULL on prod
-    severity:         text('severity'),         // mild|moderate|severe — see note above re: NOT NULL on prod
+    diseaseCategory:  text('disease_category').notNull(), // orvi|measles|hepatitis|intestinal|flu|other
+    severity:         text('severity').notNull(),         // mild|moderate|severe
     source:           text('source').notNull().default('vitals'), // checkup|vitals|manual|ai_chat
     reportedAt:       timestamp('reported_at').defaultNow(),
     createdAt:        timestamp('created_at').notNull().defaultNow(),
