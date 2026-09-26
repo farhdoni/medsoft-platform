@@ -3,20 +3,26 @@ import { db } from '@medsoft/db';
 import { doctorReviews, aivitaUsers, doctorProfiles } from '@medsoft/db';
 import { eq, and, desc, avg, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../../middleware/aivita-auth.js';
+import { toPublicReview } from '../../../lib/public-review.js';
 
 export const doctorReviewsRouter = new Hono();
 
-// GET /doctor/:id — отзывы о враче (публичный)
+// GET /doctor/:id — отзывы о враче (публичный); поля — lib/public-review.ts.
 doctorReviewsRouter.get('/doctor/:id', async (c) => {
   const doctorId = c.req.param('id');
-  const data = await db.select({
-    review: doctorReviews,
-    patient: { id: aivitaUsers.id, name: aivitaUsers.name, avatarUrl: aivitaUsers.avatarUrl },
+  const rows = await db.select({
+    id: doctorReviews.id,
+    rating: doctorReviews.rating,
+    text: doctorReviews.text,
+    isAnonymous: doctorReviews.isAnonymous,
+    createdAt: doctorReviews.createdAt,
+    reviewerName: aivitaUsers.name,
+    reviewerAvatarUrl: aivitaUsers.avatarUrl,
   }).from(doctorReviews)
     .innerJoin(aivitaUsers, eq(doctorReviews.patientId, aivitaUsers.id))
     .where(eq(doctorReviews.doctorId, doctorId))
     .orderBy(desc(doctorReviews.createdAt));
-  return c.json({ data });
+  return c.json({ data: rows.map(toPublicReview) });
 });
 
 // POST / — оставить отзыв (auth required)
