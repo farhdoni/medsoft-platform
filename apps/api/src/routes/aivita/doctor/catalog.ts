@@ -5,6 +5,7 @@ import {
 } from '@medsoft/db';
 import { eq, and, ilike, desc, asc, gte, sql } from 'drizzle-orm';
 import { requireAivitaAuth } from '../../../middleware/aivita-auth.js';
+import { toPublicReview } from '../../../lib/public-review.js';
 
 export const doctorCatalogRouter = new Hono();
 
@@ -90,19 +91,17 @@ doctorCatalogRouter.get('/:id', async (c) => {
 });
 
 // ─── GET /:id/reviews — отзывы о враче (публичные) ───────────────────────────
+// Публичные поля отзыва — lib/public-review.ts.
 doctorCatalogRouter.get('/:id/reviews', async (c) => {
   const doctorId = c.req.param('id');
 
-  // Use alias to avoid join ambiguity on aivitaUsers
-  const patientAlias = aivitaUsers;
-
   const reviews = await db
     .select({
-      id:          doctorReviews.id,
-      rating:      doctorReviews.rating,
-      text:        doctorReviews.text,
-      isAnonymous: doctorReviews.isAnonymous,
-      createdAt:   doctorReviews.createdAt,
+      id:           doctorReviews.id,
+      rating:       doctorReviews.rating,
+      text:         doctorReviews.text,
+      isAnonymous:  doctorReviews.isAnonymous,
+      createdAt:    doctorReviews.createdAt,
       reviewerName: aivitaUsers.name,
     })
     .from(doctorReviews)
@@ -111,13 +110,7 @@ doctorCatalogRouter.get('/:id/reviews', async (c) => {
     .orderBy(desc(doctorReviews.createdAt))
     .limit(20);
 
-  const masked = reviews.map(r => ({
-    ...r,
-    reviewer: r.isAnonymous ? null : { name: r.reviewerName },
-    reviewerName: undefined,
-  }));
-
-  return c.json({ data: masked });
+  return c.json({ data: reviews.map(toPublicReview) });
 });
 
 // ─── GET /:id/schedule — расписание врача (шаблон по дням недели) ─────────────
