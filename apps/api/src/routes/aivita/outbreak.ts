@@ -73,16 +73,25 @@ symptomsRouter.use('*', requireAivitaAuth);
 
 // ─── POST /symptoms/report ─────────────────────────────────────────────────────
 
+// Exported so its rejection behavior (missing required fields -> Zod parse
+// failure -> zValidator's own 400, never reaching the handler / a DB-level
+// 500) is directly unit-testable — see outbreak.test.ts.
+export const symptomReportSchema = z.object({
+  city:            z.string().min(1).max(50),
+  symptomType:     z.enum(['fever','cough','diarrhea','rash','headache','vomiting','sore_throat']),
+  temperature:     z.number().min(35).max(43).optional(),
+  // Required (product decision 2026-09-26): a symptom report without a
+  // disease category or severity isn't useful for the outbreak map, and
+  // the DB column is NOT NULL on prod already — this makes the API
+  // contract honest about that instead of letting it 500 on submit.
+  diseaseCategory: z.enum(['orvi','measles','hepatitis','intestinal','flu','other']),
+  severity:        z.enum(['mild','moderate','severe']),
+  source:          z.enum(['checkup','vitals','manual','ai_chat']).default('manual'),
+});
+
 symptomsRouter.post(
   '/report',
-  zValidator('json', z.object({
-    city:            z.string().min(1).max(50),
-    symptomType:     z.enum(['fever','cough','diarrhea','rash','headache','vomiting','sore_throat']),
-    temperature:     z.number().min(35).max(43).optional(),
-    diseaseCategory: z.enum(['orvi','measles','hepatitis','intestinal','flu','other']).optional(),
-    severity:        z.enum(['mild','moderate','severe']).optional(),
-    source:          z.enum(['checkup','vitals','manual','ai_chat']).default('manual'),
-  })),
+  zValidator('json', symptomReportSchema),
   async (c) => {
     const userId = c.get('aivitaUserId');
     const body   = c.req.valid('json');

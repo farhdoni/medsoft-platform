@@ -15,11 +15,28 @@
 import 'dotenv/config';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { symptomReports } from '@medsoft/db';
+import { symptomReports, aivitaUsers } from '@medsoft/db';
 import { sql } from 'drizzle-orm';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) { console.error('DATABASE_URL missing'); process.exit(1); }
+
+// This writes synthetic public-health demo data and must never touch prod —
+// symptom_reports.user_id is required now (product decision 2026-09-26;
+// reports only come from real signed-in users), so this needs a real test
+// user id anyway, but the NODE_ENV=production case is guarded separately
+// and first since it's the cheaper, more obviously-wrong-if-hit check.
+// The IP check covers running this by hand with a prod .env loaded but
+// NODE_ENV left unset — confirmed the real host from
+// RESTORE-INSTRUCTIONS.txt rather than guessing.
+if (process.env.NODE_ENV === 'production') {
+  console.error('Refusing to run: NODE_ENV=production. This script writes synthetic demo data and must never run against prod.');
+  process.exit(1);
+}
+if (/109\.123\.249\.224/.test(DATABASE_URL)) {
+  console.error('Refusing to run: DATABASE_URL points at the production host (109.123.249.224). This script writes synthetic demo data and must never run against prod.');
+  process.exit(1);
+}
 
 const client = postgres(DATABASE_URL, { max: 1 });
 const db = drizzle(client);
@@ -77,8 +94,19 @@ async function main() {
     return;
   }
 
+  // user_id is required now — reuse whatever test user already exists in
+  // this (necessarily non-prod) database rather than fabricating an
+  // aivita_users row ourselves.
+  const [existingUser] = await db.select({ id: aivitaUsers.id }).from(aivitaUsers).limit(1);
+  if (!existingUser) {
+    console.error('No aivita_users row found in this database — create at least one test user before running this seed script.');
+    await client.end();
+    process.exit(1);
+  }
+  const testUserId = existingUser.id;
+
   const total = rand(500, 800);
-  console.log(`Seeding ${total} symptom reports…`);
+  console.log(`Seeding ${total} symptom reports for test user ${testUserId}…`);
 
   const rows: (typeof symptomReports.$inferInsert)[] = [];
 
@@ -94,6 +122,7 @@ async function main() {
       : undefined;
 
     rows.push({
+      userId: testUserId,
       city,
       symptomType,
       temperature,
