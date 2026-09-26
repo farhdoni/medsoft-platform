@@ -16,7 +16,7 @@ export const emailCampaigns = pgTable('email_campaigns', {
 
 export const emailTemplates = pgTable('email_templates', {
   id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
   subject: varchar('subject', { length: 200 }).notNull(),
   body: text('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

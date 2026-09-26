@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   index,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const drugInteractions = pgTable(
@@ -22,5 +23,6 @@ export const drugInteractions = pgTable(
   },
   (table) => ({
     pairIdx: index('drug_interactions_pair_idx').on(table.drug1, table.drug2),
+    pairSeverityUniq: unique('drug_interactions_pair_severity_key').on(table.drug1, table.drug2, table.severity),
   }),
 );
