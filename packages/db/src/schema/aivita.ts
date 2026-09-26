@@ -12,6 +12,7 @@ import {
   unique,
   varchar,
   serial,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -75,7 +76,7 @@ export const aivitaUsers = pgTable(
     parentConsent: boolean('parent_consent').default(false).notNull(),
 
     referralCode: varchar('referral_code', { length: 20 }).unique(),
-    referredBy: uuid('referred_by'),
+    referredBy: uuid('referred_by').references((): AnyPgColumn => aivitaUsers.id, { onDelete: 'set null' }),
 
     // Streak & gamification (medications adherence)
     currentStreak: integer('current_streak').notNull().default(0),
@@ -1088,21 +1089,47 @@ export const healthCheckups = pgTable(
 
 // ─── Symptom reports (outbreak monitoring) ─────────────────────────────────────
 
+// Column shapes here match what's actually on prod (confirmed 2026-09-26,
+// read-only audit), not the original design intent — this feature drifted
+// from its migration file over time and prod is the source of truth per
+// that audit. temperature is deliberately LEFT AS `numeric` here even
+// though prod's real column is `text` — the API already validates it as a
+// number then calls .toString() before writing (see
+// apps/api/src/routes/aivita/outbreak.ts), so `text` is arguably the
+// column type this should have — but changing it is a separate decision,
+// not bundled into this drift-closure pass; flagged, not touched.
+//
+// userId/diseaseCategory/severity: prod's real columns are all NOT NULL
+// (migration 0072 matches that on prod, where it's a no-op either way —
+// it's already enforced there today). But two pieces of real, currently-
+// working code insert rows without them: outbreak.ts's own Zod validator
+// marks diseaseCategory/severity `.optional()` at the API layer, and
+// scripts/seed-outbreaks.ts (the outbreak-map demo-data generator) writes
+// symptom_reports with no userId at all — matching this table's sibling
+// health_search_queries, which is explicitly anonymous by design (see that
+// table's own comment). Whether symptom_reports is *meant* to allow
+// anonymous/incomplete reports, or prod's NOT NULL is an accidental
+// drizzle-kit-push tightening nobody meant to keep, is a real product
+// question this task isn't the place to answer unilaterally — left
+// nullable here so both pieces of already-working code keep compiling and
+// behaving exactly as they do today. Flagged for a real decision, not
+// picked for anyone.
 export const symptomReports = pgTable(
   'symptom_reports',
   {
     id:               uuid('id').primaryKey().defaultRandom(),
-    userId:           uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'set null' }),
-    city:             text('city').notNull(),
+    userId:           uuid('user_id').references(() => aivitaUsers.id, { onDelete: 'cascade' }),
+    city:             text('city').notNull().default('Ташкент'),
     symptomType:      text('symptom_type').notNull(), // fever|cough|diarrhea|rash|headache|vomiting|sore_throat
     temperature:      numeric('temperature', { precision: 4, scale: 1 }),
-    diseaseCategory:  text('disease_category'),       // orvi|measles|hepatitis|intestinal|flu|other
-    severity:         text('severity'),               // mild|moderate|severe
-    source:           text('source').notNull().default('manual'), // checkup|vitals|manual|ai_chat
-    reportedAt:       timestamp('reported_at').defaultNow().notNull(),
+    diseaseCategory:  text('disease_category'), // orvi|measles|hepatitis|intestinal|flu|other — see note above re: NOT NULL on prod
+    severity:         text('severity'),         // mild|moderate|severe — see note above re: NOT NULL on prod
+    source:           text('source').notNull().default('vitals'), // checkup|vitals|manual|ai_chat
+    reportedAt:       timestamp('reported_at').defaultNow(),
+    createdAt:        timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
-    cityIdx:          index('symptom_reports_city_idx').on(table.city),
+    cityIdx:          index('symptom_reports_city_idx').on(table.city, table.createdAt),
     categoryIdx:      index('symptom_reports_category_idx').on(table.diseaseCategory),
     reportedAtIdx:    index('symptom_reports_reported_at_idx').on(table.reportedAt),
     cityDateIdx:      index('symptom_reports_city_date_idx').on(table.city, table.diseaseCategory, table.reportedAt),
@@ -1209,6 +1236,11 @@ export const aiChatArchives = pgTable(
     createdAt:    timestamp('created_at').notNull().defaultNow(),
   },
   (table) => ({
+    // Real DB index (see migration 0072) is (user_id, created_at DESC) to
+    // match prod — drizzle-orm 0.30's index().on() typing here rejects a
+    // desc()-wrapped column (IndexColumn, not SQL<unknown>), so this
+    // declaration is ascending-only; it's drizzle-kit-diff metadata, not
+    // what the database actually uses for query planning.
     userIdx: index('ai_chat_archives_user_idx').on(table.userId, table.createdAt),
   })
 );
