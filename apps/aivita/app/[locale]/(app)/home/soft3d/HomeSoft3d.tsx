@@ -31,7 +31,7 @@ export function HomeSoft3d({ locale, data }: { locale: string; data: HomeSoft3dD
 
   return (
     <div>
-      <WeatherCard />
+      <WeatherCard pressureAlertEnabled />
       {state === 'empty' && <HomeEmptyView locale={locale} />}
       {state === 'paused' && hs && (
         <HomePausedView

@@ -26,7 +26,8 @@ interface OMWeather {
     surface_pressure: number;
     uv_index: number;
   };
-  hourly: HourlyPressure;
+  /** Only requested when pressureAlertEnabled — see load(). */
+  hourly?: HourlyPressure;
   daily: {
     time: string[];
     weather_code: number[];
@@ -116,7 +117,7 @@ function kpLabelKey(kp: number): string {
 // historical data to compute it honestly (see weather-pressure-logic.ts for
 // the threshold and its citations). Kept fully separate from the Kp-index
 // alert below — never merged into or presented as the same warning.
-function buildAlerts(uv: number, pm25: number, kp: number, pressureSwing: boolean): Alert[] {
+export function buildAlerts(uv: number, pm25: number, kp: number, pressureSwing: boolean): Alert[] {
   const out: Alert[] = [];
   if (uv >= 8) {
     out.push({
@@ -186,7 +187,7 @@ function SkeletonRect({ h, w = '100%', r = 8 }: { h: number; w?: string; r?: num
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function WeatherCard() {
+export function WeatherCard({ pressureAlertEnabled = false }: { pressureAlertEnabled?: boolean } = {}) {
   const t = useTranslations('app.weatherBadges');
   const [coords, setCoords] = useState<Coords>({ lat: DEFAULT_LAT, lon: DEFAULT_LON });
   const [city, setCity] = useState(DEFAULT_CITY);
@@ -246,7 +247,11 @@ export function WeatherCard() {
         fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
           `&current=temperature_2m,apparent_temperature,weather_code,surface_pressure,uv_index` +
-          `&hourly=surface_pressure&past_days=2` +
+          // Historical hourly pressure is only needed for the pressure-delta
+          // warning (Part C) — flag-gated at the source: unflagged accounts
+          // never request it, and their WeatherCard is byte-for-byte what it
+          // was before this feature existed.
+          (pressureAlertEnabled ? '&hourly=surface_pressure&past_days=2' : '') +
           `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
           `&timezone=auto&forecast_days=7`,
         ),
@@ -294,7 +299,7 @@ export function WeatherCard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pressureAlertEnabled]);
 
   useEffect(() => {
     if (!geoReady) return;
@@ -358,10 +363,10 @@ export function WeatherCard() {
   // ── Derived values ────────────────────────────────────────────────────────
   const pm25 = air?.current.pm2_5 ?? 0;
   const kpVal = kp ?? 0;
-  const pressureDelta = weather
+  const pressureDelta = pressureAlertEnabled && weather
     ? pressureDelta24h(weather.hourly, weather.current.time, weather.current.surface_pressure)
     : null;
-  const pressureSwing = isSharpPressureSwing(pressureDelta);
+  const pressureSwing = pressureAlertEnabled && isSharpPressureSwing(pressureDelta);
   const alerts = weather ? buildAlerts(weather.current.uv_index, pm25, kpVal, pressureSwing) : [];
   const worstLevel: 'bad' | 'warn' | 'good' = alerts.some(a => a.level === 'bad') ? 'bad'
     : alerts.length > 0 ? 'warn' : 'good';
