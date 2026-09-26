@@ -72,6 +72,7 @@ doctorCatalogRouter.get('/:id', async (c) => {
       id:        aivitaUsers.id,
       name:      aivitaUsers.name,
       avatarUrl: aivitaUsers.avatarUrl,
+      email:     aivitaUsers.email,
     },
   })
     .from(doctorProfiles)
@@ -92,6 +93,7 @@ doctorCatalogRouter.get('/:id', async (c) => {
         id: row.user.id,
         name: row.user.name,
         avatarUrl: row.user.avatarUrl,
+        email: row.profile.showEmail ? row.user.email : null,
       },
     },
   });
