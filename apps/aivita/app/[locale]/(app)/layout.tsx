@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { isSoft3dEnabled } from '@/lib/soft3d/flag';
@@ -6,6 +7,30 @@ import PushManager from '@/components/push/PushManager';
 import { FullscreenReminder } from '@/components/notifications/FullscreenReminder';
 import { IdleWarningModal } from '@/components/IdleWarningModal';
 import { NativeScrollSync } from '@/components/NativeScrollSync';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.aivita.uz';
+
+// Doctor-unread-reply signal (Part C), fetched at the layout level (not
+// per-page) so the bell dot and the "assistant" nav badge in Soft3dShell
+// stay correct everywhere in the app, not just on Home. Fail-open to "no
+// unread" on any error — a network hiccup must not fabricate a badge.
+async function fetchDoctorUnread(): Promise<boolean> {
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('aivita_api');
+    if (!sessionCookie) return false;
+
+    const r = await fetch(`${API_BASE}/v1/aivita/home-state`, {
+      cache: 'no-store',
+      headers: { Cookie: `aivita_api=${sessionCookie.value}` },
+    });
+    if (!r.ok) return false;
+    const json = await r.json() as { data?: { doctorReply?: { hasUnread?: boolean } } };
+    return !!json.data?.doctorReply?.hasUnread;
+  } catch {
+    return false;
+  }
+}
 
 export default async function CabinetLayout({
   children,
@@ -27,6 +52,7 @@ export default async function CabinetLayout({
   // column. Zero effect on anyone else: the branch below is the ONLY thing
   // that changes here.
   const soft3d = isSoft3dEnabled(session.email);
+  const doctorUnread = soft3d ? await fetchDoctorUnread() : false;
 
   const content = (
     <div className="max-w-[480px] mx-auto w-full min-h-screen bg-app-bg shadow-xl">
@@ -42,7 +68,7 @@ export default async function CabinetLayout({
       {/* Auto-logout after 15 min idle (14 min + 1 min warning) */}
       <IdleWarningModal locale={locale} />
       {soft3d ? (
-        <Soft3dShell locale={locale} avatarInitial={(session.name || session.email || '?').charAt(0).toUpperCase()}>
+        <Soft3dShell locale={locale} avatarInitial={(session.name || session.email || '?').charAt(0).toUpperCase()} unreadCount={doctorUnread ? 1 : 0}>
           {content}
         </Soft3dShell>
       ) : (

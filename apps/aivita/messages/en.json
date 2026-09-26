@@ -493,7 +493,8 @@
         "medicalCard": "Medical card",
         "assistant": "Assistant",
         "medications": "Medications",
-        "checkup": "Checkup"
+        "checkup": "Checkup",
+        "unreadBadgeAriaLabel": "one unread"
       },
       "header": {
         "sos": "SOS",
@@ -634,6 +635,94 @@
           "saveButton": "Save",
           "savedMessage": "Saved",
           "backAriaLabel": "Back to medical card"
+        }
+      },
+      "home": {
+        "greetingMorning": "Good morning",
+        "greetingDay": "Good afternoon",
+        "greetingEvening": "Good evening",
+        "greetingNight": "Good night",
+        "mainThingToday": "Main thing today",
+        "askPlaceholder": "Reply to the assistant…",
+        "askAriaLabel": "Reply to the assistant",
+        "openChatAriaLabel": "Open chat with the assistant",
+        "pulseLabel": "Pulse",
+        "sleepLabel": "Sleep",
+        "weightLabel": "Weight",
+        "pressureLabel": "Blood pressure",
+        "normLabel": "normal",
+        "aboveNormLabel": "above normal",
+        "lowLabel": "low",
+        "steadyLabel": "steady",
+        "empty": {
+          "title": "Hello",
+          "body": "I don't know anything about you yet, so there's nothing to say. That's easy to fix.",
+          "panelTitle": "Two questions and I can already tell you something",
+          "panelBody": "Sex and age. After that, as much as you'd like — you can stop at any point.",
+          "fillButton": "Fill in the questionnaire",
+          "emptyEyebrow": "Still empty",
+          "scorePlaceholder": "Your health score will appear after the checkup",
+          "vitalsPlaceholder": "Readings — once you connect a watch",
+          "historyPlaceholder": "History — once you add your records"
+        },
+        "paused": {
+          "assistantLabel": "Assistant",
+          "assistantRestCheckup": "You already have a medical record — you can show it to a doctor. Next was the checkup, but we put it off. We'll come back to it when there's a minute.",
+          "assistantRestGadgets": "You already have a medical record — you can show it to a doctor. All that's left is connecting a watch — readings will start coming in on their own.",
+          "assistantRestDocuments": "You already have a medical record — you can show it to a doctor. All that's left is adding your records — and your history will be complete.",
+          "progressEyebrow": "Your progress",
+          "progressOf4": "{n} of 4",
+          "nextCheckupBody": "Next up — the checkup. A minute, and I'll see where the weak spot is.",
+          "nextGadgetsBody": "Next step — connect your watch. Heart rate, sleep and activity will come in on their own.",
+          "nextDocumentsBody": "All that's left is adding your records — and your history will be complete.",
+          "continueCheckupButton": "Take the checkup",
+          "continueGadgetsButton": "Connect",
+          "continueDocumentsButton": "Add document",
+          "availableEyebrow": "Already available",
+          "cardShortcutTitle": "Medical card",
+          "cardShortcutSubtitle": "QR for the doctor",
+          "askShortcutTitle": "Ask",
+          "askShortcutSubtitle": "what's bothering you",
+          "noVitalsNotice": "No readings yet — they'll appear after the checkup or once you connect a watch"
+        },
+        "healthy": {
+          "dueEyebrow": "Time to check",
+          "dueTitle": "Blood sugar and cholesterol — {months} months since last time",
+          "dueBody": "Once a year is enough to not miss the onset. Nothing's bothering you — good, that's exactly what a checkup is for.",
+          "noDataTitle": "When did you last get tested?",
+          "noDataBody": "Add a date or a result — and I'll tell you when it's time to repeat it.",
+          "findLabButton": "Find a lab",
+          "addResultButton": "Add a result",
+          "laterButton": "Later",
+          "weightRising": "Weight is slowly rising",
+          "weightRisingSubtitle": "+{delta} kg over 3 months",
+          "weightFalling": "Weight is slightly dropping",
+          "weightFallingSubtitle": "{delta} kg over 3 months"
+        },
+        "diagnosis": {
+          "eyebrow": "Weather and your condition",
+          "title": "A sharp pressure swing — and you have {condition}",
+          "body": "On days like this, blood pressure swings more than usual. Measure it morning and evening — I'll log it in your record.",
+          "disclaimer": "I won't advise on medication — that's for your doctor",
+          "logButton": "Log blood pressure"
+        },
+        "quiet": {
+          "assistantLabel": "Assistant",
+          "title": "Nothing important today",
+          "body": "Third month with steady readings, calm weather, nothing pressing. Just so you know.",
+          "notEnoughDataTitle": "Too early to draw conclusions",
+          "notEnoughDataBody": "Add more readings — and I'll be able to see a trend over a few months.",
+          "trendEyebrow": "Over three months",
+          "trendCaption": "A steady line is good news",
+          "trendRisingCaption": "Weight is gradually rising",
+          "trendFallingCaption": "Weight is gradually dropping"
+        },
+        "reply": {
+          "eyebrow": "The doctor replied",
+          "minutesAgo": "{name} · {count} min ago",
+          "hoursAgo": "{name} · {count}h ago",
+          "daysAgo": "{name} · {count}d ago",
+          "openButton": "Open the conversation"
         }
       }
     }

@@ -493,7 +493,8 @@
         "medicalCard": "Tibbiy karta",
         "assistant": "Yordamchi",
         "medications": "Dorilar",
-        "checkup": "Tekshiruv"
+        "checkup": "Tekshiruv",
+        "unreadBadgeAriaLabel": "bitta o'qilmagan"
       },
       "header": {
         "sos": "SOS",
@@ -634,6 +635,94 @@
           "saveButton": "Saqlash",
           "savedMessage": "Saqlandi",
           "backAriaLabel": "Tibbiy kartaga qaytish"
+        }
+      },
+      "home": {
+        "greetingMorning": "Xayrli tong",
+        "greetingDay": "Xayrli kun",
+        "greetingEvening": "Xayrli kech",
+        "greetingNight": "Xayrli tun",
+        "mainThingToday": "Bugungi asosiy narsa",
+        "askPlaceholder": "Yordamchiga javob bering…",
+        "askAriaLabel": "Yordamchiga javob berish",
+        "openChatAriaLabel": "Yordamchi bilan chatni ochish",
+        "pulseLabel": "Puls",
+        "sleepLabel": "Uyqu",
+        "weightLabel": "Vazn",
+        "pressureLabel": "Bosim",
+        "normLabel": "me'yorda",
+        "aboveNormLabel": "me'yordan yuqori",
+        "lowLabel": "kam",
+        "steadyLabel": "barqaror",
+        "empty": {
+          "title": "Assalomu alaykum",
+          "body": "Men haligacha siz haqingizda hech narsa bilmayman, shuning uchun aytadigan gapim yo'q. Buni tuzatish mumkin.",
+          "panelTitle": "Ikkita savol — va men allaqachon nimadir ayta olaman",
+          "panelBody": "Jinsi va yoshi. Keyin — xohlagancha, istalgan vaqtda to'xtash mumkin.",
+          "fillButton": "Anketani to'ldirish",
+          "emptyEyebrow": "Hozircha bo'sh",
+          "scorePlaceholder": "Sog'liq bahosi chekapdan keyin paydo bo'ladi",
+          "vitalsPlaceholder": "Ko'rsatkichlar — soat ulangandan keyin",
+          "historyPlaceholder": "Tarix — hujjatlarni qo'shgandan keyin"
+        },
+        "paused": {
+          "assistantLabel": "Yordamchi",
+          "assistantRestCheckup": "Tibbiy kartangiz allaqachon bor — uni shifokorga ko'rsatishingiz mumkin. Keyingisi chekap edi, lekin biz uni kechiktirdik. Vaqt topilganda qaytamiz.",
+          "assistantRestGadgets": "Tibbiy kartangiz allaqachon bor — uni shifokorga ko'rsatishingiz mumkin. Faqat soatni ulash qoldi — ko'rsatkichlar o'zi kela boshlaydi.",
+          "assistantRestDocuments": "Tibbiy kartangiz allaqachon bor — uni shifokorga ko'rsatishingiz mumkin. Faqat hujjatlarni qo'shish qoldi — va tarix to'liq bo'ladi.",
+          "progressEyebrow": "Sizning jarayoningiz",
+          "progressOf4": "4 tadan {n} tasi",
+          "nextCheckupBody": "Keyingisi — chekap. Bir daqiqa, va men qaysi joy zaif ekanini ko'raman.",
+          "nextGadgetsBody": "Keyingi qadam — soatingizni ulang. Puls, uyqu va faollik o'zi keladi.",
+          "nextDocumentsBody": "Faqat hujjatlarni qo'shish qoldi — va tarix to'liq bo'ladi.",
+          "continueCheckupButton": "Chekapdan o'tish",
+          "continueGadgetsButton": "Ulash",
+          "continueDocumentsButton": "Hujjat qo'shish",
+          "availableEyebrow": "Allaqachon mavjud",
+          "cardShortcutTitle": "Tibbiy karta",
+          "cardShortcutSubtitle": "Shifokor uchun QR",
+          "askShortcutTitle": "So'rash",
+          "askShortcutSubtitle": "nima bezovta qilyapti",
+          "noVitalsNotice": "Ko'rsatkichlar hali yo'q — ular chekapdan keyin yoki soat ulangandan keyin paydo bo'ladi"
+        },
+        "healthy": {
+          "dueEyebrow": "Tekshirish vaqti",
+          "dueTitle": "Qand va xolesteringa qon — oxirgi marta {months} oy oldin",
+          "dueBody": "Yiliga bir marta — boshlanishini o'tkazib yubormaslik uchun shu yetarli. Hech narsa bezovta qilmayapti — va bu yaxshi, tekshiruv aynan shuning uchun.",
+          "noDataTitle": "Oxirgi marta qachon tahlil topshirgansiz?",
+          "noDataBody": "Sana yoki natijani qo'shing — va men qachon takrorlash kerakligini aytaman.",
+          "findLabButton": "Laboratoriya topish",
+          "addResultButton": "Natija qo'shish",
+          "laterButton": "Keyinroq",
+          "weightRising": "Vazn asta-sekin oshmoqda",
+          "weightRisingSubtitle": "3 oyda +{delta} kg",
+          "weightFalling": "Vazn biroz kamaymoqda",
+          "weightFallingSubtitle": "3 oyda {delta} kg"
+        },
+        "diagnosis": {
+          "eyebrow": "Ob-havo va tashxisingiz",
+          "title": "Keskin bosim o'zgarishi — sizda esa {condition}",
+          "body": "Bunday kunlarda bosim odatdagidan ko'proq sakraydi. Ertalab va kechqurun o'lchang — men buni kartaga yozib qo'yaman.",
+          "disclaimer": "Dorilar haqida maslahat bermayman — bu shifokoringizga tegishli",
+          "logButton": "Bosimni yozib qo'yish"
+        },
+        "quiet": {
+          "assistantLabel": "Yordamchi",
+          "title": "Bugun muhim narsa yo'q",
+          "body": "Uchinchi oy ko'rsatkichlar barqaror, ob-havo tinch, hech qanday muddat siqmayapti. Shunchaki bilib qo'yishingiz uchun.",
+          "notEnoughDataTitle": "Xulosa chiqarish hali erta",
+          "notEnoughDataBody": "Ko'proq o'lchov qo'shing — va men bir necha oy davomidagi tendentsiyani ko'ra olaman.",
+          "trendEyebrow": "Uch oy davomida",
+          "trendCaption": "Tekis chiziq — bu yaxshi xabar",
+          "trendRisingCaption": "Vazn asta-sekin oshmoqda",
+          "trendFallingCaption": "Vazn asta-sekin kamaymoqda"
+        },
+        "reply": {
+          "eyebrow": "Shifokor javob berdi",
+          "minutesAgo": "{name} · {count} daqiqa oldin",
+          "hoursAgo": "{name} · {count} soat oldin",
+          "daysAgo": "{name} · {count} kun oldin",
+          "openButton": "Yozishmani ochish"
         }
       }
     }

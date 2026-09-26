@@ -9,7 +9,7 @@ import { SegmentedControl } from '@/components/soft3d/SegmentedControl';
 import { ProgressTrough } from '@/components/soft3d/ProgressTrough';
 import { Badge } from '@/components/soft3d/Badge';
 
-function Section({
+export function Section({
   title,
   mockup,
   children,
@@ -31,7 +31,7 @@ function Section({
   );
 }
 
-export function ShowcaseClient({ title }: { title: string }) {
+export function ShowcaseClient({ title, children }: { title: string; children?: React.ReactNode }) {
   const [toggleOn, setToggleOn] = React.useState(true);
   const [toggleOff, setToggleOff] = React.useState(false);
   const [segment, setSegment] = React.useState('all');
@@ -195,6 +195,8 @@ export function ShowcaseClient({ title }: { title: string }) {
           <Badge status="deviation">ниже нормы</Badge>
         </div>
       </Section>
+
+      {children}
     </div>
   );
 }

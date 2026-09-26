@@ -493,7 +493,8 @@
         "medicalCard": "Медкарта",
         "assistant": "Ассистент",
         "medications": "Лекарства",
-        "checkup": "Чекап"
+        "checkup": "Чекап",
+        "unreadBadgeAriaLabel": "одно непрочитанное"
       },
       "header": {
         "sos": "SOS",
@@ -634,6 +635,94 @@
           "saveButton": "Сохранить",
           "savedMessage": "Сохранено",
           "backAriaLabel": "Назад к медкарте"
+        }
+      },
+      "home": {
+        "greetingMorning": "Доброе утро",
+        "greetingDay": "Добрый день",
+        "greetingEvening": "Добрый вечер",
+        "greetingNight": "Доброй ночи",
+        "mainThingToday": "Главное сегодня",
+        "askPlaceholder": "Ответить ассистенту…",
+        "askAriaLabel": "Ответить ассистенту",
+        "openChatAriaLabel": "Открыть чат с ассистентом",
+        "pulseLabel": "Пульс",
+        "sleepLabel": "Сон",
+        "weightLabel": "Вес",
+        "pressureLabel": "Давление",
+        "normLabel": "норма",
+        "aboveNormLabel": "выше нормы",
+        "lowLabel": "мало",
+        "steadyLabel": "ровно",
+        "empty": {
+          "title": "Здравствуйте",
+          "body": "Пока я о вас ничего не знаю, поэтому и сказать нечего. Это поправимо.",
+          "panelTitle": "Два вопроса — и я уже смогу что-то сказать",
+          "panelBody": "Пол и возраст. Дальше — сколько захотите, остановиться можно в любой момент.",
+          "fillButton": "Заполнить анкету",
+          "emptyEyebrow": "Пока пусто",
+          "scorePlaceholder": "Оценка здоровья появится после чекапа",
+          "vitalsPlaceholder": "Показатели — после подключения часов",
+          "historyPlaceholder": "История — когда добавите выписки"
+        },
+        "paused": {
+          "assistantLabel": "Ассистент",
+          "assistantRestCheckup": "Медкарта у вас уже есть — можно показывать врачу. Дальше был чекап, но мы его отложили. Вернёмся, когда будет минута.",
+          "assistantRestGadgets": "Медкарта у вас уже есть — можно показывать врачу. Осталось подключить часы — и показатели начнут приходить сами.",
+          "assistantRestDocuments": "Медкарта у вас уже есть — можно показывать врачу. Осталось добавить выписки — и история станет полной.",
+          "progressEyebrow": "Ваш прогресс",
+          "progressOf4": "{n} из 4",
+          "nextCheckupBody": "Следующий — чекап. Минута, и я увижу, где слабое место.",
+          "nextGadgetsBody": "Следующий шаг — подключить часы. Пульс, сон и активность придут сами.",
+          "nextDocumentsBody": "Осталось добавить выписки — и история станет полной.",
+          "continueCheckupButton": "Пройти чекап",
+          "continueGadgetsButton": "Подключить",
+          "continueDocumentsButton": "Добавить документ",
+          "availableEyebrow": "Уже доступно",
+          "cardShortcutTitle": "Медкарта",
+          "cardShortcutSubtitle": "QR для врача",
+          "askShortcutTitle": "Спросить",
+          "askShortcutSubtitle": "что беспокоит",
+          "noVitalsNotice": "Показателей пока нет — они появятся после чекапа или подключения часов"
+        },
+        "healthy": {
+          "dueEyebrow": "Пора проверить",
+          "dueTitle": "Кровь на сахар и холестерин — прошло {months} мес.",
+          "dueBody": "Раз в год — этого достаточно, чтобы не пропустить начало. Ничего не беспокоит — и хорошо, проверка как раз для этого.",
+          "noDataTitle": "Когда вы в последний раз сдавали анализы?",
+          "noDataBody": "Добавьте дату или результат — и я подскажу, когда стоит повторить.",
+          "findLabButton": "Найти лабораторию",
+          "addResultButton": "Добавить результат",
+          "laterButton": "Позже",
+          "weightRising": "Вес растёт понемногу",
+          "weightRisingSubtitle": "+{delta} кг за 3 мес",
+          "weightFalling": "Вес немного снижается",
+          "weightFallingSubtitle": "{delta} кг за 3 мес"
+        },
+        "diagnosis": {
+          "eyebrow": "Погода и ваш диагноз",
+          "title": "Резкая смена давления — а у вас {condition}",
+          "body": "В такие дни давление скачет сильнее обычного. Померяйте утром и вечером — я запишу в карту.",
+          "disclaimer": "Про лекарства не советую — это к вашему врачу",
+          "logButton": "Записать давление"
+        },
+        "quiet": {
+          "assistantLabel": "Ассистент",
+          "title": "Сегодня ничего важного",
+          "body": "Третий месяц показатели ровные, погода спокойная, сроков ничего не поджимает. Просто чтобы вы знали.",
+          "notEnoughDataTitle": "Пока рано делать выводы",
+          "notEnoughDataBody": "Добавьте больше замеров — и я смогу увидеть тенденцию за несколько месяцев.",
+          "trendEyebrow": "За три месяца",
+          "trendCaption": "Ровная линия — это хорошая новость",
+          "trendRisingCaption": "Вес постепенно растёт",
+          "trendFallingCaption": "Вес постепенно снижается"
+        },
+        "reply": {
+          "eyebrow": "Врач ответил",
+          "minutesAgo": "{name} · {count} мин. назад",
+          "hoursAgo": "{name} · {count} ч. назад",
+          "daysAgo": "{name} · {count} дн. назад",
+          "openButton": "Открыть переписку"
         }
       }
     }
