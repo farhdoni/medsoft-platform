@@ -5,13 +5,22 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
+export interface BottomNavBadges {
+  /** Doctor-unread-reply signal (Part C) — shown on the "assistant" item,
+   *  matching HomeReply.dc.html's nav badge. Always 1 when true: this is a
+   *  presence signal (getOnboardingProgress's sibling, home-state.ts's
+   *  doctorReply.hasUnread), not a real unread-message count. */
+  assistant?: number;
+}
+
 /** Bottom nav — Main.dc.html. Current section gets the clay `.navbtn-on` pill. */
-export function BottomNav({ locale }: { locale: string }) {
+export function BottomNav({ locale, badges }: { locale: string; badges?: BottomNavBadges }) {
   const t = useTranslations('app.soft3d.nav');
   const pathname = usePathname();
 
   const items = [
     {
+      id: 'home' as const,
       href: `/${locale}/home`,
       label: t('home'),
       icon: (
@@ -26,6 +35,7 @@ export function BottomNav({ locale }: { locale: string }) {
       ),
     },
     {
+      id: 'medicalCard' as const,
       href: `/${locale}/medical-card`,
       label: t('medicalCard'),
       icon: (
@@ -40,6 +50,7 @@ export function BottomNav({ locale }: { locale: string }) {
       ),
     },
     {
+      id: 'assistant' as const,
       href: `/${locale}/ai-chat`,
       label: t('assistant'),
       icon: (
@@ -54,6 +65,7 @@ export function BottomNav({ locale }: { locale: string }) {
       ),
     },
     {
+      id: 'medications' as const,
       href: `/${locale}/medications`,
       label: t('medications'),
       icon: (
@@ -68,6 +80,7 @@ export function BottomNav({ locale }: { locale: string }) {
       ),
     },
     {
+      id: 'checkup' as const,
       href: `/${locale}/ai-checkup`,
       label: t('checkup'),
       icon: (
@@ -104,6 +117,17 @@ export function BottomNav({ locale }: { locale: string }) {
     >
       {items.map((item) => {
         const active = pathname?.startsWith(item.href);
+        const badgeCount = item.id === 'assistant' ? badges?.assistant : undefined;
+        const icon = active ? (
+          <span
+            className="navbtn-on"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 28, borderRadius: 14 }}
+          >
+            {item.icon}
+          </span>
+        ) : (
+          item.iconOff
+        );
         return (
           <Link
             key={item.href}
@@ -111,16 +135,23 @@ export function BottomNav({ locale }: { locale: string }) {
             className="navbtn"
             aria-current={active ? 'page' : undefined}
           >
-            {active ? (
-              <span
-                className="navbtn-on"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 28, borderRadius: 14 }}
-              >
-                {item.icon}
+            {badgeCount ? (
+              <span style={{ position: 'relative', display: 'flex' }}>
+                {icon}
+                <span
+                  aria-label={t('unreadBadgeAriaLabel')}
+                  style={{
+                    position: 'absolute', top: -5, right: -7, minWidth: 18, height: 18, padding: '0 4px',
+                    borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    font: '800 11px/1 Nunito, sans-serif', color: '#fff',
+                    background: 'linear-gradient(176deg, var(--s3-clay-lt), var(--s3-clay-dk))',
+                    boxShadow: '0 2px 0 -1px var(--s3-clay-wall)',
+                  }}
+                >
+                  {badgeCount}
+                </span>
               </span>
-            ) : (
-              item.iconOff
-            )}
+            ) : icon}
             {item.label}
           </Link>
         );

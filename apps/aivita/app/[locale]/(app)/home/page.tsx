@@ -11,8 +11,17 @@ import { getSession } from '@/lib/auth/session';
 import { HomeDashboard } from './HomeDashboard';
 import { TelegramBanner } from './TelegramBanner';
 import { SurveyBanner } from './SurveyBanner';
+import { isSoft3dEnabled } from '@/lib/soft3d/flag';
+import { loadHomeSoft3dData } from './soft3d-data';
+import { HomeSoft3d } from './soft3d/HomeSoft3d';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+//
+// Gate, not content (same pattern as onboarding/page.tsx): unflagged
+// accounts get exactly today's home, unchanged — loadHomeData() and every
+// component below this line are untouched by Part C. Flagged accounts get
+// the new Soft 3D home instead, on entirely separate data (soft3d-data.ts),
+// so the unflagged path can never regress from this work.
 
 export default async function HomePage({
   params,
@@ -20,8 +29,15 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [{ user, metrics, activity, report, vitalsLatest, doctors, telegramLinked, surveyQuestion }, session] =
-    await Promise.all([loadHomeData(), getSession()]);
+  const session = await getSession();
+
+  if (session && isSoft3dEnabled(session.email)) {
+    const data = await loadHomeSoft3dData();
+    return <HomeSoft3d locale={locale} data={data} />;
+  }
+
+  const { user, metrics, activity, report, vitalsLatest, doctors, telegramLinked, surveyQuestion } =
+    await loadHomeData();
 
   const vitals = vitalsLatest as Record<string, { recordedAt: string; value: Record<string, unknown> } | null>;
 

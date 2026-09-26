@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
+import { isSharpPressureSwing, pressureDelta24h, type HourlyPressure } from './weather-pressure-logic';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -18,12 +19,14 @@ interface Coords {
 
 interface OMWeather {
   current: {
+    time: string;
     temperature_2m: number;
     apparent_temperature: number;
     weather_code: number;
     surface_pressure: number;
     uv_index: number;
   };
+  hourly: HourlyPressure;
   daily: {
     time: string[];
     weather_code: number[];
@@ -109,7 +112,11 @@ function kpLabelKey(kp: number): string {
 
 // ─── Health alert logic ───────────────────────────────────────────────────────
 
-function buildAlerts(uv: number, pm25: number, kp: number): Alert[] {
+// pressureDeltaAbs: |24h change| in hPa, or null when there isn't enough
+// historical data to compute it honestly (see weather-pressure-logic.ts for
+// the threshold and its citations). Kept fully separate from the Kp-index
+// alert below — never merged into or presented as the same warning.
+function buildAlerts(uv: number, pm25: number, kp: number, pressureSwing: boolean): Alert[] {
   const out: Alert[] = [];
   if (uv >= 8) {
     out.push({
@@ -129,6 +136,13 @@ function buildAlerts(uv: number, pm25: number, kp: number): Alert[] {
       level: 'warn', icon: '💨',
       text: 'Качество воздуха снижено',
       detail: 'Астма, ХОБЛ, аллергия, поллиноз — меньше физических нагрузок на улице',
+    });
+  }
+  if (pressureSwing) {
+    out.push({
+      level: 'warn', icon: '🌡️',
+      text: 'Резкая смена давления',
+      detail: 'Метеочувствительным стоит поберечься',
     });
   }
   if (kp >= 5) {
@@ -232,6 +246,7 @@ export function WeatherCard() {
         fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
           `&current=temperature_2m,apparent_temperature,weather_code,surface_pressure,uv_index` +
+          `&hourly=surface_pressure&past_days=2` +
           `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
           `&timezone=auto&forecast_days=7`,
         ),
@@ -343,7 +358,11 @@ export function WeatherCard() {
   // ── Derived values ────────────────────────────────────────────────────────
   const pm25 = air?.current.pm2_5 ?? 0;
   const kpVal = kp ?? 0;
-  const alerts = weather ? buildAlerts(weather.current.uv_index, pm25, kpVal) : [];
+  const pressureDelta = weather
+    ? pressureDelta24h(weather.hourly, weather.current.time, weather.current.surface_pressure)
+    : null;
+  const pressureSwing = isSharpPressureSwing(pressureDelta);
+  const alerts = weather ? buildAlerts(weather.current.uv_index, pm25, kpVal, pressureSwing) : [];
   const worstLevel: 'bad' | 'warn' | 'good' = alerts.some(a => a.level === 'bad') ? 'bad'
     : alerts.length > 0 ? 'warn' : 'good';
 
